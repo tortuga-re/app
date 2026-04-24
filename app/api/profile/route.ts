@@ -28,8 +28,17 @@ export async function GET(request: Request) {
     );
   }
 
+  const normalizedQuery = mode === "email" ? normalizeEmail(query) : query;
+
+  if (mode === "email" && !isValidEmail(normalizedQuery)) {
+    return NextResponse.json(
+      { error: "Inserisci un indirizzo email valido." },
+      { status: 400 },
+    );
+  }
+
   try {
-    const data = await getProfileData(mode, query);
+    const data = await getProfileData(mode, normalizedQuery);
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(

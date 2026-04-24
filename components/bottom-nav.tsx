@@ -7,6 +7,20 @@ import { cn } from "@/lib/utils";
 
 const items = [
   {
+    href: "/",
+    label: "Home",
+    icon: (
+      <path
+        d="M4.75 10.75 12 4.5l7.25 6.25v7a1.75 1.75 0 0 1-1.75 1.75h-3.25v-5h-4.5v5H6.5a1.75 1.75 0 0 1-1.75-1.75v-7Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    ),
+  },
+  {
     href: "/prenota",
     label: "Prenota",
     icon: (
@@ -21,11 +35,11 @@ const items = [
     ),
   },
   {
-    href: "/profilo",
-    label: "Profilo",
+    href: "/ciurma",
+    label: "Ciurma",
     icon: (
       <path
-        d="M12 11.25a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6.75 7a6.75 6.75 0 0 1 13.5 0"
+        d="M12 11.25a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6.75 7a6.75 6.75 0 0 1 13.5 0M17.75 7.25l1.5-1.5m-14.5 0 1.5 1.5"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
@@ -35,8 +49,8 @@ const items = [
     ),
   },
   {
-    href: "/sedi",
-    label: "Info e Serate",
+    href: "/info",
+    label: "Info",
     icon: (
       <path
         d="M4.75 18.25h14.5M7 18.25V8.75a1 1 0 0 1 .56-.9L12 5.75l4.44 2.1a1 1 0 0 1 .56.9v9.5m-7.5-8.5h5M10 11.75h1m3 0h1m-5 3h1m3 0h1"
@@ -56,7 +70,7 @@ export function BottomNav() {
   return (
     <div className="app-bottom-nav pointer-events-none fixed inset-x-0 z-30 flex justify-center px-4">
       <nav className="pointer-events-auto panel flex w-full max-w-md flex-col gap-3 rounded-[2.1rem] px-3 pb-3 pt-3">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {items.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -64,7 +78,7 @@ export function BottomNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-[1.35rem] border px-3 py-3 text-[9px] font-semibold uppercase leading-tight tracking-[0.18em] transition",
+                  "flex min-h-[64px] flex-col items-center justify-center gap-2 rounded-[1.25rem] border px-2 py-3 text-[8px] font-semibold uppercase leading-tight tracking-[0.16em] transition",
                   isActive
                     ? "border-[rgba(122,87,40,0.55)] bg-[linear-gradient(135deg,#f6ddb0_0%,#c38a46_52%,#7a5728_100%)] text-[#21170e] shadow-[0_12px_26px_rgba(181,138,77,0.3)]"
                     : "border-[rgba(255,216,156,0.08)] bg-[rgba(255,255,255,0.03)] text-[var(--text-muted)]",

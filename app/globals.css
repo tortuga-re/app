@@ -223,4 +223,108 @@ textarea {
   .app-bottom-nav {
     bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-nav-offset));
   }
+
+  .captain-fuse-core {
+    animation:
+      captain-fuse-pulse 680ms ease-in-out infinite alternate,
+      captain-fuse-jitter 920ms steps(2, end) infinite;
+  }
+
+  .captain-go-core {
+    animation: captain-go-blast 360ms ease-out infinite alternate;
+  }
+
+  .captain-explosion {
+    animation: captain-panel-flash 520ms ease-out 1;
+  }
+
+  .captain-spark {
+    position: absolute;
+    height: 0.45rem;
+    width: 0.45rem;
+    border-radius: 999px;
+    background: #f6ddb0;
+    opacity: 0.22;
+    box-shadow: 0 0 20px rgba(246, 221, 176, 0.32);
+    pointer-events: none;
+  }
+
+  .captain-spark-one {
+    left: 18%;
+    top: 22%;
+    animation: captain-spark-drift 1.4s ease-in-out infinite alternate;
+  }
+
+  .captain-spark-two {
+    right: 20%;
+    top: 34%;
+    animation: captain-spark-drift 1.9s ease-in-out 180ms infinite alternate;
+  }
+
+  .captain-spark-three {
+    bottom: 22%;
+    left: 48%;
+    animation: captain-spark-drift 1.2s ease-in-out 320ms infinite alternate;
+  }
+}
+
+@keyframes captain-fuse-pulse {
+  from {
+    transform: scale(0.94);
+    box-shadow: 0 0 18px rgba(194, 139, 70, 0.24);
+  }
+  to {
+    transform: scale(1.04);
+    box-shadow: 0 0 46px rgba(240, 139, 117, 0.42);
+  }
+}
+
+@keyframes captain-fuse-jitter {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: 2px -1px;
+  }
+  50% {
+    translate: -1px 2px;
+  }
+  75% {
+    translate: 1px 1px;
+  }
+}
+
+@keyframes captain-go-blast {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 34px rgba(240, 139, 117, 0.36);
+  }
+  to {
+    transform: scale(1.12);
+    box-shadow: 0 0 68px rgba(240, 139, 117, 0.62);
+  }
+}
+
+@keyframes captain-panel-flash {
+  0% {
+    filter: brightness(1);
+  }
+  32% {
+    filter: brightness(1.32);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes captain-spark-drift {
+  from {
+    opacity: 0.12;
+    transform: translate3d(-4px, 3px, 0) scale(0.72);
+  }
+  to {
+    opacity: 0.5;
+    transform: translate3d(5px, -5px, 0) scale(1.08);
+  }
 }

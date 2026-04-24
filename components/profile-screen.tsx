@@ -4,14 +4,26 @@ import { useEffect, useRef, useState } from "react";
 
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { StatusBlock } from "@/components/status-block";
+import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { requestJson } from "@/lib/client";
 import {
   isValidCustomerEmail,
   normalizeCustomerEmail,
   useCustomerIdentity,
 } from "@/lib/customer-identity";
+import {
+  formatBirthDateLabel,
+  formatCouponExpiry,
+  getCouponDisplayCode,
+  getCouponQrValue,
+  getProfileUpcomingReservations,
+  sortActiveCoupons,
+  sortExpiredCoupons,
+  toDateInputValue,
+} from "@/lib/customer-profile";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
+import { ciurmaRoadmapFeatures } from "@/lib/config";
 import { cn, formatDateTime } from "@/lib/utils";
 
 type ContactFormState = {
@@ -44,34 +56,6 @@ const loadProfileData = async (email: string) => {
   return requestJson<ProfileResponse>(`/api/profile?${params.toString()}`);
 };
 
-const toDateInputValue = (value?: string) => {
-  if (!value) {
-    return "";
-  }
-
-  const directMatch = value.match(/^\d{4}-\d{2}-\d{2}/);
-  if (directMatch) {
-    return directMatch[0];
-  }
-
-  const timestamp = Date.parse(value);
-  if (Number.isNaN(timestamp)) {
-    return "";
-  }
-
-  return new Date(timestamp).toISOString().slice(0, 10);
-};
-
-const formatBirthDateLabel = (value?: string) => {
-  const dateValue = toDateInputValue(value);
-  if (!dateValue) {
-    return "Non disponibile";
-  }
-
-  const [year, month, day] = dateValue.split("-");
-  return `${day}/${month}/${year}`;
-};
-
 const buildContactForm = (
   contact: ProfileResponse["contact"] | undefined,
 ): ContactFormState => ({
@@ -82,44 +66,6 @@ const buildContactForm = (
   birthDate: toDateInputValue(contact?.DataDiNascita),
   marketingConsent: contact?.ConsensoMarketing === 1,
 });
-
-const formatCouponExpiry = (value?: string) => {
-  if (!value) {
-    return "Scadenza non disponibile";
-  }
-
-  const timestamp = Date.parse(value);
-  if (Number.isNaN(timestamp)) {
-    return "Scadenza non disponibile";
-  }
-
-  return new Intl.DateTimeFormat("it-IT", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(timestamp));
-};
-
-const getCouponDisplayCode = (coupon: CoopertoCoupon) =>
-  coupon.CodiceCoupon?.trim() ||
-  coupon.CodiceCouponContatto?.trim() ||
-  "Coupon Tortuga";
-
-const getCouponQrValue = (coupon: CoopertoCoupon) =>
-  coupon.CodiceCouponContatto?.trim() || coupon.CodiceCoupon?.trim() || "";
-
-const isCouponExpired = (coupon: CoopertoCoupon) => {
-  if (coupon.Utilizzato || coupon.DataUtilizzo) {
-    return true;
-  }
-
-  if (!coupon.DataScadenza) {
-    return false;
-  }
-
-  const expiresAt = Date.parse(coupon.DataScadenza);
-  return !Number.isNaN(expiresAt) && expiresAt < Date.now();
-};
 
 function CouponAccordionCard({
   title,
@@ -208,7 +154,7 @@ function CouponAccordionCard({
   );
 }
 
-export function ProfileScreen() {
+export function CiurmaScreen() {
   const {
     identity,
     hasIdentity,
@@ -240,49 +186,16 @@ export function ProfileScreen() {
   const points = data?.points ?? data?.contact?.SaldoPuntiCard ?? 0;
   const visits = data?.contact?.NumeroVisite ?? 0;
   const coupons = data?.coupons ?? [];
-  const activeCoupons = coupons
-    .filter((coupon) => !isCouponExpired(coupon))
-    .sort((left, right) => {
-      const leftTime = Date.parse(left.DataScadenza ?? "");
-      const rightTime = Date.parse(right.DataScadenza ?? "");
-
-      if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
-        return getCouponDisplayCode(left).localeCompare(getCouponDisplayCode(right));
-      }
-
-      if (Number.isNaN(leftTime)) {
-        return 1;
-      }
-
-      if (Number.isNaN(rightTime)) {
-        return -1;
-      }
-
-      return leftTime - rightTime;
-    });
-  const expiredCoupons = coupons
-    .filter((coupon) => isCouponExpired(coupon))
-    .sort((left, right) => {
-      const leftTime = Date.parse(left.DataScadenza ?? left.DataUtilizzo ?? "");
-      const rightTime = Date.parse(right.DataScadenza ?? right.DataUtilizzo ?? "");
-
-      if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
-        return getCouponDisplayCode(left).localeCompare(getCouponDisplayCode(right));
-      }
-
-      if (Number.isNaN(leftTime)) {
-        return 1;
-      }
-
-      if (Number.isNaN(rightTime)) {
-        return -1;
-      }
-
-      return rightTime - leftTime;
-    });
-  const upcomingReservations = data?.upcomingReservations ?? [];
+  const activeCoupons = sortActiveCoupons(coupons);
+  const expiredCoupons = sortExpiredCoupons(coupons);
+  const reservationOwnerEmail = identityEmail || normalizeCustomerEmail(lookupEmail);
+  const upcomingReservations = getProfileUpcomingReservations(
+    data,
+    reservationOwnerEmail,
+  );
   const rewardProgress = getFidelityRewardProgress(points);
   const isVip = rewardProgress.isVip;
+  const loyaltyTier = rewardProgress.loyaltyTier;
   const hasMarketingConsent =
     data?.contact?.ConsensoMarketing === 1 || identity.marketingConsent === true;
   const contactSnapshot = buildContactForm(data?.contact);
@@ -298,6 +211,21 @@ export function ProfileScreen() {
   const isEditingContacts = activeEditSection === "contacts";
   const isEditingBirthDate = activeEditSection === "birthDate";
   const shouldShowBirthDateEditor = isEditingBirthDate || !hasStoredBirthDate;
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    console.info("[Tortuga reservations][CIURMA] filtro applicato", {
+      emailUtente: reservationOwnerEmail || null,
+      prenotazioniRicevute: data.upcomingReservations.length,
+      prenotazioniMostrate: upcomingReservations.length,
+      filtro: reservationOwnerEmail
+        ? "booking.email === currentUser.email"
+        : "no-email-empty",
+    });
+  }, [data, reservationOwnerEmail, upcomingReservations.length]);
 
   useEffect(() => {
     if (!identityEmail || isEditingLookup || hasProfile) {
@@ -352,7 +280,7 @@ export function ProfileScreen() {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : "Non sono riuscito a recuperare il profilo.",
+            : "Non sono riuscito a recuperare la tua ciurma.",
         );
         autoLoadedKeyRef.current = "";
       } finally {
@@ -434,7 +362,7 @@ export function ProfileScreen() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Non sono riuscito a recuperare il profilo.",
+          : "Non sono riuscito a recuperare la tua ciurma.",
       );
       autoLoadedKeyRef.current = "";
     } finally {
@@ -544,7 +472,19 @@ export function ProfileScreen() {
 
   return (
     <section className="space-y-5">
-      {upcomingReservations.length > 0 ? (
+      <div className="panel rounded-[2rem] px-5 py-4">
+        <p className="eyebrow">Ciurma</p>
+        <h1 className="mt-2 text-2xl font-semibold uppercase tracking-[0.08em] text-white">
+          La tua rotta Tortuga
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+          Fidelity, prenotazioni, coupon e dati cliente in un&apos;unica area.
+        </p>
+      </div>
+
+      <CaptainChallengeTeaser />
+
+      {hasProfile ? (
         <div className="panel rounded-[2rem] p-5">
           <div className="space-y-2">
             <p className="eyebrow">Prossime Prenotazioni</p>
@@ -553,36 +493,42 @@ export function ProfileScreen() {
             </p>
           </div>
 
-          <div className="mt-4 space-y-3">
-            {upcomingReservations.map((reservation) => (
-              <div
-                key={`${reservation.reservationCode ?? reservation.dateTime}-${reservation.stateLabel}`}
-                className="panel-muted rounded-[1.5rem] px-4 py-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-base font-semibold text-white">
-                      {formatDateTime(reservation.dateTime)}
-                    </p>
-                    <p className="text-sm text-[var(--text-muted)]">
-                      {reservation.pax
-                        ? `${reservation.pax} persone`
-                        : "Numero persone non disponibile"}
-                    </p>
-                    {reservation.roomName ? (
-                      <p className="text-sm text-[var(--text-muted)]">
-                        Sala: <span className="text-white">{reservation.roomName}</span>
+          {upcomingReservations.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {upcomingReservations.map((reservation) => (
+                <div
+                  key={`${reservation.reservationCode ?? reservation.dateTime}-${reservation.stateLabel}`}
+                  className="panel-muted rounded-[1.5rem] px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-base font-semibold text-white">
+                        {formatDateTime(reservation.dateTime)}
                       </p>
-                    ) : null}
-                  </div>
+                      <p className="text-sm text-[var(--text-muted)]">
+                        {reservation.pax
+                          ? `${reservation.pax} persone`
+                          : "Numero persone non disponibile"}
+                      </p>
+                      {reservation.roomName ? (
+                        <p className="text-sm text-[var(--text-muted)]">
+                          Sala: <span className="text-white">{reservation.roomName}</span>
+                        </p>
+                      ) : null}
+                    </div>
 
-                  <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
-                    {reservation.stateLabel}
-                  </span>
+                    <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
+                      {reservation.stateLabel}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
+              Nessuna prenotazione trovata.
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -610,7 +556,7 @@ export function ProfileScreen() {
               onClick={() => void runLookup()}
               disabled={loading}
             >
-              {loading ? "Recupero il profilo..." : "Entra nella tua area"}
+              {loading ? "Recupero la ciurma..." : "Entra nella tua area"}
             </button>
           </div>
         </div>
@@ -619,7 +565,7 @@ export function ProfileScreen() {
       {loading && !hasProfile ? (
         <StatusBlock
           variant="loading"
-          title="Sto recuperando il tuo profilo"
+          title="Sto recuperando la tua ciurma"
           description="Uso la tua email salvata per riportarti subito a bordo della tua area fidelity."
         />
       ) : null}
@@ -635,8 +581,8 @@ export function ProfileScreen() {
       {!loading && !hasProfile && !showLookupPanel ? (
         <StatusBlock
           variant="info"
-          title="Profilo non disponibile"
-          description="L'email salvata non ha restituito un profilo valido. Puoi cambiare account e riprovare con un'altra email."
+          title="Ciurma non disponibile"
+          description="L'email salvata non ha restituito dati validi. Puoi cambiare account e riprovare con un'altra email."
           action={
             <button
               type="button"
@@ -653,7 +599,7 @@ export function ProfileScreen() {
         <StatusBlock
           variant="empty"
           title="Contatto non trovato"
-          description="Cooperto non ha restituito un profilo per questa email. Controlla l'indirizzo inserito o prova con un altro account."
+          description="Cooperto non ha restituito dati per questa email. Controlla l'indirizzo inserito o prova con un altro account."
         />
       ) : null}
 
@@ -961,6 +907,27 @@ export function ProfileScreen() {
               </p>
             </div>
 
+            <div className="mt-5 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
+                Livello ciurma
+              </p>
+              <div className="mt-2 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-lg font-semibold text-white">
+                    {loyaltyTier.label}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                    {loyaltyTier.description}
+                  </p>
+                </div>
+                {isVip ? (
+                  <span className="rounded-full border border-[rgba(242,215,165,0.32)] bg-[rgba(242,215,165,0.16)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5deb0]">
+                    VIP
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
             <div className="mt-5 rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
               <div className="flex items-center justify-between gap-3">
                 <p className={cn("text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]", isVip && "text-[#f5deb0]")}>
@@ -1098,11 +1065,11 @@ export function ProfileScreen() {
           <div className="space-y-3">
             <CouponAccordionCard
               title="Coupon Attivi"
-              description="I vantaggi pronti da usare nelle tue prossime rotte Tortuga."
+              description="Benefit e codici pronti da usare nelle tue prossime rotte Tortuga."
               coupons={activeCoupons}
               isOpen={showActiveCoupons}
               onToggle={() => setShowActiveCoupons((current) => !current)}
-              emptyMessage="Al momento non risultano coupon attivi per questo profilo."
+              emptyMessage="Al momento non risultano coupon attivi per questa ciurma."
             />
 
             <CouponAccordionCard
@@ -1111,7 +1078,7 @@ export function ProfileScreen() {
               coupons={expiredCoupons}
               isOpen={showExpiredCoupons}
               onToggle={() => setShowExpiredCoupons((current) => !current)}
-              emptyMessage="Al momento non risultano coupon scaduti per questo profilo."
+              emptyMessage="Al momento non risultano coupon scaduti per questa ciurma."
             />
 
             <div className="panel rounded-[2rem] px-5 py-6">
@@ -1120,6 +1087,40 @@ export function ProfileScreen() {
               <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                 Le volte in cui sei gia&apos; passato dal Tortuga.
               </p>
+              {data?.contact?.DataUltimaVisita ? (
+                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                  Ultima visita:{" "}
+                  <span className="text-white">
+                    {formatDateTime(data.contact.DataUltimaVisita)}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+
+            <div className="panel rounded-[2rem] px-5 py-6">
+              <p className="eyebrow">Prossime rotte</p>
+              <div className="mt-4 grid gap-3">
+                {ciurmaRoadmapFeatures.map((feature) => (
+                  <div
+                    key={feature.title}
+                    className="panel-muted rounded-[1.5rem] px-4 py-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-base font-semibold text-white">
+                          {feature.title}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                          {feature.description}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[rgba(255,216,156,0.1)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                        Roadmap
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </>
@@ -1127,3 +1128,5 @@ export function ProfileScreen() {
     </section>
   );
 }
+
+export const ProfileScreen = CiurmaScreen;

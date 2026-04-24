@@ -1,11 +1,14 @@
 import {
+  fidelityLoyaltyTiers,
   fidelityRewardTiers,
   fidelityVipThreshold,
+  type FidelityLoyaltyTier,
   type FidelityRewardTier,
 } from "@/lib/fidelity-rewards.config";
 
 export type FidelityRewardProgress = {
   points: number;
+  loyaltyTier: FidelityLoyaltyTier;
   currentReward: FidelityRewardTier | null;
   nextReward: FidelityRewardTier | null;
   progressPercent: number;
@@ -21,6 +24,9 @@ export const getFidelityRewardProgress = (
   const points = Math.max(0, Math.floor(rawPoints ?? 0));
   const currentReward =
     [...fidelityRewardTiers].reverse().find((tier) => points >= tier.threshold) ?? null;
+  const loyaltyTier =
+    [...fidelityLoyaltyTiers].reverse().find((tier) => points >= tier.minPoints) ??
+    fidelityLoyaltyTiers[0];
   const nextReward =
     fidelityRewardTiers.find((tier) => points < tier.threshold) ?? null;
   const previousThreshold = currentReward?.threshold ?? 0;
@@ -35,6 +41,7 @@ export const getFidelityRewardProgress = (
 
   return {
     points,
+    loyaltyTier,
     currentReward,
     nextReward,
     progressPercent,

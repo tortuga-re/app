@@ -1,6 +1,6 @@
 # Tortuga Client App
 
-Web app clienti mobile-first per Tortuga Bay, costruita con Next.js App Router, TypeScript e Tailwind CSS v4. L'integrazione Cooperto e interamente server-side, con PWA installabile, shell mobile, fallback mock leggibili e rotte pronte per prenotazione, profilo e sedi.
+Web app clienti mobile-first per Tortuga Bay, costruita con Next.js App Router, TypeScript e Tailwind CSS v4. L'integrazione Cooperto e interamente server-side, con PWA installabile, shell mobile, fallback mock leggibili e rotte pronte per home cliente, prenotazione, ciurma fidelity e info locale.
 
 ## Stack
 
@@ -42,23 +42,49 @@ Le variabili richieste sono:
 - `COOPERTO_BOOKING_ROOM_CODES`
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
 - `PUSH_SUBSCRIPTIONS_FILE`
+- `WIN_WINDOW_MS` (default `250`)
+- `GAME_MIN_DELAY_MS` (default `2000`)
+- `GAME_MAX_DELAY_MS` (default `6000`)
+- `GAME_WIN_OFFER_DURATION_SECONDS` (default `600`)
+- `GAME_LOSE_OFFER_DURATION_SECONDS` (default `300`)
 
 Se una o piu variabili mancassero, le route interne passano automaticamente a mock locale o fallback mock per mantenere l'app navigabile.
 
 ## Flussi implementati
 
+- `/`
+  - dashboard cliente con priorita dinamica tra prossima prenotazione, compleanno vicino, coupon attivo e prenotazione rapida
+  - riepilogo punti, fidelity, coupon, visite e azioni rapide
 - `/prenota`
   - bootstrap modulo con `GET /api/Prenotazioni/ElencoModuliPrenotazione`
   - disponibilita con `GET /api/Prenotazioni/OrariModulo`
   - creazione prenotazione reale con `POST /api/Prenotazioni/Crea`
-- `/profilo`
+- `/ciurma`
   - dettagli contatto via email o codice contatto
   - saldo punti
   - coupon contatto
   - elenco fidelity card
-- `/sedi`
+- `/info`
   - elenco sedi
   - orari e eccezioni per sede
+  - indicazioni, programmazione, contatti e social predisposti
+- `/game/sfida-capitano`
+  - gioco riflessi con round creato e validato server-side
+  - vite MVP via cookie player + store in-memory
+  - referral link `/game/sfida-capitano?ref=CODICE_UNIVOCO`
+  - `POST /api/game/start` genera `gameId` sicuro e delay miccia
+  - `POST /api/game/tap` calcola false start, win o lose usando solo timestamp server
+  - `GET /api/game/lives` restituisce vite disponibili
+  - `POST /api/game/referral/create` crea o recupera il codice referral
+  - `POST /api/game/referral/claim` registra apertura unica per browser/player
+
+## Note Sfida il Capitano
+
+- Il frontend usa `explosionDelayMs` restituito dal backend solo per schedulare il segnale GO.
+- La UI non mostra barre, countdown o indicatori del tempo residuo prima del GO.
+- Il reaction time non arriva mai dal client: viene calcolato da `/api/game/tap`.
+- Ogni player cookie parte con 1 vita. Il round consuma 1 vita quando viene completato.
+- Lo storage round, vite e referral e in-memory per MVP locale. In produzione multi-instance/serverless va sostituito con Redis o database con TTL e update atomico one-shot legato a cliente autenticato/email.
 
 ## Note Cooperto
 

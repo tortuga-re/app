@@ -1,6 +1,6 @@
-import { VenuesScreen } from "@/components/venues-screen";
+import { redirect } from "next/navigation";
 
 export default function VenuesPage() {
-  return <VenuesScreen />;
+  redirect("/info");
 }
 

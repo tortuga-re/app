@@ -1,4 +1,4 @@
-import { coopertoConfig, featureFlags, tortugaRooms } from "@/lib/config";
+import { coopertoConfig, tortugaRooms } from "@/lib/config";
 import { delay, todayIso } from "@/lib/utils";
 import type {
   BookingAvailabilityResponse,
@@ -113,22 +113,7 @@ const buildCards = (): CoopertoFidelityCard[] => [
   { CodiceCard: "gold-card", Nome: "Golden Tide", Livello: 2 },
 ];
 
-const buildUpcomingReservations = (): UpcomingReservation[] => [
-  {
-    reservationCode: "mock-res-1",
-    dateTime: "2026-05-02T20:00:00+02:00",
-    pax: 4,
-    roomName: "Sala Centrale",
-    stateLabel: "Accettata",
-  },
-  {
-    reservationCode: "mock-res-2",
-    dateTime: "2026-05-10T21:00:00+02:00",
-    pax: 2,
-    roomName: "Cabina di Poppa",
-    stateLabel: "Da confermare",
-  },
-];
+const buildUpcomingReservations = (): UpcomingReservation[] => [];
 
 const buildHours = (): CoopertoVenueHours => ({
   Orari: [
@@ -152,9 +137,6 @@ export const mockBookingBootstrap = async (): Promise<BookingBootstrapResponse> 
     module: bookingModule,
     rooms: bookingModule.rooms,
     defaultRoomCode: bookingModule.rooms[0]?.code,
-    features: {
-      tableMapSelectionEnabled: featureFlags.enableTableMapSelection,
-    },
   };
 };
 

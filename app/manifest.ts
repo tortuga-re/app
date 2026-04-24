@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: siteConfig.appName,
     short_name: "Tortuga",
     description: siteConfig.description,
-    start_url: "/prenota",
+    start_url: "/",
     display: "standalone",
     background_color: "#050505",
     theme_color: siteConfig.accent,

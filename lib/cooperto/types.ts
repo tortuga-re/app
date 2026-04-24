@@ -117,6 +117,8 @@ export interface CoopertoReservation {
 
 export interface UpcomingReservation {
   reservationCode?: string;
+  email?: string;
+  contactCode?: string;
   dateTime: string;
   pax?: number;
   roomName?: string;
@@ -261,9 +263,6 @@ export interface BookingBootstrapResponse {
   module: BookingModule | null;
   rooms: BookingRoom[];
   defaultRoomCode?: string;
-  features: {
-    tableMapSelectionEnabled: boolean;
-  };
 }
 
 export interface BookingAvailabilityResponse {

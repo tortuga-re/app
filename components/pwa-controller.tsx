@@ -472,8 +472,8 @@ export function PwaController() {
               </h2>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
                 {pushCardMode === "denied"
-                  ? "Puoi riattivarle dalle impostazioni del browser quando vuoi ricevere promemoria, vantaggi e disponibilita."
-                  : "Attiva le notifiche per non perdere aggiornamenti, vantaggi e disponibilita."}
+                  ? "Puoi riattivarle dalle impostazioni del browser quando vuoi ricevere promemoria, coupon e disponibilita."
+                  : "Attiva le notifiche per non perdere aggiornamenti, coupon e disponibilita."}
               </p>
             </div>
 

@@ -4,8 +4,6 @@ const parseRoomCodes = (value?: string) =>
     .map((item) => item.trim())
     .filter(Boolean) ?? [];
 
-const parseBooleanFlag = (value?: string) => value?.trim().toLowerCase() === "true";
-
 export const coopertoConfig = {
   apiBaseUrl: "https://api.cooperto.it",
   apiKey: process.env.COOPERTO_API_KEY?.trim() ?? "",
@@ -24,21 +22,48 @@ export const siteConfig = {
   name: "Tortuga Bay",
   appName: "Tortuga App",
   description:
-    "Prenotazioni, profilo fidelity e informazioni di sede in un'unica web app mobile-first.",
+    "Prenotazioni, ciurma fidelity e informazioni di sede in un'unica web app mobile-first.",
   productionUrl: "https://app.tortugabay.it",
   accent: "#b58a4d",
   accentSoft: "#f1d8a1",
 };
+
+export const tortugaInfoConfig = {
+  address: "Via Giambattista Vico, 93 - Reggio Emilia",
+  mapsUrl: "https://maps.app.goo.gl/ne4gvpo7QaeusxfV8",
+  mapsEmbedUrl:
+    "https://www.google.com/maps?q=44.733084,10.534609&z=17&output=embed",
+  programmazioneUrl: "https://tortugabay.it/programmazione-invernale",
+  phoneNumber: "+39 379 359 3799",
+  phoneHref: "tel:+393793593799",
+  whatsappHref: "https://wa.me/393793593799",
+  socialLinks: [
+    { label: "Instagram", href: "" },
+    { label: "Facebook", href: "" },
+    { label: "TikTok", href: "" },
+  ],
+} as const;
+
+export const ciurmaRoadmapFeatures = [
+  {
+    title: "Arruola un Pirata",
+    description: "Predisposizione referral: pronta per collegare un codice invito reale.",
+  },
+  {
+    title: "Carica la tua foto pirata",
+    description: "Predisposizione avatar: upload da attivare quando sara disponibile il backend.",
+  },
+  {
+    title: "Esperienze solo in locale",
+    description: "Predisposizione contenuti/QR: pensata per sblocchi verificati al Tortuga.",
+  },
+] as const;
 
 export const pwaConfig = {
   vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? "",
   pushSubscriptionsFile: process.env.PUSH_SUBSCRIPTIONS_FILE?.trim() ?? "",
   installReminderWindowMs: 1000 * 60 * 60 * 24 * 7,
   pushReminderWindowMs: 1000 * 60 * 60 * 24 * 7,
-};
-
-export const featureFlags = {
-  enableTableMapSelection: parseBooleanFlag(process.env.ENABLE_TABLE_MAP_SELECTION),
 };
 
 export const tortugaRooms: Record<string, string> = {
