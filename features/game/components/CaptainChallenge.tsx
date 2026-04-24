@@ -68,6 +68,7 @@ export function CaptainChallenge({
   const isWaiting = phase === "waiting";
   const isGo = phase === "go";
   const isSubmitting = phase === "submitting";
+  const isExplosionPhase = isGo || isSubmitting;
   const hasLives = (lives ?? 0) > 0;
   const showStartPanel =
     (isIdle || isStarting) && (livesLoading || hasLives);
@@ -146,7 +147,12 @@ export function CaptainChallenge({
           }}
           disabled={isSubmitting}
         >
-          <div className="panel rounded-[2rem] p-5">
+          <div
+            className={cn(
+              "panel rounded-[2rem] p-5",
+              isExplosionPhase && "captain-explosion-frame",
+            )}
+          >
             <FuseVisual phase={phase} />
             <div className="mt-5 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4 text-center">
               <p
