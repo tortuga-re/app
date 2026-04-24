@@ -1,6 +1,5 @@
 import {
   coopertoConfig,
-  featureFlags,
   hasCoopertoLiveConfig,
   tortugaRooms,
 } from "@/lib/config";
@@ -281,9 +280,6 @@ export const getBookingBootstrap = async (): Promise<BookingBootstrapResponse> =
       module: normalized,
       rooms: normalized.rooms,
       defaultRoomCode: normalized.rooms[0]?.code,
-      features: {
-        tableMapSelectionEnabled: featureFlags.enableTableMapSelection,
-      },
     };
   } catch {
     return fallbackSource(await mockBookingBootstrap());

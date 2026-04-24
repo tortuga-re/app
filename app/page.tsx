@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
+import { HomeScreen } from "@/components/home-screen";
 
 export default function HomePage() {
-  redirect("/prenota");
+  return <HomeScreen />;
 }
 

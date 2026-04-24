@@ -1,6 +1,6 @@
 # Tortuga Client App
 
-Web app clienti mobile-first per Tortuga Bay, costruita con Next.js App Router, TypeScript e Tailwind CSS v4. L'integrazione Cooperto e interamente server-side, con PWA installabile, shell mobile, fallback mock leggibili e rotte pronte per prenotazione, profilo e sedi.
+Web app clienti mobile-first per Tortuga Bay, costruita con Next.js App Router, TypeScript e Tailwind CSS v4. L'integrazione Cooperto e interamente server-side, con PWA installabile, shell mobile, fallback mock leggibili e rotte pronte per home cliente, prenotazione, ciurma fidelity e info locale.
 
 ## Stack
 
@@ -47,18 +47,22 @@ Se una o piu variabili mancassero, le route interne passano automaticamente a mo
 
 ## Flussi implementati
 
+- `/`
+  - dashboard cliente con priorita dinamica tra prossima prenotazione, compleanno vicino, coupon attivo e prenotazione rapida
+  - riepilogo punti, fidelity, coupon, visite e azioni rapide
 - `/prenota`
   - bootstrap modulo con `GET /api/Prenotazioni/ElencoModuliPrenotazione`
   - disponibilita con `GET /api/Prenotazioni/OrariModulo`
   - creazione prenotazione reale con `POST /api/Prenotazioni/Crea`
-- `/profilo`
+- `/ciurma`
   - dettagli contatto via email o codice contatto
   - saldo punti
   - coupon contatto
   - elenco fidelity card
-- `/sedi`
+- `/info`
   - elenco sedi
   - orari e eccezioni per sede
+  - indicazioni, programmazione, contatti e social predisposti
 
 ## Note Cooperto
 

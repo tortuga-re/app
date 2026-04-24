@@ -32,7 +32,6 @@ type BookingDraft = {
   date: string;
   pax: number;
   roomCode: string;
-  tablePreferenceId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -51,7 +50,6 @@ const baseDraft: BookingDraft = {
   date: todayIso(),
   pax: 2,
   roomCode: "",
-  tablePreferenceId: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -132,8 +130,6 @@ const parseStoredDraft = (
         : fallbackDraft.date,
     pax: Math.max(1, safeNumber(parsed.pax, fallbackDraft.pax)),
     roomCode: typeof parsed.roomCode === "string" ? parsed.roomCode : "",
-    tablePreferenceId:
-      typeof parsed.tablePreferenceId === "string" ? parsed.tablePreferenceId : "",
     firstName:
       typeof parsed.firstName === "string" && parsed.firstName.trim()
         ? parsed.firstName
@@ -228,24 +224,16 @@ export function BookingFlow() {
   const requiresRoomSelection = Boolean(
     bootstrap?.module?.allowsRoomSelection && bootstrap.rooms.length > 0,
   );
-  const isTableMapSelectionEnabled = Boolean(
-    bootstrap?.features.tableMapSelectionEnabled,
-  );
   const defaultActiveRoomCode =
     bootstrap?.rooms.find((room) => room.code === SALA_CENTRALE_ROOM_CODE)?.code ||
     bootstrap?.defaultRoomCode ||
     bootstrap?.rooms[0]?.code ||
     "";
-  const activeRoomCode = isTableMapSelectionEnabled
-    ? draft.roomCode
-    : draft.roomCode || defaultActiveRoomCode;
+  const activeRoomCode = draft.roomCode || defaultActiveRoomCode;
   const selectedRoom =
     bootstrap?.rooms.find((room) => room.code === activeRoomCode) ?? null;
   const composedCustomerNote = draft.note.trim() || undefined;
-  const showRoomDropdown =
-    requiresRoomSelection && isTableMapSelectionEnabled;
-  const showExplicitRoomSelection =
-    requiresRoomSelection && !isTableMapSelectionEnabled;
+  const showRoomDropdown = requiresRoomSelection;
   const canLoadAvailability = Boolean(
     bootstrap &&
       draft.date &&
@@ -356,18 +344,6 @@ export function BookingFlow() {
       });
     });
   }, [selectedSlot]);
-
-  useEffect(() => {
-    if (!isTableMapSelectionEnabled || !draft.tablePreferenceId) {
-      return;
-    }
-
-    setDraft((current) =>
-      current.tablePreferenceId
-        ? { ...current, tablePreferenceId: "" }
-        : current,
-    );
-  }, [draft.tablePreferenceId, isTableMapSelectionEnabled, setDraft]);
 
   useEffect(() => {
     const normalizedIdentityEmail = normalizeCustomerEmail(identity.email);
@@ -877,7 +853,10 @@ export function BookingFlow() {
       {bootstrap ? (
         <>
           <div className="panel rounded-[2rem] px-5 py-4">
-            <p className="eyebrow">Prenotazione Rapida</p>
+            <p className="eyebrow">Prenotazione rapida</p>
+            <h1 className="mt-2 text-2xl font-semibold uppercase tracking-[0.08em] text-white">
+              Prenotazione rapida
+            </h1>
           </div>
 
           <div className="panel rounded-[2rem] p-5">
@@ -925,7 +904,7 @@ export function BookingFlow() {
                 <span>Sala</span>
                 <select
                   className="field"
-                  value={draft.roomCode}
+                  value={activeRoomCode}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
@@ -933,7 +912,6 @@ export function BookingFlow() {
                     }))
                   }
                 >
-                  <option value="">Scegli la sala</option>
                   {bootstrap.rooms.map((room) => (
                     <option key={room.code} value={room.code}>
                       {room.publicName || room.name}
@@ -943,7 +921,7 @@ export function BookingFlow() {
               </label>
             ) : null}
 
-            {isTableMapSelectionEnabled && canLoadAvailability ? (
+            {canLoadAvailability ? (
               <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
                 <div className="space-y-2">
                   <p className="eyebrow">Slot Cena</p>
@@ -957,7 +935,7 @@ export function BookingFlow() {
               </div>
             ) : null}
 
-            {isTableMapSelectionEnabled && !activeRoomCode ? (
+            {requiresRoomSelection && !activeRoomCode ? (
               <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
                 <p className="text-sm leading-6 text-[var(--text-muted)]">
                   Scegli prima la sala dal menu per vedere gli orari disponibili e
@@ -967,60 +945,11 @@ export function BookingFlow() {
             ) : null}
           </div>
 
-          {showExplicitRoomSelection ? (
-            <div className="panel rounded-[2rem] p-5">
-              <div className="space-y-2">
-                <p className="eyebrow">Scelta Sala</p>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Ogni angolo del Tortuga ha il suo ritmo. Scegli l&apos;atmosfera
-                  che senti piu&apos; tua.
-                </p>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                {bootstrap.rooms.map((room) => {
-                  const isActive = room.code === activeRoomCode;
-                  return (
-                    <button
-                      key={room.code}
-                      type="button"
-                      className={cn(
-                        "panel-muted flex items-center rounded-[1.25rem] px-4 py-[30px] text-left transition",
-                        isActive && "border border-[var(--border-strong)] bg-white/8",
-                      )}
-                      onClick={() =>
-                        setDraft((current) => ({ ...current, roomCode: room.code }))
-                      }
-                    >
-                      <p className="text-sm font-semibold leading-5 text-white">
-                        {room.publicName || room.name}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {isTableMapSelectionEnabled && activeRoomCode && selectedRoom ? (
+          {activeRoomCode && selectedRoom ? (
             <TortugaMapViewer
               roomCode={activeRoomCode}
               roomName={selectedRoom.publicName || selectedRoom.name}
             />
-          ) : null}
-
-          {!isTableMapSelectionEnabled && canLoadAvailability ? (
-            <div className="panel rounded-[2rem] p-5">
-              <div className="space-y-2">
-                <p className="eyebrow">Seleziona Orario</p>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Qui trovi solo gli slot disponibili per la cena, gia&apos;
-                  aggiornati in base alla tua selezione.
-                </p>
-              </div>
-
-              {renderAvailabilityContent()}
-            </div>
           ) : null}
 
           {selectedSlot ? (
@@ -1193,10 +1122,10 @@ export function BookingFlow() {
                 ) : null}
               </div>
               <Link
-                href="/profilo"
+                href="/ciurma"
                 className="button-secondary mt-5 inline-flex min-h-11 items-center justify-center px-5"
               >
-                Apri profilo cliente
+                Apri la tua ciurma
               </Link>
             </div>
           ) : null}

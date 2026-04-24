@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
 import { requestJson } from "@/lib/client";
+import { tortugaInfoConfig } from "@/lib/config";
 import type { CoopertoVenueHour, VenueResponse } from "@/lib/cooperto/types";
 import { formatDateTime } from "@/lib/utils";
 
@@ -13,15 +14,6 @@ type GroupedOpeningHour = {
   sortDay: number;
   sortTime: string;
 };
-
-const venueAddress = "Via Giambattista Vico, 93 - Reggio Emilia";
-const tortugaMapsUrl = "https://maps.app.goo.gl/ne4gvpo7QaeusxfV8";
-const mapsEmbedUrl =
-  "https://www.google.com/maps?q=44.733084,10.534609&z=17&output=embed";
-const programmazioneUrl = "https://tortugabay.it/programmazione-invernale";
-const phoneNumber = "+39 379 359 3799";
-const phoneHref = "tel:+393793593799";
-const whatsappHref = "https://wa.me/393793593799";
 
 const dayLabelsByCode: Record<number, string> = {
   1: "lunedi",
@@ -175,6 +167,16 @@ export function VenuesScreen() {
 
   return (
     <section className="space-y-5">
+      <div className="panel rounded-[2rem] px-5 py-4">
+        <p className="eyebrow">Info e serate</p>
+        <h1 className="mt-2 text-2xl font-semibold uppercase tracking-[0.08em] text-white">
+          Info e serate
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+          Orari, indicazioni, programmazione e contatti ufficiali del Tortuga.
+        </p>
+      </div>
+
       {loading ? (
         <StatusBlock
           variant="loading"
@@ -190,6 +192,37 @@ export function VenuesScreen() {
           description={error}
         />
       ) : null}
+
+      <div className="panel rounded-[2rem] p-5">
+        <div className="space-y-2">
+          <p className="eyebrow">Dove siamo</p>
+          <p className="text-base font-semibold text-white">
+            {tortugaInfoConfig.address}
+          </p>
+          <p className="text-sm leading-6 text-[var(--text-muted)]">
+            Apri la mappa ufficiale di Tortuga e raggiungi subito la Isla Loca.
+          </p>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-black/20">
+          <iframe
+            title="Mappa Tortuga Bay"
+            src={tortugaInfoConfig.mapsEmbedUrl}
+            className="h-64 w-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+
+        <a
+          href={tortugaInfoConfig.mapsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
+        >
+          Ottieni indicazioni
+        </a>
+      </div>
 
       {primaryVenue ? (
         <div className="panel rounded-[2rem] p-5">
@@ -264,35 +297,6 @@ export function VenuesScreen() {
 
       <div className="panel rounded-[2rem] p-5">
         <div className="space-y-2">
-          <p className="eyebrow">Dove siamo</p>
-          <p className="text-base font-semibold text-white">{venueAddress}</p>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Apri la mappa ufficiale di Tortuga e raggiungi subito la Isla Loca.
-          </p>
-        </div>
-
-        <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-black/20">
-          <iframe
-            title="Mappa Tortuga Bay"
-            src={mapsEmbedUrl}
-            className="h-64 w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        </div>
-
-        <a
-          href={tortugaMapsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
-        >
-          Ottieni indicazioni
-        </a>
-      </div>
-
-      <div className="panel rounded-[2rem] p-5">
-        <div className="space-y-2">
           <p className="eyebrow">Programmazione serale</p>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
             Consulta la pagina ufficiale della programmazione invernale per il
@@ -309,7 +313,7 @@ export function VenuesScreen() {
         </div>
 
         <a
-          href={programmazioneUrl}
+          href={tortugaInfoConfig.programmazioneUrl}
           target="_blank"
           rel="noreferrer"
           className="button-secondary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
@@ -321,7 +325,9 @@ export function VenuesScreen() {
       <div className="panel rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Contatti</p>
-          <p className="text-base font-semibold text-white">{phoneNumber}</p>
+          <p className="text-base font-semibold text-white">
+            {tortugaInfoConfig.phoneNumber}
+          </p>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
             Telefono e WhatsApp sempre pronti per prenotazioni e informazioni.
           </p>
@@ -329,19 +335,57 @@ export function VenuesScreen() {
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <a
-            href={phoneHref}
+            href={tortugaInfoConfig.phoneHref}
             className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
           >
             Chiama Tortuga
           </a>
           <a
-            href={whatsappHref}
+            href={tortugaInfoConfig.whatsappHref}
             target="_blank"
             rel="noreferrer"
             className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
           >
             Apri WhatsApp
           </a>
+        </div>
+      </div>
+
+      <div className="panel rounded-[2rem] p-5">
+        <div className="space-y-2">
+          <p className="eyebrow">Social</p>
+          <p className="text-sm leading-6 text-[var(--text-muted)]">
+            Collegamenti predisposti: verranno attivati quando i link ufficiali
+            saranno centralizzati in configurazione.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-3">
+          {tortugaInfoConfig.socialLinks.map((social) =>
+            social.href ? (
+              <a
+                key={social.label}
+                href={social.href}
+                target="_blank"
+                rel="noreferrer"
+                className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+              >
+                {social.label}
+              </a>
+            ) : (
+              <div
+                key={social.label}
+                className="rounded-[1.4rem] border border-[rgba(255,216,156,0.1)] bg-white/4 px-4 py-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-white">{social.label}</p>
+                  <span className="rounded-full border border-[rgba(255,216,156,0.1)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                    Da collegare
+                  </span>
+                </div>
+              </div>
+            ),
+          )}
         </div>
       </div>
     </section>

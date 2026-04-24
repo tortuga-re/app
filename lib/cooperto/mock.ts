@@ -1,4 +1,4 @@
-import { coopertoConfig, featureFlags, tortugaRooms } from "@/lib/config";
+import { coopertoConfig, tortugaRooms } from "@/lib/config";
 import { delay, todayIso } from "@/lib/utils";
 import type {
   BookingAvailabilityResponse,
@@ -152,9 +152,6 @@ export const mockBookingBootstrap = async (): Promise<BookingBootstrapResponse> 
     module: bookingModule,
     rooms: bookingModule.rooms,
     defaultRoomCode: bookingModule.rooms[0]?.code,
-    features: {
-      tableMapSelectionEnabled: featureFlags.enableTableMapSelection,
-    },
   };
 };
 

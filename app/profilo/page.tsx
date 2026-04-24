@@ -1,6 +1,6 @@
-import { ProfileScreen } from "@/components/profile-screen";
+import { redirect } from "next/navigation";
 
 export default function ProfilePage() {
-  return <ProfileScreen />;
+  redirect("/ciurma");
 }
 

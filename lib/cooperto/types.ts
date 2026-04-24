@@ -261,9 +261,6 @@ export interface BookingBootstrapResponse {
   module: BookingModule | null;
   rooms: BookingRoom[];
   defaultRoomCode?: string;
-  features: {
-    tableMapSelectionEnabled: boolean;
-  };
 }
 
 export interface BookingAvailabilityResponse {
