@@ -70,14 +70,21 @@ Se una o piu variabili mancassero, le route interne passano automaticamente a mo
   - indicazioni, programmazione, contatti e social predisposti
 - `/game/sfida-capitano`
   - gioco riflessi con round creato e validato server-side
+  - vite MVP via cookie player + store in-memory
+  - referral link `/game/sfida-capitano?ref=CODICE_UNIVOCO`
   - `POST /api/game/start` genera `gameId` sicuro e delay miccia
   - `POST /api/game/tap` calcola false start, win o lose usando solo timestamp server
+  - `GET /api/game/lives` restituisce vite disponibili
+  - `POST /api/game/referral/create` crea o recupera il codice referral
+  - `POST /api/game/referral/claim` registra apertura unica per browser/player
 
 ## Note Sfida il Capitano
 
-- Il frontend usa `explosionDelayMs` restituito dal backend solo per animare la miccia.
+- Il frontend usa `explosionDelayMs` restituito dal backend solo per schedulare il segnale GO.
+- La UI non mostra barre, countdown o indicatori del tempo residuo prima del GO.
 - Il reaction time non arriva mai dal client: viene calcolato da `/api/game/tap`.
-- Lo storage round e in-memory per MVP locale. In produzione multi-instance/serverless va sostituito con Redis o database con TTL e update atomico one-shot.
+- Ogni player cookie parte con 1 vita. Il round consuma 1 vita quando viene completato.
+- Lo storage round, vite e referral e in-memory per MVP locale. In produzione multi-instance/serverless va sostituito con Redis o database con TTL e update atomico one-shot legato a cliente autenticato/email.
 
 ## Note Cooperto
 

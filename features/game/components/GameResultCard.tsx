@@ -1,6 +1,7 @@
 "use client";
 
 import { OfferCountdown } from "@/features/game/components/OfferCountdown";
+import { ReferralLifeCard } from "@/features/game/components/ReferralLifeCard";
 import type { CaptainChallengeTapResponse } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
@@ -14,13 +15,22 @@ const formatReaction = (reactionTimeMs: number) => {
 
 export function GameResultCard({
   result,
-  onReset,
+  referralUrl,
+  referralLoading,
+  onCreateReferral,
 }: {
   result: CaptainChallengeTapResponse;
-  onReset: () => void;
+  referralUrl: string;
+  referralLoading: boolean;
+  onCreateReferral: () => void;
 }) {
   const isWin = result.outcomeType === "win";
   const isFalseStart = result.outcomeType === "false_start";
+  const resultCopy = isFalseStart
+    ? "Hai bruciato la miccia troppo presto."
+    : isWin
+      ? "Il Capitano ha visto il tuo riflesso."
+      : "Il Capitano non regala seconde possibilita.";
 
   return (
     <div
@@ -28,14 +38,14 @@ export function GameResultCard({
         "panel rounded-[2rem] p-5",
         isWin &&
           "border-[rgba(242,215,165,0.36)] bg-[linear-gradient(160deg,rgba(242,215,165,0.18),rgba(15,12,10,0.98)_42%,rgba(68,45,20,0.84)_100%)]",
-        isFalseStart &&
+        !isWin &&
           "border-[rgba(240,139,117,0.38)] bg-[linear-gradient(160deg,rgba(240,139,117,0.16),rgba(15,9,8,0.98)_40%,rgba(58,20,16,0.72)_100%)]",
       )}
     >
       <p
         className={cn(
           "eyebrow",
-          isFalseStart && "text-[var(--danger)]",
+          !isWin && "text-[var(--danger)]",
           isWin && "text-[#f5deb0]",
         )}
       >
@@ -44,6 +54,9 @@ export function GameResultCard({
       <h2 className="mt-3 text-3xl font-semibold leading-tight text-white">
         {result.outcome}
       </h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+        {resultCopy}
+      </p>
       <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
         Tempo server:{" "}
         <span className="font-semibold text-white">
@@ -55,7 +68,7 @@ export function GameResultCard({
         <div className="mt-5 space-y-4">
           <div className="rounded-[1.5rem] border border-[rgba(255,216,156,0.14)] bg-white/4 px-4 py-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-              Offerta sbloccata
+              {isWin ? "Offerta sbloccata" : "Offerta consolazione"}
             </p>
             <p className="mt-2 text-2xl font-semibold text-white">
               {result.offer.title}
@@ -69,21 +82,16 @@ export function GameResultCard({
             durationSeconds={result.offerDurationSeconds}
           />
         </div>
-      ) : (
-        <div className="mt-5 rounded-[1.5rem] border border-[rgba(240,139,117,0.22)] bg-[rgba(240,139,117,0.08)] px-4 py-4">
-          <p className="text-sm font-semibold text-[var(--danger)]">
-            Troppo in fretta. Hai perso.
-          </p>
-        </div>
-      )}
+      ) : null}
 
-      <button
-        type="button"
-        className="button-secondary mt-5 inline-flex min-h-11 items-center justify-center px-5 text-sm"
-        onClick={onReset}
-      >
-        Riprova
-      </button>
+      <div className="mt-5">
+        <ReferralLifeCard
+          referralUrl={referralUrl}
+          referralLoading={referralLoading}
+          onCreateReferral={onCreateReferral}
+          variant={isWin ? "challenge" : "life"}
+        />
+      </div>
     </div>
   );
 }

@@ -1,18 +1,11 @@
 "use client";
 
-import type { CSSProperties } from "react";
-
 import { GameResultCard } from "@/features/game/components/GameResultCard";
+import { ReferralLifeCard } from "@/features/game/components/ReferralLifeCard";
 import { useCaptainChallenge } from "@/features/game/hooks/useCaptainChallenge";
 import { cn } from "@/lib/utils";
 
-function FuseVisual({
-  phase,
-  explosionDelayMs,
-}: {
-  phase: string;
-  explosionDelayMs: number;
-}) {
+function FuseVisual({ phase }: { phase: string }) {
   const isWaiting = phase === "waiting";
   const isGo = phase === "go" || phase === "submitting";
 
@@ -23,6 +16,10 @@ function FuseVisual({
         isGo && "captain-explosion border-[rgba(240,139,117,0.44)]",
       )}
     >
+      <span className="captain-spark captain-spark-one" />
+      <span className="captain-spark captain-spark-two" />
+      <span className="captain-spark captain-spark-three" />
+
       <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-full border border-[rgba(255,216,156,0.16)] bg-[rgba(255,255,255,0.04)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
         <div
           className={cn(
@@ -33,24 +30,9 @@ function FuseVisual({
         />
       </div>
 
-      <div className="mt-7 h-3 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)]">
-        <div
-          className={cn(
-            "h-full w-0 rounded-full bg-[linear-gradient(90deg,#7a2d20_0%,#c28b46_55%,#f6ddb0_100%)]",
-            isWaiting && "captain-fuse-line",
-            isGo && "w-full bg-[linear-gradient(90deg,#f08b75_0%,#f6ddb0_100%)]",
-          )}
-          style={
-            {
-              "--captain-fuse-duration": `${Math.max(explosionDelayMs, 1)}ms`,
-            } as CSSProperties
-          }
-        />
-      </div>
-
       <p
         className={cn(
-          "mt-5 text-center text-[10px] font-semibold uppercase tracking-[0.26em]",
+          "mt-6 text-center text-[10px] font-semibold uppercase tracking-[0.26em]",
           isGo ? "text-[var(--danger)]" : "text-[var(--accent-strong)]",
         )}
       >
@@ -60,23 +42,37 @@ function FuseVisual({
   );
 }
 
-export function CaptainChallenge() {
+export function CaptainChallenge({
+  incomingReferralCode = "",
+}: {
+  incomingReferralCode?: string;
+}) {
   const {
     phase,
-    explosionDelayMs,
     result,
     error,
+    lives,
+    livesLoading,
+    referralUrl,
+    referralLoading,
+    referralClaimMessage,
     start,
     tap,
     reset,
+    createReferral,
     canTap,
-  } = useCaptainChallenge();
+  } = useCaptainChallenge(incomingReferralCode);
 
   const isIdle = phase === "idle";
   const isStarting = phase === "starting";
   const isWaiting = phase === "waiting";
   const isGo = phase === "go";
   const isSubmitting = phase === "submitting";
+  const hasLives = (lives ?? 0) > 0;
+  const showStartPanel =
+    (isIdle || isStarting) && (livesLoading || hasLives);
+  const showNoLivesPanel =
+    !livesLoading && !hasLives && (phase === "idle" || phase === "no_lives");
 
   return (
     <section className="space-y-5">
@@ -86,22 +82,53 @@ export function CaptainChallenge() {
           Sfida il Capitano
         </h1>
         <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-          Una miccia, un segnale, un solo tap. La validazione avviene sul server:
-          niente tempi dichiarati dal client.
+          Una miccia, un segnale, un solo tap. Il Capitano misura tutto dal
+          server: il telefono non decide il risultato.
         </p>
+        <div className="mt-4 inline-flex rounded-full border border-[rgba(255,216,156,0.12)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+          Vite disponibili: {livesLoading ? "..." : lives ?? 0}
+        </div>
       </div>
 
-      {isIdle || isStarting ? (
+      {referralClaimMessage ? (
+        <div className="panel rounded-[2rem] px-5 py-4">
+          <p className="eyebrow">Arruolamento</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+            {referralClaimMessage}
+          </p>
+        </div>
+      ) : null}
+
+      {showStartPanel ? (
         <div className="panel rounded-[2rem] p-5">
-          <FuseVisual phase={phase} explosionDelayMs={0} />
+          <FuseVisual phase={phase} />
           <button
             type="button"
             className="button-primary mt-5 flex min-h-14 w-full items-center justify-center px-5 text-sm"
             onClick={() => void start()}
-            disabled={isStarting}
+            disabled={isStarting || livesLoading}
           >
             {isStarting ? "Accendo la miccia..." : "Inizia"}
           </button>
+        </div>
+      ) : null}
+
+      {showNoLivesPanel ? (
+        <div className="panel rounded-[2rem] p-5">
+          <p className="eyebrow text-[var(--danger)]">Vite esaurite</p>
+          <h2 className="mt-3 text-2xl font-semibold text-white">
+            Il Capitano non regala seconde possibilita.
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+            Vuoi un&apos;altra vita? Arruola un pirata.
+          </p>
+          <div className="mt-5">
+            <ReferralLifeCard
+              referralUrl={referralUrl}
+              referralLoading={referralLoading}
+              onCreateReferral={createReferral}
+            />
+          </div>
         </div>
       ) : null}
 
@@ -120,7 +147,7 @@ export function CaptainChallenge() {
           disabled={isSubmitting}
         >
           <div className="panel rounded-[2rem] p-5">
-            <FuseVisual phase={phase} explosionDelayMs={explosionDelayMs} />
+            <FuseVisual phase={phase} />
             <div className="mt-5 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4 text-center">
               <p
                 className={cn(
@@ -145,7 +172,12 @@ export function CaptainChallenge() {
       ) : null}
 
       {phase === "result" && result ? (
-        <GameResultCard result={result} onReset={reset} />
+        <GameResultCard
+          result={result}
+          referralUrl={referralUrl}
+          referralLoading={referralLoading}
+          onCreateReferral={createReferral}
+        />
       ) : null}
 
       {phase === "error" ? (
@@ -162,7 +194,7 @@ export function CaptainChallenge() {
             className="button-secondary mt-5 inline-flex min-h-11 items-center justify-center px-5 text-sm"
             onClick={reset}
           >
-            Torna all&apos;inizio
+            Torna al quadro sfida
           </button>
         </div>
       ) : null}

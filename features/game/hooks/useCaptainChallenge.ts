@@ -1,9 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { requestJson } from "@/lib/client";
 import type {
+  CaptainChallengeLivesResponse,
+  CaptainChallengeReferralClaimResponse,
+  CaptainChallengeReferralCreateResponse,
   CaptainChallengeStartResponse,
   CaptainChallengeTapResponse,
 } from "@/lib/game/types";
@@ -15,15 +18,52 @@ export type CaptainChallengePhase =
   | "go"
   | "submitting"
   | "result"
+  | "no_lives"
   | "error";
 
-export function useCaptainChallenge() {
+const claimedReferralStorageKey = "tortuga.captain.claimed-referrals";
+
+const readClaimedReferralCodes = () => {
+  if (typeof window === "undefined") {
+    return new Set<string>();
+  }
+
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(claimedReferralStorageKey) ?? "[]",
+    ) as string[];
+
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set<string>();
+  }
+};
+
+const rememberClaimedReferralCode = (referralCode: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const claimedCodes = readClaimedReferralCodes();
+  claimedCodes.add(referralCode);
+  window.localStorage.setItem(
+    claimedReferralStorageKey,
+    JSON.stringify(Array.from(claimedCodes)),
+  );
+};
+
+export function useCaptainChallenge(incomingReferralCode = "") {
   const explosionTimerRef = useRef<number | null>(null);
+  const claimedIncomingReferralRef = useRef("");
   const [phase, setPhase] = useState<CaptainChallengePhase>("idle");
   const [gameId, setGameId] = useState("");
-  const [explosionDelayMs, setExplosionDelayMs] = useState(0);
   const [result, setResult] = useState<CaptainChallengeTapResponse | null>(null);
   const [error, setError] = useState("");
+  const [lives, setLives] = useState<number | null>(null);
+  const [livesLoading, setLivesLoading] = useState(true);
+  const [referralUrl, setReferralUrl] = useState("");
+  const [referralLoading, setReferralLoading] = useState(false);
+  const [referralClaimMessage, setReferralClaimMessage] = useState("");
 
   const clearExplosionTimer = useCallback(() => {
     if (explosionTimerRef.current !== null) {
@@ -32,20 +72,128 @@ export function useCaptainChallenge() {
     }
   }, []);
 
+  const loadLives = useCallback(async () => {
+    setLivesLoading(true);
+
+    try {
+      const response = await requestJson<CaptainChallengeLivesResponse>(
+        "/api/game/lives",
+      );
+      setLives(response.lives);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Non riesco a leggere le vite disponibili.",
+      );
+    } finally {
+      setLivesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadInitialLives = async () => {
+      try {
+        const response = await requestJson<CaptainChallengeLivesResponse>(
+          "/api/game/lives",
+        );
+
+        if (!cancelled) {
+          setLives(response.lives);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Non riesco a leggere le vite disponibili.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLivesLoading(false);
+        }
+      }
+    };
+
+    void loadInitialLives();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const referralCode = incomingReferralCode.trim();
+
+    if (!referralCode || claimedIncomingReferralRef.current === referralCode) {
+      return;
+    }
+
+    claimedIncomingReferralRef.current = referralCode;
+
+    const claimReferral = async () => {
+      const locallyClaimed = readClaimedReferralCodes().has(referralCode);
+
+      if (locallyClaimed) {
+        await Promise.resolve();
+        setReferralClaimMessage(
+          "Questo invito e gia stato registrato su questo dispositivo.",
+        );
+        return;
+      }
+
+      try {
+        const response =
+          await requestJson<CaptainChallengeReferralClaimResponse>(
+            "/api/game/referral/claim",
+            {
+              method: "POST",
+              body: JSON.stringify({ referralCode }),
+            },
+          );
+
+        if (response.claimed || response.reason === "already_claimed") {
+          rememberClaimedReferralCode(referralCode);
+        }
+
+        setLives(response.lives);
+        setReferralClaimMessage(
+          response.claimed
+            ? "Invito registrato. Hai aiutato un pirata a tornare in gioco."
+            : response.reason === "self_referral"
+              ? "Questo e il tuo invito: non puoi arruolare te stesso."
+              : response.reason === "already_claimed"
+                ? "Questo invito era gia stato registrato da questo dispositivo."
+                : "Invito non valido o scaduto.",
+        );
+      } catch {
+        setReferralClaimMessage("Invito non valido o non piu disponibile.");
+      }
+    };
+
+    void claimReferral();
+  }, [incomingReferralCode]);
+
   const reset = useCallback(() => {
     clearExplosionTimer();
-    setPhase("idle");
+    setPhase(lives !== null && lives <= 0 ? "no_lives" : "idle");
     setGameId("");
-    setExplosionDelayMs(0);
     setResult(null);
     setError("");
-  }, [clearExplosionTimer]);
+  }, [clearExplosionTimer, lives]);
 
   const start = useCallback(async () => {
+    if (lives !== null && lives <= 0) {
+      setPhase("no_lives");
+      return;
+    }
+
     clearExplosionTimer();
     setPhase("starting");
     setGameId("");
-    setExplosionDelayMs(0);
     setResult(null);
     setError("");
 
@@ -55,8 +203,8 @@ export function useCaptainChallenge() {
         { method: "POST" },
       );
 
+      setLives(response.livesRemaining);
       setGameId(response.gameId);
-      setExplosionDelayMs(response.explosionDelayMs);
       setPhase("waiting");
 
       explosionTimerRef.current = window.setTimeout(() => {
@@ -66,14 +214,16 @@ export function useCaptainChallenge() {
         explosionTimerRef.current = null;
       }, response.explosionDelayMs);
     } catch (startError) {
-      setError(
+      const message =
         startError instanceof Error
           ? startError.message
-          : "Non siamo riusciti ad avviare la sfida.",
-      );
-      setPhase("error");
+          : "Non siamo riusciti ad avviare la sfida.";
+
+      setError(message);
+      setPhase(message.toLowerCase().includes("vita") ? "no_lives" : "error");
+      void loadLives();
     }
-  }, [clearExplosionTimer]);
+  }, [clearExplosionTimer, lives, loadLives]);
 
   const tap = useCallback(async () => {
     if (!gameId || phase === "submitting" || phase === "result") {
@@ -93,6 +243,7 @@ export function useCaptainChallenge() {
         },
       );
 
+      setLives(response.livesRemaining);
       setResult(response);
       setPhase("result");
     } catch (tapError) {
@@ -102,18 +253,48 @@ export function useCaptainChallenge() {
           : "Il Capitano non ha validato il tap.",
       );
       setPhase("error");
+      void loadLives();
     }
-  }, [clearExplosionTimer, gameId, phase]);
+  }, [clearExplosionTimer, gameId, loadLives, phase]);
+
+  const createReferral = useCallback(async () => {
+    setReferralLoading(true);
+    setError("");
+
+    try {
+      const response =
+        await requestJson<CaptainChallengeReferralCreateResponse>(
+          "/api/game/referral/create",
+          { method: "POST" },
+        );
+
+      setReferralUrl(response.referralUrl);
+      setLives(response.lives);
+    } catch (referralError) {
+      setError(
+        referralError instanceof Error
+          ? referralError.message
+          : "Non riesco a creare il link di arruolamento.",
+      );
+    } finally {
+      setReferralLoading(false);
+    }
+  }, []);
 
   return {
     phase,
     gameId,
-    explosionDelayMs,
     result,
     error,
+    lives,
+    livesLoading,
+    referralUrl,
+    referralLoading,
+    referralClaimMessage,
     start,
     tap,
     reset,
+    createReferral,
     canTap: phase === "waiting" || phase === "go",
   };
 }

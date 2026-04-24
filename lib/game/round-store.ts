@@ -28,11 +28,12 @@ const cleanupExpiredRounds = (now = Date.now()) => {
   }
 };
 
-export const createRound = (explosionDelayMs: number) => {
+export const createRound = (playerId: string, explosionDelayMs: number) => {
   cleanupExpiredRounds();
 
   const round: CaptainChallengeRound = {
     gameId: randomBytes(24).toString("base64url"),
+    playerId,
     startedAt: Date.now(),
     explosionDelayMs,
     status: "open",

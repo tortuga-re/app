@@ -1,6 +1,10 @@
 import { randomInt } from "node:crypto";
 
 import { captainChallengeConfig } from "@/lib/game/config";
+import {
+  consumePlayerLife,
+  getPlayerLives,
+} from "@/lib/game/player-store";
 import { closeRound, createRound, getRound } from "@/lib/game/round-store";
 import type {
   CaptainChallengeOffer,
@@ -29,10 +33,10 @@ const buildOffer = (
     };
   }
 
-  if (outcomeType === "lose") {
+  if (outcomeType === "lose" || outcomeType === "false_start") {
     return {
-      title: "Shot a 3€",
-      description: "Offerta pronta per essere collegata a una promo reale.",
+      title: "Shot a 3\u20ac",
+      description: "Offerta consolazione pronta per una promo reale.",
       durationSeconds: captainChallengeConfig.loseOfferDurationSeconds,
     };
   }
@@ -40,16 +44,28 @@ const buildOffer = (
   return null;
 };
 
-export const startCaptainChallenge = (): CaptainChallengeStartResponse => {
+export const startCaptainChallenge = (
+  playerId: string,
+): CaptainChallengeStartResponse => {
+  const lives = getPlayerLives(playerId);
+
+  if (lives <= 0) {
+    throw new CaptainChallengeError(
+      "Il Capitano non regala seconde possibilita. Arruola un pirata per tornare in gioco.",
+      402,
+    );
+  }
+
   const explosionDelayMs = randomInt(
     captainChallengeConfig.minDelayMs,
     captainChallengeConfig.maxDelayMs + 1,
   );
-  const round = createRound(explosionDelayMs);
+  const round = createRound(playerId, explosionDelayMs);
 
   return {
     gameId: round.gameId,
     explosionDelayMs: round.explosionDelayMs,
+    livesRemaining: lives,
   };
 };
 
@@ -90,7 +106,15 @@ export const resolveCaptainChallengeTap = (
     outcome = "Il Capitano ti ha preceduto.";
   }
 
+  const lifeConsumed = consumePlayerLife(round.playerId);
   closeRound(gameId, tapReceivedAt);
+
+  if (!lifeConsumed) {
+    throw new CaptainChallengeError(
+      "Nessuna vita disponibile per chiudere questa sfida.",
+      402,
+    );
+  }
 
   const offer = buildOffer(outcomeType);
 
@@ -100,5 +124,6 @@ export const resolveCaptainChallengeTap = (
     reactionTimeMs,
     offer,
     offerDurationSeconds: offer?.durationSeconds ?? 0,
+    livesRemaining: getPlayerLives(round.playerId),
   };
 };

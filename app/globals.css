@@ -224,10 +224,6 @@ textarea {
     bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-nav-offset));
   }
 
-  .captain-fuse-line {
-    animation: captain-fuse-burn var(--captain-fuse-duration, 4000ms) linear forwards;
-  }
-
   .captain-fuse-core {
     animation:
       captain-fuse-pulse 680ms ease-in-out infinite alternate,
@@ -241,20 +237,34 @@ textarea {
   .captain-explosion {
     animation: captain-panel-flash 520ms ease-out 1;
   }
-}
 
-@keyframes captain-fuse-burn {
-  0% {
-    width: 8%;
-    filter: brightness(0.85);
+  .captain-spark {
+    position: absolute;
+    height: 0.45rem;
+    width: 0.45rem;
+    border-radius: 999px;
+    background: #f6ddb0;
+    opacity: 0.22;
+    box-shadow: 0 0 20px rgba(246, 221, 176, 0.32);
+    pointer-events: none;
   }
-  64% {
-    width: 72%;
-    filter: brightness(1.15);
+
+  .captain-spark-one {
+    left: 18%;
+    top: 22%;
+    animation: captain-spark-drift 1.4s ease-in-out infinite alternate;
   }
-  100% {
-    width: 100%;
-    filter: brightness(1.5);
+
+  .captain-spark-two {
+    right: 20%;
+    top: 34%;
+    animation: captain-spark-drift 1.9s ease-in-out 180ms infinite alternate;
+  }
+
+  .captain-spark-three {
+    bottom: 22%;
+    left: 48%;
+    animation: captain-spark-drift 1.2s ease-in-out 320ms infinite alternate;
   }
 }
 
@@ -305,5 +315,16 @@ textarea {
   }
   100% {
     filter: brightness(1);
+  }
+}
+
+@keyframes captain-spark-drift {
+  from {
+    opacity: 0.12;
+    transform: translate3d(-4px, 3px, 0) scale(0.72);
+  }
+  to {
+    opacity: 0.5;
+    transform: translate3d(5px, -5px, 0) scale(1.08);
   }
 }

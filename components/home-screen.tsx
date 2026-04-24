@@ -16,7 +16,7 @@ import {
   getBirthdayInsight,
   getCouponDisplayCode,
   getCustomerRecencyInsight,
-  getPrimaryUpcomingReservation,
+  getProfileUpcomingReservations,
   getProfilePoints,
   sortActiveCoupons,
 } from "@/lib/customer-profile";
@@ -208,7 +208,8 @@ export function HomeScreen() {
     () => sortActiveCoupons(profile?.coupons ?? []),
     [profile?.coupons],
   );
-  const primaryReservation = getPrimaryUpcomingReservation(profile);
+  const upcomingReservations = getProfileUpcomingReservations(profile, identityEmail);
+  const primaryReservation = upcomingReservations[0] ?? null;
   const birthdayInsight = getBirthdayInsight(profile?.contact?.DataDiNascita);
   const recencyInsight = getCustomerRecencyInsight(
     profile?.contact,
@@ -217,6 +218,24 @@ export function HomeScreen() {
   const activeCardCode = profile?.contact?.CodiceCard?.trim() || "";
   const visits = profile?.contact?.NumeroVisite;
   const lastVisit = profile?.contact?.DataUltimaVisita;
+
+  useEffect(() => {
+    if (!hasProfileStateForEmail || !profile) {
+      return;
+    }
+
+    console.info("[Tortuga reservations][HOME] filtro applicato", {
+      emailUtente: identityEmail || null,
+      prenotazioniRicevute: profile.upcomingReservations.length,
+      prenotazioniMostrate: upcomingReservations.length,
+      filtro: identityEmail ? "booking.email === currentUser.email" : "no-email-empty",
+    });
+  }, [
+    hasProfileStateForEmail,
+    identityEmail,
+    profile,
+    upcomingReservations.length,
+  ]);
 
   const highlightCandidates: HomeHighlight[] = [
     ...(primaryReservation

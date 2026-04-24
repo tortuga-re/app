@@ -156,6 +156,9 @@ const fallbackSource = <T extends { source: DataSource }>(data: T): T => ({
   source: "fallback" as T["source"],
 });
 
+const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
+const normalizeContactCode = (value?: string) => value?.trim() ?? "";
+
 const buildWaitlistNote = (input: WaitlistCreateInput) => {
   const roomName = input.roomCode ? tortugaRooms[input.roomCode] : "";
   const contextLines = [
@@ -209,10 +212,44 @@ const getUpcomingReservationStateLabel = (
 
 const normalizeUpcomingReservations = (
   reservations: CoopertoReservation[],
+  filterContext: {
+    expectedEmail?: string;
+    expectedContactCode?: string;
+  },
 ): UpcomingReservation[] => {
   const now = Date.now();
+  const expectedEmail = normalizeEmail(filterContext.expectedEmail);
+  const expectedContactCode = normalizeContactCode(filterContext.expectedContactCode);
+  const filterMode = expectedEmail
+    ? "email-strict"
+    : expectedContactCode
+      ? "contact-code-strict"
+      : "no-identity-empty";
+
+  if (!expectedEmail && !expectedContactCode) {
+    console.info("[Tortuga reservations] filtro applicato", {
+      emailUtente: null,
+      codiceContatto: null,
+      prenotazioniRicevute: reservations.length,
+      prenotazioniMostrate: 0,
+      filtro: filterMode,
+    });
+    return [];
+  }
+
   const normalizedReservations: Array<UpcomingReservation | null> = reservations.map(
     (reservation) => {
+      const reservationEmail = normalizeEmail(reservation.Email);
+      const reservationContactCode = normalizeContactCode(reservation.CodiceContatto);
+
+      if (expectedEmail && reservationEmail !== expectedEmail) {
+        return null;
+      }
+
+      if (!expectedEmail && expectedContactCode && reservationContactCode !== expectedContactCode) {
+        return null;
+      }
+
       const dateTime = reservation.DataPrenotazione ?? "";
       const reservationTimestamp = Date.parse(dateTime);
       const stateLabel = getUpcomingReservationStateLabel(reservation);
@@ -234,6 +271,8 @@ const normalizeUpcomingReservations = (
 
       return {
         reservationCode: reservation.CodicePrenotazione,
+        email: reservationEmail || undefined,
+        contactCode: reservationContactCode || undefined,
         dateTime,
         pax: reservation.Pax,
         roomName,
@@ -413,6 +452,8 @@ export const getProfileData = async (
 
     const contactCode =
       contact.CodiceContatto || (lookupMode === "contactCode" ? query : "");
+    const expectedReservationEmail =
+      lookupMode === "email" ? normalizeEmail(query) : normalizeEmail(contact.Email);
 
     const [points, coupons, cards] = await Promise.allSettled([
       contactCode
@@ -447,13 +488,33 @@ export const getProfileData = async (
           ).catch(() => null)
         : null;
 
+    const upcomingReservations = normalizeUpcomingReservations(reservations?.data ?? [], {
+      expectedEmail: expectedReservationEmail,
+      expectedContactCode: contactCode,
+    });
+
+    console.info("[Tortuga reservations] filtro applicato", {
+      emailUtente: expectedReservationEmail || null,
+      codiceContatto: contactCode || null,
+      prenotazioniRicevute: reservations?.data?.length ?? 0,
+      prenotazioniMostrate: upcomingReservations.length,
+      filtro: expectedReservationEmail ? "email-strict" : "contact-code-strict",
+      prenotazioniRicevuteDebug:
+        reservations?.data?.map((reservation) => ({
+          codicePrenotazione: reservation.CodicePrenotazione ?? null,
+          email: normalizeEmail(reservation.Email) || null,
+          codiceContatto: normalizeContactCode(reservation.CodiceContatto) || null,
+          dataPrenotazione: reservation.DataPrenotazione ?? null,
+        })) ?? [],
+    });
+
     return {
       source: "live",
       contact,
       points: points.status === "fulfilled" ? points.value : null,
       coupons: coupons.status === "fulfilled" ? coupons.value : [],
       fidelityCards: cards.status === "fulfilled" ? cards.value.data : [],
-      upcomingReservations: normalizeUpcomingReservations(reservations?.data ?? []),
+      upcomingReservations,
       lookupMode,
       query,
     };

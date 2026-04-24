@@ -122,6 +122,8 @@ export const sortExpiredCoupons = (coupons: CoopertoCoupon[]) =>
 export const getProfilePoints = (profile: ProfileResponse | null) =>
   profile?.points ?? profile?.contact?.SaldoPuntiCard ?? 0;
 
+const normalizeReservationEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
+
 export const getSortedUpcomingReservations = (
   reservations: UpcomingReservation[],
 ) =>
@@ -129,9 +131,36 @@ export const getSortedUpcomingReservations = (
     (left, right) => Date.parse(left.dateTime) - Date.parse(right.dateTime),
   );
 
+export const filterUpcomingReservationsForEmail = (
+  reservations: UpcomingReservation[],
+  currentUserEmail?: string,
+) => {
+  const normalizedEmail = normalizeReservationEmail(currentUserEmail);
+
+  if (!normalizedEmail) {
+    return [];
+  }
+
+  return getSortedUpcomingReservations(
+    reservations.filter(
+      (reservation) => normalizeReservationEmail(reservation.email) === normalizedEmail,
+    ),
+  );
+};
+
+export const getProfileUpcomingReservations = (
+  profile: ProfileResponse | null,
+  currentUserEmail?: string,
+) =>
+  filterUpcomingReservationsForEmail(
+    profile?.upcomingReservations ?? [],
+    currentUserEmail,
+  );
+
 export const getPrimaryUpcomingReservation = (
   profile: ProfileResponse | null,
-) => getSortedUpcomingReservations(profile?.upcomingReservations ?? [])[0] ?? null;
+  currentUserEmail?: string,
+) => getProfileUpcomingReservations(profile, currentUserEmail)[0] ?? null;
 
 export type BirthdayInsight = {
   date: Date;

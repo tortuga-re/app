@@ -16,6 +16,7 @@ import {
   formatCouponExpiry,
   getCouponDisplayCode,
   getCouponQrValue,
+  getProfileUpcomingReservations,
   sortActiveCoupons,
   sortExpiredCoupons,
   toDateInputValue,
@@ -187,7 +188,11 @@ export function CiurmaScreen() {
   const coupons = data?.coupons ?? [];
   const activeCoupons = sortActiveCoupons(coupons);
   const expiredCoupons = sortExpiredCoupons(coupons);
-  const upcomingReservations = data?.upcomingReservations ?? [];
+  const reservationOwnerEmail = identityEmail || normalizeCustomerEmail(lookupEmail);
+  const upcomingReservations = getProfileUpcomingReservations(
+    data,
+    reservationOwnerEmail,
+  );
   const rewardProgress = getFidelityRewardProgress(points);
   const isVip = rewardProgress.isVip;
   const loyaltyTier = rewardProgress.loyaltyTier;
@@ -206,6 +211,21 @@ export function CiurmaScreen() {
   const isEditingContacts = activeEditSection === "contacts";
   const isEditingBirthDate = activeEditSection === "birthDate";
   const shouldShowBirthDateEditor = isEditingBirthDate || !hasStoredBirthDate;
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    console.info("[Tortuga reservations][CIURMA] filtro applicato", {
+      emailUtente: reservationOwnerEmail || null,
+      prenotazioniRicevute: data.upcomingReservations.length,
+      prenotazioniMostrate: upcomingReservations.length,
+      filtro: reservationOwnerEmail
+        ? "booking.email === currentUser.email"
+        : "no-email-empty",
+    });
+  }, [data, reservationOwnerEmail, upcomingReservations.length]);
 
   useEffect(() => {
     if (!identityEmail || isEditingLookup || hasProfile) {
@@ -464,7 +484,7 @@ export function CiurmaScreen() {
 
       <CaptainChallengeTeaser />
 
-      {upcomingReservations.length > 0 ? (
+      {hasProfile ? (
         <div className="panel rounded-[2rem] p-5">
           <div className="space-y-2">
             <p className="eyebrow">Prossime Prenotazioni</p>
@@ -473,36 +493,42 @@ export function CiurmaScreen() {
             </p>
           </div>
 
-          <div className="mt-4 space-y-3">
-            {upcomingReservations.map((reservation) => (
-              <div
-                key={`${reservation.reservationCode ?? reservation.dateTime}-${reservation.stateLabel}`}
-                className="panel-muted rounded-[1.5rem] px-4 py-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-base font-semibold text-white">
-                      {formatDateTime(reservation.dateTime)}
-                    </p>
-                    <p className="text-sm text-[var(--text-muted)]">
-                      {reservation.pax
-                        ? `${reservation.pax} persone`
-                        : "Numero persone non disponibile"}
-                    </p>
-                    {reservation.roomName ? (
-                      <p className="text-sm text-[var(--text-muted)]">
-                        Sala: <span className="text-white">{reservation.roomName}</span>
+          {upcomingReservations.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {upcomingReservations.map((reservation) => (
+                <div
+                  key={`${reservation.reservationCode ?? reservation.dateTime}-${reservation.stateLabel}`}
+                  className="panel-muted rounded-[1.5rem] px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-base font-semibold text-white">
+                        {formatDateTime(reservation.dateTime)}
                       </p>
-                    ) : null}
-                  </div>
+                      <p className="text-sm text-[var(--text-muted)]">
+                        {reservation.pax
+                          ? `${reservation.pax} persone`
+                          : "Numero persone non disponibile"}
+                      </p>
+                      {reservation.roomName ? (
+                        <p className="text-sm text-[var(--text-muted)]">
+                          Sala: <span className="text-white">{reservation.roomName}</span>
+                        </p>
+                      ) : null}
+                    </div>
 
-                  <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
-                    {reservation.stateLabel}
-                  </span>
+                    <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
+                      {reservation.stateLabel}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
+              Nessuna prenotazione trovata.
+            </p>
+          )}
         </div>
       ) : null}
 
