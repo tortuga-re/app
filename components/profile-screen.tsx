@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { StatusBlock } from "@/components/status-block";
+import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { requestJson } from "@/lib/client";
 import {
   isValidCustomerEmail,
@@ -460,6 +461,8 @@ export function CiurmaScreen() {
           Fidelity, prenotazioni, coupon e dati cliente in un&apos;unica area.
         </p>
       </div>
+
+      <CaptainChallengeTeaser />
 
       {upcomingReservations.length > 0 ? (
         <div className="panel rounded-[2rem] p-5">

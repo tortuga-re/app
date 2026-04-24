@@ -42,6 +42,11 @@ Le variabili richieste sono:
 - `COOPERTO_BOOKING_ROOM_CODES`
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
 - `PUSH_SUBSCRIPTIONS_FILE`
+- `WIN_WINDOW_MS` (default `250`)
+- `GAME_MIN_DELAY_MS` (default `2000`)
+- `GAME_MAX_DELAY_MS` (default `6000`)
+- `GAME_WIN_OFFER_DURATION_SECONDS` (default `600`)
+- `GAME_LOSE_OFFER_DURATION_SECONDS` (default `300`)
 
 Se una o piu variabili mancassero, le route interne passano automaticamente a mock locale o fallback mock per mantenere l'app navigabile.
 
@@ -63,6 +68,16 @@ Se una o piu variabili mancassero, le route interne passano automaticamente a mo
   - elenco sedi
   - orari e eccezioni per sede
   - indicazioni, programmazione, contatti e social predisposti
+- `/game/sfida-capitano`
+  - gioco riflessi con round creato e validato server-side
+  - `POST /api/game/start` genera `gameId` sicuro e delay miccia
+  - `POST /api/game/tap` calcola false start, win o lose usando solo timestamp server
+
+## Note Sfida il Capitano
+
+- Il frontend usa `explosionDelayMs` restituito dal backend solo per animare la miccia.
+- Il reaction time non arriva mai dal client: viene calcolato da `/api/game/tap`.
+- Lo storage round e in-memory per MVP locale. In produzione multi-instance/serverless va sostituito con Redis o database con TTL e update atomico one-shot.
 
 ## Note Cooperto
 

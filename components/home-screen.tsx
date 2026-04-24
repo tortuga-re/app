@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { StatusBlock } from "@/components/status-block";
+import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { requestJson } from "@/lib/client";
 import type {
   CoopertoCoupon,
@@ -326,6 +327,8 @@ export function HomeScreen() {
         </div>
       ) : null}
 
+      {!loading ? <CaptainChallengeTeaser compact /> : null}
+
       {!loading ? (
         <div className="grid gap-3">
           <SecondaryCard eyebrow="Saldo punti" title={`${rewardProgress.points} punti`}>
@@ -431,6 +434,12 @@ export function HomeScreen() {
                 className="button-secondary inline-flex min-h-12 items-center justify-center px-4 text-sm"
               >
                 Mostra fidelity
+              </Link>
+              <Link
+                href="/game/sfida-capitano"
+                className="button-secondary inline-flex min-h-12 items-center justify-center px-4 text-sm"
+              >
+                Sfida il Capitano
               </Link>
               <Link
                 href="/info"
