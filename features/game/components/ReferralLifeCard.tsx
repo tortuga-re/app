@@ -1,5 +1,25 @@
 "use client";
 
+import { siteConfig } from "@/lib/config";
+
+const localReferralHostnames = new Set(["0.0.0.0", "localhost", "127.0.0.1", "::1"]);
+
+const getShareableReferralUrl = (referralUrl: string) => {
+  try {
+    const url = new URL(referralUrl, siteConfig.productionUrl);
+
+    if (localReferralHostnames.has(url.hostname)) {
+      const publicUrl = new URL(siteConfig.productionUrl);
+      url.protocol = publicUrl.protocol;
+      url.host = publicUrl.host;
+    }
+
+    return url.toString();
+  } catch {
+    return referralUrl;
+  }
+};
+
 const buildWhatsappHref = (referralUrl: string) => {
   const message = [
     "Ti sfido alla Sfida del Capitano",
@@ -22,6 +42,7 @@ export function ReferralLifeCard({
   variant?: "life" | "challenge";
 }) {
   const isChallenge = variant === "challenge";
+  const shareableReferralUrl = getShareableReferralUrl(referralUrl);
 
   return (
     <div className="rounded-[1.6rem] border border-[rgba(255,216,156,0.14)] bg-[rgba(255,255,255,0.04)] px-4 py-4">
@@ -38,7 +59,7 @@ export function ReferralLifeCard({
       {referralUrl ? (
         <div className="mt-4 space-y-3">
           <a
-            href={buildWhatsappHref(referralUrl)}
+            href={buildWhatsappHref(shareableReferralUrl)}
             target="_blank"
             rel="noreferrer"
             className="button-primary inline-flex min-h-12 w-full items-center justify-center px-5 text-sm"
@@ -46,7 +67,7 @@ export function ReferralLifeCard({
             Condividi su WhatsApp
           </a>
           <p className="break-all rounded-[1.2rem] border border-[rgba(255,216,156,0.1)] bg-black/15 px-3 py-3 text-xs leading-5 text-[var(--text-muted)]">
-            {referralUrl}
+            {shareableReferralUrl}
           </p>
         </div>
       ) : (
