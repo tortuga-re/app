@@ -89,6 +89,20 @@ export interface CoopertoCreateContactRequest {
   SovrascriviDati?: boolean;
 }
 
+export interface CoopertoRegisterVisitRequest {
+  codiceContatto: string;
+  codiceSede: string;
+  dataVisita: string;
+}
+
+export type CoopertoRegisterVisitResponse = Record<string, unknown> | null;
+
+export interface RegisterVisitResponse {
+  source: DataSource;
+  visit: CoopertoRegisterVisitResponse;
+  visitDate: string;
+}
+
 export interface CoopertoTable {
   CodiceTavolo?: string;
   NomeTavolo?: string;

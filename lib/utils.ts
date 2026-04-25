@@ -68,6 +68,28 @@ export const buildCoopertoDateTime = (date: string, time: string) => {
   return `${date}T${time}:00${formatOffset(offset)}`;
 };
 
+export const buildCoopertoNowDateTime = (now = new Date()) => {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    formatter
+      .formatToParts(now)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  const time = `${parts.hour}:${parts.minute}`;
+
+  return buildCoopertoDateTime(date, time);
+};
+
 export const initialsFromName = (firstName?: string, lastName?: string) => {
   const initial = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim();
   return initial || "TB";

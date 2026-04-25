@@ -76,6 +76,25 @@ export const tortugaInfoConfig = {
   ],
 } as const;
 
+export const localExperiencePublicConfig = {
+  claimPath: "/esperienze-locale",
+  qrSourceUrl: "https://www.cooperto.link/ac6cdf",
+  title: "Esperienze solo in locale",
+  description:
+    "Alcune cose si sbloccano solo a bordo. Scansiona il QR che trovi nel locale.",
+  promo: {
+    title: "Vantaggio sbloccato a bordo",
+    benefit: "-15% su un dolce",
+    instructions:
+      "Mostra questo messaggio a un pirata prima di ordinare. Tieni la app aperta o fai uno screenshot.",
+    microcopy: "Visita registrata. Il bottino \u00e8 valido solo oggi.",
+    alreadyClaimed:
+      "Sei gi\u00e0 stato segnato a bordo oggi.",
+    coopertoError:
+      "Non siamo riusciti a registrare la visita. Mostra comunque questa schermata a un pirata.",
+  },
+} as const;
+
 export const ciurmaRoadmapFeatures = [
   {
     title: "Arruola un Pirata",
@@ -86,11 +105,6 @@ export const ciurmaRoadmapFeatures = [
     title: "Carica la tua foto pirata",
     description:
       "Dai un volto alla tua card Tortuga con uno scatto personale in pieno stile pirata.",
-  },
-  {
-    title: "Esperienze solo in locale",
-    description:
-      "Accessi speciali, contenuti dal vivo e premi pensati solo per chi passa davvero dal Tortuga.",
   },
 ] as const;
 
@@ -113,6 +127,7 @@ export const storageKeys = {
   bookingDraft: "tortuga.booking-draft",
   profileLookup: "tortuga.profile-lookup",
   lastReservation: "tortuga.last-reservation",
+  localExperienceClaims: "tortuga.local-experience-claims",
   menuAccessExpiresAt: "tortuga.menu-access-expires-at",
   installPromptDismissedAt: "tortuga.install-prompt-dismissed-at",
   pushPromptDismissedAt: "tortuga.push-prompt-dismissed-at",

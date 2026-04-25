@@ -29,18 +29,21 @@ import type {
   DataSource,
   CoopertoFidelityCard,
   CoopertoListResponse,
+  CoopertoRegisterVisitRequest,
+  CoopertoRegisterVisitResponse,
   CoopertoReservation,
   CoopertoWaitlistEntry,
   CoopertoVenue,
   CoopertoVenueHours,
   ProfileUpdateInput,
   ProfileResponse,
+  RegisterVisitResponse,
   UpcomingReservation,
   VenueResponse,
   WaitlistCreateInput,
   WaitlistCreateResponse,
 } from "@/lib/cooperto/types";
-import { buildCoopertoDateTime } from "@/lib/utils";
+import { buildCoopertoDateTime, buildCoopertoNowDateTime } from "@/lib/utils";
 
 const withQuery = (path: string, query: Record<string, string | number | undefined>) => {
   const url = new URL(path, coopertoConfig.apiBaseUrl);
@@ -77,7 +80,13 @@ const coopertoFetch = async <T>(
     throw new Error(body || `Cooperto ha risposto con ${response.status}.`);
   }
 
-  return (await response.json()) as T;
+  const body = await response.text();
+
+  if (!body) {
+    return null as T;
+  }
+
+  return JSON.parse(body) as T;
 };
 
 const normalizeRooms = (rooms?: CoopertoBookingModule["SaleAbilitate"]): BookingRoom[] => {
@@ -570,6 +579,39 @@ export const updateProfileContact = async (
   } catch {
     return fallbackSource(await mockUpdateProfileContact(input));
   }
+};
+
+export const registerContactVisit = async ({
+  contactCode,
+  venueCode,
+}: {
+  contactCode: string;
+  venueCode: string;
+}): Promise<RegisterVisitResponse> => {
+  if (!hasCoopertoLiveConfig) {
+    throw new Error("Configurazione Cooperto non presente.");
+  }
+
+  const visitDate = buildCoopertoNowDateTime();
+  const requestBody: CoopertoRegisterVisitRequest = {
+    codiceContatto: contactCode,
+    codiceSede: venueCode,
+    dataVisita: visitDate,
+  };
+
+  const visit = await coopertoFetch<CoopertoRegisterVisitResponse>(
+    "/api/Contatti/RegistraVisita",
+    {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    },
+  );
+
+  return {
+    source: "live",
+    visit,
+    visitDate,
+  };
 };
 
 export const getVenuesData = async (): Promise<VenueResponse> => {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
+import { LocalExperienceTeaser } from "@/features/local-experience/components/LocalExperienceTeaser";
 import { requestJson } from "@/lib/client";
 import { ciurmaRoadmapFeatures } from "@/lib/config";
 import {
@@ -320,6 +321,7 @@ export function CiurmaScreen() {
   return (
     <section className="space-y-5">
       <CaptainChallengeTeaser />
+      <LocalExperienceTeaser />
 
       {showLookupPanel ? (
         <div className="panel rounded-[2rem] p-5">
