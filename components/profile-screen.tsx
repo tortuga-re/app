@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { ActiveCouponsCard } from "@/components/active-coupons-card";
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
@@ -13,16 +14,12 @@ import {
 } from "@/lib/customer-identity";
 import {
   formatBirthDateLabel,
-  formatCouponExpiry,
-  getCouponDisplayCode,
-  getCouponQrValue,
   getProfileUpcomingReservations,
   sortActiveCoupons,
-  sortExpiredCoupons,
   toDateInputValue,
 } from "@/lib/customer-profile";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
-import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
+import type { ProfileResponse } from "@/lib/cooperto/types";
 import { ciurmaRoadmapFeatures } from "@/lib/config";
 import { cn, formatDateTime } from "@/lib/utils";
 
@@ -67,93 +64,6 @@ const buildContactForm = (
   marketingConsent: contact?.ConsensoMarketing === 1,
 });
 
-function CouponAccordionCard({
-  title,
-  description,
-  coupons,
-  isOpen,
-  onToggle,
-  emptyMessage,
-}: {
-  title: string;
-  description: string;
-  coupons: CoopertoCoupon[];
-  isOpen: boolean;
-  onToggle: () => void;
-  emptyMessage: string;
-}) {
-  return (
-    <div className="panel rounded-[2rem] px-5 py-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="eyebrow">{title}</p>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">{description}</p>
-        </div>
-
-        <button
-          type="button"
-          className="button-secondary inline-flex min-h-10 items-center justify-center px-4 text-xs"
-          onClick={onToggle}
-        >
-          {isOpen ? "Nascondi" : "Mostra"}
-        </button>
-      </div>
-
-      {isOpen ? (
-        <div className="mt-4 space-y-4">
-          {coupons.length > 0 ? (
-            coupons.map((coupon) => {
-              const displayCode = getCouponDisplayCode(coupon);
-              const qrValue = getCouponQrValue(coupon);
-              const couponKey =
-                coupon.CodiceCouponContatto?.trim() ||
-                `${displayCode}-${coupon.DataScadenza ?? "no-date"}`;
-
-              return (
-                <div
-                  key={couponKey}
-                  className="panel-muted rounded-[1.6rem] px-4 py-4"
-                >
-                  <div className="space-y-4">
-                    {qrValue ? (
-                      <div className="mx-auto max-w-[180px]">
-                        <FidelityQrCode
-                          key={couponKey}
-                          value={qrValue}
-                          label={`QR coupon ${displayCode}`}
-                        />
-                      </div>
-                    ) : null}
-
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                        Codice coupon
-                      </p>
-                      <p className="break-all text-base font-semibold text-white">
-                        {displayCode}
-                      </p>
-                      <p className="text-sm leading-6 text-[var(--text-muted)]">
-                        Scadenza:{" "}
-                        <span className="text-white">
-                          {formatCouponExpiry(coupon.DataScadenza)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
-              {emptyMessage}
-            </p>
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export function CiurmaScreen() {
   const {
     identity,
@@ -174,8 +84,6 @@ export function CiurmaScreen() {
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [contactForm, setContactForm] = useState<ContactFormState>(emptyContactForm);
   const [birthDateDraft, setBirthDateDraft] = useState<string | null>(null);
-  const [showActiveCoupons, setShowActiveCoupons] = useState(false);
-  const [showExpiredCoupons, setShowExpiredCoupons] = useState(false);
   const autoLoadedKeyRef = useRef("");
 
   const identityEmail = normalizeCustomerEmail(identity.email);
@@ -184,10 +92,8 @@ export function CiurmaScreen() {
   const activeCardName = data?.contact?.NomeCardAssegnata?.trim() || "";
   const hasActiveCard = Boolean(activeCardCode);
   const points = data?.points ?? data?.contact?.SaldoPuntiCard ?? 0;
-  const visits = data?.contact?.NumeroVisite ?? 0;
   const coupons = data?.coupons ?? [];
   const activeCoupons = sortActiveCoupons(coupons);
-  const expiredCoupons = sortExpiredCoupons(coupons);
   const reservationOwnerEmail = identityEmail || normalizeCustomerEmail(lookupEmail);
   const upcomingReservations = getProfileUpcomingReservations(
     data,
@@ -462,6 +368,7 @@ export function CiurmaScreen() {
   const contactSummaryName =
     [displayedContact.firstName, displayedContact.lastName].filter(Boolean).join(" ") ||
     "Non disponibile";
+  const lastVisit = data?.contact?.DataUltimaVisita;
   const openContactEditor = (section: EditableContactSection) => {
     setContactError("");
     setContactMessage("");
@@ -478,68 +385,18 @@ export function CiurmaScreen() {
           La tua rotta Tortuga
         </h1>
         <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-          Fidelity, prenotazioni, coupon e dati cliente in un&apos;unica area.
+          Dati cliente, fidelity, rotte future e contenuti speciali nello stesso spazio.
         </p>
       </div>
-
-      <CaptainChallengeTeaser />
-
-      {hasProfile ? (
-        <div className="panel rounded-[2rem] p-5">
-          <div className="space-y-2">
-            <p className="eyebrow">Prossime Prenotazioni</p>
-            <p className="text-sm leading-6 text-[var(--text-muted)]">
-              Le tue prossime serate gia&apos; in rotta verso il Tortuga.
-            </p>
-          </div>
-
-          {upcomingReservations.length > 0 ? (
-            <div className="mt-4 space-y-3">
-              {upcomingReservations.map((reservation) => (
-                <div
-                  key={`${reservation.reservationCode ?? reservation.dateTime}-${reservation.stateLabel}`}
-                  className="panel-muted rounded-[1.5rem] px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <p className="text-base font-semibold text-white">
-                        {formatDateTime(reservation.dateTime)}
-                      </p>
-                      <p className="text-sm text-[var(--text-muted)]">
-                        {reservation.pax
-                          ? `${reservation.pax} persone`
-                          : "Numero persone non disponibile"}
-                      </p>
-                      {reservation.roomName ? (
-                        <p className="text-sm text-[var(--text-muted)]">
-                          Sala: <span className="text-white">{reservation.roomName}</span>
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
-                      {reservation.stateLabel}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
-              Nessuna prenotazione trovata.
-            </p>
-          )}
-        </div>
-      ) : null}
 
       {showLookupPanel ? (
         <div className="panel rounded-[2rem] p-5">
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="eyebrow">Riconoscimento Ciurma</p>
+              <p className="eyebrow">Riconoscimento ciurma</p>
+              <h2 className="text-xl font-semibold text-white">Rientra a bordo con la tua email.</h2>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Inserisci la tua email e ritrova subito fidelity, punti e le
-                serate che hai gia&apos; vissuto con Tortuga.
+                Recupera subito fidelity, coupon e prenotazioni gia collegate al tuo profilo.
               </p>
             </div>
 
@@ -606,12 +463,35 @@ export function CiurmaScreen() {
       {data?.contact ? (
         <>
           <div className="panel rounded-[2rem] p-5">
-            <div className="space-y-2">
-              <p className="eyebrow">Membro della Ciurma</p>
-              <h2 className="text-2xl font-semibold text-white">{profileName}</h2>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Tieni aggiornati i tuoi riferimenti per prenotazioni, fidelity e serate speciali.
-              </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-2">
+                <p className="eyebrow">Membro della ciurma</p>
+                <h2 className="text-2xl font-semibold text-white">{profileName}</h2>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
+                  Tieni aggiornati i tuoi dati per prenotazioni, fidelity e vantaggi dedicati.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                  onClick={() =>
+                    activeEditSection
+                      ? setActiveEditSection(null)
+                      : openContactEditor("identity")
+                  }
+                >
+                  {activeEditSection ? "Chiudi modifiche" : "Modifica dati"}
+                </button>
+                <button
+                  type="button"
+                  className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                  onClick={changeAccount}
+                >
+                  Cambia profilo
+                </button>
+              </div>
             </div>
 
             {contactError ? (
@@ -626,7 +506,7 @@ export function CiurmaScreen() {
               </div>
             ) : null}
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 grid gap-3">
               <div className="panel-muted rounded-[1.5rem] px-4 py-4">
                 <div className="flex items-start justify-between gap-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
@@ -634,7 +514,7 @@ export function CiurmaScreen() {
                   </p>
                   <button
                     type="button"
-                    className="text-[9px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
+                    className="text-[10px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
                     onClick={() =>
                       isEditingIdentity
                         ? setActiveEditSection(null)
@@ -692,7 +572,7 @@ export function CiurmaScreen() {
                   </p>
                   <button
                     type="button"
-                    className="text-[9px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
+                    className="text-[10px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
                     onClick={() =>
                       isEditingContacts
                         ? setActiveEditSection(null)
@@ -761,19 +641,17 @@ export function CiurmaScreen() {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
                     Data di nascita
                   </p>
-                  {hasStoredBirthDate ? (
-                    <button
-                      type="button"
-                      className="text-[9px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
-                      onClick={() =>
-                        isEditingBirthDate
-                          ? setActiveEditSection(null)
-                          : openContactEditor("birthDate")
-                      }
-                    >
-                      {isEditingBirthDate ? "Chiudi" : "Modifica"}
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    className="text-[10px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
+                    onClick={() =>
+                      isEditingBirthDate
+                        ? setActiveEditSection(null)
+                        : openContactEditor("birthDate")
+                    }
+                  >
+                    {isEditingBirthDate ? "Chiudi" : hasStoredBirthDate ? "Modifica" : "Aggiungi"}
+                  </button>
                 </div>
 
                 {shouldShowBirthDateEditor ? (
@@ -781,7 +659,9 @@ export function CiurmaScreen() {
                     <input
                       className="field"
                       type="date"
-                      value={isEditingBirthDate ? displayedContact.birthDate : summaryBirthDate}
+                      value={
+                        isEditingBirthDate ? displayedContact.birthDate : summaryBirthDate
+                      }
                       onChange={(event) => {
                         if (isEditingBirthDate) {
                           setContactForm((current) => ({
@@ -798,7 +678,7 @@ export function CiurmaScreen() {
 
                     {!summaryBirthDate && !displayedContact.birthDate ? (
                       <p className="text-sm leading-6 text-[var(--text-muted)]">
-                        Inserisci la tua data di nascita e ricevi un regalo nel tuo giorno speciale
+                        Inserisci la tua data di nascita e ricevi un regalo nel tuo giorno speciale.
                       </p>
                     ) : null}
 
@@ -867,16 +747,6 @@ export function CiurmaScreen() {
                 )}
               </div>
             </div>
-
-            <div className="mt-4">
-              <button
-                type="button"
-                className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                onClick={changeAccount}
-              >
-                Cambia profilo
-              </button>
-            </div>
           </div>
 
           <div
@@ -886,241 +756,223 @@ export function CiurmaScreen() {
                 "border-[rgba(242,215,165,0.38)] bg-[linear-gradient(160deg,rgba(242,215,165,0.18),rgba(13,9,6,0.98)_34%,rgba(58,39,19,0.84)_100%)] shadow-[0_24px_70px_rgba(0,0,0,0.42)]",
             )}
           >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
                 <p className={cn("eyebrow", isVip && "text-[#f5deb0]")}>
-                  Fidelity Attiva
+                  Fidelity Tortuga
                 </p>
-                {isVip ? (
-                  <span className="rounded-full border border-[rgba(242,215,165,0.32)] bg-[rgba(242,215,165,0.16)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-[#f5deb0]">
-                    VIP
-                  </span>
-                ) : null}
-              </div>
-              <p
-                className={cn(
-                  "text-sm leading-6 text-[var(--text-muted)]",
-                  isVip && "text-[rgba(245,222,176,0.82)]",
-                )}
-              >
-                La tua card pronta da mostrare, ogni volta che torni a bordo.
-              </p>
-            </div>
-
-            <div className="mt-5 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                Livello ciurma
-              </p>
-              <div className="mt-2 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-lg font-semibold text-white">
-                    {loyaltyTier.label}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                    {loyaltyTier.description}
-                  </p>
-                </div>
-                {isVip ? (
-                  <span className="rounded-full border border-[rgba(242,215,165,0.32)] bg-[rgba(242,215,165,0.16)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5deb0]">
-                    VIP
-                  </span>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="mt-5 rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className={cn("text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]", isVip && "text-[#f5deb0]")}>
-                  Punti della Ciurma
-                </p>
-                {rewardProgress.nextReward ? (
-                  <div className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-right">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                      Prossimo premio
-                    </p>
-                    <p
-                      className={cn(
-                        "mt-1 text-sm font-medium text-white",
-                        isVip && "text-[#fff0d0]",
-                      )}
-                    >
-                      {rewardProgress.nextReward.label}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-3 flex items-end justify-between gap-4">
-                <p
-                  className={cn(
-                    "text-4xl font-semibold text-white",
-                    isVip && "text-[#fff0d0]",
-                  )}
-                >
-                  {rewardProgress.points}
-                </p>
-                <p
-                  className={cn(
-                    "max-w-[9rem] text-right text-sm leading-6 text-[var(--text-muted)]",
-                    isVip && "text-[rgba(245,222,176,0.82)]",
-                  )}
-                >
-                  {rewardProgress.isMaxTierReached
-                    ? "Hai gia raggiunto il premio finale della rotta Tortuga."
-                    : "Il saldo aggiornato della tua rotta loyalty."}
-                </p>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                <div className="h-3 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)]">
-                  <div
-                    className={cn(
-                      "h-full rounded-full bg-[linear-gradient(90deg,#f7e0b2_0%,#d5a65b_50%,#8d6330_100%)] shadow-[0_0_18px_rgba(213,166,91,0.3)] transition-[width] duration-500",
-                      rewardProgress.isMaxTierReached &&
-                        "bg-[linear-gradient(90deg,#f9e8c5_0%,#f2c978_42%,#b57b2f_100%)]",
-                    )}
-                    style={{ width: `${rewardProgress.progressPercent}%` }}
-                  />
-                </div>
-
+                <h2 className="text-2xl font-semibold text-white">{loyaltyTier.label}</h2>
                 <p
                   className={cn(
                     "text-sm leading-6 text-[var(--text-muted)]",
                     isVip && "text-[rgba(245,222,176,0.82)]",
                   )}
                 >
-                  {rewardProgress.isMaxTierReached
-                    ? "Hai gia conquistato il premio piu esclusivo della ciurma."
-                    : "Ti mancano pochi punti al prossimo premio"}
+                  {loyaltyTier.description}
                 </p>
               </div>
-            </div>
 
-            {hasActiveCard ? (
-              <div className="mt-5 space-y-4 border-t border-[rgba(255,216,156,0.1)] pt-5 text-center">
-                <FidelityQrCode
-                  key={activeCardCode}
-                  value={activeCardCode}
-                  label={`QR fidelity di ${profileName}`}
-                  variant={isVip ? "vip" : "default"}
-                />
-                <div className="space-y-1">
-                  <p
-                    className={cn(
-                      "text-xl font-semibold text-white",
-                      isVip && "text-[#fff0d0]",
-                    )}
-                  >
-                    {activeCardSummary}
-                  </p>
-                  <p
-                    className={cn(
-                      "text-sm leading-6 text-[var(--text-muted)]",
-                      isVip && "text-[rgba(245,222,176,0.82)]",
-                    )}
-                  >
-                    Tienilo a portata di mano quando vuoi farti riconoscere al
-                    Tortuga.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div
-                  className={cn(
-                    "mt-5 rounded-[1.7rem] border border-[var(--border)] bg-white/4 px-5 py-6 text-center",
-                    isVip &&
-                      "border-[rgba(242,215,165,0.24)] bg-[linear-gradient(180deg,rgba(242,215,165,0.08),rgba(255,255,255,0.02))]",
-                  )}
-                >
-                <div
-                  className={cn(
-                    "mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--border)] bg-white/6 text-lg font-semibold text-[var(--accent-strong)]",
-                    isVip &&
-                      "border-[rgba(242,215,165,0.3)] bg-[rgba(242,215,165,0.12)] text-[#f5deb0]",
-                  )}
-                >
-                  TB
-                </div>
-                <h3
-                  className={cn(
-                    "mt-4 text-lg font-semibold text-white",
-                    isVip && "text-[#fff0d0]",
-                  )}
-                >
-                  Fidelity non disponibile
-                </h3>
-                <p
-                  className={cn(
-                    "mt-2 text-sm leading-6 text-[var(--text-muted)]",
-                    isVip && "text-[rgba(245,222,176,0.82)]",
-                  )}
-                >
-                  Per questa email non risulta una card attiva pronta da
-                  mostrare in area cliente.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <CouponAccordionCard
-              title="Coupon Attivi"
-              description="Benefit e codici pronti da usare nelle tue prossime rotte Tortuga."
-              coupons={activeCoupons}
-              isOpen={showActiveCoupons}
-              onToggle={() => setShowActiveCoupons((current) => !current)}
-              emptyMessage="Al momento non risultano coupon attivi per questa ciurma."
-            />
-
-            <CouponAccordionCard
-              title="Coupon Scaduti"
-              description="Lo storico dei coupon gia conclusi o non piu disponibili."
-              coupons={expiredCoupons}
-              isOpen={showExpiredCoupons}
-              onToggle={() => setShowExpiredCoupons((current) => !current)}
-              emptyMessage="Al momento non risultano coupon scaduti per questa ciurma."
-            />
-
-            <div className="panel rounded-[2rem] px-5 py-6">
-              <p className="eyebrow">Serate Gia&apos; Vissute</p>
-              <p className="mt-3 text-4xl font-semibold text-white">{visits}</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                Le volte in cui sei gia&apos; passato dal Tortuga.
-              </p>
-              {data?.contact?.DataUltimaVisita ? (
-                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                  Ultima visita:{" "}
-                  <span className="text-white">
-                    {formatDateTime(data.contact.DataUltimaVisita)}
-                  </span>
-                </p>
+              {isVip ? (
+                <span className="rounded-full border border-[rgba(242,215,165,0.32)] bg-[rgba(242,215,165,0.16)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5deb0]">
+                  VIP
+                </span>
               ) : null}
             </div>
 
-            <div className="panel rounded-[2rem] px-5 py-6">
-              <p className="eyebrow">Prossime rotte</p>
-              <div className="mt-4 grid gap-3">
-                {ciurmaRoadmapFeatures.map((feature) => (
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      Saldo punti
+                    </p>
+                    <p className="mt-2 text-4xl font-semibold text-white">
+                      {rewardProgress.points}
+                    </p>
+                  </div>
+
+                  {rewardProgress.nextReward ? (
+                    <div className="text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                        Prossimo premio
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-white">
+                        {rewardProgress.nextReward.label}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="max-w-[9rem] text-right text-sm leading-6 text-[var(--text-muted)]">
+                      Premio finale gia raggiunto.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <div className="h-3 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)]">
+                    <div
+                      className={cn(
+                        "h-full rounded-full bg-[linear-gradient(90deg,#f7e0b2_0%,#d5a65b_50%,#8d6330_100%)] transition-[width] duration-500",
+                        rewardProgress.isMaxTierReached &&
+                          "bg-[linear-gradient(90deg,#f9e8c5_0%,#f2c978_42%,#b57b2f_100%)]",
+                      )}
+                      style={{ width: `${rewardProgress.progressPercent}%` }}
+                    />
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    {rewardProgress.isMaxTierReached
+                      ? "Hai gia conquistato il premio piu esclusivo della ciurma."
+                      : "La progress bar mostra quanto manca al prossimo premio."}
+                  </p>
+                </div>
+              </div>
+
+              {hasActiveCard ? (
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px]">
+                  <div className="rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      Card attiva
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-white">
+                      {activeCardSummary}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                      Il QR resta sempre pronto da mostrare quando torni a bordo.
+                    </p>
+                  </div>
+
+                  <div className="rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+                    <FidelityQrCode
+                      key={activeCardCode}
+                      value={activeCardCode}
+                      label={`QR fidelity di ${profileName}`}
+                      variant={isVip ? "vip" : "default"}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-[1.7rem] border border-[var(--border)] bg-white/4 px-5 py-6 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--border)] bg-white/6 text-lg font-semibold text-[var(--accent-strong)]">
+                    TB
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-white">
+                    Fidelity non disponibile
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                    Per questa email non risulta ancora una card attiva pronta da mostrare.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="panel rounded-[2rem] p-5">
+            <div className="space-y-2">
+              <p className="eyebrow">Le tue rotte</p>
+              <h2 className="text-2xl font-semibold text-white">
+                Prenotazioni future e ultimo approdo.
+              </h2>
+              <p className="text-sm leading-6 text-[var(--text-muted)]">
+                Le serate che stanno arrivando e l&apos;ultima visita utile da ricordare.
+              </p>
+            </div>
+
+            {upcomingReservations.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {upcomingReservations.map((reservation) => (
                   <div
-                    key={feature.title}
+                    key={`${reservation.reservationCode ?? reservation.dateTime}-${reservation.stateLabel}`}
                     className="panel-muted rounded-[1.5rem] px-4 py-4"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div>
+                      <div className="space-y-1">
                         <p className="text-base font-semibold text-white">
-                          {feature.title}
+                          {formatDateTime(reservation.dateTime)}
                         </p>
-                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                          {feature.description}
+                        <p className="text-sm text-[var(--text-muted)]">
+                          {reservation.pax
+                            ? `${reservation.pax} persone`
+                            : "Numero persone non disponibile"}
                         </p>
+                        {reservation.roomName ? (
+                          <p className="text-sm text-[var(--text-muted)]">
+                            Sala: <span className="text-white">{reservation.roomName}</span>
+                          </p>
+                        ) : null}
                       </div>
-                      <span className="rounded-full border border-[rgba(255,216,156,0.1)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                        Roadmap
+
+                      <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
+                        {reservation.stateLabel}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="mt-4 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
+                Nessuna prenotazione futura trovata al momento.
+              </div>
+            )}
+
+            {lastVisit ? (
+              <div className="mt-4 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                  Ultima visita
+                </p>
+                <p className="mt-2 text-base font-semibold text-white">
+                  {formatDateTime(lastVisit)}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          <ActiveCouponsCard
+            coupons={activeCoupons}
+            description="Il primo coupon resta sempre visibile con QR pronto, gli altri compaiono solo se li apri."
+            emptyMessage="Al momento non risultano coupon attivi per questa ciurma."
+          />
+
+          <div className="panel rounded-[2rem] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="eyebrow">Sfide e contenuti speciali</p>
+                <h2 className="text-2xl font-semibold text-white">
+                  Il lato piu vivo della tua ciurma.
+                </h2>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
+                  Gioca ora e scopri i contenuti premium che stanno arrivando a bordo.
+                </p>
+              </div>
+
+              <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                Premium
+              </span>
+            </div>
+
+            <div className="mt-4 rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+              <CaptainChallengeTeaser compact framed={false} />
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {ciurmaRoadmapFeatures.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="panel-muted rounded-[1.5rem] px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white">
+                        {feature.title}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        {feature.description}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[rgba(255,216,156,0.1)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      In arrivo
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </>

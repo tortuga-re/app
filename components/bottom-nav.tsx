@@ -10,14 +10,48 @@ const items = [
     href: "/",
     label: "Home",
     icon: (
-      <path
-        d="M4.75 10.75 12 4.5l7.25 6.25v7a1.75 1.75 0 0 1-1.75 1.75h-3.25v-5h-4.5v5H6.5a1.75 1.75 0 0 1-1.75-1.75v-7Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.6"
-      />
+      <>
+        <path
+          d="M12 4.5v8.25"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M12 5.25 8.25 9.5H12"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M12 6.25 16.25 10.75H12"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M6 14.5h12l-1.35 2.75H7.35L6 14.5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M4.5 18c1-.67 2-.99 3-.99s2 .32 3 .99c1-.67 2-.99 3-.99s2 .32 3 .99c1-.67 2-.99 3-.99"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+      </>
     ),
   },
   {
@@ -38,28 +72,64 @@ const items = [
     href: "/ciurma",
     label: "Ciurma",
     icon: (
-      <path
-        d="M12 11.25a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6.75 7a6.75 6.75 0 0 1 13.5 0M17.75 7.25l1.5-1.5m-14.5 0 1.5 1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.6"
-      />
+      <>
+        <path
+          d="m7.25 18 9.5-9.5m0 9.5-9.5-9.5"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M12 4.5c2.62 0 4.75 1.96 4.75 4.38 0 1.79-1.16 3.31-2.81 4v1.12c0 .62-.5 1.12-1.12 1.12h-1.64c-.62 0-1.12-.5-1.12-1.12v-1.12c-1.65-.69-2.81-2.21-2.81-4C7.25 6.46 9.38 4.5 12 4.5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M10.3 9.4h.02m3.36 0h.02m-2.53 2.44c.32.24.6.35.83.35.23 0 .5-.11.83-.35"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+      </>
     ),
   },
   {
     href: "/info",
     label: "Info",
     icon: (
-      <path
-        d="M4.75 18.25h14.5M7 18.25V8.75a1 1 0 0 1 .56-.9L12 5.75l4.44 2.1a1 1 0 0 1 .56.9v9.5m-7.5-8.5h5M10 11.75h1m3 0h1m-5 3h1m3 0h1"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.6"
-      />
+      <>
+        <path
+          d="M8.25 5.5h7a2.5 2.5 0 0 1 0 5H8.25a2.5 2.5 0 1 1 0-5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M8.25 10.5h7a2.5 2.5 0 1 1 0 5h-7a2.5 2.5 0 1 0 0 5"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M9.75 8h4.5m-4.5 5h4.5m-4.5 5h3"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+      </>
     ),
   },
 ];

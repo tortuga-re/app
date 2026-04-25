@@ -216,11 +216,6 @@ export function TortugaMapViewer({
     hasManualInteractionRef.current = true;
   };
 
-  const resetView = () => {
-    hasManualInteractionRef.current = false;
-    setViewBox(focusedRoomViewBox);
-  };
-
   const zoomFromCenter = (zoomFactor: number) => {
     const rect = viewportRef.current?.getBoundingClientRect();
 
@@ -476,24 +471,11 @@ export function TortugaMapViewer({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3 px-1">
+      <div className="mt-3 px-1">
         <p className="text-xs leading-5 text-[var(--text-muted)]">
           Trascina per esplorare la mappa, pizzica per zoomare oppure usa i
           controlli + e -.
         </p>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]"
-            onClick={resetView}
-          >
-            Reset vista
-          </button>
-          <span className="rounded-full border border-[rgba(255,216,156,0.08)] bg-[rgba(255,255,255,0.02)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-            Zoom {Math.round((MAP_WIDTH / viewBox.width) * 100)}%
-          </span>
-        </div>
       </div>
     </div>
   );

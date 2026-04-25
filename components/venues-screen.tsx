@@ -96,7 +96,7 @@ const groupVenueHours = (hours?: CoopertoVenueHour[] | null): GroupedOpeningHour
   const grouped: GroupedOpeningHour[] = [];
 
   for (const [timeKey, dayCodes] of slotsByTime.entries()) {
-    const [startTime, endTime] = timeKey.split("|");
+    const [startTime] = timeKey.split("|");
     const sortedDays = [...dayCodes].sort((left, right) => left - right);
 
     let rangeStart = sortedDays[0];
@@ -112,7 +112,7 @@ const groupVenueHours = (hours?: CoopertoVenueHour[] | null): GroupedOpeningHour
 
       grouped.push({
         dayLabel: formatDayRange(rangeStart, rangeEnd),
-        timeLabel: `${startTime} - ${endTime}`,
+        timeLabel: timeKey.replace("|", " - "),
         sortDay: rangeStart,
         sortTime: startTime,
       });
@@ -170,10 +170,10 @@ export function VenuesScreen() {
       <div className="panel rounded-[2rem] px-5 py-4">
         <p className="eyebrow">Info e serate</p>
         <h1 className="mt-2 text-2xl font-semibold uppercase tracking-[0.08em] text-white">
-          Info e serate
+          INFO E SERATE
         </h1>
         <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-          Orari, indicazioni, programmazione e contatti ufficiali del Tortuga.
+          Tutto quello che ti serve per raggiungere Tortuga e scegliere la serata giusta.
         </p>
       </div>
 
@@ -195,13 +195,44 @@ export function VenuesScreen() {
 
       <div className="panel rounded-[2rem] p-5">
         <div className="space-y-2">
-          <p className="eyebrow">Dove siamo</p>
-          <p className="text-base font-semibold text-white">
-            {tortugaInfoConfig.address}
-          </p>
+          <p className="eyebrow">Dove siamo e contatti</p>
+          <h2 className="text-xl font-semibold text-white">
+            Arriva al Tortuga senza deviazioni.
+          </h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Apri la mappa ufficiale di Tortuga e raggiungi subito la Isla Loca.
+            Indirizzo, telefono e WhatsApp restano in un unico punto rapido.
           </p>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+              Indirizzo
+            </p>
+            <p className="mt-2 text-base font-semibold text-white">
+              {tortugaInfoConfig.address}
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                Telefono
+              </p>
+              <p className="mt-2 text-base font-semibold text-white">
+                {tortugaInfoConfig.phoneNumber}
+              </p>
+            </div>
+
+            <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                WhatsApp
+              </p>
+              <p className="mt-2 text-base font-semibold text-white">
+                Sempre pronto per contatti rapidi
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-black/20">
@@ -214,83 +245,113 @@ export function VenuesScreen() {
           />
         </div>
 
-        <a
-          href={tortugaInfoConfig.mapsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
-        >
-          Ottieni indicazioni
-        </a>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <a
+            href={tortugaInfoConfig.mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+          >
+            Ottieni indicazioni
+          </a>
+          <a
+            href={tortugaInfoConfig.phoneHref}
+            className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+          >
+            Chiama Tortuga
+          </a>
+          <a
+            href={tortugaInfoConfig.whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+            className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm sm:col-span-2"
+          >
+            Apri WhatsApp
+          </a>
+        </div>
       </div>
 
       {primaryVenue ? (
         <div className="panel rounded-[2rem] p-5">
-          <div className="space-y-3">
-            <p className="eyebrow">Quando ci trovi</p>
-            {groupedOpeningHours.length ? (
-              <div className="grid gap-3">
-                {groupedOpeningHours.map((hour) => (
-                  <div
-                    key={`${hour.dayLabel}-${hour.timeLabel}`}
-                    className="panel-muted rounded-[1.4rem] px-4 py-4"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-base font-semibold capitalize text-white">
-                        {hour.dayLabel}
-                      </p>
-                      <p className="text-sm text-[var(--text-muted)]">
-                        {hour.timeLabel}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-[var(--text-muted)]">
-                Nessun orario disponibile al momento.
-              </p>
-            )}
+          <div className="space-y-2">
+            <p className="eyebrow">Quando ci trovi e fuori rotta</p>
+            <h2 className="text-xl font-semibold text-white">Orari sempre a vista.</h2>
+            <p className="text-sm leading-6 text-[var(--text-muted)]">
+              Aperture regolari e variazioni speciali raccolte nella stessa card.
+            </p>
           </div>
-        </div>
-      ) : null}
 
-      {primaryVenue ? (
-        <div className="panel rounded-[2rem] p-5">
-          <div className="space-y-3">
-            <p className="eyebrow">Fuori rotta</p>
-            {exceptions.length ? (
-              <div className="grid gap-3">
-                {exceptions.map((exception, index) => (
-                  <div
-                    key={`${exception.Tipologia}-${index}`}
-                    className="panel-muted rounded-[1.4rem] px-4 py-4"
-                  >
-                    <p className="text-base font-semibold text-white">
-                      {exception.Tipologia || "Eccezione"}
-                    </p>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      {exception.DataInizio
-                        ? formatDateTime(exception.DataInizio)
-                        : "Inizio non indicato"}
-                      {" - "}
-                      {exception.DataFine
-                        ? formatDateTime(exception.DataFine)
-                        : "Fine non indicata"}
-                    </p>
-                    {exception.MessaggioChiusura ? (
-                      <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                        {exception.MessaggioChiusura}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-[var(--text-muted)]">
-                Nessuna variazione comunicata per i prossimi giorni.
+          <div className="mt-4 space-y-4">
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                Quando ci trovi
               </p>
-            )}
+              {groupedOpeningHours.length ? (
+                <div className="grid gap-3">
+                  {groupedOpeningHours.map((hour) => (
+                    <div
+                      key={`${hour.dayLabel}-${hour.timeLabel}`}
+                      className="panel-muted rounded-[1.4rem] px-4 py-4"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-base font-semibold capitalize text-white">
+                          {hour.dayLabel}
+                        </p>
+                        <p className="text-sm text-[var(--text-muted)]">
+                          {hour.timeLabel}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="panel-muted rounded-[1.4rem] px-4 py-4">
+                  <p className="text-sm text-[var(--text-muted)]">
+                    Nessun orario disponibile al momento.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 border-t border-[rgba(255,216,156,0.08)] pt-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                Fuori rotta
+              </p>
+              {exceptions.length ? (
+                <div className="grid gap-3">
+                  {exceptions.map((exception, index) => (
+                    <div
+                      key={`${exception.Tipologia}-${index}`}
+                      className="panel-muted rounded-[1.4rem] px-4 py-4"
+                    >
+                      <p className="text-base font-semibold text-white">
+                        {exception.Tipologia || "Eccezione"}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--text-muted)]">
+                        {exception.DataInizio
+                          ? formatDateTime(exception.DataInizio)
+                          : "Inizio non indicato"}
+                        {" - "}
+                        {exception.DataFine
+                          ? formatDateTime(exception.DataFine)
+                          : "Fine non indicata"}
+                      </p>
+                      {exception.MessaggioChiusura ? (
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                          {exception.MessaggioChiusura}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="panel-muted rounded-[1.4rem] px-4 py-4">
+                  <p className="text-sm text-[var(--text-muted)]">
+                    Nessuna variazione comunicata per i prossimi giorni.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : null}
@@ -298,17 +359,18 @@ export function VenuesScreen() {
       <div className="panel rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Programmazione serale</p>
+          <h2 className="text-xl font-semibold text-white">
+            La serata la scegli dalla fonte ufficiale.
+          </h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Consulta la pagina ufficiale della programmazione invernale per il
-            calendario serate piu aggiornato.
+            Il calendario viene aperto direttamente dalla pagina Tortuga piu aggiornata.
           </p>
         </div>
 
         <div className="mt-4 rounded-[1.4rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-4">
           <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Card predisposta: i contenuti dettagliati delle serate non sono stati
-            importati automaticamente perche la pagina ufficiale non e risultata
-            leggibile in modo affidabile da questo ambiente.
+            La programmazione dettagliata resta collegata alla pagina ufficiale per
+            evitare copie parziali o non aggiornate.
           </p>
         </div>
 
@@ -324,39 +386,12 @@ export function VenuesScreen() {
 
       <div className="panel rounded-[2rem] p-5">
         <div className="space-y-2">
-          <p className="eyebrow">Contatti</p>
-          <p className="text-base font-semibold text-white">
-            {tortugaInfoConfig.phoneNumber}
-          </p>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Telefono e WhatsApp sempre pronti per prenotazioni e informazioni.
-          </p>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <a
-            href={tortugaInfoConfig.phoneHref}
-            className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-          >
-            Chiama Tortuga
-          </a>
-          <a
-            href={tortugaInfoConfig.whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-          >
-            Apri WhatsApp
-          </a>
-        </div>
-      </div>
-
-      <div className="panel rounded-[2rem] p-5">
-        <div className="space-y-2">
           <p className="eyebrow">Social</p>
+          <h2 className="text-xl font-semibold text-white">
+            Segui Tortuga anche fuori bordo.
+          </h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Collegamenti predisposti: verranno attivati quando i link ufficiali
-            saranno centralizzati in configurazione.
+            I link arrivano dalla configurazione centrale, con placeholder puliti quando mancano.
           </p>
         </div>
 

@@ -47,15 +47,18 @@ export const tortugaInfoConfig = {
 export const ciurmaRoadmapFeatures = [
   {
     title: "Arruola un Pirata",
-    description: "Predisposizione referral: pronta per collegare un codice invito reale.",
+    description:
+      "Invita un amico nella tua ciurma e sblocca vantaggi extra quando torna a bordo.",
   },
   {
     title: "Carica la tua foto pirata",
-    description: "Predisposizione avatar: upload da attivare quando sara disponibile il backend.",
+    description:
+      "Dai un volto alla tua card Tortuga con uno scatto personale in pieno stile pirata.",
   },
   {
     title: "Esperienze solo in locale",
-    description: "Predisposizione contenuti/QR: pensata per sblocchi verificati al Tortuga.",
+    description:
+      "Accessi speciali, contenuti dal vivo e premi pensati solo per chi passa davvero dal Tortuga.",
   },
 ] as const;
 
