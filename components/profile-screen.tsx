@@ -3,25 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ActiveCouponsCard } from "@/components/active-coupons-card";
-import { FidelityQrCode } from "@/components/fidelity-qr-code";
+import { FidelityStatusCard } from "@/components/fidelity-status-card";
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { requestJson } from "@/lib/client";
-import {
-  isValidCustomerEmail,
-  normalizeCustomerEmail,
-  useCustomerIdentity,
-} from "@/lib/customer-identity";
+import { ciurmaRoadmapFeatures } from "@/lib/config";
 import {
   formatBirthDateLabel,
   getProfileUpcomingReservations,
   sortActiveCoupons,
   toDateInputValue,
 } from "@/lib/customer-profile";
+import {
+  isValidCustomerEmail,
+  normalizeCustomerEmail,
+  useCustomerIdentity,
+} from "@/lib/customer-identity";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { ProfileResponse } from "@/lib/cooperto/types";
-import { ciurmaRoadmapFeatures } from "@/lib/config";
-import { cn, formatDateTime } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptics";
+import { formatDateTime } from "@/lib/utils";
 
 type ContactFormState = {
   firstName: string;
@@ -31,8 +32,6 @@ type ContactFormState = {
   birthDate: string;
   marketingConsent: boolean;
 };
-
-type EditableContactSection = "identity" | "contacts" | "birthDate";
 
 const emptyContactForm: ContactFormState = {
   firstName: "",
@@ -74,8 +73,7 @@ export function CiurmaScreen() {
   } = useCustomerIdentity();
   const [lookupEmail, setLookupEmail] = useState("");
   const [isEditingLookup, setIsEditingLookup] = useState(false);
-  const [activeEditSection, setActiveEditSection] =
-    useState<EditableContactSection | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
   const [error, setError] = useState("");
@@ -83,55 +81,25 @@ export function CiurmaScreen() {
   const [contactMessage, setContactMessage] = useState("");
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [contactForm, setContactForm] = useState<ContactFormState>(emptyContactForm);
-  const [birthDateDraft, setBirthDateDraft] = useState<string | null>(null);
   const autoLoadedKeyRef = useRef("");
 
   const identityEmail = normalizeCustomerEmail(identity.email);
   const hasProfile = Boolean(data?.contact);
-  const activeCardCode = data?.contact?.CodiceCard?.trim() || "";
-  const activeCardName = data?.contact?.NomeCardAssegnata?.trim() || "";
-  const hasActiveCard = Boolean(activeCardCode);
   const points = data?.points ?? data?.contact?.SaldoPuntiCard ?? 0;
-  const coupons = data?.coupons ?? [];
-  const activeCoupons = sortActiveCoupons(coupons);
+  const activeCoupons = sortActiveCoupons(data?.coupons ?? []);
   const reservationOwnerEmail = identityEmail || normalizeCustomerEmail(lookupEmail);
   const upcomingReservations = getProfileUpcomingReservations(
     data,
     reservationOwnerEmail,
   );
   const rewardProgress = getFidelityRewardProgress(points);
-  const isVip = rewardProgress.isVip;
-  const loyaltyTier = rewardProgress.loyaltyTier;
-  const hasMarketingConsent =
-    data?.contact?.ConsensoMarketing === 1 || identity.marketingConsent === true;
-  const contactSnapshot = buildContactForm(data?.contact);
-  const displayedContact = activeEditSection ? contactForm : contactSnapshot;
-  const hasStoredBirthDate = Boolean(contactSnapshot.birthDate);
-  const summaryBirthDate = activeEditSection
-    ? displayedContact.birthDate
-    : birthDateDraft ?? contactSnapshot.birthDate;
-  const shouldPromptBirthDate = !summaryBirthDate;
-  const shouldShowMarketingPrompt =
-    !activeEditSection && shouldPromptBirthDate && !hasMarketingConsent;
-  const isEditingIdentity = activeEditSection === "identity";
-  const isEditingContacts = activeEditSection === "contacts";
-  const isEditingBirthDate = activeEditSection === "birthDate";
-  const shouldShowBirthDateEditor = isEditingBirthDate || !hasStoredBirthDate;
-
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-
-    console.info("[Tortuga reservations][CIURMA] filtro applicato", {
-      emailUtente: reservationOwnerEmail || null,
-      prenotazioniRicevute: data.upcomingReservations.length,
-      prenotazioniMostrate: upcomingReservations.length,
-      filtro: reservationOwnerEmail
-        ? "booking.email === currentUser.email"
-        : "no-email-empty",
-    });
-  }, [data, reservationOwnerEmail, upcomingReservations.length]);
+  const activeCardCode = data?.contact?.CodiceCard?.trim() || "";
+  const profileName =
+    [data?.contact?.Nome, data?.contact?.Cognome].filter(Boolean).join(" ") ||
+    "Cliente Tortuga";
+  const lastVisit = data?.contact?.DataUltimaVisita;
+  const showLookupPanel = isEditingLookup || !hasIdentity;
+  const contactSnapshot = buildContactForm(data?.contact ?? undefined);
 
   useEffect(() => {
     if (!identityEmail || isEditingLookup || hasProfile) {
@@ -276,74 +244,65 @@ export function CiurmaScreen() {
     }
   };
 
-  const saveContact = async (
-    overrides?: Partial<ContactFormState>,
-    options?: { closeEditor?: boolean; successMessage?: string },
-  ) => {
-    const nextForm = {
-      ...(activeEditSection ? contactForm : contactSnapshot),
-      ...overrides,
-    };
-    const normalizedEmail = normalizeCustomerEmail(nextForm.email);
+  const saveContact = async () => {
+    const normalizedEmail = normalizeCustomerEmail(contactForm.email);
 
-    if (!nextForm.firstName.trim() || !nextForm.lastName.trim()) {
+    if (!contactForm.firstName.trim() || !contactForm.lastName.trim()) {
       setContactError("Inserisci nome e cognome.");
-      return false;
+      return;
     }
 
     if (!normalizedEmail || !isValidCustomerEmail(normalizedEmail)) {
       setContactError("Inserisci un indirizzo email valido.");
-      return false;
+      return;
     }
 
-    if (!nextForm.phone.trim()) {
+    if (!contactForm.phone.trim()) {
       setContactError("Inserisci un numero di telefono valido.");
-      return false;
+      return;
     }
 
     setSavingContact(true);
     setContactError("");
     setContactMessage("");
 
-    const shouldEnableMarketing =
-      hasMarketingConsent || nextForm.marketingConsent || Boolean(nextForm.birthDate);
-
     try {
       const response = await requestJson<ProfileResponse>("/api/profile", {
         method: "POST",
         body: JSON.stringify({
-          firstName: nextForm.firstName.trim(),
-          lastName: nextForm.lastName.trim(),
-          phone: nextForm.phone.trim(),
+          firstName: contactForm.firstName.trim(),
+          lastName: contactForm.lastName.trim(),
+          phone: contactForm.phone.trim(),
           email: normalizedEmail,
-          birthDate: nextForm.birthDate || undefined,
-          marketingConsent: shouldEnableMarketing,
+          birthDate: contactForm.birthDate || undefined,
+          marketingConsent: contactForm.marketingConsent,
         }),
       });
 
       applyProfileResponse(response);
-      setContactForm({
-        ...nextForm,
+      setContactForm((current) => ({
+        ...current,
         email: normalizedEmail,
-        marketingConsent: shouldEnableMarketing,
-      });
-      setBirthDateDraft(null);
-      if (options?.closeEditor ?? true) {
-        setActiveEditSection(null);
-      }
-      setContactMessage(options?.successMessage || "Dati cliente aggiornati.");
+      }));
+      setIsEditingProfile(false);
+      setContactMessage("Dati cliente aggiornati.");
       autoLoadedKeyRef.current = normalizedEmail;
-      return true;
     } catch (saveError) {
       setContactError(
         saveError instanceof Error
           ? saveError.message
           : "Non sono riuscito a salvare i dati cliente.",
       );
-      return false;
     } finally {
       setSavingContact(false);
     }
+  };
+
+  const openContactEditor = () => {
+    setContactError("");
+    setContactMessage("");
+    setContactForm(contactSnapshot);
+    setIsEditingProfile(true);
   };
 
   const changeAccount = () => {
@@ -352,43 +311,15 @@ export function CiurmaScreen() {
     setData(null);
     setError("");
     setIsEditingLookup(true);
-    setActiveEditSection(null);
+    setIsEditingProfile(false);
     setContactForm(emptyContactForm);
-    setBirthDateDraft(null);
     setContactError("");
     setContactMessage("");
     autoLoadedKeyRef.current = "";
   };
 
-  const profileName =
-    [data?.contact?.Nome, data?.contact?.Cognome].filter(Boolean).join(" ") ||
-    "Cliente Tortuga";
-  const activeCardSummary = activeCardName || "Card Tortuga";
-  const showLookupPanel = isEditingLookup || !hasIdentity;
-  const contactSummaryName =
-    [displayedContact.firstName, displayedContact.lastName].filter(Boolean).join(" ") ||
-    "Non disponibile";
-  const lastVisit = data?.contact?.DataUltimaVisita;
-  const openContactEditor = (section: EditableContactSection) => {
-    setContactError("");
-    setContactMessage("");
-    setBirthDateDraft(null);
-    setContactForm(contactSnapshot);
-    setActiveEditSection(section);
-  };
-
   return (
     <section className="space-y-5">
-      <div className="panel rounded-[2rem] px-5 py-4">
-        <p className="eyebrow">Ciurma</p>
-        <h1 className="mt-2 text-2xl font-semibold uppercase tracking-[0.08em] text-white">
-          La tua rotta Tortuga
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-          Dati cliente, fidelity, rotte future e contenuti speciali nello stesso spazio.
-        </p>
-      </div>
-
       {showLookupPanel ? (
         <div className="panel rounded-[2rem] p-5">
           <div className="space-y-4">
@@ -396,7 +327,7 @@ export function CiurmaScreen() {
               <p className="eyebrow">Riconoscimento ciurma</p>
               <h2 className="text-xl font-semibold text-white">Rientra a bordo con la tua email.</h2>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Recupera subito fidelity, coupon e prenotazioni gia collegate al tuo profilo.
+                Recupera subito bottino, coupon e prenotazioni gia legate al tuo profilo.
               </p>
             </div>
 
@@ -410,7 +341,10 @@ export function CiurmaScreen() {
             <button
               type="button"
               className="button-primary flex min-h-12 w-full items-center justify-center px-4"
-              onClick={() => void runLookup()}
+              onClick={() => {
+                triggerHaptic();
+                void runLookup();
+              }}
               disabled={loading}
             >
               {loading ? "Recupero la ciurma..." : "Entra nella tua area"}
@@ -423,7 +357,7 @@ export function CiurmaScreen() {
         <StatusBlock
           variant="loading"
           title="Sto recuperando la tua ciurma"
-          description="Uso la tua email salvata per riportarti subito a bordo della tua area fidelity."
+          description="Uso la tua email per riportarti subito dentro il tuo profilo."
         />
       ) : null}
 
@@ -439,12 +373,15 @@ export function CiurmaScreen() {
         <StatusBlock
           variant="info"
           title="Ciurma non disponibile"
-          description="L'email salvata non ha restituito dati validi. Puoi cambiare account e riprovare con un'altra email."
+          description="L'email salvata non ha restituito dati validi. Puoi cambiare account e riprovare."
           action={
             <button
               type="button"
               className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
-              onClick={changeAccount}
+              onClick={() => {
+                triggerHaptic();
+                changeAccount();
+              }}
             >
               Cambia account
             </button>
@@ -468,7 +405,7 @@ export function CiurmaScreen() {
                 <p className="eyebrow">Membro della ciurma</p>
                 <h2 className="text-2xl font-semibold text-white">{profileName}</h2>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Tieni aggiornati i tuoi dati per prenotazioni, fidelity e vantaggi dedicati.
+                  Qui tieni in ordine i dati che contano davvero quando torni a bordo.
                 </p>
               </div>
 
@@ -476,18 +413,27 @@ export function CiurmaScreen() {
                 <button
                   type="button"
                   className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                  onClick={() =>
-                    activeEditSection
-                      ? setActiveEditSection(null)
-                      : openContactEditor("identity")
-                  }
+                  onClick={() => {
+                    triggerHaptic();
+                    if (isEditingProfile) {
+                      setIsEditingProfile(false);
+                      setContactError("");
+                      setContactMessage("");
+                      return;
+                    }
+
+                    openContactEditor();
+                  }}
                 >
-                  {activeEditSection ? "Chiudi modifiche" : "Modifica dati"}
+                  {isEditingProfile ? "Chiudi modifiche" : "Modifica dati"}
                 </button>
                 <button
                   type="button"
                   className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                  onClick={changeAccount}
+                  onClick={() => {
+                    triggerHaptic();
+                    changeAccount();
+                  }}
                 >
                   Cambia profilo
                 </button>
@@ -501,36 +447,19 @@ export function CiurmaScreen() {
             ) : null}
 
             {contactMessage ? (
-              <div className="mt-4 rounded-[1.4rem] border border-[rgba(242,215,165,0.14)] bg-[rgba(242,215,165,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
+              <div className="mt-4 rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
                 {contactMessage}
               </div>
             ) : null}
 
-            <div className="mt-4 grid gap-3">
-              <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Nome e cognome
-                  </p>
-                  <button
-                    type="button"
-                    className="text-[10px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
-                    onClick={() =>
-                      isEditingIdentity
-                        ? setActiveEditSection(null)
-                        : openContactEditor("identity")
-                    }
-                  >
-                    {isEditingIdentity ? "Chiudi" : "Modifica"}
-                  </button>
-                </div>
-
-                {isEditingIdentity ? (
-                  <div className="mt-3 space-y-3">
+            {isEditingProfile ? (
+              <div className="mt-4 grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Nome</span>
                     <input
                       className="field"
-                      placeholder="Nome"
-                      value={displayedContact.firstName}
+                      value={contactForm.firstName}
                       onChange={(event) =>
                         setContactForm((current) => ({
                           ...current,
@@ -538,10 +467,12 @@ export function CiurmaScreen() {
                         }))
                       }
                     />
+                  </label>
+                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Cognome</span>
                     <input
                       className="field"
-                      placeholder="Cognome"
-                      value={displayedContact.lastName}
+                      value={contactForm.lastName}
                       onChange={(event) =>
                         setContactForm((current) => ({
                           ...current,
@@ -549,47 +480,16 @@ export function CiurmaScreen() {
                         }))
                       }
                     />
-                    <button
-                      type="button"
-                      className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-                      onClick={() => void saveContact()}
-                      disabled={savingContact}
-                    >
-                      {savingContact ? "Salvo le modifiche..." : "Salva modifiche"}
-                    </button>
-                  </div>
-                ) : (
-                  <p className="mt-2 text-base font-semibold text-white">
-                    {contactSummaryName}
-                  </p>
-                )}
-              </div>
-
-              <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Contatti
-                  </p>
-                  <button
-                    type="button"
-                    className="text-[10px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
-                    onClick={() =>
-                      isEditingContacts
-                        ? setActiveEditSection(null)
-                        : openContactEditor("contacts")
-                    }
-                  >
-                    {isEditingContacts ? "Chiudi" : "Modifica"}
-                  </button>
+                  </label>
                 </div>
 
-                {isEditingContacts ? (
-                  <div className="mt-3 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Email</span>
                     <input
                       className="field"
                       type="email"
-                      placeholder="Email"
-                      value={displayedContact.email}
+                      value={contactForm.email}
                       onChange={(event) =>
                         setContactForm((current) => ({
                           ...current,
@@ -597,11 +497,13 @@ export function CiurmaScreen() {
                         }))
                       }
                     />
+                  </label>
+                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Telefono</span>
                     <input
                       className="field"
                       type="tel"
-                      placeholder="Telefono"
-                      value={displayedContact.phone}
+                      value={contactForm.phone}
                       onChange={(event) =>
                         setContactForm((current) => ({
                           ...current,
@@ -609,270 +511,115 @@ export function CiurmaScreen() {
                         }))
                       }
                     />
-                    <button
-                      type="button"
-                      className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-                      onClick={() => void saveContact()}
-                      disabled={savingContact}
-                    >
-                      {savingContact ? "Salvo le modifiche..." : "Salva modifiche"}
-                    </button>
-                  </div>
-                ) : (
+                  </label>
+                </div>
+
+                <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                  <span>Data di nascita</span>
+                  <input
+                    className="field"
+                    type="date"
+                    value={contactForm.birthDate}
+                    onChange={(event) =>
+                      setContactForm((current) => ({
+                        ...current,
+                        birthDate: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="flex items-start gap-3 rounded-[1.4rem] border border-[rgba(171,128,63,0.16)] bg-white/4 px-4 py-3 text-sm text-[var(--text-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={contactForm.marketingConsent}
+                    onChange={(event) =>
+                      setContactForm((current) => ({
+                        ...current,
+                        marketingConsent: event.target.checked,
+                      }))
+                    }
+                  />
+                  <span>
+                    Accetto comunicazioni marketing future di Tortuga.
+                  </span>
+                </label>
+
+                <button
+                  type="button"
+                  className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+                  onClick={() => {
+                    triggerHaptic();
+                    void saveContact();
+                  }}
+                  disabled={savingContact}
+                >
+                  {savingContact ? "Salvo le modifiche..." : "Salva modifiche"}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-3">
+                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                    Nome e cognome
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-white">{profileName}</p>
+                </div>
+
+                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                    Contatti
+                  </p>
                   <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
                     <p>
                       Email:{" "}
                       <span className="text-white">
-                        {displayedContact.email || "Non disponibile"}
+                        {contactSnapshot.email || "Non disponibile"}
                       </span>
                     </p>
                     <p>
                       Telefono:{" "}
                       <span className="text-white">
-                        {displayedContact.phone || "Non disponibile"}
+                        {contactSnapshot.phone || "Non disponibile"}
                       </span>
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                <div className="flex items-start justify-between gap-4">
+                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
                     Data di nascita
                   </p>
-                  <button
-                    type="button"
-                    className="text-[10px] font-medium uppercase tracking-[0.14em] text-[rgba(242,215,165,0.72)]"
-                    onClick={() =>
-                      isEditingBirthDate
-                        ? setActiveEditSection(null)
-                        : openContactEditor("birthDate")
-                    }
-                  >
-                    {isEditingBirthDate ? "Chiudi" : hasStoredBirthDate ? "Modifica" : "Aggiungi"}
-                  </button>
-                </div>
-
-                {shouldShowBirthDateEditor ? (
-                  <div className="mt-2 space-y-3">
-                    <input
-                      className="field"
-                      type="date"
-                      value={
-                        isEditingBirthDate ? displayedContact.birthDate : summaryBirthDate
-                      }
-                      onChange={(event) => {
-                        if (isEditingBirthDate) {
-                          setContactForm((current) => ({
-                            ...current,
-                            birthDate: event.target.value,
-                          }));
-                        } else {
-                          setBirthDateDraft(event.target.value);
-                        }
-                        setContactError("");
-                        setContactMessage("");
-                      }}
-                    />
-
-                    {!summaryBirthDate && !displayedContact.birthDate ? (
-                      <p className="text-sm leading-6 text-[var(--text-muted)]">
-                        Inserisci la tua data di nascita e ricevi un regalo nel tuo giorno speciale.
-                      </p>
-                    ) : null}
-
-                    {shouldShowMarketingPrompt ? (
-                      <div className="space-y-3 rounded-[1.2rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-3">
-                        <p className="text-sm leading-6 text-[var(--text-muted)]">
-                          Vuoi ricevere promo, coupon e serate Tortuga?
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            className="button-primary inline-flex min-h-11 items-center justify-center px-5"
-                            onClick={() =>
-                              void saveContact(
-                                {
-                                  birthDate:
-                                    (isEditingBirthDate
-                                      ? displayedContact.birthDate
-                                      : summaryBirthDate) || undefined,
-                                  marketingConsent: true,
-                                },
-                                {
-                                  closeEditor: false,
-                                  successMessage: "Consenso marketing aggiornato.",
-                                },
-                              )
-                            }
-                            disabled={savingContact}
-                          >
-                            Si
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
-                            onClick={() => undefined}
-                          >
-                            No
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-                      onClick={() =>
-                        void saveContact(
-                          {
-                            birthDate:
-                              (isEditingBirthDate
-                                ? displayedContact.birthDate
-                                : summaryBirthDate) || undefined,
-                          },
-                          { closeEditor: false },
-                        )
-                      }
-                      disabled={savingContact}
-                    >
-                      {savingContact ? "Salvo le modifiche..." : "Salva modifiche"}
-                    </button>
-                  </div>
-                ) : (
                   <p className="mt-2 text-base font-semibold text-white">
-                    {formatBirthDateLabel(contactSnapshot.birthDate)}
+                    {contactSnapshot.birthDate
+                      ? formatBirthDateLabel(contactSnapshot.birthDate)
+                      : "Non disponibile"}
                   </p>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-
-          <div
-            className={cn(
-              "panel rounded-[2rem] p-5",
-              isVip &&
-                "border-[rgba(242,215,165,0.38)] bg-[linear-gradient(160deg,rgba(242,215,165,0.18),rgba(13,9,6,0.98)_34%,rgba(58,39,19,0.84)_100%)] shadow-[0_24px_70px_rgba(0,0,0,0.42)]",
             )}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <p className={cn("eyebrow", isVip && "text-[#f5deb0]")}>
-                  Fidelity Tortuga
-                </p>
-                <h2 className="text-2xl font-semibold text-white">{loyaltyTier.label}</h2>
-                <p
-                  className={cn(
-                    "text-sm leading-6 text-[var(--text-muted)]",
-                    isVip && "text-[rgba(245,222,176,0.82)]",
-                  )}
-                >
-                  {loyaltyTier.description}
-                </p>
-              </div>
-
-              {isVip ? (
-                <span className="rounded-full border border-[rgba(242,215,165,0.32)] bg-[rgba(242,215,165,0.16)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5deb0]">
-                  VIP
-                </span>
-              ) : null}
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              <div className="rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      Saldo punti
-                    </p>
-                    <p className="mt-2 text-4xl font-semibold text-white">
-                      {rewardProgress.points}
-                    </p>
-                  </div>
-
-                  {rewardProgress.nextReward ? (
-                    <div className="text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                        Prossimo premio
-                      </p>
-                      <p className="mt-2 text-sm font-medium text-white">
-                        {rewardProgress.nextReward.label}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="max-w-[9rem] text-right text-sm leading-6 text-[var(--text-muted)]">
-                      Premio finale gia raggiunto.
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <div className="h-3 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)]">
-                    <div
-                      className={cn(
-                        "h-full rounded-full bg-[linear-gradient(90deg,#f7e0b2_0%,#d5a65b_50%,#8d6330_100%)] transition-[width] duration-500",
-                        rewardProgress.isMaxTierReached &&
-                          "bg-[linear-gradient(90deg,#f9e8c5_0%,#f2c978_42%,#b57b2f_100%)]",
-                      )}
-                      style={{ width: `${rewardProgress.progressPercent}%` }}
-                    />
-                  </div>
-                  <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    {rewardProgress.isMaxTierReached
-                      ? "Hai gia conquistato il premio piu esclusivo della ciurma."
-                      : "La progress bar mostra quanto manca al prossimo premio."}
-                  </p>
-                </div>
-              </div>
-
-              {hasActiveCard ? (
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px]">
-                  <div className="rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      Card attiva
-                    </p>
-                    <p className="mt-2 text-xl font-semibold text-white">
-                      {activeCardSummary}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                      Il QR resta sempre pronto da mostrare quando torni a bordo.
-                    </p>
-                  </div>
-
-                  <div className="rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
-                    <FidelityQrCode
-                      key={activeCardCode}
-                      value={activeCardCode}
-                      label={`QR fidelity di ${profileName}`}
-                      variant={isVip ? "vip" : "default"}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-[1.7rem] border border-[var(--border)] bg-white/4 px-5 py-6 text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--border)] bg-white/6 text-lg font-semibold text-[var(--accent-strong)]">
-                    TB
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-white">
-                    Fidelity non disponibile
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                    Per questa email non risulta ancora una card attiva pronta da mostrare.
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
+
+          <FidelityStatusCard
+            title="Fidelity Tortuga"
+            points={rewardProgress.points}
+            progressPercent={rewardProgress.progressPercent}
+            tierLabel={rewardProgress.loyaltyTier.label}
+            tierDescription={rewardProgress.loyaltyTier.description}
+            nextRewardLabel={rewardProgress.nextReward?.label}
+            isVip={rewardProgress.isVip}
+            activeCardCode={activeCardCode}
+            qrLabel={`QR fidelity di ${profileName}`}
+          />
 
           <div className="panel rounded-[2rem] p-5">
             <div className="space-y-2">
               <p className="eyebrow">Le tue rotte</p>
               <h2 className="text-2xl font-semibold text-white">
-                Prenotazioni future e ultimo approdo.
+                Prenotazioni in arrivo e ultimo passaggio.
               </h2>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Le serate che stanno arrivando e l&apos;ultima visita utile da ricordare.
+                Qui restano solo le rotte che ti servono davvero.
               </p>
             </div>
 
@@ -900,7 +647,7 @@ export function CiurmaScreen() {
                         ) : null}
                       </div>
 
-                      <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
+                      <span className="rounded-full border border-[rgba(171,128,63,0.18)] bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
                         {reservation.stateLabel}
                       </span>
                     </div>
@@ -908,13 +655,13 @@ export function CiurmaScreen() {
                 ))}
               </div>
             ) : (
-              <div className="mt-4 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
+              <div className="mt-4 rounded-[1.5rem] border border-[rgba(171,128,63,0.18)] bg-white/4 px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
                 Nessuna prenotazione futura trovata al momento.
               </div>
             )}
 
             {lastVisit ? (
-              <div className="mt-4 rounded-[1.5rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+              <div className="mt-4 rounded-[1.5rem] border border-[rgba(171,128,63,0.18)] bg-white/4 px-4 py-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
                   Ultima visita
                 </p>
@@ -927,28 +674,28 @@ export function CiurmaScreen() {
 
           <ActiveCouponsCard
             coupons={activeCoupons}
-            description="Il primo coupon resta sempre visibile con QR pronto, gli altri compaiono solo se li apri."
-            emptyMessage="Al momento non risultano coupon attivi per questa ciurma."
+            description=""
+            emptyMessage="Nessun coupon attivo da spendere per ora."
           />
 
           <div className="panel rounded-[2rem] p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
-                <p className="eyebrow">Sfide e contenuti speciali</p>
+                <p className="eyebrow">Sfide e contenuti</p>
                 <h2 className="text-2xl font-semibold text-white">
-                  Il lato piu vivo della tua ciurma.
+                  Quello che succede quando torni davvero a bordo.
                 </h2>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Gioca ora e scopri i contenuti premium che stanno arrivando a bordo.
+                  Sfide, inviti e contenuti speciali pensati per chi gioca sul serio.
                 </p>
               </div>
 
-              <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                Premium
+              <span className="rounded-full border border-[rgba(171,128,63,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                Esclusive
               </span>
             </div>
 
-            <div className="mt-4 rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-white/4 px-4 py-4">
+            <div className="mt-4 rounded-[1.7rem] border border-[rgba(171,128,63,0.18)] bg-white/4 px-4 py-4">
               <CaptainChallengeTeaser compact framed={false} />
             </div>
 
@@ -967,8 +714,8 @@ export function CiurmaScreen() {
                         {feature.description}
                       </p>
                     </div>
-                    <span className="rounded-full border border-[rgba(255,216,156,0.1)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      In arrivo
+                    <span className="rounded-full border border-[rgba(171,128,63,0.14)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      A bordo presto
                     </span>
                   </div>
                 </div>

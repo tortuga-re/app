@@ -400,8 +400,7 @@ export function TortugaMapViewer({
       <div className="space-y-2">
         <p className="eyebrow">Mappa del Tortuga</p>
         <p className="text-sm leading-6 text-[var(--text-muted)]">
-          Usa la piantina per orientarti meglio nel locale. La sala resta quella che
-          hai scelto dal menu e la mappa serve solo come riferimento visivo.
+          Usa la piantina per orientarti meglio nel locale.
         </p>
       </div>
 
@@ -471,12 +470,6 @@ export function TortugaMapViewer({
         </div>
       </div>
 
-      <div className="mt-3 px-1">
-        <p className="text-xs leading-5 text-[var(--text-muted)]">
-          Trascina per esplorare la mappa, pizzica per zoomare oppure usa i
-          controlli + e -.
-        </p>
-      </div>
     </div>
   );
 }

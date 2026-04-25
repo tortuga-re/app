@@ -1,10 +1,14 @@
 "use client";
 
-import { useCustomerIdentity } from "@/lib/customer-identity";
-
-export function AppGreeting() {
-  const { greeting, hasIdentity } = useCustomerIdentity();
-
+export function AppGreeting({
+  greeting,
+  statusLabel,
+  points,
+}: {
+  greeting: string;
+  statusLabel: string;
+  points: number;
+}) {
   return (
     <div className="space-y-1">
       <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-[rgba(242,215,165,0.72)]">
@@ -14,9 +18,7 @@ export function AppGreeting() {
         {greeting}
       </p>
       <p className="max-w-[15rem] text-xs leading-5 text-[var(--text-muted)]">
-        {hasIdentity
-          ? "Bentornato nella ciurma Tortuga."
-          : "Prenotazioni e fidelity, in un solo approdo."}
+        Stato: {statusLabel} · Infamia: {points}
       </p>
     </div>
   );
