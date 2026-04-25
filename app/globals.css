@@ -18,6 +18,11 @@
   --accent: #b27a34;
   --accent-strong: #d8b06a;
   --accent-soft: rgba(216, 176, 106, 0.14);
+  --brass-worn: #a77938;
+  --brass-bright: #e4bd72;
+  --burnt-wood: #130b06;
+  --charcoal-wood: #070504;
+  --leather-grain: rgba(95, 61, 28, 0.18);
   --danger: #f08b75;
   --bottom-nav-height: 9.5rem;
   --bottom-nav-offset: 1rem;
@@ -36,13 +41,14 @@
 
 html {
   background:
-    radial-gradient(circle at top, rgba(178, 122, 52, 0.16), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(120, 81, 32, 0.12), transparent 28%),
+    radial-gradient(circle at top, rgba(178, 122, 52, 0.17), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(120, 81, 32, 0.13), transparent 28%),
     linear-gradient(180deg, #060402 0%, #000000 100%);
   color-scheme: dark;
 }
 
 body {
+  position: relative;
   margin: 0;
   min-height: 100vh;
   color: var(--text);
@@ -50,15 +56,57 @@ body {
   background:
     radial-gradient(circle at 12% 0%, rgba(216, 176, 106, 0.07), transparent 20%),
     radial-gradient(circle at 88% 10%, rgba(140, 98, 40, 0.09), transparent 22%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0%, transparent 22%),
-    linear-gradient(0deg, rgba(80, 48, 18, 0.04), rgba(80, 48, 18, 0.04)),
+    linear-gradient(90deg, rgba(255, 238, 190, 0.018), transparent 16%, rgba(34, 17, 7, 0.2) 17%, transparent 18%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 242, 202, 0.018) 0,
+      rgba(255, 242, 202, 0.018) 1px,
+      transparent 1px,
+      transparent 74px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.016) 0,
+      rgba(255, 255, 255, 0.016) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.012) 0%, transparent 22%),
+    linear-gradient(0deg, rgba(80, 48, 18, 0.055), rgba(80, 48, 18, 0.055)),
     repeating-linear-gradient(
       115deg,
-      rgba(255, 255, 255, 0.014) 0,
-      rgba(255, 255, 255, 0.014) 1px,
+      rgba(255, 255, 255, 0.012) 0,
+      rgba(255, 255, 255, 0.012) 1px,
       transparent 1px,
       transparent 9px
+    ),
+    linear-gradient(180deg, var(--charcoal-wood), #000000 58%, #050302);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(216, 176, 106, 0.08), transparent 30%),
+    repeating-linear-gradient(
+      18deg,
+      transparent 0,
+      transparent 11px,
+      rgba(176, 116, 48, 0.022) 11px,
+      rgba(176, 116, 48, 0.022) 12px
+    ),
+    repeating-linear-gradient(
+      94deg,
+      rgba(255, 255, 255, 0.018) 0,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 4px
     );
+  mix-blend-mode: screen;
+  opacity: 0.45;
 }
 
 a {
@@ -81,14 +129,23 @@ textarea {
   .panel {
     position: relative;
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(166, 118, 52, 0.32);
     background:
-      linear-gradient(180deg, rgba(125, 90, 42, 0.08), transparent 30%),
-      linear-gradient(180deg, rgba(16, 13, 10, 0.98), rgba(3, 3, 3, 0.99));
+      radial-gradient(circle at 16% 0%, rgba(221, 180, 98, 0.08), transparent 28%),
+      linear-gradient(180deg, rgba(125, 90, 42, 0.11), transparent 34%),
+      repeating-linear-gradient(
+        92deg,
+        rgba(255, 255, 255, 0.018) 0,
+        rgba(255, 255, 255, 0.018) 1px,
+        transparent 1px,
+        transparent 18px
+      ),
+      linear-gradient(180deg, rgba(18, 13, 9, 0.985), rgba(4, 3, 3, 0.995));
     box-shadow:
-      0 24px 64px rgba(0, 0, 0, 0.48),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      inset 0 -16px 28px rgba(0, 0, 0, 0.12);
+      0 28px 76px rgba(0, 0, 0, 0.62),
+      0 0 0 1px rgba(255, 225, 166, 0.025),
+      inset 0 1px 0 rgba(255, 238, 193, 0.055),
+      inset 0 -18px 34px rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(16px);
   }
 
@@ -98,28 +155,62 @@ textarea {
     inset: 1px 1px auto;
     height: 42%;
     background:
-      linear-gradient(180deg, rgba(214, 176, 96, 0.08), transparent 84%),
+      linear-gradient(180deg, rgba(235, 194, 116, 0.11), transparent 84%),
       repeating-linear-gradient(
         120deg,
-        rgba(255, 255, 255, 0.018) 0,
-        rgba(255, 255, 255, 0.018) 1px,
+        rgba(255, 255, 255, 0.02) 0,
+        rgba(255, 255, 255, 0.02) 1px,
         transparent 1px,
         transparent 10px
       );
     pointer-events: none;
+    z-index: 0;
+  }
+
+  .panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(255, 222, 157, 0.035), transparent 18%),
+      repeating-linear-gradient(
+        0deg,
+        transparent 0,
+        transparent 12px,
+        rgba(255, 222, 157, 0.012) 12px,
+        rgba(255, 222, 157, 0.012) 13px
+      ),
+      repeating-linear-gradient(
+        137deg,
+        rgba(0, 0, 0, 0.08) 0,
+        rgba(0, 0, 0, 0.08) 1px,
+        transparent 1px,
+        transparent 13px
+      );
+    opacity: 0.56;
+    pointer-events: none;
+    z-index: 0;
   }
 
   .panel > * {
     position: relative;
+    z-index: 1;
   }
 
   .panel-muted {
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(201, 154, 79, 0.16);
     background:
-      linear-gradient(180deg, rgba(216, 176, 106, 0.04), transparent 55%),
-      rgba(255, 255, 255, 0.035);
+      linear-gradient(180deg, rgba(216, 176, 106, 0.055), transparent 55%),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.012) 0,
+        rgba(255, 255, 255, 0.012) 1px,
+        transparent 1px,
+        transparent 16px
+      ),
+      rgba(255, 255, 255, 0.032);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
       inset 0 -10px 16px rgba(0, 0, 0, 0.08);
@@ -166,11 +257,20 @@ textarea {
   }
 
   .button-primary {
+    position: relative;
+    overflow: hidden;
     border-radius: 999px;
-    border: 1px solid rgba(233, 197, 124, 0.22);
+    border: 1px solid rgba(243, 209, 137, 0.32);
     background:
-      linear-gradient(180deg, rgba(255, 242, 204, 0.22), rgba(255, 242, 204, 0) 34%),
-      linear-gradient(135deg, #e8c679 0%, #b67b33 52%, #5a3918 100%);
+      linear-gradient(180deg, rgba(255, 248, 219, 0.32), rgba(255, 242, 204, 0) 34%),
+      repeating-linear-gradient(
+        105deg,
+        rgba(255, 255, 255, 0.07) 0,
+        rgba(255, 255, 255, 0.07) 1px,
+        transparent 1px,
+        transparent 9px
+      ),
+      linear-gradient(135deg, #e7c26e 0%, #b47a31 48%, #5b3716 100%);
     color: #140e08;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -183,6 +283,33 @@ textarea {
       transform 90ms ease,
       box-shadow 90ms ease,
       filter 90ms ease;
+  }
+
+  .button-primary::before {
+    content: "";
+    position: absolute;
+    inset: 1px 12%;
+    height: 38%;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent);
+    opacity: 0.62;
+    pointer-events: none;
+  }
+
+  .button-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 38%, rgba(55, 29, 9, 0.16), transparent 16%),
+      radial-gradient(circle at 82% 62%, rgba(255, 231, 171, 0.14), transparent 14%);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .button-primary > *,
+  .button-secondary > * {
+    position: relative;
   }
 
   .button-primary:hover {
@@ -199,10 +326,19 @@ textarea {
   }
 
   .button-secondary {
+    position: relative;
+    overflow: hidden;
     border-radius: 999px;
-    border: 1px solid rgba(171, 128, 63, 0.2);
+    border: 1px solid rgba(171, 128, 63, 0.26);
     background:
-      linear-gradient(180deg, rgba(216, 176, 106, 0.04), transparent 50%),
+      linear-gradient(180deg, rgba(216, 176, 106, 0.06), transparent 50%),
+      repeating-linear-gradient(
+        110deg,
+        rgba(255, 255, 255, 0.014) 0,
+        rgba(255, 255, 255, 0.014) 1px,
+        transparent 1px,
+        transparent 9px
+      ),
       rgba(255, 255, 255, 0.035);
     color: var(--text);
     box-shadow:
@@ -213,6 +349,16 @@ textarea {
       border-color 90ms ease,
       background 90ms ease,
       box-shadow 90ms ease;
+  }
+
+  .button-secondary::before {
+    content: "";
+    position: absolute;
+    inset: 1px 14%;
+    height: 34%;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 241, 202, 0.08), transparent);
+    pointer-events: none;
   }
 
   .button-secondary:hover {
@@ -235,6 +381,21 @@ textarea {
     font-weight: 700;
     letter-spacing: 0.3em;
     text-transform: uppercase;
+    text-shadow: 0 0 16px rgba(216, 176, 106, 0.16);
+  }
+
+  .tortuga-divider {
+    height: 1px;
+    border: 0;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgba(216, 176, 106, 0.05) 0,
+        rgba(216, 176, 106, 0.56) 10px,
+        transparent 10px,
+        transparent 16px
+      );
+    box-shadow: 0 0 16px rgba(178, 122, 52, 0.12);
   }
 
   .hero-title {

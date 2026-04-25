@@ -37,7 +37,7 @@ function CouponPreview({
   return (
     <div
       className={cn(
-        "rounded-[1.7rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.04)] px-4 py-4",
+        "panel-muted rounded-[1.7rem] px-4 py-4",
         compact && "rounded-[1.5rem]",
       )}
     >
@@ -50,7 +50,7 @@ function CouponPreview({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-[rgba(255,216,156,0.12)] bg-white/6 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-              Coupon attivo
+              Chiave attiva
             </span>
             {coupon.DataScadenza ? (
               <span className="rounded-full border border-[rgba(255,216,156,0.08)] bg-[rgba(255,255,255,0.03)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
@@ -75,6 +75,7 @@ function CouponPreview({
               key={`${displayCode}-${coupon.DataScadenza ?? "no-date"}`}
               value={qrValue}
               label={`QR coupon ${displayCode}`}
+              variant="coupon"
             />
           </div>
         ) : null}
