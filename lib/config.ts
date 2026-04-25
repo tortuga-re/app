@@ -35,6 +35,37 @@ export const tortugaInfoConfig = {
   mapsEmbedUrl:
     "https://www.google.com/maps?q=44.733084,10.534609&z=17&output=embed",
   programmazioneUrl: "https://tortugabay.it/programmazione-invernale",
+  eveningProgram: [
+    {
+      day: "MERCOLEDÌ",
+      title: "Pirates Night",
+      description:
+        "Piatto + Bevanda Media a 15€, rompi la settimana come si deve.",
+    },
+    {
+      day: "GIOVEDÌ",
+      title: "The Love Game",
+      description:
+        "Prossimamente. Con chi hai più affinità? Scoprilo con il nostro gioco.",
+    },
+    {
+      day: "VENERDÌ",
+      title: "Kantaquiz",
+      description:
+        "Quiz, musica, risate e gente che si scatena. Non è solo cena: è il venerdì del Tortuga.",
+    },
+    {
+      day: "SABATO",
+      title: "La Notte del Capitano",
+      description: "Atmosfera, gioco, musica e ciurma pronta a fare casino.",
+    },
+    {
+      day: "DOMENICA",
+      title: "Cervellone Day",
+      description:
+        "La domenica si chiude con amici e famigliari: tavoli, sfide e cervelli messi alla prova fino all’ultima risposta.",
+    },
+  ],
   phoneNumber: "+39 379 359 3799",
   phoneHref: "tel:+393793593799",
   whatsappHref: "https://wa.me/393793593799",

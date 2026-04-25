@@ -222,28 +222,28 @@ export function VenuesScreen() {
         <div className="space-y-2">
           <p className="eyebrow">Programmazione serale</p>
           <h2 className="text-xl font-semibold text-white">
-            La serata la scegli dalla fonte ufficiale.
+            Serate Tortuga
           </h2>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Il calendario viene aperto direttamente dalla pagina Tortuga piu aggiornata.
-          </p>
         </div>
 
-        <div className="mt-4 rounded-[1.4rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-4">
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            La programmazione dettagliata resta collegata alla pagina ufficiale per
-            evitare copie parziali o non aggiornate.
-          </p>
+        <div className="mt-4 grid gap-3">
+          {tortugaInfoConfig.eveningProgram.map((event) => (
+            <div
+              key={`${event.day}-${event.title}`}
+              className="panel-muted rounded-[1.45rem] px-4 py-4"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
+                {event.day}
+              </p>
+              <h3 className="mt-2 text-lg font-semibold text-white">
+                {event.title}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                {event.description}
+              </p>
+            </div>
+          ))}
         </div>
-
-        <a
-          href={tortugaInfoConfig.programmazioneUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="button-secondary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
-        >
-          Apri programmazione
-        </a>
       </div>
 
       <div className="panel rounded-[2rem] p-5">

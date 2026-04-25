@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { FidelityStatusCard } from "@/components/fidelity-status-card";
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { requestJson } from "@/lib/client";
@@ -16,7 +15,6 @@ import {
   normalizeCustomerEmail,
   useCustomerIdentity,
 } from "@/lib/customer-identity";
-import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import { triggerHaptic } from "@/lib/haptics";
 
@@ -81,9 +79,6 @@ export function CiurmaScreen() {
 
   const identityEmail = normalizeCustomerEmail(identity.email);
   const hasProfile = Boolean(data?.contact);
-  const points = data?.points ?? data?.contact?.SaldoPuntiCard ?? 0;
-  const rewardProgress = getFidelityRewardProgress(points);
-  const activeCardCode = data?.contact?.CodiceCard?.trim() || "";
   const profileName =
     [data?.contact?.Nome, data?.contact?.Cognome].filter(Boolean).join(" ") ||
     "Cliente Tortuga";
@@ -757,18 +752,6 @@ export function CiurmaScreen() {
               </div>
             )}
           </div>
-
-          <FidelityStatusCard
-            title="Fidelity Tortuga"
-            points={rewardProgress.points}
-            progressPercent={rewardProgress.progressPercent}
-            tierLabel={rewardProgress.loyaltyTier.label}
-            tierDescription={rewardProgress.loyaltyTier.description}
-            nextRewardLabel={rewardProgress.nextReward?.label}
-            isVip={rewardProgress.isVip}
-            activeCardCode={activeCardCode}
-            qrLabel={`QR fidelity di ${profileName}`}
-          />
 
           <div className="panel rounded-[2rem] p-5">
             <div className="flex items-start justify-between gap-4">
