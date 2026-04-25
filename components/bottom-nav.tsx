@@ -142,7 +142,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
 
   return (
     <div className="app-bottom-nav pointer-events-none fixed inset-x-0 z-30 flex justify-center px-4">
-      <nav className="pointer-events-auto panel flex w-full max-w-md flex-col gap-3 rounded-[2.1rem] px-3 pb-3 pt-3">
+      <nav className="pointer-events-auto panel flex w-full max-w-md flex-col gap-3 rounded-[1.85rem] px-3 pb-3 pt-3">
         <div className="grid grid-cols-4 gap-2">
           {items.map((item) => {
             const isActive = pathname === item.href;
@@ -152,33 +152,56 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
                 href={item.href}
                 onClick={() => triggerHaptic()}
                 className={cn(
-                  "flex min-h-[64px] flex-col items-center justify-center gap-2 rounded-[1.25rem] border px-2 py-3 text-[8px] font-semibold uppercase leading-tight tracking-[0.16em] transition",
+                  "flex min-h-[64px] flex-col items-center justify-center gap-2 rounded-[1.05rem] border px-2 py-3 text-[8px] font-semibold uppercase leading-tight tracking-[0.16em] transition",
                   isActive
-                    ? "border-[rgba(122,87,40,0.55)] bg-[linear-gradient(135deg,#f6ddb0_0%,#c38a46_52%,#7a5728_100%)] text-[#21170e] shadow-[0_12px_26px_rgba(181,138,77,0.3)]"
-                    : "border-[rgba(255,216,156,0.08)] bg-[rgba(255,255,255,0.03)] text-[var(--text-muted)]",
+                    ? "border-[rgba(214,172,94,0.48)] bg-[linear-gradient(145deg,#ead092_0%,#b98036_48%,#6b4219_100%)] text-[#21170e] shadow-[0_12px_28px_rgba(181,138,77,0.32),inset_0_1px_0_rgba(255,247,218,0.34)]"
+                    : "border-[rgba(255,216,156,0.09)] bg-[linear-gradient(180deg,rgba(216,176,106,0.04),rgba(255,255,255,0.024))] text-[var(--text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
                 )}
               >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
+                <span
                   className={cn(
-                    "h-5 w-5",
+                    "flex h-8 w-8 items-center justify-center rounded-full border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+                    isActive
+                      ? "border-[rgba(54,32,12,0.2)] bg-[rgba(45,28,11,0.14)]"
+                      : item.href === "/ciurma" && isVip
+                        ? "border-[rgba(227,191,117,0.36)] bg-[rgba(227,191,117,0.1)]"
+                        : "border-[rgba(216,176,106,0.12)] bg-[rgba(255,255,255,0.03)]",
+                  )}
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className={cn(
+                      "h-5 w-5",
+                      isActive
+                        ? "text-[#21170e]"
+                        : item.href === "/ciurma" && isVip
+                          ? "text-[#e3bf75]"
+                          : "text-[var(--accent-strong)]",
+                    )}
+                  >
+                    {item.icon}
+                  </svg>
+                </span>
+                <span
+                  className={cn(
+                    "text-center",
                     isActive
                       ? "text-[#21170e]"
                       : item.href === "/ciurma" && isVip
                         ? "text-[#e3bf75]"
-                        : "text-[var(--accent-strong)]",
+                        : "",
                   )}
                 >
-                  {item.icon}
-                </svg>
-                <span className="text-center">{item.label}</span>
+                  {item.label}
+                </span>
               </Link>
             );
           })}
         </div>
 
-        <div className="border-t border-[rgba(255,216,156,0.1)] pt-2">
+        <div className="tortuga-divider" />
+        <div>
           <p className="px-3 text-center text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:rgba(240,211,154,0.7)]">
             EAT. DRINK. TORTUGA. REPEAT.
           </p>
