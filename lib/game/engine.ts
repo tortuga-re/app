@@ -103,7 +103,7 @@ export const resolveCaptainChallengeTap = (
     outcome = "Hai battuto il Capitano.";
   } else {
     outcomeType = "lose";
-    outcome = "Il Capitano ti ha preceduto.";
+    outcome = "Il Capitano ha vinto la battaglia.";
   }
 
   const lifeConsumed = consumePlayerLife(round.playerId);

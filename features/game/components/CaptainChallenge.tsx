@@ -1,8 +1,15 @@
 "use client";
 
+import Link from "next/link";
+
 import { GameResultCard } from "@/features/game/components/GameResultCard";
 import { ReferralLifeCard } from "@/features/game/components/ReferralLifeCard";
 import { useCaptainChallenge } from "@/features/game/hooks/useCaptainChallenge";
+import {
+  isValidCustomerEmail,
+  normalizeCustomerEmail,
+  useCustomerIdentity,
+} from "@/lib/customer-identity";
 import { cn } from "@/lib/utils";
 
 function FuseVisual({ phase }: { phase: string }) {
@@ -47,6 +54,9 @@ export function CaptainChallenge({
 }: {
   incomingReferralCode?: string;
 }) {
+  const { identity } = useCustomerIdentity();
+  const identityEmail = normalizeCustomerEmail(identity.email);
+  const isLoggedIn = isValidCustomerEmail(identityEmail);
   const {
     phase,
     result,
@@ -61,7 +71,7 @@ export function CaptainChallenge({
     reset,
     createReferral,
     canTap,
-  } = useCaptainChallenge(incomingReferralCode);
+  } = useCaptainChallenge(isLoggedIn ? incomingReferralCode : "");
 
   const isIdle = phase === "idle";
   const isStarting = phase === "starting";
@@ -75,6 +85,29 @@ export function CaptainChallenge({
   const showNoLivesPanel =
     !livesLoading && !hasLives && (phase === "idle" || phase === "no_lives");
 
+  if (!isLoggedIn) {
+    return (
+      <section className="space-y-5">
+        <div className="panel rounded-[2rem] px-5 py-5">
+          <p className="eyebrow text-[var(--danger)]">Accesso richiesto</p>
+          <h1 className="mt-3 text-3xl font-semibold uppercase leading-tight tracking-[0.08em] text-white">
+            Sfida il Capitano
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+            Per giocare devi prima registrarti o entrare nella tua Ciurma con
+            la tua email.
+          </p>
+          <Link
+            href="/ciurma"
+            className="button-primary mt-5 inline-flex min-h-12 items-center justify-center px-5 text-sm"
+          >
+            Registrati
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-5">
       <div className="panel rounded-[2rem] px-5 py-5">
@@ -83,8 +116,8 @@ export function CaptainChallenge({
           Sfida il Capitano
         </h1>
         <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-          Una miccia, un segnale, un solo tap. Il Capitano misura tutto dal
-          server: il telefono non decide il risultato.
+          Spegni la miccia appena parte il segnale, se sarai abbastanza veloce
+          il Capitano ti premier&agrave; con un drink OMAGGIO!
         </p>
         <div className="mt-4 inline-flex rounded-full border border-[rgba(255,216,156,0.12)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
           Vite disponibili: {livesLoading ? "..." : lives ?? 0}
@@ -162,7 +195,7 @@ export function CaptainChallenge({
                 )}
               >
                 {isWaiting
-                  ? "Tieni fermo il dito."
+                  ? "PREPARATI!"
                   : isSubmitting
                     ? "Il Capitano controlla il tap..."
                     : "Ora."}

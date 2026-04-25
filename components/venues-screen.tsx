@@ -202,16 +202,6 @@ export function VenuesScreen() {
 
   return (
     <section className="space-y-5">
-      <div className="panel rounded-[2rem] px-5 py-4">
-        <p className="eyebrow">Info e serate</p>
-        <h1 className="mt-2 text-2xl font-semibold uppercase tracking-[0.08em] text-white">
-          INFO E SERATE
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-          Tutto quello che ti serve per raggiungere Tortuga e scegliere la serata giusta.
-        </p>
-      </div>
-
       {loading ? (
         <StatusBlock
           variant="loading"
@@ -230,64 +220,55 @@ export function VenuesScreen() {
 
       <div className="panel rounded-[2rem] p-5">
         <div className="space-y-2">
-          <p className="eyebrow">Dove siamo e contatti</p>
+          <p className="eyebrow">Programmazione serale</p>
           <h2 className="text-xl font-semibold text-white">
-            Arriva al Tortuga senza deviazioni.
+            La serata la scegli dalla fonte ufficiale.
           </h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Indirizzo e contatti rapidi restano in un unico punto.
+            Il calendario viene aperto direttamente dalla pagina Tortuga piu aggiornata.
           </p>
         </div>
 
-        <div className="mt-4 space-y-3">
-          <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-              Indirizzo
-            </p>
-            <p className="mt-2 text-base font-semibold text-white">
-              {tortugaInfoConfig.address}
-            </p>
-          </div>
+        <div className="mt-4 rounded-[1.4rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-4">
+          <p className="text-sm leading-6 text-[var(--text-muted)]">
+            La programmazione dettagliata resta collegata alla pagina ufficiale per
+            evitare copie parziali o non aggiornate.
+          </p>
+        </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+        <a
+          href={tortugaInfoConfig.programmazioneUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="button-secondary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
+        >
+          Apri programmazione
+        </a>
+      </div>
+
+      <div className="panel rounded-[2rem] p-5">
+        <div className="space-y-2">
+          <p className="eyebrow">Social</p>
+          <h2 className="text-xl font-semibold text-white">
+            Segui Tortuga anche fuori bordo.
+          </h2>
+          <p className="text-sm leading-6 text-[var(--text-muted)]">
+            Trovi aggiornamenti, serate e contenuti sui canali ufficiali.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-3">
+          {tortugaInfoConfig.socialLinks.map((social) => (
             <a
-              href={tortugaInfoConfig.phoneHref}
-              className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
-            >
-              <PhoneIcon />
-              <span>CHIAMA</span>
-            </a>
-            <a
-              href={tortugaInfoConfig.whatsappHref}
+              key={social.label}
+              href={social.href}
               target="_blank"
               rel="noreferrer"
-              className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
+              className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
             >
-              <WhatsAppIcon />
-              <span>Scrivici</span>
+              {social.label}
             </a>
-          </div>
-        </div>
-
-        <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-black/20">
-          <iframe
-            title="Mappa Tortuga Bay"
-            src={tortugaInfoConfig.mapsEmbedUrl}
-            className="h-64 w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        </div>
-
-        <div className="mt-4">
-          <a
-            href={tortugaInfoConfig.mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-          >
-            Ottieni indicazioni
-          </a>
+          ))}
         </div>
       </div>
 
@@ -299,9 +280,6 @@ export function VenuesScreen() {
 
           <div className="mt-4 space-y-4">
             <div className="space-y-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                Quando ci trovi
-              </p>
               {groupedOpeningHours.length ? (
                 <div className="grid gap-3">
                   {groupedOpeningHours.map((hour) => (
@@ -330,9 +308,6 @@ export function VenuesScreen() {
             </div>
 
             <div className="space-y-3 border-t border-[rgba(255,216,156,0.08)] pt-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                Fuori rotta
-              </p>
               {exceptions.length ? (
                 <div className="grid gap-3">
                   {exceptions.map((exception, index) => (
@@ -374,69 +349,56 @@ export function VenuesScreen() {
 
       <div className="panel rounded-[2rem] p-5">
         <div className="space-y-2">
-          <p className="eyebrow">Programmazione serale</p>
-          <h2 className="text-xl font-semibold text-white">
-            La serata la scegli dalla fonte ufficiale.
-          </h2>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Il calendario viene aperto direttamente dalla pagina Tortuga piu aggiornata.
-          </p>
+          <p className="eyebrow">Dove siamo e contatti</p>
         </div>
 
-        <div className="mt-4 rounded-[1.4rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-4">
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            La programmazione dettagliata resta collegata alla pagina ufficiale per
-            evitare copie parziali o non aggiornate.
-          </p>
+        <div className="mt-4 space-y-3">
+          <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+              Indirizzo
+            </p>
+            <p className="mt-2 text-base font-semibold text-white">
+              {tortugaInfoConfig.address}
+            </p>
+          </div>
         </div>
 
         <a
-          href={tortugaInfoConfig.programmazioneUrl}
+          href={tortugaInfoConfig.mapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="button-secondary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
+          className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
         >
-          Apri programmazione
+          Ottieni indicazioni
         </a>
-      </div>
 
-      <div className="panel rounded-[2rem] p-5">
-        <div className="space-y-2">
-          <p className="eyebrow">Social</p>
-          <h2 className="text-xl font-semibold text-white">
-            Segui Tortuga anche fuori bordo.
-          </h2>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            I link arrivano dalla configurazione centrale, con placeholder puliti quando mancano.
-          </p>
+        <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-black/20">
+          <iframe
+            title="Mappa Tortuga Bay"
+            src={tortugaInfoConfig.mapsEmbedUrl}
+            className="h-64 w-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
         </div>
 
-        <div className="mt-4 grid gap-3">
-          {tortugaInfoConfig.socialLinks.map((social) =>
-            social.href ? (
-              <a
-                key={social.label}
-                href={social.href}
-                target="_blank"
-                rel="noreferrer"
-                className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-              >
-                {social.label}
-              </a>
-            ) : (
-              <div
-                key={social.label}
-                className="rounded-[1.4rem] border border-[rgba(255,216,156,0.1)] bg-white/4 px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-white">{social.label}</p>
-                  <span className="rounded-full border border-[rgba(255,216,156,0.1)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Da collegare
-                  </span>
-                </div>
-              </div>
-            ),
-          )}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <a
+            href={tortugaInfoConfig.phoneHref}
+            className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
+          >
+            <PhoneIcon />
+            <span>CHIAMA</span>
+          </a>
+          <a
+            href={tortugaInfoConfig.whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+            className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
+          >
+            <WhatsAppIcon />
+            <span>Scrivici</span>
+          </a>
         </div>
       </div>
     </section>

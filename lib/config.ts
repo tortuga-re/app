@@ -30,6 +30,7 @@ export const siteConfig = {
 
 export const tortugaInfoConfig = {
   address: "Via Giambattista Vico, 93 - Reggio Emilia",
+  menuUrl: "https://cprt.it/a69bf",
   mapsUrl: "https://maps.app.goo.gl/ne4gvpo7QaeusxfV8",
   mapsEmbedUrl:
     "https://www.google.com/maps?q=44.733084,10.534609&z=17&output=embed",
@@ -38,9 +39,9 @@ export const tortugaInfoConfig = {
   phoneHref: "tel:+393793593799",
   whatsappHref: "https://wa.me/393793593799",
   socialLinks: [
-    { label: "Instagram", href: "" },
-    { label: "Facebook", href: "" },
-    { label: "TikTok", href: "" },
+    { label: "Instagram", href: "https://www.instagram.com/tortuga.re" },
+    { label: "Facebook", href: "https://www.facebook.com/tortuga.re" },
+    { label: "TikTok", href: "https://www.tiktok.com/@tortugare" },
   ],
 } as const;
 
@@ -81,6 +82,7 @@ export const storageKeys = {
   bookingDraft: "tortuga.booking-draft",
   profileLookup: "tortuga.profile-lookup",
   lastReservation: "tortuga.last-reservation",
+  menuAccessExpiresAt: "tortuga.menu-access-expires-at",
   installPromptDismissedAt: "tortuga.install-prompt-dismissed-at",
   pushPromptDismissedAt: "tortuga.push-prompt-dismissed-at",
 } as const;

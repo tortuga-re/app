@@ -22,6 +22,7 @@ export type CaptainChallengePhase =
   | "error";
 
 const claimedReferralStorageKey = "tortuga.captain.claimed-referrals";
+const referralLivesPollMs = 2000;
 
 const readClaimedReferralCodes = () => {
   if (typeof window === "undefined") {
@@ -176,6 +177,56 @@ export function useCaptainChallenge(incomingReferralCode = "") {
 
     void claimReferral();
   }, [incomingReferralCode]);
+
+  useEffect(() => {
+    if (!referralUrl || (lives ?? 0) > 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const pollLives = async () => {
+      try {
+        const response = await requestJson<CaptainChallengeLivesResponse>(
+          "/api/game/lives",
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        setLives(response.lives);
+
+        if (response.lives > 0) {
+          setGameId("");
+          setResult(null);
+          setPhase((currentPhase) =>
+            currentPhase === "no_lives" ||
+            currentPhase === "idle" ||
+            currentPhase === "result"
+              ? "idle"
+              : currentPhase,
+          );
+          setReferralClaimMessage(
+            "Un pirata ha aperto il tuo invito. Hai una nuova vita.",
+          );
+        }
+      } catch {
+        // Polling best effort: la sfida resta usabile anche se un controllo salta.
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void pollLives();
+    }, referralLivesPollMs);
+
+    void pollLives();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [lives, referralUrl]);
 
   const reset = useCallback(() => {
     clearExplosionTimer();

@@ -23,10 +23,10 @@ export function CaptainChallengeTeaser({
               compact ? "text-[1.75rem]" : "text-2xl",
             )}
           >
-            Ferma il cannone prima che spari!
+            Vinci i premi in palio, una sfida di velocita contro il Capitano.
           </h2>
           <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-            Vinci i premi in palio, una sfida di velocita contro il Capitano.
+            Ferma il cannone prima che spari!
           </p>
         </div>
 

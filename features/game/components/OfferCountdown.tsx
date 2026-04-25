@@ -30,6 +30,9 @@ export function OfferCountdown({ durationSeconds }: { durationSeconds: number })
       <p className="mt-1 text-3xl font-semibold tabular-nums text-white">
         {formatRemaining(remainingSeconds)}
       </p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--danger)]">
+        Mostra il telefono a un pirata. SBRIGATI!
+      </p>
     </div>
   );
 }

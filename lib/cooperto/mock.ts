@@ -211,14 +211,13 @@ export const mockProfile = async (
   lookupMode: "email" | "contactCode",
 ): Promise<ProfileResponse> => {
   await delay(200);
-  const contact = buildContact(query, lookupMode);
 
   return {
     source: "mock",
-    contact,
-    points: 140,
-    coupons: buildCoupons(contact.CodiceContatto ?? "mock-contact-001"),
-    fidelityCards: buildCards(),
+    contact: null,
+    points: null,
+    coupons: [],
+    fidelityCards: [],
     upcomingReservations: buildUpcomingReservations(),
     lookupMode,
     query,

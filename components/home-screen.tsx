@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ActiveCouponsCard } from "@/components/active-coupons-card";
 import { FidelityStatusCard } from "@/components/fidelity-status-card";
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { requestJson } from "@/lib/client";
+import { storageKeys, tortugaInfoConfig } from "@/lib/config";
 import type { ProfileResponse, UpcomingReservation } from "@/lib/cooperto/types";
 import {
   getBirthdayInsight,
@@ -30,6 +31,9 @@ type RouteFallback = {
   secondaryHref?: string;
   secondaryLabel?: string;
 };
+
+const menuAccessDurationMs = 4 * 60 * 60 * 1000;
+const menuAccessChangedEvent = "tortuga:menu-access-changed";
 
 const loadProfileData = async (email: string) => {
   const normalizedEmail = normalizeCustomerEmail(email);
@@ -75,8 +79,6 @@ const buildRouteFallback = ({
         : `Mancano ${birthdayDays} giorni. Se vuoi festeggiare bene, muoviti ora.`,
       primaryHref: "/prenota",
       primaryLabel: "Prenota adesso",
-      secondaryHref: "/ciurma",
-      secondaryLabel: "Apri la ciurma",
     };
   }
 
@@ -87,8 +89,6 @@ const buildRouteFallback = ({
         "La tua ciurma e gia agganciata all'email: puoi tornare a prenotare in pochi secondi.",
       primaryHref: "/prenota",
       primaryLabel: "Prenota adesso",
-      secondaryHref: "/ciurma",
-      secondaryLabel: "Apri la ciurma",
     };
   }
 
@@ -104,6 +104,77 @@ const buildRouteFallback = ({
 };
 
 const getReservationManageHref = () => null;
+
+const readStoredMenuAccessExpiry = () => {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const rawExpiry = window.localStorage.getItem(storageKeys.menuAccessExpiresAt);
+  const parsedExpiry = Number(rawExpiry);
+  return Number.isFinite(parsedExpiry) ? parsedExpiry : 0;
+};
+
+const readMenuAccessSnapshot = () => {
+  if (typeof window === "undefined") {
+    return "inactive:0";
+  }
+
+  const rawExpiry = window.localStorage.getItem(storageKeys.menuAccessExpiresAt) ?? "0";
+  const parsedExpiry = Number(rawExpiry);
+  const status =
+    Number.isFinite(parsedExpiry) && parsedExpiry > Date.now()
+      ? "active"
+      : "inactive";
+
+  return `${status}:${rawExpiry}`;
+};
+
+const subscribeToMenuAccess = (callback: () => void) => {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === storageKeys.menuAccessExpiresAt) {
+      callback();
+    }
+  };
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(menuAccessChangedEvent, callback);
+
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(menuAccessChangedEvent, callback);
+  };
+};
+
+const notifyMenuAccessChanged = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new Event(menuAccessChangedEvent));
+};
+
+const writeStoredMenuAccessExpiry = (expiresAt: number) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(storageKeys.menuAccessExpiresAt, String(expiresAt));
+  notifyMenuAccessChanged();
+};
+
+const clearStoredMenuAccess = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(storageKeys.menuAccessExpiresAt);
+  notifyMenuAccessChanged();
+};
 
 function ReservationStat({ label, value }: { label: string; value: string }) {
   return (
@@ -208,9 +279,38 @@ function ReservationCard({
   );
 }
 
+function CoopertoMenuCard() {
+  return (
+    <div className="panel rounded-[2rem] p-5">
+      <div className="space-y-2">
+        <p className="eyebrow">Menu</p>
+        <h2 className="text-2xl font-semibold leading-tight text-white">
+          Menu e mondo Tortuga
+        </h2>
+      </div>
+
+      <a
+        href={tortugaInfoConfig.menuUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="button-primary mt-5 flex min-h-14 w-full items-center justify-center px-5 text-sm"
+        onClick={() => triggerHaptic()}
+      >
+        MENU
+      </a>
+    </div>
+  );
+}
+
 export function HomeScreen() {
   const { identity } = useCustomerIdentity();
   const identityEmail = normalizeCustomerEmail(identity.email);
+  const hasProcessedMenuParamRef = useRef(false);
+  const menuAccessSnapshot = useSyncExternalStore(
+    subscribeToMenuAccess,
+    readMenuAccessSnapshot,
+    () => "inactive:0",
+  );
   const [profileState, setProfileState] = useState<{
     email: string;
     profile: ProfileResponse | null;
@@ -220,6 +320,37 @@ export function HomeScreen() {
     profile: null,
     error: "",
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasCoopertoMenuParam =
+      searchParams.get("menu") === "1" &&
+      searchParams.get("source") === "cooperto";
+    const now = Date.now();
+
+    let expiresAt = readStoredMenuAccessExpiry();
+
+    if (hasCoopertoMenuParam && !hasProcessedMenuParamRef.current) {
+      hasProcessedMenuParamRef.current = true;
+      expiresAt = now + menuAccessDurationMs;
+      writeStoredMenuAccessExpiry(expiresAt);
+    }
+
+    if (expiresAt <= now) {
+      clearStoredMenuAccess();
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      clearStoredMenuAccess();
+    }, expiresAt - now);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [menuAccessSnapshot]);
 
   useEffect(() => {
     if (!identityEmail) {
@@ -275,6 +406,7 @@ export function HomeScreen() {
   const points = getProfilePoints(profile);
   const rewardProgress = getFidelityRewardProgress(points);
   const activeCardCode = profile?.contact?.CodiceCard?.trim() || "";
+  const hasMenuAccess = menuAccessSnapshot.startsWith("active:");
 
   const routeFallback = buildRouteFallback({
     birthdayLabel: birthdayInsight?.label,
@@ -303,10 +435,14 @@ export function HomeScreen() {
 
       {!loading ? (
         <>
-          <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
+          {hasMenuAccess ? (
+            <CoopertoMenuCard />
+          ) : (
+            <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
+          )}
 
           <FidelityStatusCard
-            title="Ciurma Card"
+            title="FIDELITY TORTUGA"
             points={rewardProgress.points}
             progressPercent={rewardProgress.progressPercent}
             tierLabel={rewardProgress.loyaltyTier.label}
