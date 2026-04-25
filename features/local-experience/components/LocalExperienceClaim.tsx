@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
 import { requestJson } from "@/lib/client";
@@ -17,6 +17,32 @@ import type {
 } from "@/lib/local-experience/types";
 
 type ClaimPhase = "idle" | "claiming" | "ready";
+type ScannerPhase = "idle" | "requesting" | "scanning" | "unsupported";
+type ScannerEngine = "native" | "html5" | null;
+type DetectedBarcode = { rawValue?: string };
+type BarcodeDetectorInstance = {
+  detect: (source: HTMLVideoElement) => Promise<DetectedBarcode[]>;
+};
+type BarcodeDetectorConstructor = new (options?: {
+  formats?: string[];
+}) => BarcodeDetectorInstance;
+type Html5QrcodeInstance = {
+  start: (
+    cameraConfig: { facingMode: string },
+    scannerConfig: { fps: number; qrbox: { width: number; height: number } },
+    onSuccess: (decodedText: string) => void,
+    onError?: () => void,
+  ) => Promise<unknown>;
+  stop: () => Promise<void>;
+  clear: () => void;
+};
+type Html5QrcodeConstructor = new (
+  elementId: string,
+  config?: boolean,
+) => Html5QrcodeInstance;
+
+const unsupportedCameraMessage =
+  "Non riesco ad aprire la fotocamera da questo browser. Apri questa pagina da Safari/Chrome e consenti l'accesso alla fotocamera.";
 
 const getRomeDateKey = () => {
   const formatter = new Intl.DateTimeFormat("en-GB", {
@@ -69,6 +95,40 @@ const rememberClaim = (email: string, token: string) => {
 
 const hasLocalClaimToday = (email: string, token: string) =>
   readClaimedKeys().has(getClaimKey(email, token));
+
+const getBarcodeDetector = () =>
+  (window as Window & { BarcodeDetector?: BarcodeDetectorConstructor })
+    .BarcodeDetector;
+
+const extractQrToken = (value: string) => {
+  const rawValue = value.trim();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  try {
+    const url = new URL(rawValue);
+    return (
+      url.searchParams.get("token")?.trim() ||
+      url.pathname.split("/").filter(Boolean).at(-1)?.trim() ||
+      ""
+    );
+  } catch {
+    return rawValue.replace(/^\/+|\/+$/g, "");
+  }
+};
+
+const isValidQrValue = (value: string) =>
+  value.trim() === localExperiencePublicConfig.qrSourceUrl ||
+  extractQrToken(value) === localExperiencePublicConfig.qrToken;
+
+const buildPromo = (): NonNullable<LocalExperienceClaimResponse["promo"]> => ({
+  title: localExperiencePublicConfig.promo.title,
+  benefit: localExperiencePublicConfig.promo.benefit,
+  instructions: localExperiencePublicConfig.promo.instructions,
+  microcopy: localExperiencePublicConfig.promo.microcopy,
+});
 
 function PromoCard({
   response,
@@ -129,24 +189,6 @@ function PromoCard({
   );
 }
 
-function TokenMissingBlock() {
-  return (
-    <StatusBlock
-      variant="info"
-      title="Scansiona il QR a bordo"
-      description="Questa esperienza si apre dal QR interno Tortuga: senza quel passaggio non si sblocca nessuna promo."
-      action={
-        <Link
-          href="/ciurma"
-          className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-        >
-          Torna alla Ciurma
-        </Link>
-      }
-    />
-  );
-}
-
 function LoginRequiredBlock() {
   return (
     <StatusBlock
@@ -165,53 +207,87 @@ function LoginRequiredBlock() {
   );
 }
 
-function InvalidTokenBlock() {
+function InvalidQrBlock({ message }: { message: string }) {
   return (
     <StatusBlock
       variant="empty"
-      title="Questo passaggio non apre nessuna rotta."
-      description="La promo locale resta chiusa: serve il QR interno Tortuga corretto."
-      action={
-        <Link
-          href="/ciurma"
-          className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-        >
-          Torna alla Ciurma
-        </Link>
-      }
+      title="Questo QR non apre nessuna rotta."
+      description={message}
     />
   );
 }
 
-export function LocalExperienceClaim({ token = "" }: { token?: string }) {
+export function LocalExperienceClaim() {
   const { identity } = useCustomerIdentity();
   const email = normalizeCustomerEmail(identity.email);
-  const hasToken = Boolean(token.trim());
   const isLoggedIn = isValidCustomerEmail(email);
-  const [phase, setPhase] = useState<ClaimPhase>("idle");
+  const scannerReactId = useId();
+  const html5ScannerElementId = `local-experience-scanner-${scannerReactId.replace(
+    /[^a-zA-Z0-9_-]/g,
+    "",
+  )}`;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanFrameRef = useRef<number | null>(null);
+  const html5QrCodeRef = useRef<Html5QrcodeInstance | null>(null);
+  const scanResolvedRef = useRef(false);
+  const [claimPhase, setClaimPhase] = useState<ClaimPhase>("idle");
+  const [scannerPhase, setScannerPhase] = useState<ScannerPhase>("idle");
+  const [scannerEngine, setScannerEngine] = useState<ScannerEngine>(null);
+  const [scanError, setScanError] = useState("");
   const [response, setResponse] = useState<LocalExperienceClaimResponse | null>(
     null,
   );
 
-  const canClaim = hasToken && isLoggedIn;
-  const title = useMemo(
-    () =>
-      response?.status === "claimed" || response?.status === "already_registered"
-        ? "Bottino locale"
-        : "Esperienze solo in locale",
-    [response?.status],
-  );
-
-  useEffect(() => {
-    if (!canClaim || phase !== "idle") {
-      return;
+  const stopScanner = useCallback(() => {
+    if (scanFrameRef.current !== null) {
+      window.cancelAnimationFrame(scanFrameRef.current);
+      scanFrameRef.current = null;
     }
 
-    let cancelled = false;
-    const locallyClaimed = hasLocalClaimToday(email, token);
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
 
-    const claim = async () => {
-      setPhase("claiming");
+    const html5QrCode = html5QrCodeRef.current;
+    html5QrCodeRef.current = null;
+
+    if (html5QrCode) {
+      void html5QrCode
+        .stop()
+        .catch(() => undefined)
+        .finally(() => {
+          try {
+            html5QrCode.clear();
+          } catch {
+            // The scanner may already be cleared by the library.
+          }
+        });
+    }
+
+    setScannerEngine(null);
+    setScannerPhase((current) => (current === "scanning" ? "idle" : current));
+  }, []);
+
+  const claimScannedQr = useCallback(
+    async (rawQrValue: string) => {
+      if (!isLoggedIn) {
+        return;
+      }
+
+      setClaimPhase("claiming");
+      setScanError("");
+      setResponse(null);
+
+      const claimToken = localExperiencePublicConfig.qrToken;
+
+      if (hasLocalClaimToday(email, claimToken)) {
+        setResponse({
+          status: "already_registered",
+          promo: buildPromo(),
+        });
+        setClaimPhase("ready");
+        return;
+      }
 
       try {
         const result = await requestJson<LocalExperienceClaimResponse>(
@@ -219,23 +295,16 @@ export function LocalExperienceClaim({ token = "" }: { token?: string }) {
           {
             method: "POST",
             body: JSON.stringify({
-              token,
+              token: rawQrValue,
               email,
             }),
           },
         );
 
-        if (cancelled) {
-          return;
-        }
-
-        const status: LocalExperienceClaimStatus =
-          result.status === "claimed" && locallyClaimed
-            ? "already_registered"
-            : result.status;
+        const status: LocalExperienceClaimStatus = result.status;
 
         if (result.status === "claimed") {
-          rememberClaim(email, token);
+          rememberClaim(email, claimToken);
         }
 
         setResponse({
@@ -243,42 +312,231 @@ export function LocalExperienceClaim({ token = "" }: { token?: string }) {
           status,
         });
       } catch {
-        if (!cancelled) {
-          setResponse({
-            status: "cooperto_error",
-            promo: null,
-          });
-        }
+        setResponse({
+          status: "cooperto_error",
+          promo: null,
+        });
       } finally {
-        if (!cancelled) {
-          setPhase("ready");
-        }
+        setClaimPhase("ready");
       }
-    };
+    },
+    [email, isLoggedIn],
+  );
 
-    void claim();
+  const handleScannedValue = useCallback(
+    (rawValue: string) => {
+      if (scanResolvedRef.current) {
+        return;
+      }
 
-    return () => {
-      cancelled = true;
+      scanResolvedRef.current = true;
+      stopScanner();
+
+      if (!isValidQrValue(rawValue)) {
+        setScanError("Questo QR non apre nessuna rotta.");
+        setResponse(null);
+        return;
+      }
+
+      void claimScannedQr(rawValue);
+    },
+    [claimScannedQr, stopScanner],
+  );
+
+  const startNativeScanner = useCallback(
+    async (BarcodeDetector: BarcodeDetectorConstructor) => {
+      setScannerEngine("native");
+      setScannerPhase("requesting");
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+        },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      const detector = new BarcodeDetector({ formats: ["qr_code"] });
+      setScannerPhase("scanning");
+
+      const scan = async () => {
+        if (!videoRef.current || !streamRef.current || scanResolvedRef.current) {
+          return;
+        }
+
+        try {
+          const barcodes = await detector.detect(videoRef.current);
+          const rawValue = barcodes.find((barcode) => barcode.rawValue)?.rawValue;
+
+          if (rawValue) {
+            handleScannedValue(rawValue);
+            return;
+          }
+        } catch {
+          // A single failed frame should not close the scanner.
+        }
+
+        scanFrameRef.current = window.requestAnimationFrame(() => {
+          void scan();
+        });
+      };
+
+      scanFrameRef.current = window.requestAnimationFrame(() => {
+        void scan();
+      });
+    },
+    [handleScannedValue],
+  );
+
+  const startHtml5Scanner = useCallback(async () => {
+    setScannerEngine("html5");
+    setScannerPhase("requesting");
+
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(resolve);
+    });
+
+    const { Html5Qrcode } = (await import("html5-qrcode")) as {
+      Html5Qrcode: Html5QrcodeConstructor;
     };
-  }, [canClaim, email, phase, token]);
+    const html5QrCode = new Html5Qrcode(html5ScannerElementId, false);
+
+    html5QrCodeRef.current = html5QrCode;
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 240, height: 240 },
+      },
+      (decodedText) => {
+        handleScannedValue(decodedText);
+      },
+      () => undefined,
+    );
+
+    setScannerPhase("scanning");
+  }, [handleScannedValue, html5ScannerElementId]);
+
+  const startScanner = useCallback(async () => {
+    setScanError("");
+    setResponse(null);
+    scanResolvedRef.current = false;
+
+    if (!isLoggedIn) {
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScannerPhase("unsupported");
+      setScanError(unsupportedCameraMessage);
+      return;
+    }
+
+    try {
+      const BarcodeDetector = getBarcodeDetector();
+
+      if (BarcodeDetector) {
+        await startNativeScanner(BarcodeDetector);
+        return;
+      }
+
+      await startHtml5Scanner();
+    } catch {
+      stopScanner();
+      setScannerPhase("unsupported");
+      setScanError(unsupportedCameraMessage);
+    }
+  }, [isLoggedIn, startHtml5Scanner, startNativeScanner, stopScanner]);
+
+  useEffect(() => stopScanner, [stopScanner]);
 
   return (
     <section className="space-y-5">
       <div className="panel rounded-[2rem] p-5">
-        <p className="eyebrow">Tortuga Bay</p>
+        <p className="eyebrow">{localExperiencePublicConfig.eyebrow}</p>
         <h1 className="mt-3 text-3xl font-semibold uppercase leading-tight tracking-[0.08em] text-white">
-          {title}
+          {localExperiencePublicConfig.title}
         </h1>
         <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
           {localExperiencePublicConfig.description}
         </p>
       </div>
 
-      {!hasToken ? <TokenMissingBlock /> : null}
-      {hasToken && !isLoggedIn ? <LoginRequiredBlock /> : null}
+      {!isLoggedIn ? <LoginRequiredBlock /> : null}
 
-      {canClaim && phase === "claiming" ? (
+      {isLoggedIn && !response?.promo ? (
+        <div className="panel rounded-[2rem] p-5">
+          <div className="space-y-2">
+            <p className="eyebrow">QR Tortuga</p>
+            <h2 className="text-xl font-semibold text-white">
+              Scansiona QR del locale
+            </h2>
+            <p className="text-sm leading-6 text-[var(--text-muted)]">
+              Punta la fotocamera sul QR Tortuga.
+            </p>
+          </div>
+
+          <div
+            className={
+              scannerEngine === "native" &&
+              (scannerPhase === "scanning" || scannerPhase === "requesting")
+                ? "mt-4 overflow-hidden rounded-[1.5rem] border border-[rgba(255,216,156,0.14)] bg-black"
+                : "hidden"
+            }
+          >
+            <video
+              ref={videoRef}
+              className="aspect-[3/4] w-full object-cover"
+              muted
+              playsInline
+            />
+          </div>
+
+          <div
+            id={html5ScannerElementId}
+            className={
+              scannerEngine === "html5" &&
+              (scannerPhase === "scanning" || scannerPhase === "requesting")
+                ? "mt-4 overflow-hidden rounded-[1.5rem] border border-[rgba(255,216,156,0.14)] bg-black text-white"
+                : "hidden"
+            }
+          />
+
+          <div className="mt-4 grid gap-3">
+            {scannerPhase !== "scanning" ? (
+              <button
+                type="button"
+                className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+                onClick={() => {
+                  void startScanner();
+                }}
+                disabled={claimPhase === "claiming" || scannerPhase === "requesting"}
+              >
+                {scannerPhase === "requesting"
+                  ? "Apro la fotocamera..."
+                  : "Scansiona QR del locale"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+                onClick={stopScanner}
+              >
+                Chiudi fotocamera
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {claimPhase === "claiming" ? (
         <StatusBlock
           variant="loading"
           title="Controllo il QR di bordo"
@@ -286,7 +544,11 @@ export function LocalExperienceClaim({ token = "" }: { token?: string }) {
         />
       ) : null}
 
-      {response?.status === "invalid_token" ? <InvalidTokenBlock /> : null}
+      {scanError ? <InvalidQrBlock message={scanError} /> : null}
+
+      {response?.status === "invalid_token" ? (
+        <InvalidQrBlock message="Questo QR non apre nessuna rotta." />
+      ) : null}
 
       {response?.status === "not_identified" ? <LoginRequiredBlock /> : null}
 

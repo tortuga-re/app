@@ -78,10 +78,12 @@ export const tortugaInfoConfig = {
 
 export const localExperiencePublicConfig = {
   claimPath: "/esperienze-locale",
+  qrToken: "ac6cdf",
   qrSourceUrl: "https://www.cooperto.link/ac6cdf",
-  title: "Esperienze solo in locale",
+  eyebrow: "SOLO PER I VERI CORSARI",
+  title: "SEI AL TORTUGA ADESSO?",
   description:
-    "Alcune cose si sbloccano solo a bordo. Scansiona il QR che trovi nel locale.",
+    "Scansiona il QR che trovi al tavolo, sapremo ringraziarti. Clicca su Scansiona QR e goditi il premio.",
   promo: {
     title: "Vantaggio sbloccato a bordo",
     benefit: "-15% su un dolce",

@@ -9,7 +9,7 @@ export function LocalExperienceTeaser() {
   return (
     <div className="panel rounded-[2rem] p-5">
       <div className="space-y-2">
-        <p className="eyebrow">Solo in locale</p>
+        <p className="eyebrow">{localExperiencePublicConfig.eyebrow}</p>
         <h2 className="text-2xl font-semibold text-white">
           {localExperiencePublicConfig.title}
         </h2>
