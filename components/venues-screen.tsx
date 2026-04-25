@@ -15,6 +15,41 @@ type GroupedOpeningHour = {
   sortTime: string;
 };
 
+function PhoneIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 5.15 12.8 19.8 19.8 0 0 1 2.08 4.09 2 2 0 0 1 4.07 2h3a2 2 0 0 1 2 1.72l.45 3a2 2 0 0 1-.57 1.7l-1.27 1.27a16 16 0 0 0 6.36 6.36l1.27-1.27a2 2 0 0 1 1.7-.57l3 .45A2 2 0 0 1 22 16.92Z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 11.5a8 8 0 0 1-11.8 7.02L4 20l1.6-4.01A8 8 0 1 1 20 11.5Z" />
+      <path d="M9.6 8.9c-.2-.44-.4-.45-.58-.46h-.5c-.18 0-.47.07-.72.34s-.95.93-.95 2.28 1 2.66 1.13 2.84c.14.18 1.92 3.08 4.74 4.19 2.34.92 2.82.74 3.32.69.5-.04 1.61-.66 1.83-1.3.23-.65.23-1.2.16-1.3-.07-.1-.27-.16-.57-.31s-1.78-.88-2.06-.98c-.27-.1-.48-.15-.68.16s-.77.98-.95 1.18c-.18.21-.36.23-.66.08-.3-.15-1.29-.48-2.46-1.53-.91-.81-1.53-1.8-1.71-2.1-.18-.3-.02-.46.13-.61.14-.14.3-.36.45-.54.15-.17.2-.3.3-.5.1-.2.05-.38-.02-.54-.08-.15-.67-1.72-.93-2.29Z" />
+    </svg>
+  );
+}
+
 const dayLabelsByCode: Record<number, string> = {
   1: "lunedi",
   2: "martedi",
@@ -200,7 +235,7 @@ export function VenuesScreen() {
             Arriva al Tortuga senza deviazioni.
           </h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Indirizzo, telefono e WhatsApp restano in un unico punto rapido.
+            Indirizzo e contatti rapidi restano in un unico punto.
           </p>
         </div>
 
@@ -215,23 +250,22 @@ export function VenuesScreen() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                Telefono
-              </p>
-              <p className="mt-2 text-base font-semibold text-white">
-                {tortugaInfoConfig.phoneNumber}
-              </p>
-            </div>
-
-            <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                WhatsApp
-              </p>
-              <p className="mt-2 text-base font-semibold text-white">
-                Sempre pronto per contatti rapidi
-              </p>
-            </div>
+            <a
+              href={tortugaInfoConfig.phoneHref}
+              className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
+            >
+              <PhoneIcon />
+              <span>CHIAMA</span>
+            </a>
+            <a
+              href={tortugaInfoConfig.whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
+            >
+              <WhatsAppIcon />
+              <span>Scrivici</span>
+            </a>
           </div>
         </div>
 
@@ -245,7 +279,7 @@ export function VenuesScreen() {
           />
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4">
           <a
             href={tortugaInfoConfig.mapsUrl}
             target="_blank"
@@ -254,20 +288,6 @@ export function VenuesScreen() {
           >
             Ottieni indicazioni
           </a>
-          <a
-            href={tortugaInfoConfig.phoneHref}
-            className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-          >
-            Chiama Tortuga
-          </a>
-          <a
-            href={tortugaInfoConfig.whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm sm:col-span-2"
-          >
-            Apri WhatsApp
-          </a>
         </div>
       </div>
 
@@ -275,10 +295,6 @@ export function VenuesScreen() {
         <div className="panel rounded-[2rem] p-5">
           <div className="space-y-2">
             <p className="eyebrow">Quando ci trovi e fuori rotta</p>
-            <h2 className="text-xl font-semibold text-white">Orari sempre a vista.</h2>
-            <p className="text-sm leading-6 text-[var(--text-muted)]">
-              Aperture regolari e variazioni speciali raccolte nella stessa card.
-            </p>
           </div>
 
           <div className="mt-4 space-y-4">
