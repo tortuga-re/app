@@ -9,11 +9,12 @@ import {
   getCouponQrValue,
 } from "@/lib/customer-profile";
 import type { CoopertoCoupon } from "@/lib/cooperto/types";
+import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 type ActiveCouponsCardProps = {
   coupons: CoopertoCoupon[];
-  description: string;
+  description?: string;
   emptyMessage: string;
   title?: string;
   className?: string;
@@ -103,16 +104,21 @@ export function ActiveCouponsCard({
               {coupons.length}
             </span>
           </div>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">{description}</p>
+          {description ? (
+            <p className="text-sm leading-6 text-[var(--text-muted)]">{description}</p>
+          ) : null}
         </div>
 
         {extraCoupons.length > 0 ? (
           <button
             type="button"
             className="button-secondary inline-flex min-h-10 items-center justify-center px-4 text-xs"
-            onClick={() => setIsExpanded((current) => !current)}
+            onClick={() => {
+              triggerHaptic();
+              setIsExpanded((current) => !current);
+            }}
           >
-            {isExpanded ? "Riduci" : `Mostra +${extraCoupons.length}`}
+            {isExpanded ? "Richiudi" : `Apri +${extraCoupons.length}`}
           </button>
         ) : null}
       </div>

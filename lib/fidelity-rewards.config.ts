@@ -25,17 +25,22 @@ export const fidelityVipThreshold = 100;
 export const fidelityLoyaltyTiers: FidelityLoyaltyTier[] = [
   {
     minPoints: 0,
-    label: "Mozzo",
-    description: "Primi passi nella ciurma Tortuga.",
+    label: "Clandestino",
+    description: "Sei appena entrato nel giro. Il bottino parte da qui.",
   },
   {
-    minPoints: 50,
+    minPoints: 35,
     label: "Corsaro",
-    description: "Cliente abituale con rotta fidelity attiva.",
+    description: "Al Tortuga ormai non passi inosservato.",
+  },
+  {
+    minPoints: 70,
+    label: "Capitano della Isla Loca",
+    description: "Hai preso il ponte. Ogni approdo lascia il segno.",
   },
   {
     minPoints: fidelityVipThreshold,
-    label: "Capitano della Isla Loca",
-    description: "Livello visuale VIP sopra i 100 punti.",
+    label: "Leggenda dei Mari",
+    description: "Il tuo nome gira gia sottobanco. Il resto e solo bottino.",
   },
 ];

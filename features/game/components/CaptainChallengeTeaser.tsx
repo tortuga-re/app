@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
-import { requestJson } from "@/lib/client";
-import type { CaptainChallengeLivesResponse } from "@/lib/game/types";
+import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 export function CaptainChallengeTeaser({
@@ -14,49 +12,6 @@ export function CaptainChallengeTeaser({
   compact?: boolean;
   framed?: boolean;
 }) {
-  const [lives, setLives] = useState<number | null>(null);
-  const [livesLoading, setLivesLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadLives = async () => {
-      try {
-        const response = await requestJson<CaptainChallengeLivesResponse>(
-          "/api/game/lives",
-        );
-
-        if (!cancelled) {
-          setLives(response.lives);
-        }
-      } catch {
-        if (!cancelled) {
-          setLives(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLivesLoading(false);
-        }
-      }
-    };
-
-    void loadLives();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const livesLabel = livesLoading
-    ? "Vite in lettura"
-    : lives === null
-      ? ""
-      : lives <= 0
-        ? "Vite finite: arruola un pirata"
-        : lives === 1
-          ? "1 vita pronta"
-          : `${lives} vite pronte`;
-
   const content = (
     <>
       <div className="flex items-start justify-between gap-4">
@@ -68,11 +23,10 @@ export function CaptainChallengeTeaser({
               compact ? "text-[1.75rem]" : "text-2xl",
             )}
           >
-            Batti il segnale prima di tutti.
+            Ferma il cannone prima che spari!
           </h2>
           <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-            Aspetta il via del Capitano e tappa al momento giusto. La sfida viene
-            validata dal server, non dal telefono.
+            Vinci i premi in palio, una sfida di velocita contro il Capitano.
           </p>
         </div>
 
@@ -83,15 +37,10 @@ export function CaptainChallengeTeaser({
         ) : null}
       </div>
 
-      {livesLabel ? (
-        <div className="mt-4 inline-flex rounded-full border border-[rgba(255,216,156,0.12)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-          {livesLabel}
-        </div>
-      ) : null}
-
       <Link
         href="/game/sfida-capitano"
         className="button-primary mt-5 inline-flex min-h-12 items-center justify-center px-5 text-sm"
+        onClick={() => triggerHaptic()}
       >
         Gioca ora
       </Link>

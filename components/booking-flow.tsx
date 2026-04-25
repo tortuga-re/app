@@ -26,6 +26,7 @@ import {
   useHydratedLocalStorageState,
   writeLocalStorageValue,
 } from "@/lib/local-storage-state";
+import { triggerHaptic } from "@/lib/haptics";
 import { cn, formatDateTime, formatLongDate, safeNumber, todayIso } from "@/lib/utils";
 
 type BookingDraft = {
@@ -597,7 +598,10 @@ export function BookingFlow() {
                   <button
                     type="button"
                     className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
-                    onClick={openWaitlistForm}
+                    onClick={() => {
+                      triggerHaptic();
+                      openWaitlistForm();
+                    }}
                   >
                     Entra in lista d&apos;attesa
                   </button>
@@ -732,7 +736,10 @@ export function BookingFlow() {
                   <button
                     type="button"
                     className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                    onClick={() => void submitWaitlist()}
+                    onClick={() => {
+                      triggerHaptic();
+                      void submitWaitlist();
+                    }}
                     disabled={submittingWaitlist}
                   >
                     {submittingWaitlist
@@ -852,13 +859,6 @@ export function BookingFlow() {
 
       {bootstrap ? (
         <>
-          <div className="panel rounded-[2rem] px-5 py-4">
-            <p className="eyebrow">Prenotazione rapida</p>
-            <h1 className="mt-2 text-2xl font-semibold uppercase tracking-[0.08em] text-white">
-              Prenotazione rapida
-            </h1>
-          </div>
-
           <div className="panel rounded-[2rem] p-5">
             <div className="space-y-2">
               <p className="eyebrow">Data e Persone</p>
@@ -867,11 +867,11 @@ export function BookingFlow() {
               </p>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
               <label className="space-y-2 text-sm text-[var(--text-muted)]">
                 <span>Data</span>
                 <input
-                  className="field"
+                  className="field min-w-0"
                   type="date"
                   min={baseDraft.date}
                   value={draft.date}
@@ -884,7 +884,7 @@ export function BookingFlow() {
               <label className="space-y-2 text-sm text-[var(--text-muted)]">
                 <span>Numero persone</span>
                 <input
-                  className="field"
+                  className="field min-w-0"
                   type="number"
                   min={1}
                   max={16}
@@ -1095,7 +1095,10 @@ export function BookingFlow() {
               <button
                 type="button"
                 className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                onClick={() => void submitBooking()}
+                onClick={() => {
+                  triggerHaptic();
+                  void submitBooking();
+                }}
                 disabled={submitting}
               >
                 {submitting ? "Creo la prenotazione..." : "Conferma prenotazione"}

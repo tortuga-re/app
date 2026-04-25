@@ -1,14 +1,16 @@
-const CACHE_NAME = "tortuga-shell-v2";
+const CACHE_NAME = "tortuga-shell-v3";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
-  "/prenota",
-  "/profilo",
-  "/sedi",
   OFFLINE_URL,
   "/manifest.webmanifest",
   "/pwa-icon/192",
   "/pwa-icon/512",
 ];
+
+const isStaticAssetRequest = (url) =>
+  url.pathname.startsWith("/_next/static/") ||
+  url.pathname.startsWith("/pwa-icon/") ||
+  url.pathname === "/manifest.webmanifest";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -80,15 +82,26 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(async () => {
-          const cachedPage = await caches.match(request);
-          return cachedPage || caches.match(OFFLINE_URL);
-        }),
+        .catch(() => caches.match(OFFLINE_URL)),
+    );
+    return;
+  }
+
+  if (isStaticAssetRequest(url)) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        const networkFetch = fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            }
+            return response;
+          })
+          .catch(() => cachedResponse || Response.error());
+
+        return cachedResponse || networkFetch;
+      }),
     );
     return;
   }
@@ -107,7 +120,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(OFFLINE_URL));
+        .catch(() => Response.error());
     }),
   );
 });
@@ -117,7 +130,7 @@ const parsePushPayload = (event) => {
     return {
       title: "Tortuga",
       body: "C'e un nuovo aggiornamento pronto per te.",
-      url: "/profilo",
+      url: "/ciurma",
       tag: "tortuga-update",
     };
   }
@@ -127,7 +140,7 @@ const parsePushPayload = (event) => {
     return {
       title: json.title || "Tortuga",
       body: json.body || "C'e un nuovo aggiornamento pronto per te.",
-      url: json.url || "/profilo",
+      url: json.url || "/ciurma",
       tag: json.tag || "tortuga-update",
       icon: json.icon || "/pwa-icon/192",
       badge: json.badge || "/pwa-icon/192",
@@ -137,7 +150,7 @@ const parsePushPayload = (event) => {
     return {
       title: "Tortuga",
       body: event.data.text() || "C'e un nuovo aggiornamento pronto per te.",
-      url: "/profilo",
+      url: "/ciurma",
       tag: "tortuga-update",
       icon: "/pwa-icon/192",
       badge: "/pwa-icon/192",
@@ -157,7 +170,7 @@ self.addEventListener("push", (event) => {
       tag: payload.tag,
       renotify: payload.renotify,
       data: {
-        url: payload.url || "/profilo",
+        url: payload.url || "/ciurma",
       },
     }),
   );
@@ -166,7 +179,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || "/profilo";
+  const targetUrl = event.notification.data?.url || "/ciurma";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
