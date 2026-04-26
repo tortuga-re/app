@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { LocalExperienceTeaser } from "@/features/local-experience/components/LocalExperienceTeaser";
+import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
+import { PiratePhotoContestCard } from "@/features/pirate-photo/components/PiratePhotoContestCard";
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import { ciurmaRoadmapFeatures } from "@/lib/config";
@@ -504,6 +506,19 @@ export function CiurmaScreen() {
     autoLoadedKeyRef.current = "";
   };
 
+  const handlePiratePhotoProfileResolved = (profile: ProfileResponse) => {
+    applyProfileResponse(profile);
+    setContactForm(buildContactForm(profile.contact ?? undefined));
+    setIsEditingLookup(false);
+    setIsRegistering(false);
+    setIsEditingProfile(false);
+    setContactError("");
+    setContactMessage("");
+    autoLoadedKeyRef.current = normalizeCustomerEmail(
+      profile.contact?.Email || profile.query,
+    );
+  };
+
   return (
     <section className="space-y-5">
       {hasOnPremiseAccess ? (
@@ -746,16 +761,37 @@ export function CiurmaScreen() {
         />
       ) : null}
 
+      {!data?.contact ? (
+        <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
+          <PiratePhotoContestCard
+            key={identityEmail || "ospite"}
+            contact={null}
+            onProfileResolved={handlePiratePhotoProfileResolved}
+          />
+        </div>
+      ) : null}
+
       {data?.contact ? (
         <>
           <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-2">
-                <p className="eyebrow">Membro della ciurma</p>
-                <h2 className="text-2xl font-semibold text-white">{profileName}</h2>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Qui tieni in ordine i dati che contano davvero quando torni a bordo.
-                </p>
+              <div className="flex min-w-0 flex-1 items-start gap-4">
+                <LocalPirateAvatar
+                  customerKey={
+                    contactSnapshot.email ||
+                    identityEmail ||
+                    data.contact.CodiceContatto ||
+                    profileName
+                  }
+                  label={profileName}
+                />
+                <div className="min-w-0 space-y-2">
+                  <p className="eyebrow">Membro della ciurma</p>
+                  <h2 className="text-2xl font-semibold text-white">{profileName}</h2>
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    Qui tieni in ordine i dati che contano davvero quando torni a bordo.
+                  </p>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1034,6 +1070,14 @@ export function CiurmaScreen() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
+            <PiratePhotoContestCard
+              key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
+              contact={data.contact}
+              onProfileResolved={handlePiratePhotoProfileResolved}
+            />
           </div>
 
           <div id="sfide" className="panel hash-scroll-target rounded-[2rem] p-5">
