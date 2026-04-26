@@ -36,3 +36,29 @@ export interface SavePushSubscriptionResponse {
   saved: true;
   record: StoredPushSubscription;
 }
+
+export interface DeletePushSubscriptionInput {
+  endpoint: string;
+}
+
+export interface DeletePushSubscriptionResponse {
+  deleted: boolean;
+}
+
+export interface PushSendPayload {
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+  email?: string;
+  icon?: string;
+  badge?: string;
+  renotify?: boolean;
+}
+
+export interface PushSendResponse {
+  sent: number;
+  failed: number;
+  removed: number;
+  total: number;
+}

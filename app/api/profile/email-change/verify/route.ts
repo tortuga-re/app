@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const record = verifyEmailChangeCode({ requestId, code });
+    const record = await verifyEmailChangeCode({ requestId, code });
     const response = await updateProfileContact(record.profile);
 
     return NextResponse.json(response);
