@@ -18,8 +18,10 @@ import {
   useCustomerIdentity,
 } from "@/lib/customer-identity";
 import type { ProfileResponse } from "@/lib/cooperto/types";
+import { useHashScroll } from "@/lib/hash-scroll";
 import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/types";
 import { triggerHaptic } from "@/lib/haptics";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 
 type ContactFormState = {
   firstName: string;
@@ -67,6 +69,7 @@ export function CiurmaScreen() {
     updateIdentity,
     clearCustomerContext,
   } = useCustomerIdentity();
+  const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
   const [lookupEmail, setLookupEmail] = useState("");
   const [isEditingLookup, setIsEditingLookup] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -116,6 +119,9 @@ export function CiurmaScreen() {
         minute: "2-digit",
       }).format(new Date(emailChangeRequest.expiresAt))
     : "";
+  useHashScroll(
+    `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}`,
+  );
 
   useEffect(() => {
     if (!emailChangeRequest) {
@@ -500,11 +506,19 @@ export function CiurmaScreen() {
 
   return (
     <section className="space-y-5">
-      <CaptainChallengeTeaser />
-      <LocalExperienceTeaser />
+      {hasOnPremiseAccess ? (
+        <>
+          <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
+            <CaptainChallengeTeaser />
+          </div>
+          <div id="esperienze-locale" className="hash-scroll-target rounded-[2rem]">
+            <LocalExperienceTeaser />
+          </div>
+        </>
+      ) : null}
 
       {showLookupPanel ? (
-        <div className="panel rounded-[2rem] p-5">
+        <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
           <div className="space-y-4">
             <div className="space-y-2">
               <p className="eyebrow">Riconoscimento ciurma</p>
@@ -547,7 +561,7 @@ export function CiurmaScreen() {
       ) : null}
 
       {isRegistering ? (
-        <div className="panel rounded-[2rem] p-5">
+        <div id="registrazione" className="panel hash-scroll-target rounded-[2rem] p-5">
           <div className="space-y-2">
             <p className="eyebrow">Registrazione ciurma</p>
             <h2 className="text-xl font-semibold text-white">
@@ -734,7 +748,7 @@ export function CiurmaScreen() {
 
       {data?.contact ? (
         <>
-          <div className="panel rounded-[2rem] p-5">
+          <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-2">
                 <p className="eyebrow">Membro della ciurma</p>
@@ -1022,7 +1036,7 @@ export function CiurmaScreen() {
             )}
           </div>
 
-          <div className="panel rounded-[2rem] p-5">
+          <div id="sfide" className="panel hash-scroll-target rounded-[2rem] p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <p className="eyebrow">Sfide e contenuti</p>

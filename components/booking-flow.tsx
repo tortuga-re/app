@@ -27,6 +27,7 @@ import {
   useHydratedLocalStorageState,
   writeLocalStorageValue,
 } from "@/lib/local-storage-state";
+import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn, formatDateTime, formatLongDate, safeNumber, todayIso } from "@/lib/utils";
 
@@ -276,6 +277,9 @@ export function BookingFlow() {
   const showVisibleWaitlistForm =
     hasNoAvailableSlots && isWaitlistContextActive && showWaitlistForm;
   const shouldHideMarketingConsent = identity.marketingConsent === true;
+  useHashScroll(
+    `${loadingBootstrap}:${availabilityKey}:${Boolean(selectedSlot)}:${Boolean(success)}:${showVisibleWaitlistForm}`,
+  );
 
   useEffect(() => {
     if (!availabilityKey) {
@@ -884,7 +888,7 @@ export function BookingFlow() {
 
       {bootstrap ? (
         <>
-          <div className="panel rounded-[2rem] p-5">
+          <div id="booking-form" className="panel hash-scroll-target rounded-[2rem] p-5">
             <div className="space-y-2">
               <p className="eyebrow">Data e Persone</p>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
@@ -978,7 +982,11 @@ export function BookingFlow() {
           ) : null}
 
           {selectedSlot ? (
-            <div ref={customerDetailsStepRef} className="panel rounded-[2rem] p-5">
+            <div
+              id="dati-cliente"
+              ref={customerDetailsStepRef}
+              className="panel hash-scroll-target rounded-[2rem] p-5"
+            >
               <div className="space-y-2">
                 <p className="eyebrow">Dati Cliente</p>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">
@@ -1117,22 +1125,24 @@ export function BookingFlow() {
                 ) : null}
               </div>
 
-              <button
-                type="button"
-                className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                onClick={() => {
-                  triggerHaptic();
-                  void submitBooking();
-                }}
-                disabled={submitting}
-              >
-                {submitting ? "Creo la prenotazione..." : "Conferma prenotazione"}
-              </button>
+              <div id="conferma" className="hash-scroll-target">
+                <button
+                  type="button"
+                  className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
+                  onClick={() => {
+                    triggerHaptic();
+                    void submitBooking();
+                  }}
+                  disabled={submitting}
+                >
+                  {submitting ? "Creo la prenotazione..." : "Conferma prenotazione"}
+                </button>
+              </div>
             </div>
           ) : null}
 
           {success ? (
-            <div className="panel rounded-[2rem] p-5">
+            <div id="prenotazione-completata" className="panel hash-scroll-target rounded-[2rem] p-5">
               <div className="space-y-2">
                 <p className="eyebrow">Prenotazione registrata</p>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">
@@ -1150,7 +1160,7 @@ export function BookingFlow() {
                 ) : null}
               </div>
               <Link
-                href="/ciurma"
+                href="/ciurma#riconoscimento"
                 className="button-secondary mt-5 inline-flex min-h-11 items-center justify-center px-5"
               >
                 Apri la tua ciurma

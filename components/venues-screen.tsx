@@ -6,6 +6,7 @@ import { StatusBlock } from "@/components/status-block";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { CoopertoVenueHour, VenueResponse } from "@/lib/cooperto/types";
+import { useHashScroll } from "@/lib/hash-scroll";
 import { formatDateTime } from "@/lib/utils";
 
 type GroupedOpeningHour = {
@@ -199,6 +200,7 @@ export function VenuesScreen() {
     [primaryVenue?.hours?.Orari],
   );
   const exceptions = primaryVenue?.hours?.Eccezioni ?? [];
+  useHashScroll(`${loading}:${Boolean(primaryVenue)}:${groupedOpeningHours.length}`);
 
   return (
     <section className="space-y-5">
@@ -218,7 +220,7 @@ export function VenuesScreen() {
         />
       ) : null}
 
-      <div className="panel rounded-[2rem] p-5">
+      <div id="programmazione" className="panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Programmazione serale</p>
           <h2 className="text-xl font-semibold text-white">
@@ -246,7 +248,7 @@ export function VenuesScreen() {
         </div>
       </div>
 
-      <div className="panel rounded-[2rem] p-5">
+      <div id="social" className="panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Social</p>
           <h2 className="text-xl font-semibold text-white">
@@ -273,7 +275,7 @@ export function VenuesScreen() {
       </div>
 
       {primaryVenue ? (
-        <div className="panel rounded-[2rem] p-5">
+        <div id="quando-ci-trovi" className="panel hash-scroll-target rounded-[2rem] p-5">
           <div className="space-y-2">
             <p className="eyebrow">Quando ci trovi e fuori rotta</p>
           </div>
@@ -347,7 +349,7 @@ export function VenuesScreen() {
         </div>
       ) : null}
 
-      <div className="panel rounded-[2rem] p-5">
+      <div id="dove-siamo" className="panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Dove siamo e contatti</p>
         </div>
@@ -363,14 +365,16 @@ export function VenuesScreen() {
           </div>
         </div>
 
-        <a
-          href={tortugaInfoConfig.mapsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
-        >
-          Ottieni indicazioni
-        </a>
+        <div id="indicazioni" className="hash-scroll-target">
+          <a
+            href={tortugaInfoConfig.mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
+          >
+            Ottieni indicazioni
+          </a>
+        </div>
 
         <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-black/20">
           <iframe
@@ -382,7 +386,7 @@ export function VenuesScreen() {
           />
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div id="contatti" className="hash-scroll-target mt-4 grid gap-3 sm:grid-cols-2">
           <a
             href={tortugaInfoConfig.phoneHref}
             className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
