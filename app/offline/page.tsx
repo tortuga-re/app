@@ -11,7 +11,7 @@ export default function OfflinePage() {
           disponibilita o prenotazioni reali serve tornare online.
         </p>
         <Link
-          href="/prenota"
+          href="/prenota#booking-form"
           className="button-primary mt-6 inline-flex min-h-11 items-center justify-center px-5"
         >
           Torna alla prenotazione

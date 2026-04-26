@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ActiveCouponsCard } from "@/components/active-coupons-card";
 import { FidelityStatusCard } from "@/components/fidelity-status-card";
@@ -9,7 +9,7 @@ import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
-import { storageKeys, tortugaInfoConfig } from "@/lib/config";
+import { tortugaInfoConfig } from "@/lib/config";
 import type { ProfileResponse, UpcomingReservation } from "@/lib/cooperto/types";
 import {
   getBirthdayInsight,
@@ -22,7 +22,9 @@ import {
   useCustomerIdentity,
 } from "@/lib/customer-identity";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
+import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 
 type RouteFallback = {
   title: string;
@@ -32,9 +34,6 @@ type RouteFallback = {
   secondaryHref?: string;
   secondaryLabel?: string;
 };
-
-const menuAccessDurationMs = 4 * 60 * 60 * 1000;
-const menuAccessChangedEvent = "tortuga:menu-access-changed";
 
 const loadProfileData = async (email: string) => {
   const normalizedEmail = normalizeCustomerEmail(email);
@@ -78,7 +77,7 @@ const buildRouteFallback = ({
       description: birthdayIsToday
         ? "Se vuoi far saltare il banco, la prenotazione e a un tap."
         : `Mancano ${birthdayDays} giorni. Se vuoi festeggiare bene, muoviti ora.`,
-      primaryHref: "/prenota",
+      primaryHref: "/prenota#booking-form",
       primaryLabel: "Prenota adesso",
     };
   }
@@ -88,7 +87,7 @@ const buildRouteFallback = ({
       title: "Nessuna rotta fissata. Per ora.",
       description:
         "La tua ciurma e gia agganciata all'email: puoi tornare a prenotare in pochi secondi.",
-      primaryHref: "/prenota",
+      primaryHref: "/prenota#booking-form",
       primaryLabel: "Prenota adesso",
     };
   }
@@ -97,85 +96,14 @@ const buildRouteFallback = ({
     title: "Prima volta a bordo?",
     description:
       "Scegli data, orario e persone. Il resto lo agganciamo alla tua email.",
-    primaryHref: "/prenota",
+    primaryHref: "/prenota#booking-form",
     primaryLabel: "Prenota adesso",
-    secondaryHref: "/ciurma",
+    secondaryHref: "/ciurma#riconoscimento",
     secondaryLabel: "Entra nella ciurma",
   };
 };
 
 const getReservationManageHref = () => null;
-
-const readStoredMenuAccessExpiry = () => {
-  if (typeof window === "undefined") {
-    return 0;
-  }
-
-  const rawExpiry = window.localStorage.getItem(storageKeys.menuAccessExpiresAt);
-  const parsedExpiry = Number(rawExpiry);
-  return Number.isFinite(parsedExpiry) ? parsedExpiry : 0;
-};
-
-const readMenuAccessSnapshot = () => {
-  if (typeof window === "undefined") {
-    return "inactive:0";
-  }
-
-  const rawExpiry = window.localStorage.getItem(storageKeys.menuAccessExpiresAt) ?? "0";
-  const parsedExpiry = Number(rawExpiry);
-  const status =
-    Number.isFinite(parsedExpiry) && parsedExpiry > Date.now()
-      ? "active"
-      : "inactive";
-
-  return `${status}:${rawExpiry}`;
-};
-
-const subscribeToMenuAccess = (callback: () => void) => {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key === storageKeys.menuAccessExpiresAt) {
-      callback();
-    }
-  };
-
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(menuAccessChangedEvent, callback);
-
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(menuAccessChangedEvent, callback);
-  };
-};
-
-const notifyMenuAccessChanged = () => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.dispatchEvent(new Event(menuAccessChangedEvent));
-};
-
-const writeStoredMenuAccessExpiry = (expiresAt: number) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(storageKeys.menuAccessExpiresAt, String(expiresAt));
-  notifyMenuAccessChanged();
-};
-
-const clearStoredMenuAccess = () => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem(storageKeys.menuAccessExpiresAt);
-  notifyMenuAccessChanged();
-};
 
 function ReservationStat({ label, value }: { label: string; value: string }) {
   return (
@@ -306,13 +234,8 @@ function CoopertoMenuCard() {
 export function HomeScreen() {
   const { identity } = useCustomerIdentity();
   const identityEmail = normalizeCustomerEmail(identity.email);
-  const hasProcessedMenuParamRef = useRef(false);
   const viewedReservationsKeyRef = useRef("");
-  const menuAccessSnapshot = useSyncExternalStore(
-    subscribeToMenuAccess,
-    readMenuAccessSnapshot,
-    () => "inactive:0",
-  );
+  const { hasAccess: hasMenuAccess } = useOnPremiseAccess();
   const [profileState, setProfileState] = useState<{
     email: string;
     profile: ProfileResponse | null;
@@ -322,37 +245,6 @@ export function HomeScreen() {
     profile: null,
     error: "",
   });
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    const hasCoopertoMenuParam =
-      searchParams.get("menu") === "1" &&
-      searchParams.get("source") === "cooperto";
-    const now = Date.now();
-
-    let expiresAt = readStoredMenuAccessExpiry();
-
-    if (hasCoopertoMenuParam && !hasProcessedMenuParamRef.current) {
-      hasProcessedMenuParamRef.current = true;
-      expiresAt = now + menuAccessDurationMs;
-      writeStoredMenuAccessExpiry(expiresAt);
-    }
-
-    if (expiresAt <= now) {
-      clearStoredMenuAccess();
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      clearStoredMenuAccess();
-    }, expiresAt - now);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [menuAccessSnapshot]);
 
   useEffect(() => {
     if (!identityEmail) {
@@ -408,8 +300,9 @@ export function HomeScreen() {
   const points = getProfilePoints(profile);
   const rewardProgress = getFidelityRewardProgress(points);
   const activeCardCode = profile?.contact?.CodiceCard?.trim() || "";
-  const hasMenuAccess = menuAccessSnapshot.startsWith("active:");
-
+  useHashScroll(
+    `${loading}:${hasMenuAccess}:${primaryReservation?.reservationCode ?? "none"}:${activeCoupons.length}`,
+  );
   const routeFallback = buildRouteFallback({
     birthdayLabel: birthdayInsight?.label,
     birthdayDays: birthdayInsight?.daysUntil,
@@ -465,31 +358,43 @@ export function HomeScreen() {
 
       {!loading ? (
         <>
+          <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
+            {hasMenuAccess ? (
+              <CoopertoMenuCard />
+            ) : (
+              <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
+            )}
+          </div>
+
           {hasMenuAccess ? (
-            <CoopertoMenuCard />
-          ) : (
-            <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
-          )}
+            <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
+              <CaptainChallengeTeaser compact />
+            </div>
+          ) : null}
 
-          <FidelityStatusCard
-            title="FIDELITY TORTUGA"
-            points={rewardProgress.points}
-            progressPercent={rewardProgress.progressPercent}
-            tierLabel={rewardProgress.loyaltyTier.label}
-            tierDescription={rewardProgress.loyaltyTier.description}
-            nextRewardLabel={rewardProgress.nextReward?.label}
-            isVip={rewardProgress.isVip}
-            activeCardCode={activeCardCode}
-            qrLabel="QR ciurma Tortuga"
-          />
+          <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
+            <div id="fidelity" className="hash-scroll-target rounded-[2rem]">
+              <FidelityStatusCard
+                title="FIDELITY TORTUGA"
+                points={rewardProgress.points}
+                progressPercent={rewardProgress.progressPercent}
+                tierLabel={rewardProgress.loyaltyTier.label}
+                tierDescription={rewardProgress.loyaltyTier.description}
+                nextRewardLabel={rewardProgress.nextReward?.label}
+                isVip={rewardProgress.isVip}
+                activeCardCode={activeCardCode}
+                qrLabel="QR ciurma Tortuga"
+              />
+            </div>
+          </div>
 
-          <CaptainChallengeTeaser compact />
-
-          <ActiveCouponsCard
-            coupons={activeCoupons}
-            description=""
-            emptyMessage="Nessun coupon attivo da spendere per ora."
-          />
+          <div id="coupon" className="hash-scroll-target rounded-[2rem]">
+            <ActiveCouponsCard
+              coupons={activeCoupons}
+              description=""
+              emptyMessage="Nessun coupon attivo da spendere per ora."
+            />
+          </div>
         </>
       ) : null}
     </section>

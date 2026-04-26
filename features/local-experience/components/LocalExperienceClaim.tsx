@@ -15,6 +15,7 @@ import type {
   LocalExperienceClaimResponse,
   LocalExperienceClaimStatus,
 } from "@/lib/local-experience/types";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 
 type ClaimPhase = "idle" | "claiming" | "ready";
 type ScannerPhase = "idle" | "requesting" | "scanning" | "unsupported";
@@ -179,7 +180,7 @@ function PromoCard({
           Apri Sfida il Capitano
         </Link>
         <Link
-          href="/ciurma"
+          href="/ciurma#esperienze-locale"
           className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
         >
           Torna alla Ciurma
@@ -197,7 +198,7 @@ function LoginRequiredBlock() {
       description="Prima arruolati nella ciurma: accedi con la tua email per sbloccare le esperienze a bordo."
       action={
         <Link
-          href="/ciurma"
+          href="/ciurma#riconoscimento"
           className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
         >
           Accedi / Cambia profilo
@@ -217,8 +218,27 @@ function InvalidQrBlock({ message }: { message: string }) {
   );
 }
 
+function OnPremiseRequiredBlock() {
+  return (
+    <StatusBlock
+      variant="info"
+      title="Esperienza disponibile solo a bordo"
+      description="Questa rotta si apre quando entri nell'app dal link Tortuga del locale."
+      action={
+        <Link
+          href="/"
+          className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+        >
+          Torna alla Home
+        </Link>
+      }
+    />
+  );
+}
+
 export function LocalExperienceClaim() {
   const { identity } = useCustomerIdentity();
+  const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
   const email = normalizeCustomerEmail(identity.email);
   const isLoggedIn = isValidCustomerEmail(email);
   const scannerReactId = useId();
@@ -469,9 +489,11 @@ export function LocalExperienceClaim() {
         </p>
       </div>
 
-      {!isLoggedIn ? <LoginRequiredBlock /> : null}
+      {!hasOnPremiseAccess ? <OnPremiseRequiredBlock /> : null}
 
-      {isLoggedIn && !response?.promo ? (
+      {hasOnPremiseAccess && !isLoggedIn ? <LoginRequiredBlock /> : null}
+
+      {hasOnPremiseAccess && isLoggedIn && !response?.promo ? (
         <div className="panel rounded-[2rem] p-5">
           <div className="space-y-2">
             <p className="eyebrow">QR Tortuga</p>
@@ -536,7 +558,7 @@ export function LocalExperienceClaim() {
         </div>
       ) : null}
 
-      {claimPhase === "claiming" ? (
+      {hasOnPremiseAccess && claimPhase === "claiming" ? (
         <StatusBlock
           variant="loading"
           title="Controllo il QR di bordo"
@@ -544,22 +566,26 @@ export function LocalExperienceClaim() {
         />
       ) : null}
 
-      {scanError ? <InvalidQrBlock message={scanError} /> : null}
+      {hasOnPremiseAccess && scanError ? (
+        <InvalidQrBlock message={scanError} />
+      ) : null}
 
-      {response?.status === "invalid_token" ? (
+      {hasOnPremiseAccess && response?.status === "invalid_token" ? (
         <InvalidQrBlock message="Questo QR non apre nessuna rotta." />
       ) : null}
 
-      {response?.status === "not_identified" ? <LoginRequiredBlock /> : null}
+      {hasOnPremiseAccess && response?.status === "not_identified" ? (
+        <LoginRequiredBlock />
+      ) : null}
 
-      {response?.status === "cooperto_error" && !response.promo ? (
+      {hasOnPremiseAccess && response?.status === "cooperto_error" && !response.promo ? (
         <StatusBlock
           variant="error"
           title="Passaggio non completato"
           description={localExperiencePublicConfig.promo.coopertoError}
           action={
             <Link
-              href="/ciurma"
+              href="/ciurma#esperienze-locale"
               className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
             >
               Torna alla Ciurma
@@ -568,7 +594,9 @@ export function LocalExperienceClaim() {
         />
       ) : null}
 
-      {response?.promo ? <PromoCard response={response} /> : null}
+      {hasOnPremiseAccess && response?.promo ? (
+        <PromoCard response={response} />
+      ) : null}
     </section>
   );
 }

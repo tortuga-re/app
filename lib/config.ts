@@ -142,4 +142,5 @@ export const storageKeys = {
   menuAccessExpiresAt: "tortuga.menu-access-expires-at",
   installPromptDismissedAt: "tortuga.install-prompt-dismissed-at",
   pushPromptDismissedAt: "tortuga.push-prompt-dismissed-at",
+  customerAvatarPrefix: "tortuga.customer-avatar",
 } as const;

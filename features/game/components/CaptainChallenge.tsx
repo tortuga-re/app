@@ -5,11 +5,13 @@ import Link from "next/link";
 import { GameResultCard } from "@/features/game/components/GameResultCard";
 import { ReferralLifeCard } from "@/features/game/components/ReferralLifeCard";
 import { useCaptainChallenge } from "@/features/game/hooks/useCaptainChallenge";
+import { StatusBlock } from "@/components/status-block";
 import {
   isValidCustomerEmail,
   normalizeCustomerEmail,
   useCustomerIdentity,
 } from "@/lib/customer-identity";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { cn } from "@/lib/utils";
 
 function FuseVisual({ phase }: { phase: string }) {
@@ -55,6 +57,7 @@ export function CaptainChallenge({
   incomingReferralCode?: string;
 }) {
   const { identity } = useCustomerIdentity();
+  const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
   const identityEmail = normalizeCustomerEmail(identity.email);
   const isLoggedIn = isValidCustomerEmail(identityEmail);
   const {
@@ -71,7 +74,9 @@ export function CaptainChallenge({
     reset,
     createReferral,
     canTap,
-  } = useCaptainChallenge(isLoggedIn ? incomingReferralCode : "");
+  } = useCaptainChallenge(
+    isLoggedIn && hasOnPremiseAccess ? incomingReferralCode : "",
+  );
 
   const isIdle = phase === "idle";
   const isStarting = phase === "starting";
@@ -84,6 +89,26 @@ export function CaptainChallenge({
     (isIdle || isStarting) && (livesLoading || hasLives);
   const showNoLivesPanel =
     !livesLoading && !hasLives && (phase === "idle" || phase === "no_lives");
+
+  if (!hasOnPremiseAccess) {
+    return (
+      <section className="space-y-5">
+        <StatusBlock
+          variant="info"
+          title="Sfida disponibile solo a bordo"
+          description="La Sfida del Capitano si apre quando entri nell'app dal link Tortuga del locale."
+          action={
+            <Link
+              href="/"
+              className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+            >
+              Torna alla Home
+            </Link>
+          }
+        />
+      </section>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -98,7 +123,7 @@ export function CaptainChallenge({
             la tua email.
           </p>
           <Link
-            href="/ciurma"
+            href="/ciurma#riconoscimento"
             className="button-primary mt-5 inline-flex min-h-12 items-center justify-center px-5 text-sm"
           >
             Registrati

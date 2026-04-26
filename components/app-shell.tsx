@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
 
               <Link
-                href="/ciurma"
+                href="/ciurma#riconoscimento"
                 className="rounded-full border border-[var(--border)] bg-[var(--accent-soft)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-strong)] transition hover:bg-[rgba(242,215,165,0.18)]"
                 onClick={() => triggerHaptic()}
               >

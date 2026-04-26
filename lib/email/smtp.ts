@@ -7,6 +7,12 @@ type TransactionalEmailInput = {
   subject: string;
   text: string;
   html?: string;
+  attachments?: Array<{
+    filename: string;
+    path?: string;
+    content?: Buffer | string;
+    contentType?: string;
+  }>;
 };
 
 const parseSmtpSecure = (value?: string) => {
@@ -43,6 +49,7 @@ export const sendTransactionalEmail = async ({
   subject,
   text,
   html,
+  attachments,
 }: TransactionalEmailInput) => {
   const config = getSmtpConfig();
   const transporter = nodemailer.createTransport({
@@ -58,5 +65,6 @@ export const sendTransactionalEmail = async ({
     subject,
     text,
     html,
+    attachments,
   });
 };
