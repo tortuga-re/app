@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const captainChallengePlayerCookieName = "tortuga_captain_player";
+export const captainChallengePlayerCookieMaxAgeSeconds = 60 * 60 * 24 * 90;
 
 export const createCaptainChallengePlayerId = () =>
   randomBytes(18).toString("base64url");
@@ -14,7 +15,7 @@ export const getCaptainChallengePlayerSession = (request: NextRequest) => {
   if (existingPlayerId) {
     return {
       playerId: existingPlayerId,
-      shouldSetCookie: false,
+      shouldSetCookie: true,
     };
   }
 
@@ -38,7 +39,7 @@ export const attachCaptainChallengePlayerCookie = (
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 180,
+    maxAge: captainChallengePlayerCookieMaxAgeSeconds,
   });
 
   return response;

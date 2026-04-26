@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
+import { trackAppEvent } from "@/lib/analytics";
 import {
   formatCouponExpiry,
   getCouponDisplayCode,
@@ -92,8 +93,25 @@ export function ActiveCouponsCard({
   className,
 }: ActiveCouponsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const trackedCouponKeyRef = useRef("");
   const primaryCoupon = coupons[0] ?? null;
   const extraCoupons = coupons.slice(1);
+  const couponKey = coupons
+    .map((coupon) => `${getCouponDisplayCode(coupon)}-${coupon.DataScadenza ?? ""}`)
+    .join("|");
+
+  useEffect(() => {
+    if (coupons.length === 0 || !couponKey || trackedCouponKeyRef.current === couponKey) {
+      return;
+    }
+
+    trackedCouponKeyRef.current = couponKey;
+    trackAppEvent("view_coupon", {
+      coupon_count: coupons.length,
+      has_coupon_qr: coupons.some((coupon) => Boolean(getCouponQrValue(coupon))),
+      next_coupon_expiry: primaryCoupon?.DataScadenza,
+    });
+  }, [couponKey, coupons, primaryCoupon?.DataScadenza]);
 
   return (
     <div className={cn("panel rounded-[2rem] p-5", className)}>

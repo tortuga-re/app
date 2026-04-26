@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import "./globals.css";
 
+import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { AppShell } from "@/components/app-shell";
 import { siteConfig } from "@/lib/config";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
   return (
     <html lang="it" suppressHydrationWarning>
       <body className="antialiased">
+        <AnalyticsScripts />
         <AppShell>{children}</AppShell>
       </body>
     </html>

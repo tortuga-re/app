@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
 import { TortugaMapViewer } from "@/components/tortuga-map-viewer";
+import { trackAppEvent } from "@/lib/analytics";
 import { storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
 import type {
@@ -200,6 +201,20 @@ export function BookingFlow() {
   const pendingInitialSlotScrollRef = useRef(false);
   const seededCustomerEmailRef = useRef("");
   const marketingFirstUntickBlockedRef = useRef(false);
+  const trackedStartBookingRef = useRef(false);
+
+  useEffect(() => {
+    if (trackedStartBookingRef.current) {
+      return;
+    }
+
+    trackedStartBookingRef.current = true;
+    trackAppEvent("start_booking", {
+      app_section: "prenota",
+      default_pax: draft.pax,
+      has_prefilled_email: Boolean(draft.email),
+    });
+  }, [draft.email, draft.pax]);
 
   useEffect(() => {
     const loadBootstrap = async () => {
@@ -458,6 +473,16 @@ export function BookingFlow() {
       privacyAccepted: draft.privacyAccepted,
       marketingAccepted: draft.marketingAccepted,
     };
+
+    trackAppEvent("booking_request_submit", {
+      app_section: "prenota",
+      booking_date: payload.date,
+      booking_pax: payload.pax,
+      booking_room_selected: Boolean(payload.roomCode),
+      marketing_accepted: payload.marketingAccepted,
+      privacy_accepted: payload.privacyAccepted,
+      source: "booking_flow",
+    });
 
     try {
       if (payload.email) {

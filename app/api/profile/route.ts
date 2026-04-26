@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { getProfileData, updateProfileContact } from "@/lib/cooperto/service";
 import type { ProfileUpdateInput } from "@/lib/cooperto/types";
+import {
+  isValidProfileEmail,
+  normalizeProfileEmail,
+  normalizeProfileUpdateInput,
+  validateProfileUpdateInput,
+} from "@/lib/profile/validation";
 
 export const dynamic = "force-dynamic";
-
-const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
-const isValidEmail = (value?: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -28,9 +30,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const normalizedQuery = mode === "email" ? normalizeEmail(query) : query;
+  const normalizedQuery = mode === "email" ? normalizeProfileEmail(query) : query;
 
-  if (mode === "email" && !isValidEmail(normalizedQuery)) {
+  if (mode === "email" && !isValidProfileEmail(normalizedQuery)) {
     return NextResponse.json(
       { error: "Inserisci un indirizzo email valido." },
       { status: 400 },
@@ -52,10 +54,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let payload: ProfileUpdateInput;
+  let rawPayload: unknown;
 
   try {
-    payload = (await request.json()) as ProfileUpdateInput;
+    rawPayload = await request.json();
   } catch {
     return NextResponse.json(
       { error: "Payload profilo non valido." },
@@ -63,40 +65,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const normalizedEmail = normalizeEmail(payload.email);
+  const payload: ProfileUpdateInput = normalizeProfileUpdateInput(rawPayload);
+  const validationError = validateProfileUpdateInput(payload);
 
-  if (!payload.firstName?.trim() || !payload.lastName?.trim()) {
-    return NextResponse.json(
-      { error: "Inserisci nome e cognome." },
-      { status: 400 },
-    );
-  }
-
-  if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
-    return NextResponse.json(
-      { error: "Inserisci un indirizzo email valido." },
-      { status: 400 },
-    );
-  }
-
-  if (!payload.phone?.trim()) {
-    return NextResponse.json(
-      { error: "Inserisci un numero di telefono valido." },
-      { status: 400 },
-    );
-  }
-
-  if (payload.birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(payload.birthDate)) {
-    return NextResponse.json(
-      { error: "La data di nascita non e valida." },
-      { status: 400 },
-    );
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
   try {
     const data = await updateProfileContact({
       ...payload,
-      email: normalizedEmail,
     });
     return NextResponse.json(data);
   } catch (error) {

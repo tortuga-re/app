@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { AppGreeting } from "@/components/app-greeting";
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaController } from "@/components/pwa-controller";
@@ -15,6 +16,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
+      <AnalyticsTracker />
+
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-x-0 top-20 h-32 bg-[linear-gradient(180deg,rgba(216,176,106,0.06),transparent)]" />
       </div>

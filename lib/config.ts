@@ -28,6 +28,15 @@ export const siteConfig = {
   accentSoft: "#f1d8a1",
 };
 
+export const analyticsConfig = {
+  gtmId: process.env.NEXT_PUBLIC_GTM_ID?.trim() || "GTM-5G5QFPBF",
+  metaPixelId:
+    process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || "1168283681896161",
+  siteArea: "app",
+  appDomain: "app.tortugabay.it",
+  eventSource: "tortuga_web_app",
+} as const;
+
 export const tortugaInfoConfig = {
   address: "Via Giambattista Vico, 93 - Reggio Emilia",
   menuUrl: "https://cprt.it/a69bf",

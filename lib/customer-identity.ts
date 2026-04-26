@@ -1,12 +1,16 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import { storageKeys } from "@/lib/config";
 import {
   removeLocalStorageValue,
   useHydratedLocalStorageState,
 } from "@/lib/local-storage-state";
+import type {
+  CustomerSessionIdentity,
+  CustomerSessionResponse,
+} from "@/lib/session/types";
 
 export type CustomerIdentity = {
   email: string;
@@ -31,6 +35,82 @@ export const normalizeCustomerEmail = (value?: string) =>
 
 export const isValidCustomerEmail = (value?: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeCustomerEmail(value));
+
+let customerSessionRestoreStarted = false;
+let customerSessionRestorePromise: Promise<CustomerSessionIdentity | null> | null = null;
+let lastPersistedCustomerSessionSignature = "";
+
+const toCustomerSessionIdentity = (
+  identity: CustomerIdentity,
+): CustomerSessionIdentity | null => {
+  const email = normalizeCustomerEmail(identity.email);
+
+  if (!isValidCustomerEmail(email)) {
+    return null;
+  }
+
+  return {
+    email,
+    firstName: cleanText(identity.firstName),
+    lastName: cleanText(identity.lastName),
+    phone: cleanText(identity.phone),
+    marketingConsent: identity.marketingConsent,
+  };
+};
+
+const persistCustomerSession = async (identity: CustomerIdentity) => {
+  const sessionIdentity = toCustomerSessionIdentity(identity);
+
+  if (!sessionIdentity) {
+    return;
+  }
+
+  const signature = JSON.stringify(sessionIdentity);
+
+  if (signature === lastPersistedCustomerSessionSignature) {
+    return;
+  }
+
+  lastPersistedCustomerSessionSignature = signature;
+
+  await fetch("/api/session/customer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(sessionIdentity),
+  }).catch(() => {
+    lastPersistedCustomerSessionSignature = "";
+  });
+};
+
+const restoreCustomerSession = () => {
+  if (!customerSessionRestorePromise) {
+    customerSessionRestorePromise = fetch("/api/session/customer", {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return null;
+        }
+
+        const body = (await response.json()) as CustomerSessionResponse;
+        return body.identity;
+      })
+      .catch(() => null);
+  }
+
+  return customerSessionRestorePromise;
+};
+
+const clearPersistedCustomerSession = async () => {
+  lastPersistedCustomerSessionSignature = "";
+  customerSessionRestorePromise = null;
+
+  await fetch("/api/session/customer", {
+    method: "DELETE",
+  }).catch(() => undefined);
+};
 
 const parseStoredCustomerIdentity = (raw: string): CustomerIdentity | null => {
   const parsed = JSON.parse(raw) as Partial<CustomerIdentity>;
@@ -84,11 +164,44 @@ export function useCustomerIdentity() {
     parseStoredCustomerIdentity,
   );
 
+  useEffect(() => {
+    if (customerSessionRestoreStarted) {
+      return;
+    }
+
+    customerSessionRestoreStarted = true;
+    let cancelled = false;
+
+    void restoreCustomerSession().then((restoredIdentity) => {
+      if (!restoredIdentity || cancelled) {
+        return;
+      }
+
+      setIdentityState((current) => {
+        if (current.email && current.email !== restoredIdentity.email) {
+          return current;
+        }
+
+        return mergeCustomerIdentity(current, restoredIdentity);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setIdentityState]);
+
+  useEffect(() => {
+    void persistCustomerSession(identity);
+  }, [identity]);
+
   const updateIdentity = useCallback(
     (updates: Partial<CustomerIdentity>) => {
-      setIdentityState((current) => mergeCustomerIdentity(current, updates));
+      const nextIdentity = mergeCustomerIdentity(identity, updates);
+      setIdentityState(nextIdentity);
+      void persistCustomerSession(nextIdentity);
     },
-    [setIdentityState],
+    [identity, setIdentityState],
   );
 
   const setIdentityFromEmail = useCallback(
@@ -99,20 +212,22 @@ export function useCustomerIdentity() {
         return false;
       }
 
-      setIdentityState((current) =>
-        mergeCustomerIdentity(current, {
-          email: normalizedEmail,
-          ...extra,
-        }),
-      );
+      const nextIdentity = mergeCustomerIdentity(identity, {
+        email: normalizedEmail,
+        ...extra,
+      });
+
+      setIdentityState(nextIdentity);
+      void persistCustomerSession(nextIdentity);
 
       return true;
     },
-    [setIdentityState],
+    [identity, setIdentityState],
   );
 
   const clearIdentity = useCallback(() => {
     removeLocalStorageValue(storageKeys.customerIdentity);
+    void clearPersistedCustomerSession();
   }, []);
 
   const clearCustomerContext = useCallback(() => {
@@ -120,6 +235,7 @@ export function useCustomerIdentity() {
     removeLocalStorageValue(storageKeys.bookingDraft);
     removeLocalStorageValue(storageKeys.lastReservation);
     removeLocalStorageValue(storageKeys.profileLookup);
+    void clearPersistedCustomerSession();
   }, []);
 
   return {
