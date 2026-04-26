@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { LocalExperienceTeaser } from "@/features/local-experience/components/LocalExperienceTeaser";
+import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import { ciurmaRoadmapFeatures } from "@/lib/config";
 import {
@@ -17,6 +18,7 @@ import {
   useCustomerIdentity,
 } from "@/lib/customer-identity";
 import type { ProfileResponse } from "@/lib/cooperto/types";
+import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/types";
 import { triggerHaptic } from "@/lib/haptics";
 
 type ContactFormState = {
@@ -76,6 +78,12 @@ export function CiurmaScreen() {
   const [contactMessage, setContactMessage] = useState("");
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [contactForm, setContactForm] = useState<ContactFormState>(emptyContactForm);
+  const [emailChangeRequest, setEmailChangeRequest] =
+    useState<EmailChangeRequestResponse | null>(null);
+  const [emailChangeCode, setEmailChangeCode] = useState("");
+  const [emailChangeNow, setEmailChangeNow] = useState(() => Date.now());
+  const [verifyingEmailChange, setVerifyingEmailChange] = useState(false);
+  const [resendingEmailChange, setResendingEmailChange] = useState(false);
   const autoLoadedKeyRef = useRef("");
 
   const identityEmail = normalizeCustomerEmail(identity.email);
@@ -85,6 +93,41 @@ export function CiurmaScreen() {
     "Cliente Tortuga";
   const showLookupPanel = isEditingLookup || !hasIdentity;
   const contactSnapshot = buildContactForm(data?.contact ?? undefined);
+  const existingSavedEmail = hasProfile
+    ? normalizeCustomerEmail(contactSnapshot.email || identityEmail)
+    : "";
+  const editedEmail = normalizeCustomerEmail(contactForm.email);
+  const emailChangeNeedsVerification = Boolean(
+    existingSavedEmail && editedEmail && existingSavedEmail !== editedEmail,
+  );
+  const emailChangeResendAt = emailChangeRequest
+    ? Date.parse(emailChangeRequest.resendAvailableAt)
+    : 0;
+  const emailChangeCanResend = Boolean(
+    emailChangeRequest && emailChangeNow >= emailChangeResendAt,
+  );
+  const emailChangeResendSeconds = Math.max(
+    Math.ceil((emailChangeResendAt - emailChangeNow) / 1000),
+    0,
+  );
+  const emailChangeExpiresAtLabel = emailChangeRequest
+    ? new Intl.DateTimeFormat("it-IT", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(emailChangeRequest.expiresAt))
+    : "";
+
+  useEffect(() => {
+    if (!emailChangeRequest) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setEmailChangeNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [emailChangeRequest]);
 
   useEffect(() => {
     if (!identityEmail || isEditingLookup || hasProfile) {
@@ -193,6 +236,8 @@ export function CiurmaScreen() {
     setLoading(true);
     setError("");
     setIsRegistering(false);
+    setEmailChangeRequest(null);
+    setEmailChangeCode("");
 
     try {
       const response = await loadProfileData(normalizedEmail);
@@ -209,6 +254,12 @@ export function CiurmaScreen() {
             typeof response.contact.ConsensoMarketing === "number"
               ? response.contact.ConsensoMarketing === 1
               : undefined,
+        });
+        trackAppEvent("login_success", {
+          app_section: "ciurma",
+          login_method: "email_lookup",
+          profile_source: response.source,
+          has_contact_code: Boolean(response.contact.CodiceContatto),
         });
         setIsEditingLookup(false);
         autoLoadedKeyRef.current = normalizedEmail;
@@ -252,19 +303,49 @@ export function CiurmaScreen() {
     setContactMessage("");
 
     try {
+      const profilePayload = {
+        firstName: contactForm.firstName.trim(),
+        lastName: contactForm.lastName.trim(),
+        phone: contactForm.phone.trim(),
+        email: normalizedEmail,
+        birthDate: contactForm.birthDate || undefined,
+        marketingConsent: contactForm.marketingConsent,
+      };
+
+      if (existingSavedEmail && existingSavedEmail !== normalizedEmail) {
+        const response = await requestJson<EmailChangeRequestResponse>(
+          "/api/profile/email-change/request",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              currentEmail: existingSavedEmail,
+              profile: profilePayload,
+            }),
+          },
+        );
+
+        setEmailChangeRequest(response);
+        setEmailChangeCode("");
+        setContactMessage(
+          `Codice inviato a ${response.pendingEmail}. L'email attuale resta valida fino alla verifica.`,
+        );
+        return;
+      }
+
       const response = await requestJson<ProfileResponse>("/api/profile", {
         method: "POST",
-        body: JSON.stringify({
-          firstName: contactForm.firstName.trim(),
-          lastName: contactForm.lastName.trim(),
-          phone: contactForm.phone.trim(),
-          email: normalizedEmail,
-          birthDate: contactForm.birthDate || undefined,
-          marketingConsent: contactForm.marketingConsent,
-        }),
+        body: JSON.stringify(profilePayload),
       });
 
       applyProfileResponse(response);
+      if (response.contact) {
+        trackAppEvent("login_success", {
+          app_section: "ciurma",
+          login_method: "profile_registration",
+          profile_source: response.source,
+          has_contact_code: Boolean(response.contact.CodiceContatto),
+        });
+      }
       setContactForm((current) => ({
         ...current,
         email: normalizedEmail,
@@ -272,6 +353,8 @@ export function CiurmaScreen() {
       setIsEditingProfile(false);
       setIsRegistering(false);
       setIsEditingLookup(false);
+      setEmailChangeRequest(null);
+      setEmailChangeCode("");
       setContactMessage("Dati cliente aggiornati.");
       autoLoadedKeyRef.current = normalizedEmail;
     } catch (saveError) {
@@ -285,9 +368,102 @@ export function CiurmaScreen() {
     }
   };
 
+  const verifyEmailChange = async () => {
+    if (!emailChangeRequest) {
+      return;
+    }
+
+    const code = emailChangeCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setContactError("Inserisci il codice a 6 cifre.");
+      return;
+    }
+
+    setVerifyingEmailChange(true);
+    setContactError("");
+    setContactMessage("");
+
+    try {
+      const response = await requestJson<ProfileResponse>(
+        "/api/profile/email-change/verify",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            requestId: emailChangeRequest.requestId,
+            code,
+          }),
+        },
+      );
+
+      applyProfileResponse(response);
+      if (response.contact) {
+        trackAppEvent("login_success", {
+          app_section: "ciurma",
+          login_method: "email_change_verified",
+          profile_source: response.source,
+          has_contact_code: Boolean(response.contact.CodiceContatto),
+        });
+      }
+      setContactForm(buildContactForm(response.contact ?? undefined));
+      setIsEditingProfile(false);
+      setIsRegistering(false);
+      setIsEditingLookup(false);
+      setEmailChangeRequest(null);
+      setEmailChangeCode("");
+      setContactMessage("Email verificata e profilo aggiornato.");
+      autoLoadedKeyRef.current = normalizeCustomerEmail(
+        response.contact?.Email || response.query,
+      );
+    } catch (verifyError) {
+      setContactError(
+        verifyError instanceof Error
+          ? verifyError.message
+          : "Non sono riuscito a verificare la nuova email.",
+      );
+    } finally {
+      setVerifyingEmailChange(false);
+    }
+  };
+
+  const resendEmailChangeCode = async () => {
+    if (!emailChangeRequest) {
+      return;
+    }
+
+    setResendingEmailChange(true);
+    setContactError("");
+    setContactMessage("");
+
+    try {
+      const response = await requestJson<EmailChangeRequestResponse>(
+        "/api/profile/email-change/resend",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            requestId: emailChangeRequest.requestId,
+          }),
+        },
+      );
+
+      setEmailChangeRequest(response);
+      setEmailChangeCode("");
+      setContactMessage(`Nuovo codice inviato a ${response.pendingEmail}.`);
+    } catch (resendError) {
+      setContactError(
+        resendError instanceof Error
+          ? resendError.message
+          : "Non sono riuscito a reinviare il codice.",
+      );
+    } finally {
+      setResendingEmailChange(false);
+    }
+  };
+
   const openContactEditor = () => {
     setContactError("");
     setContactMessage("");
+    setEmailChangeRequest(null);
+    setEmailChangeCode("");
     setContactForm(contactSnapshot);
     setIsEditingProfile(true);
   };
@@ -297,6 +473,8 @@ export function CiurmaScreen() {
     setError("");
     setContactError("");
     setContactMessage("");
+    setEmailChangeRequest(null);
+    setEmailChangeCode("");
     setContactForm({
       ...emptyContactForm,
       email: normalizedEmail,
@@ -315,6 +493,8 @@ export function CiurmaScreen() {
     setContactForm(emptyContactForm);
     setContactError("");
     setContactMessage("");
+    setEmailChangeRequest(null);
+    setEmailChangeCode("");
     autoLoadedKeyRef.current = "";
   };
 
@@ -645,12 +825,23 @@ export function CiurmaScreen() {
                       className="field"
                       type="email"
                       value={contactForm.email}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const nextEmail = event.target.value;
+
+                        if (
+                          emailChangeRequest &&
+                          normalizeCustomerEmail(nextEmail) !==
+                            emailChangeRequest.pendingEmail
+                        ) {
+                          setEmailChangeRequest(null);
+                          setEmailChangeCode("");
+                        }
+
                         setContactForm((current) => ({
                           ...current,
-                          email: event.target.value,
-                        }))
-                      }
+                          email: nextEmail,
+                        }));
+                      }}
                     />
                   </label>
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
@@ -700,6 +891,78 @@ export function CiurmaScreen() {
                   </span>
                 </label>
 
+                {emailChangeRequest ? (
+                  <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                        Verifica email
+                      </p>
+                      <h3 className="text-lg font-semibold text-white">
+                        Controlla {emailChangeRequest.pendingEmail}
+                      </h3>
+                      <p className="text-sm leading-6 text-[var(--text-muted)]">
+                        La tua email attuale resta valida finche non confermi il
+                        codice. Il codice scade alle {emailChangeExpiresAtLabel}.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid gap-3">
+                      <input
+                        className="field text-center text-lg font-semibold tracking-[0.35em]"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        placeholder="000000"
+                        value={emailChangeCode}
+                        onChange={(event) =>
+                          setEmailChangeCode(
+                            event.target.value.replace(/\D/g, "").slice(0, 6),
+                          )
+                        }
+                      />
+
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          className="button-primary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                          onClick={() => {
+                            triggerHaptic();
+                            void verifyEmailChange();
+                          }}
+                          disabled={
+                            verifyingEmailChange || emailChangeCode.trim().length !== 6
+                          }
+                        >
+                          {verifyingEmailChange
+                            ? "Verifico..."
+                            : "Conferma codice"}
+                        </button>
+                        <button
+                          type="button"
+                          className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                          onClick={() => {
+                            triggerHaptic();
+                            void resendEmailChangeCode();
+                          }}
+                          disabled={
+                            resendingEmailChange || !emailChangeCanResend
+                          }
+                        >
+                          {resendingEmailChange
+                            ? "Invio..."
+                            : emailChangeCanResend
+                              ? "Reinvia codice"
+                              : `Reinvia tra ${emailChangeResendSeconds}s`}
+                        </button>
+                      </div>
+
+                      <p className="text-xs leading-5 text-[var(--text-muted)]">
+                        Tentativi rimasti: {emailChangeRequest.attemptsRemaining}.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+
                 <button
                   type="button"
                   className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
@@ -707,9 +970,13 @@ export function CiurmaScreen() {
                     triggerHaptic();
                     void saveContact();
                   }}
-                  disabled={savingContact}
+                  disabled={savingContact || verifyingEmailChange}
                 >
-                  {savingContact ? "Salvo le modifiche..." : "Salva modifiche"}
+                  {savingContact
+                    ? "Salvo le modifiche..."
+                    : emailChangeNeedsVerification
+                      ? "Invia codice verifica"
+                      : "Salva modifiche"}
                 </button>
               </div>
             ) : (

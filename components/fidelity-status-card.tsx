@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
+import { trackAppEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 type FidelityStatusCardProps = {
@@ -41,6 +44,21 @@ export function FidelityStatusCard({
   className,
 }: FidelityStatusCardProps) {
   const hasCard = Boolean(activeCardCode);
+  const viewedQrKeyRef = useRef("");
+
+  useEffect(() => {
+    if (!hasCard || viewedQrKeyRef.current === activeCardCode) {
+      return;
+    }
+
+    viewedQrKeyRef.current = activeCardCode;
+    trackAppEvent("view_fidelity_qr", {
+      points,
+      tier_label: tierLabel,
+      is_vip: isVip,
+      has_card: true,
+    });
+  }, [activeCardCode, hasCard, isVip, points, tierLabel]);
 
   return (
     <div

@@ -7,6 +7,7 @@ import { ActiveCouponsCard } from "@/components/active-coupons-card";
 import { FidelityStatusCard } from "@/components/fidelity-status-card";
 import { StatusBlock } from "@/components/status-block";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
+import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import { storageKeys, tortugaInfoConfig } from "@/lib/config";
 import type { ProfileResponse, UpcomingReservation } from "@/lib/cooperto/types";
@@ -306,6 +307,7 @@ export function HomeScreen() {
   const { identity } = useCustomerIdentity();
   const identityEmail = normalizeCustomerEmail(identity.email);
   const hasProcessedMenuParamRef = useRef(false);
+  const viewedReservationsKeyRef = useRef("");
   const menuAccessSnapshot = useSyncExternalStore(
     subscribeToMenuAccess,
     readMenuAccessSnapshot,
@@ -414,6 +416,34 @@ export function HomeScreen() {
     birthdayIsToday: birthdayInsight?.isToday,
     hasIdentityEmail: Boolean(identityEmail),
   });
+
+  useEffect(() => {
+    if (!identityEmail || loading || !hasProfileStateForEmail) {
+      return;
+    }
+
+    const reservationKey = `${identityEmail}|${upcomingReservations.length}|${
+      primaryReservation?.reservationCode ?? "none"
+    }`;
+
+    if (viewedReservationsKeyRef.current === reservationKey) {
+      return;
+    }
+
+    viewedReservationsKeyRef.current = reservationKey;
+    trackAppEvent("view_prenotazioni", {
+      app_section: "home",
+      reservation_count: upcomingReservations.length,
+      has_future_reservation: Boolean(primaryReservation),
+      reservation_status: primaryReservation?.stateLabel,
+    });
+  }, [
+    hasProfileStateForEmail,
+    identityEmail,
+    loading,
+    primaryReservation,
+    upcomingReservations.length,
+  ]);
 
   return (
     <section className="space-y-5">

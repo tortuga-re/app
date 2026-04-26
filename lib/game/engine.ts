@@ -28,7 +28,7 @@ const buildOffer = (
   if (outcomeType === "win") {
     return {
       title: "Drink Premium",
-      description: "Offerta pronta per essere collegata a una promo reale.",
+      description: "Hai vinto un cocktail OMAGGIO!",
       durationSeconds: captainChallengeConfig.winOfferDurationSeconds,
     };
   }
