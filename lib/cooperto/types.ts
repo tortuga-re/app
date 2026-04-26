@@ -89,6 +89,11 @@ export interface CoopertoCreateContactRequest {
   SovrascriviDati?: boolean;
 }
 
+export interface CoopertoUpdateFidelityCardRequest {
+  codiceContatto: string;
+  codiceCard: string;
+}
+
 export interface CoopertoRegisterVisitRequest {
   codiceContatto: string;
   codiceSede: string;
@@ -334,6 +339,13 @@ export interface ProfileResponse {
   upcomingReservations: UpcomingReservation[];
   lookupMode: "email" | "contactCode";
   query: string;
+}
+
+export interface FidelityActivationResponse {
+  source: DataSource;
+  status: "activated" | "already_active";
+  cardCode: string;
+  profile: ProfileResponse;
 }
 
 export interface ProfileUpdateInput {

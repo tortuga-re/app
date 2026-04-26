@@ -8,6 +8,8 @@ import {
   mockBookingBootstrap,
   mockBookingCreate,
   mockProfile,
+  mockFidelityCards,
+  mockActivateFidelityCard,
   mockUpdateProfileContact,
   mockWaitlistCreate,
   mockVenues,
@@ -31,12 +33,14 @@ import type {
   CoopertoListResponse,
   CoopertoRegisterVisitRequest,
   CoopertoRegisterVisitResponse,
+  CoopertoUpdateFidelityCardRequest,
   CoopertoReservation,
   CoopertoWaitlistEntry,
   CoopertoVenue,
   CoopertoVenueHours,
   ProfileUpdateInput,
   ProfileResponse,
+  FidelityActivationResponse,
   RegisterVisitResponse,
   UpcomingReservation,
   VenueResponse,
@@ -579,6 +583,83 @@ export const updateProfileContact = async (
   } catch {
     return fallbackSource(await mockUpdateProfileContact(input));
   }
+};
+
+export const getFidelityCards = async (): Promise<CoopertoFidelityCard[]> => {
+  if (!hasCoopertoLiveConfig) {
+    return mockFidelityCards();
+  }
+
+  const response = await coopertoFetch<CoopertoListResponse<CoopertoFidelityCard>>(
+    "/api/FidelityCard/Elenco",
+    {
+      query: { skip: 0, pageSize: 100 },
+    },
+  );
+
+  return response.data;
+};
+
+const resolveDefaultFidelityCardCode = async () => {
+  if (coopertoConfig.defaultFidelityCardCode) {
+    return coopertoConfig.defaultFidelityCardCode;
+  }
+
+  const cards = await getFidelityCards();
+  return cards.find((card) => card.CodiceCard?.trim())?.CodiceCard?.trim() ?? "";
+};
+
+export const activateFidelityCard = async ({
+  contactCode,
+}: {
+  contactCode: string;
+}): Promise<FidelityActivationResponse> => {
+  const normalizedContactCode = contactCode.trim();
+
+  if (!normalizedContactCode) {
+    throw new Error("Codice contatto mancante.");
+  }
+
+  const profile = await getProfileData("contactCode", normalizedContactCode);
+  const activeCardCode = profile.contact?.CodiceCard?.trim() ?? "";
+
+  if (activeCardCode) {
+    return {
+      source: profile.source,
+      status: "already_active",
+      cardCode: activeCardCode,
+      profile,
+    };
+  }
+
+  const cardCode = await resolveDefaultFidelityCardCode();
+
+  if (!cardCode) {
+    throw new Error("Nessuna fidelity card disponibile.");
+  }
+
+  if (!hasCoopertoLiveConfig) {
+    return mockActivateFidelityCard(normalizedContactCode, cardCode);
+  }
+
+  const requestBody: CoopertoUpdateFidelityCardRequest = {
+    codiceContatto: normalizedContactCode,
+    codiceCard: cardCode,
+  };
+
+  await coopertoFetch<unknown>("/api/Contatti/AggiornaFidelityCard", {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const refreshedProfile = await getProfileData("contactCode", normalizedContactCode);
+
+  return {
+    source: "live",
+    status: "activated",
+    cardCode,
+    profile: refreshedProfile,
+  };
 };
 
 export const registerContactVisit = async ({

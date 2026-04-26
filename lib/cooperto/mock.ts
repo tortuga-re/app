@@ -16,6 +16,7 @@ import type {
   CoopertoVenueHours,
   ProfileUpdateInput,
   ProfileResponse,
+  FidelityActivationResponse,
   UpcomingReservation,
   VenueResponse,
   WaitlistCreateInput,
@@ -112,6 +113,11 @@ const buildCards = (): CoopertoFidelityCard[] => [
   { CodiceCard: "bronze-card", Nome: "Bronze Bay", Livello: 1 },
   { CodiceCard: "gold-card", Nome: "Golden Tide", Livello: 2 },
 ];
+
+export const mockFidelityCards = async (): Promise<CoopertoFidelityCard[]> => {
+  await delay(120);
+  return buildCards();
+};
 
 const buildUpcomingReservations = (): UpcomingReservation[] => [];
 
@@ -239,6 +245,37 @@ export const mockUpdateProfileContact = async (
     upcomingReservations: buildUpcomingReservations(),
     lookupMode: "email",
     query: input.email,
+  };
+};
+
+export const mockActivateFidelityCard = async (
+  contactCode: string,
+  cardCode: string,
+): Promise<FidelityActivationResponse> => {
+  await delay(240);
+
+  const contact: CoopertoContact = {
+    ...buildContact(contactCode, "contactCode"),
+    CodiceContatto: contactCode,
+    CodiceCard: `MOCK-${Date.now()}`,
+    CodiceCardAssegnata: cardCode,
+    NomeCardAssegnata: "Ciurma Card Tortuga",
+  };
+
+  return {
+    source: "mock",
+    status: "activated",
+    cardCode,
+    profile: {
+      source: "mock",
+      contact,
+      points: contact.SaldoPuntiCard ?? 0,
+      coupons: buildCoupons(contactCode),
+      fidelityCards: buildCards(),
+      upcomingReservations: buildUpcomingReservations(),
+      lookupMode: "contactCode",
+      query: contactCode,
+    },
   };
 };
 

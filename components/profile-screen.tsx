@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
+import { FidelityActivationPanel } from "@/components/fidelity-activation-panel";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { LocalExperienceTeaser } from "@/features/local-experience/components/LocalExperienceTeaser";
 import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
@@ -21,6 +22,7 @@ import {
 } from "@/lib/customer-identity";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import { useHashScroll } from "@/lib/hash-scroll";
+import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/types";
 import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
@@ -89,6 +91,7 @@ export function CiurmaScreen() {
   const [emailChangeNow, setEmailChangeNow] = useState(() => Date.now());
   const [verifyingEmailChange, setVerifyingEmailChange] = useState(false);
   const [resendingEmailChange, setResendingEmailChange] = useState(false);
+  const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
   const autoLoadedKeyRef = useRef("");
 
   const identityEmail = normalizeCustomerEmail(identity.email);
@@ -96,6 +99,11 @@ export function CiurmaScreen() {
   const profileName =
     [data?.contact?.Nome, data?.contact?.Cognome].filter(Boolean).join(" ") ||
     "Cliente Tortuga";
+  const loyaltyProgress = getFidelityRewardProgress(
+    data?.points ?? data?.contact?.SaldoPuntiCard ?? 0,
+  );
+  const activeCardCode = data?.contact?.CodiceCard?.trim() ?? "";
+  const contactCode = data?.contact?.CodiceContatto?.trim() ?? "";
   const showLookupPanel = isEditingLookup || !hasIdentity;
   const contactSnapshot = buildContactForm(data?.contact ?? undefined);
   const existingSavedEmail = hasProfile
@@ -246,6 +254,7 @@ export function CiurmaScreen() {
     setIsRegistering(false);
     setEmailChangeRequest(null);
     setEmailChangeCode("");
+    setShowActivatedCardPanel(false);
 
     try {
       const response = await loadProfileData(normalizedEmail);
@@ -483,6 +492,7 @@ export function CiurmaScreen() {
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
+    setShowActivatedCardPanel(false);
     setContactForm({
       ...emptyContactForm,
       email: normalizedEmail,
@@ -503,6 +513,7 @@ export function CiurmaScreen() {
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
+    setShowActivatedCardPanel(false);
     autoLoadedKeyRef.current = "";
   };
 
@@ -517,6 +528,14 @@ export function CiurmaScreen() {
     autoLoadedKeyRef.current = normalizeCustomerEmail(
       profile.contact?.Email || profile.query,
     );
+  };
+
+  const handleFidelityActivated = (profile: ProfileResponse) => {
+    applyProfileResponse(profile);
+    setShowActivatedCardPanel(true);
+    setContactForm(buildContactForm(profile.contact ?? undefined));
+    autoLoadedKeyRef.current =
+      normalizeCustomerEmail(profile.contact?.Email) || profile.query;
   };
 
   return (
@@ -773,9 +792,11 @@ export function CiurmaScreen() {
 
       {data?.contact ? (
         <>
-          <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-1 items-start gap-4">
+          <div
+            id="riconoscimento"
+            className="panel hash-scroll-target rounded-[2rem] p-5"
+          >
+            <div className="flex min-w-0 items-center gap-4">
                 <LocalPirateAvatar
                   customerKey={
                     contactSnapshot.email ||
@@ -785,43 +806,18 @@ export function CiurmaScreen() {
                   }
                   label={profileName}
                 />
-                <div className="min-w-0 space-y-2">
-                  <p className="eyebrow">Membro della ciurma</p>
-                  <h2 className="text-2xl font-semibold text-white">{profileName}</h2>
-                  <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    Qui tieni in ordine i dati che contano davvero quando torni a bordo.
-                  </p>
+              <div className="min-w-0 flex-1 space-y-2">
+                <h2 className="truncate text-2xl font-semibold text-white">
+                  {profileName}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
+                    {loyaltyProgress.loyaltyTier.label}
+                  </span>
+                  <span className="text-xs leading-5 text-[var(--text-muted)]">
+                    {loyaltyProgress.points} punti
+                  </span>
                 </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                  onClick={() => {
-                    triggerHaptic();
-                    if (isEditingProfile) {
-                      setIsEditingProfile(false);
-                      setContactError("");
-                      setContactMessage("");
-                      return;
-                    }
-
-                    openContactEditor();
-                  }}
-                >
-                  {isEditingProfile ? "Chiudi modifiche" : "Modifica dati"}
-                </button>
-                <button
-                  type="button"
-                  className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                  onClick={() => {
-                    triggerHaptic();
-                    changeAccount();
-                  }}
-                >
-                  Cambia profilo
-                </button>
               </div>
             </div>
 
@@ -1035,7 +1031,20 @@ export function CiurmaScreen() {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
                     Nome e cognome
                   </p>
-                  <p className="mt-2 text-base font-semibold text-white">{profileName}</p>
+                  <div className="mt-2 grid gap-2 text-sm leading-6 text-[var(--text-muted)] sm:grid-cols-2">
+                    <p>
+                      Nome:{" "}
+                      <span className="text-white">
+                        {contactSnapshot.firstName || "Non disponibile"}
+                      </span>
+                    </p>
+                    <p>
+                      Cognome:{" "}
+                      <span className="text-white">
+                        {contactSnapshot.lastName || "Non disponibile"}
+                      </span>
+                    </p>
+                  </div>
                 </div>
 
                 <div className="panel-muted rounded-[1.5rem] px-4 py-4">
@@ -1070,6 +1079,48 @@ export function CiurmaScreen() {
                 </div>
               </div>
             )}
+
+            {!activeCardCode || showActivatedCardPanel ? (
+              <div className="mt-5">
+                <FidelityActivationPanel
+                  contactCode={contactCode}
+                  activeCardCode={activeCardCode}
+                  qrLabel="QR ciurma Tortuga"
+                  onActivated={handleFidelityActivated}
+                />
+              </div>
+            ) : null}
+
+            <div className="mt-5 flex flex-col gap-2 border-t border-[rgba(216,176,106,0.14)] pt-4 sm:flex-row">
+              <button
+                type="button"
+                className="button-secondary inline-flex min-h-11 flex-1 items-center justify-center px-4 text-sm"
+                onClick={() => {
+                  triggerHaptic();
+                  if (isEditingProfile) {
+                    setIsEditingProfile(false);
+                    setContactError("");
+                    setContactMessage("");
+                    return;
+                  }
+
+                  openContactEditor();
+                }}
+              >
+                {isEditingProfile ? "Chiudi modifiche" : "Modifica dati"}
+              </button>
+              <button
+                type="button"
+                className="button-secondary inline-flex min-h-11 flex-1 items-center justify-center px-4 text-sm"
+                onClick={() => {
+                  triggerHaptic();
+                  changeAccount();
+                }}
+              >
+                Cambia profilo
+              </button>
+            </div>
+
           </div>
 
           <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">

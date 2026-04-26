@@ -96,6 +96,7 @@ export function PiratePhotoContestCard({
   const [photo, setPhoto] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [notificationWarning, setNotificationWarning] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const previewUrl = useMemo(
     () => (photo && isRenderablePreview(photo) ? URL.createObjectURL(photo) : ""),
@@ -134,6 +135,7 @@ export function PiratePhotoContestCard({
     setPhoto(file);
     setError("");
     setSuccess("");
+    setNotificationWarning("");
   };
 
   const validateForm = () => {
@@ -183,6 +185,7 @@ export function PiratePhotoContestCard({
     setSubmitting(true);
     setError("");
     setSuccess("");
+    setNotificationWarning("");
 
     try {
       const response = await fetch("/api/pirate-photo/upload", {
@@ -212,7 +215,8 @@ export function PiratePhotoContestCard({
       }
 
       setPhoto(null);
-      setSuccess("Foto ricevuta, pirata.");
+      setSuccess(body.message || "Foto ricevuta, pirata.");
+      setNotificationWarning(body.notificationMessage ?? "");
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -246,6 +250,11 @@ export function PiratePhotoContestCard({
           <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
             La ciurma la valutera per lo Scatto del Mese.
           </p>
+          {notificationWarning ? (
+            <p className="mt-3 rounded-[1rem] border border-[rgba(216,176,106,0.2)] bg-black/20 px-3 py-2 text-xs leading-5 text-[var(--accent-strong)]">
+              {notificationWarning}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
