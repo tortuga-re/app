@@ -315,6 +315,26 @@ const buildNotificationEmail = ({
   };
 };
 
+const getSmtpErrorLogPayload = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return { message: "Errore SMTP sconosciuto." };
+  }
+
+  const smtpError = error as Error & {
+    code?: string;
+    command?: string;
+    responseCode?: number;
+  };
+
+  return {
+    name: smtpError.name,
+    message: smtpError.message,
+    code: smtpError.code,
+    command: smtpError.command,
+    responseCode: smtpError.responseCode,
+  };
+};
+
 export async function POST(request: Request) {
   let formData: FormData;
 
@@ -357,17 +377,32 @@ export async function POST(request: Request) {
       receivedAt: new Date(),
     });
 
-    await sendTransactionalEmail({
-      to: piratePhotoServerConfig.notifyEmail,
-      subject: email.subject,
-      text: email.text,
-      html: email.html,
-      attachments: email.attachments,
-    });
+    let notificationStatus: PiratePhotoUploadResponse["notificationStatus"] = "sent";
+    let notificationMessage: string | undefined;
+
+    try {
+      await sendTransactionalEmail({
+        to: piratePhotoServerConfig.notifyEmail,
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
+        attachments: email.attachments,
+      });
+    } catch (emailError) {
+      notificationStatus = "failed";
+      notificationMessage =
+        "Foto ricevuta, ma non siamo riusciti a inviare la notifica interna.";
+      console.error(
+        "[Tortuga pirate photo] invio notifica SMTP fallito",
+        getSmtpErrorLogPayload(emailError),
+      );
+    }
 
     const response: PiratePhotoUploadResponse = {
       status: "success",
       message: "Foto ricevuta, pirata.",
+      notificationStatus,
+      notificationMessage,
       fileName,
       contactCode: profile.contact.CodiceContatto,
       profile,

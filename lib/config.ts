@@ -10,6 +10,8 @@ export const coopertoConfig = {
   sedeCode: process.env.COOPERTO_SEDE_CODE?.trim() ?? "",
   bookingModuleCode: process.env.COOPERTO_BOOKING_MODULE_CODE?.trim() ?? "",
   bookingRoomCodes: parseRoomCodes(process.env.COOPERTO_BOOKING_ROOM_CODES),
+  defaultFidelityCardCode:
+    process.env.COOPERTO_DEFAULT_FIDELITY_CARD_CODE?.trim() ?? "",
 };
 
 export const hasCoopertoLiveConfig = Boolean(
@@ -113,9 +115,9 @@ export const ciurmaRoadmapFeatures = [
       "Invita un amico nella tua ciurma e sblocca vantaggi extra quando torna a bordo.",
   },
   {
-    title: "Carica la tua foto pirata",
+    title: "Esperienze solo in locale",
     description:
-      "Dai un volto alla tua card Tortuga con uno scatto personale in pieno stile pirata.",
+      "Alcune rotte si aprono solo quando sei davvero a bordo.",
   },
 ] as const;
 
