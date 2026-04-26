@@ -7,6 +7,11 @@ import type {
   StoredPushSubscription,
 } from "@/lib/push/types";
 
+const redisRestUrl = process.env.UPSTASH_REDIS_REST_URL?.trim() ?? "";
+const redisRestToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim() ?? "";
+const redisSubscriptionsKey = "tortuga:push-subscriptions";
+const isRedisConfigured = Boolean(redisRestUrl && redisRestToken);
+
 const DEFAULT_SUBSCRIPTIONS_PATH = path.join(
   /* turbopackIgnore: true */ process.cwd(),
   ".data",
@@ -39,7 +44,45 @@ const ensureSubscriptionsFile = async () => {
   return filePath;
 };
 
+const redisCommand = async <T>(command: Array<string | number>) => {
+  const response = await fetch(redisRestUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${redisRestToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(command),
+    cache: "no-store",
+  });
+
+  const body = (await response.json().catch(() => null)) as
+    | { result?: T; error?: string }
+    | null;
+
+  if (!response.ok || body?.error) {
+    throw new Error(body?.error || "Storage push non disponibile.");
+  }
+
+  return body?.result ?? null;
+};
+
 export const listPushSubscriptions = async (): Promise<StoredPushSubscription[]> => {
+  if (isRedisConfigured) {
+    const raw = await redisCommand<string>(["GET", redisSubscriptionsKey]);
+
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as StoredPushSubscription[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      await redisCommand<string>(["SET", redisSubscriptionsKey, "[]"]);
+      return [];
+    }
+  }
+
   const filePath = await ensureSubscriptionsFile();
 
   try {
@@ -52,6 +95,15 @@ export const listPushSubscriptions = async (): Promise<StoredPushSubscription[]>
 };
 
 const writePushSubscriptions = async (records: StoredPushSubscription[]) => {
+  if (isRedisConfigured) {
+    await redisCommand<string>([
+      "SET",
+      redisSubscriptionsKey,
+      JSON.stringify(records),
+    ]);
+    return;
+  }
+
   const filePath = await ensureSubscriptionsFile();
   await writeFile(filePath, JSON.stringify(records, null, 2), "utf8");
 };
@@ -96,4 +148,24 @@ export const savePushSubscription = async (
   await writePushSubscriptions(records);
 
   return existingIndex >= 0 ? records[existingIndex] : nextRecord;
+};
+
+export const deletePushSubscription = async (endpoint: string) => {
+  const normalizedEndpoint = endpoint.trim();
+
+  if (!normalizedEndpoint) {
+    return false;
+  }
+
+  const records = await listPushSubscriptions();
+  const nextRecords = records.filter(
+    (record) => record.endpoint !== normalizedEndpoint,
+  );
+
+  if (nextRecords.length === records.length) {
+    return false;
+  }
+
+  await writePushSubscriptions(nextRecords);
+  return true;
 };

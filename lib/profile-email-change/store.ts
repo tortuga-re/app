@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createHash, randomBytes, randomInt } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { sendTransactionalEmail } from "@/lib/email/smtp";
 import type { ProfileUpdateInput } from "@/lib/cooperto/types";
@@ -25,12 +27,20 @@ type EmailChangeRecord = {
   updatedAt: number;
 };
 
-declare global {
-  var __tortugaEmailChangeStore: Map<string, EmailChangeRecord> | undefined;
-}
+type LocalEmailChangeStore = Record<string, EmailChangeRecord>;
 
-const store = globalThis.__tortugaEmailChangeStore ?? new Map<string, EmailChangeRecord>();
-globalThis.__tortugaEmailChangeStore = store;
+const redisRestUrl = process.env.UPSTASH_REDIS_REST_URL?.trim() ?? "";
+const redisRestToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim() ?? "";
+const localStoreFile =
+  process.env.EMAIL_CHANGE_OTP_STORE_FILE?.trim() ??
+  path.join(
+    /* turbopackIgnore: true */ process.cwd(),
+    ".data",
+    "email-change-otp.json",
+  );
+
+const emailChangeKeyPrefix = "tortuga:email-change:";
+const isRedisConfigured = Boolean(redisRestUrl && redisRestToken);
 
 export class EmailChangeError extends Error {
   status: number;
@@ -58,14 +68,138 @@ const buildResponse = (record: EmailChangeRecord): EmailChangeRequestResponse =>
   attemptsRemaining: Math.max(maxOtpAttempts - record.attempts, 0),
 });
 
-const pruneExpiredRecords = () => {
+const resolveLocalStoreFile = () =>
+  path.isAbsolute(localStoreFile)
+    ? localStoreFile
+    : path.join(/* turbopackIgnore: true */ process.cwd(), localStoreFile);
+
+const ensurePersistentStore = () => {
+  if (isRedisConfigured || process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  throw new EmailChangeError(
+    "Configura UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN per la verifica email in produzione.",
+    500,
+  );
+};
+
+const readLocalStore = async (): Promise<LocalEmailChangeStore> => {
+  const filePath = resolveLocalStoreFile();
+  await mkdir(path.dirname(filePath), { recursive: true });
+
+  try {
+    const raw = await readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw) as LocalEmailChangeStore;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    await writeFile(filePath, "{}", "utf8");
+    return {};
+  }
+};
+
+const writeLocalStore = async (store: LocalEmailChangeStore) => {
+  const filePath = resolveLocalStoreFile();
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, JSON.stringify(store, null, 2), "utf8");
+};
+
+const pruneLocalStore = (store: LocalEmailChangeStore) => {
   const now = Date.now();
 
-  for (const [requestId, record] of store.entries()) {
+  for (const [requestId, record] of Object.entries(store)) {
     if (record.expiresAt <= now) {
-      store.delete(requestId);
+      delete store[requestId];
     }
   }
+
+  return store;
+};
+
+const redisCommand = async <T>(command: Array<string | number>) => {
+  ensurePersistentStore();
+
+  const response = await fetch(redisRestUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${redisRestToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(command),
+    cache: "no-store",
+  });
+
+  const body = (await response.json().catch(() => null)) as
+    | { result?: T; error?: string }
+    | null;
+
+  if (!response.ok || body?.error) {
+    throw new EmailChangeError(
+      body?.error || "Storage OTP non disponibile.",
+      500,
+    );
+  }
+
+  return body?.result ?? null;
+};
+
+const getRecordKey = (requestId: string) => `${emailChangeKeyPrefix}${requestId}`;
+
+const getEmailChangeRecord = async (requestId: string) => {
+  ensurePersistentStore();
+
+  if (isRedisConfigured) {
+    const raw = await redisCommand<string>(["GET", getRecordKey(requestId)]);
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(raw) as EmailChangeRecord;
+    } catch {
+      await redisCommand<number>(["DEL", getRecordKey(requestId)]);
+      return null;
+    }
+  }
+
+  const store = pruneLocalStore(await readLocalStore());
+  const record = store[requestId] ?? null;
+  await writeLocalStore(store);
+  return record;
+};
+
+const saveEmailChangeRecord = async (record: EmailChangeRecord) => {
+  ensurePersistentStore();
+
+  const ttlSeconds = Math.max(Math.ceil((record.expiresAt - Date.now()) / 1000), 1);
+
+  if (isRedisConfigured) {
+    await redisCommand<string>([
+      "SET",
+      getRecordKey(record.requestId),
+      JSON.stringify(record),
+      "EX",
+      ttlSeconds,
+    ]);
+    return;
+  }
+
+  const store = pruneLocalStore(await readLocalStore());
+  store[record.requestId] = record;
+  await writeLocalStore(store);
+};
+
+const deleteEmailChangeRecord = async (requestId: string) => {
+  ensurePersistentStore();
+
+  if (isRedisConfigured) {
+    await redisCommand<number>(["DEL", getRecordKey(requestId)]);
+    return;
+  }
+
+  const store = pruneLocalStore(await readLocalStore());
+  delete store[requestId];
+  await writeLocalStore(store);
 };
 
 const sendEmailChangeOtp = async (to: string, code: string) => {
@@ -96,7 +230,7 @@ export const createEmailChangeRequest = async ({
   currentEmail: string;
   profile: ProfileUpdateInput;
 }) => {
-  pruneExpiredRecords();
+  ensurePersistentStore();
 
   const normalizedCurrentEmail = normalizeProfileEmail(currentEmail);
   const normalizedPendingEmail = normalizeProfileEmail(profile.email);
@@ -124,14 +258,14 @@ export const createEmailChangeRequest = async ({
     updatedAt: now,
   };
 
-  store.set(requestId, record);
+  await saveEmailChangeRecord(record);
   return buildResponse(record);
 };
 
 export const resendEmailChangeCode = async (requestId: string) => {
-  pruneExpiredRecords();
+  ensurePersistentStore();
 
-  const record = store.get(requestId);
+  const record = await getEmailChangeRecord(requestId);
   if (!record) {
     throw new EmailChangeError("Richiesta verifica non trovata o scaduta.", 404);
   }
@@ -153,31 +287,31 @@ export const resendEmailChangeCode = async (requestId: string) => {
   record.attempts = 0;
   record.updatedAt = now;
 
-  store.set(requestId, record);
+  await saveEmailChangeRecord(record);
   return buildResponse(record);
 };
 
-export const verifyEmailChangeCode = ({
+export const verifyEmailChangeCode = async ({
   requestId,
   code,
 }: {
   requestId: string;
   code: string;
 }) => {
-  pruneExpiredRecords();
+  ensurePersistentStore();
 
-  const record = store.get(requestId);
+  const record = await getEmailChangeRecord(requestId);
   if (!record) {
     throw new EmailChangeError("Richiesta verifica non trovata o scaduta.", 404);
   }
 
   if (record.expiresAt <= Date.now()) {
-    store.delete(requestId);
+    await deleteEmailChangeRecord(requestId);
     throw new EmailChangeError("Codice scaduto. Richiedi un nuovo codice.", 410);
   }
 
   if (record.attempts >= maxOtpAttempts) {
-    store.delete(requestId);
+    await deleteEmailChangeRecord(requestId);
     throw new EmailChangeError("Troppi tentativi. Richiedi un nuovo codice.", 429);
   }
 
@@ -185,16 +319,16 @@ export const verifyEmailChangeCode = ({
   if (receivedHash !== record.codeHash) {
     record.attempts += 1;
     record.updatedAt = Date.now();
-    store.set(requestId, record);
 
     if (record.attempts >= maxOtpAttempts) {
-      store.delete(requestId);
+      await deleteEmailChangeRecord(requestId);
       throw new EmailChangeError("Troppi tentativi. Richiedi un nuovo codice.", 429);
     }
 
+    await saveEmailChangeRecord(record);
     throw new EmailChangeError("Codice non corretto.", 400);
   }
 
-  store.delete(requestId);
+  await deleteEmailChangeRecord(requestId);
   return record;
 };

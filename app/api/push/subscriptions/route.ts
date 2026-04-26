@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { savePushSubscription } from "@/lib/push/subscription-store";
+import {
+  deletePushSubscription,
+  savePushSubscription,
+} from "@/lib/push/subscription-store";
 import type {
+  DeletePushSubscriptionInput,
+  DeletePushSubscriptionResponse,
   SavePushSubscriptionInput,
   SavePushSubscriptionResponse,
 } from "@/lib/push/types";
@@ -59,6 +64,44 @@ export async function POST(request: Request) {
           error instanceof Error
             ? error.message
             : "Salvataggio subscription non riuscito.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  let payload: DeletePushSubscriptionInput;
+
+  try {
+    payload = (await request.json()) as DeletePushSubscriptionInput;
+  } catch {
+    return NextResponse.json(
+      { error: "Payload cancellazione subscription non valido." },
+      { status: 400 },
+    );
+  }
+
+  if (!payload.endpoint?.trim()) {
+    return NextResponse.json(
+      { error: "Endpoint push non valido." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const response: DeletePushSubscriptionResponse = {
+      deleted: await deletePushSubscription(payload.endpoint),
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Cancellazione subscription non riuscita.",
       },
       { status: 500 },
     );

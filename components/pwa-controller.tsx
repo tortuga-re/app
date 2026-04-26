@@ -5,7 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { requestJson } from "@/lib/client";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { pwaConfig, storageKeys } from "@/lib/config";
-import type { SavePushSubscriptionResponse } from "@/lib/push/types";
+import type {
+  DeletePushSubscriptionResponse,
+  SavePushSubscriptionResponse,
+} from "@/lib/push/types";
 import { cn } from "@/lib/utils";
 
 type DeferredPromptEvent = Event & {
@@ -14,7 +17,7 @@ type DeferredPromptEvent = Event & {
 };
 
 type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
-type PushCardMode = "invite" | "retry" | "denied";
+type PushCardMode = "invite" | "retry" | "denied" | "enabled";
 
 const readTimestamp = (key: string) => {
   if (typeof window === "undefined") {
@@ -306,6 +309,46 @@ export function PwaController() {
     [persistSubscription, serviceWorkerRegistration],
   );
 
+  const disablePushSubscription = useCallback(async () => {
+    if (!serviceWorkerRegistration || !isPushSupported()) {
+      setPushEnabled(false);
+      return;
+    }
+
+    setPushBusy(true);
+    setPushError("");
+
+    try {
+      const readyRegistration = await navigator.serviceWorker.ready;
+      const subscription = await readyRegistration.pushManager
+        .getSubscription()
+        .catch(() => null);
+
+      if (subscription) {
+        const endpoint = subscription.endpoint;
+        await subscription.unsubscribe().catch(() => false);
+        await requestJson<DeletePushSubscriptionResponse>(
+          "/api/push/subscriptions",
+          {
+            method: "DELETE",
+            body: JSON.stringify({ endpoint }),
+          },
+        );
+      }
+
+      setPushEnabled(false);
+      setEvaluationNow(Date.now());
+    } catch (error) {
+      setPushError(
+        error instanceof Error
+          ? error.message
+          : "Non sono riuscito a disattivare le notifiche.",
+      );
+    } finally {
+      setPushBusy(false);
+    }
+  }, [serviceWorkerRegistration]);
+
   useEffect(() => {
     if (!clientReady || !serviceWorkerRegistration || pushPermission !== "granted") {
       return;
@@ -362,6 +405,10 @@ export function PwaController() {
   ]);
 
   const pushCardMode = useMemo<PushCardMode | null>(() => {
+    if (clientReady && pushEnabled && !pushSnoozed) {
+      return "enabled";
+    }
+
     if (
       !clientReady ||
       pushSnoozed ||
@@ -468,11 +515,15 @@ export function PwaController() {
               <h2 className="hero-title text-[1.45rem] font-semibold text-white">
                 {pushCardMode === "denied"
                   ? "Notifiche disattivate"
+                  : pushCardMode === "enabled"
+                    ? "Notifiche attive"
                   : "Attiva le notifiche"}
               </h2>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
                 {pushCardMode === "denied"
                   ? "Puoi riattivarle dalle impostazioni del browser quando vuoi ricevere promemoria, coupon e disponibilita."
+                  : pushCardMode === "enabled"
+                    ? "Tortuga puo mandarti promemoria, coupon e aggiornamenti quando serve."
                   : "Attiva le notifiche per non perdere aggiornamenti, coupon e disponibilita."}
               </p>
             </div>
@@ -492,7 +543,20 @@ export function PwaController() {
             </div>
           ) : null}
 
-          {pushCardMode !== "denied" ? (
+          {pushCardMode === "enabled" ? (
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+                onClick={() => {
+                  void disablePushSubscription();
+                }}
+                disabled={pushBusy}
+              >
+                {pushBusy ? "Disattivo..." : "Disattiva notifiche"}
+              </button>
+            </div>
+          ) : pushCardMode !== "denied" ? (
             <div className="mt-4 flex gap-3">
               <button
                 type="button"
@@ -513,7 +577,7 @@ export function PwaController() {
             </div>
           ) : (
             <div className="mt-4 rounded-[1.4rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
-              Su alcuni browser mobile serve HTTPS e, su iPhone, la web app deve essere aggiunta alla Home prima di poter ricevere push.
+                  Su alcuni browser mobile serve HTTPS e, su iPhone, la web app deve essere aggiunta alla Home prima di poter ricevere push.
             </div>
           )}
         </div>
