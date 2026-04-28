@@ -26,6 +26,7 @@ import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/types";
 import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
+import { isAdmin } from "@/lib/live-buzzer/admin";
 
 type ContactFormState = {
   firstName: string;
@@ -1146,6 +1147,44 @@ export function CiurmaScreen() {
             </div>
 
             <div className="mt-4 grid gap-3">
+              {/* Buzzer Card - Client */}
+              <a 
+                href="/game/buzzer"
+                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                      Sii il più veloce della ciurma a prenotare la risposta!
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                    GIOCA ORA
+                  </span>
+                </div>
+              </a>
+
+              {/* Buzzer Card - Admin (Captain only) */}
+              {isAdmin(identity.email) && (
+                <a 
+                  href="/admin/buzzer"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">⚓ Plancia del Capitano</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Gestisci le prenotazioni e assegna il bottino.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
+                      ADMIN
+                    </span>
+                  </div>
+                </a>
+              )}
+
               {ciurmaRoadmapFeatures.map((feature) => (
                 <div
                   key={feature.title}
