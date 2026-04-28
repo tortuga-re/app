@@ -161,7 +161,7 @@ export function LocalPirateAvatar({ customerKey, label }: LocalPirateAvatarProps
   };
 
   return (
-    <div className="relative shrink-0">
+    <div className={`relative shrink-0 ${menuOpen ? "z-30" : "z-10"}`}>
       <button
         type="button"
         className="group flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[rgba(216,176,106,0.45)] bg-[radial-gradient(circle_at_35%_25%,rgba(242,215,165,0.2),rgba(40,20,12,0.94)_62%)] shadow-[0_18px_42px_rgba(0,0,0,0.42)] transition active:scale-[0.98]"

@@ -795,7 +795,7 @@ export function CiurmaScreen() {
         <>
           <div
             id="riconoscimento"
-            className="panel hash-scroll-target rounded-[2rem] p-5"
+            className="panel hash-scroll-target rounded-[2rem] p-5 overflow-visible"
           >
             <div className="flex min-w-0 items-center gap-4">
                 <LocalPirateAvatar
