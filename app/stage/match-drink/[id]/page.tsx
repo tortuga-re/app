@@ -4,7 +4,6 @@ import { useMatchDrinkStage } from "@/lib/match-drink/use-match-drink-stage";
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMatchDrinkAdmin } from "@/lib/match-drink/use-match-drink-admin";
-import { MATCH_DRINK_QUESTIONS } from "@/lib/match-drink/questions";
 
 function CountdownTimer({ targetTime, onFinish }: { targetTime: number; onFinish?: () => void }) {
   const [timeLeft, setTimeLeft] = React.useState("");

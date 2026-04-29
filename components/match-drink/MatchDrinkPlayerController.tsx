@@ -6,7 +6,6 @@ import { MatchDrinkShell } from "./MatchDrinkShell";
 import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
 import { MatchDrinkPlayer } from "@/lib/match-drink/types";
-import { MATCH_DRINK_QUESTIONS } from "@/lib/match-drink/questions";
 import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
 
 export function MatchDrinkPlayerController() {
@@ -196,6 +195,7 @@ export function MatchDrinkPlayerController() {
               <div className="relative mb-6">
                 <div className="w-24 h-24 rounded-full border-2 border-[var(--accent-strong)] flex items-center justify-center shadow-[0_0_30px_rgba(216,176,106,0.3)] animate-in zoom-in duration-700 overflow-hidden bg-black/40">
                    {(isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar) ? (
+                     /* eslint-disable-next-line @next/next/no-img-element */
                      <img 
                        src={isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar} 
                        alt="Partner avatar"
@@ -320,6 +320,7 @@ function JoinForm({
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
     publicConsent: boolean;
+    avatarUrl?: string;
   }) => Promise<void>, 
   error: string | null,
   savedProfile?: {

@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculateMatches } from "@/lib/match-drink/scoring";
-import { getAnswers, getPlayers, getSession, storeMatches, updateSessionStatus, updateStageMode, validateAdminPin } from "@/lib/match-drink/storage";
+import { 
+  getAnswers, 
+  getPlayers, 
+  getSession, 
+  storeMatches, 
+  updateSessionStatus, 
+  updateStageMode, 
+  validateAdminPin,
+  getSessionQuestions 
+} from "@/lib/match-drink/storage";
 
 export async function POST(
   req: NextRequest,
@@ -14,13 +23,16 @@ export async function POST(
       return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
     }
 
-    const session = await getSession(id);
+    const [session, players, answers, questions] = await Promise.all([
+      getSession(id),
+      getPlayers(id),
+      getAnswers(id),
+      getSessionQuestions(id)
+    ]);
+
     if (!session) return NextResponse.json({ error: "Sessione non trovata" }, { status: 404 });
 
-    const players = await getPlayers(id);
-    const answers = await getAnswers(id);
-
-    const matches = calculateMatches(session, players, answers);
+    const matches = calculateMatches(session, players, answers, questions);
     await storeMatches(matches);
 
     await updateSessionStatus(id, "matching");

@@ -1,4 +1,3 @@
-import { MATCH_DRINK_QUESTIONS } from "./questions";
 import {
   MatchDrinkAnswer,
   MatchDrinkMatch,
@@ -6,11 +5,13 @@ import {
   MatchDrinkProfile,
   MatchDrinkSession,
   MatchDrinkTrait,
+  MatchDrinkQuestion,
 } from "./types";
 
 export const calculatePlayerProfile = (
   player: MatchDrinkPlayer,
-  answers: MatchDrinkAnswer[]
+  answers: MatchDrinkAnswer[],
+  questionsBank: MatchDrinkQuestion[]
 ): MatchDrinkProfile => {
   const traitScores: Record<MatchDrinkTrait, number> = {
     romantico: 0,
@@ -28,13 +29,13 @@ export const calculatePlayerProfile = (
   };
 
   answers.forEach((answer) => {
-    const question = MATCH_DRINK_QUESTIONS.find((q) => q.id === answer.questionId);
+    const question = questionsBank.find((q) => q.id === answer.questionId);
     if (!question) return;
 
     const option = question.options.find((o) => o.id === answer.selectedOptionId);
     if (!option) return;
 
-    Object.entries(option.traits).forEach(([trait, score]) => {
+    Object.entries(option.traits || {}).forEach(([trait, score]) => {
       traitScores[trait as MatchDrinkTrait] += score;
     });
   });
@@ -119,7 +120,8 @@ const getProfileInfo = (trait: MatchDrinkTrait) => {
 export const calculateMatches = (
   session: MatchDrinkSession,
   players: MatchDrinkPlayer[],
-  answers: MatchDrinkAnswer[]
+  answers: MatchDrinkAnswer[],
+  questionsBank: MatchDrinkQuestion[]
 ): Omit<MatchDrinkMatch, "id" | "createdAt">[] => {
   const eligiblePlayers = players.filter(
     (p) => p.relationshipStatus !== "solo_per_ridere"
@@ -127,7 +129,7 @@ export const calculateMatches = (
 
   const playerProfiles = eligiblePlayers.map((p) => {
     const playerAnswers = answers.filter((a) => a.playerId === p.id);
-    return calculatePlayerProfile(p, playerAnswers);
+    return calculatePlayerProfile(p, playerAnswers, questionsBank);
   });
 
   const matches: Omit<MatchDrinkMatch, "id" | "createdAt">[] = [];

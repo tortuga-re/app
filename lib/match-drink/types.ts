@@ -15,7 +15,7 @@ export type MatchDrinkTrait =
 export interface MatchDrinkQuestionOption {
   id: "A" | "B" | "C" | "D" | "E";
   text: string;
-  traits: Partial<Record<MatchDrinkTrait, number>>;
+  traits?: Partial<Record<MatchDrinkTrait, number>>;
   comment?: string;
 }
 

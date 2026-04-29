@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Genera nome file unico
-    const fileName = `${uuidv4()}.jpg`;
+    const fileName = `${crypto.randomUUID()}.jpg`;
     const filePath = path.join(uploadDir, fileName);
 
     // Salva file

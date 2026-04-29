@@ -1,4 +1,6 @@
-export const QUESTION_BANK = [
+import { MatchDrinkQuestion } from "./types";
+
+export const QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   // --- LIGHT (Ghiaccio sottile) ---
   {
     category: "light",

@@ -5,6 +5,7 @@ import {
   MatchDrinkMatch,
   MatchDrinkPlayer,
   MatchDrinkSession,
+  MatchDrinkQuestion,
 } from "./types";
 
 const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
@@ -20,12 +21,12 @@ export const createSession = async (title: string): Promise<MatchDrinkSession> =
   const { data: qIronic } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
   const { data: qSpicy } = await admin.from("match_drink_questions").select("id").eq("category", "spicy");
 
-  const shuffle = (array: any[]) => array?.sort(() => Math.random() - 0.5) || [];
+  const shuffle = <T>(array: T[]): T[] => array?.sort(() => Math.random() - 0.5) || [];
   
   const selectedIds = [
-    ...shuffle(qLight || []).slice(0, 6).map((q: any) => q.id),
-    ...shuffle(qIronic || []).slice(0, 7).map((q: any) => q.id),
-    ...shuffle(qSpicy || []).slice(0, 7).map((q: any) => q.id)
+    ...shuffle(qLight || []).slice(0, 6).map((q) => q.id),
+    ...shuffle(qIronic || []).slice(0, 7).map((q) => q.id),
+    ...shuffle(qSpicy || []).slice(0, 7).map((q) => q.id)
   ];
 
   const { data, error } = await admin
@@ -481,7 +482,7 @@ const mapMessage = (row: Record<string, unknown>): MatchDrinkBottleMessage => ({
   shownAt: row.shown_at as string | null,
 });
 
-export const seedQuestions = async (questions: any[]) => {
+export const seedQuestions = async (questions: Partial<MatchDrinkQuestion>[]) => {
   const admin = getSupabaseAdmin();
   const { error } = await admin.from("match_drink_questions").insert(questions);
   if (error) throw error;

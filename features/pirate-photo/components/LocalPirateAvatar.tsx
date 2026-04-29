@@ -100,7 +100,7 @@ const validateAvatarFile = (file: File) => {
   return "";
 };
 
-export function LocalPirateAvatar({ customerKey, label }: LocalPirateAvatarProps) {
+export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateAvatarProps) {
   const storageKey = getAvatarStorageKey(customerKey);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
