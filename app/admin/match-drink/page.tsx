@@ -1,28 +1,26 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { MatchDrinkShell } from "@/components/match-drink/MatchDrinkShell";
 import { MatchDrinkCard } from "@/components/match-drink/MatchDrinkCard";
 import { MatchDrinkButton } from "@/components/match-drink/MatchDrinkButton";
+import { MatchDrinkSession } from "@/lib/match-drink/types";
 
 export default function MatchDrinkAdminPage() {
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("match-drink.adminPin") || "";
+    }
+    return "";
+  });
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<MatchDrinkSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [newTitle, setNewTitle] = useState("");
 
-  useEffect(() => {
-    const storedPin = localStorage.getItem("match-drink.adminPin");
-    if (storedPin) {
-      setPin(storedPin);
-      fetchSessions(storedPin);
-    }
-  }, []);
-
-  const fetchSessions = async (p: string) => {
+  const fetchSessions = useCallback(async (p: string) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/match-drink/sessions?pin=${p}`);
@@ -34,13 +32,22 @@ export default function MatchDrinkAdminPage() {
       setSessions(data);
       setIsAuthorized(true);
       localStorage.setItem("match-drink.adminPin", p);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nel caricamento");
       setIsAuthorized(false);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const initialFetchDone = useRef(false);
+
+  useEffect(() => {
+    if (pin && !initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchSessions(pin);
+    }
+  }, [pin, fetchSessions]);
 
   const handleCreate = async () => {
     if (!newTitle) return;
@@ -53,9 +60,9 @@ export default function MatchDrinkAdminPage() {
       });
       if (!res.ok) throw new Error("Errore nella creazione");
       setNewTitle("");
-      fetchSessions(pin);
-    } catch (err: any) {
-      setError(err.message);
+      await fetchSessions(pin);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nella creazione");
     } finally {
       setLoading(false);
     }
@@ -132,8 +139,8 @@ export default function MatchDrinkAdminPage() {
                         {s.status}
                       </span>
                     </div>
-                    <p className="font-mono text-xs text-[var(--text-muted)] mt-1">CODE: {s.join_code}</p>
-                    <p className="text-xs text-[var(--text-muted)] mt-2 italic">Creata il {new Date(s.created_at).toLocaleDateString("it-IT")}</p>
+                    <p className="font-mono text-xs text-[var(--text-muted)] mt-1">CODE: {s.joinCode}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-2 italic">Creata il {new Date(s.createdAt).toLocaleDateString("it-IT")}</p>
                   </div>
                   <Link href={`/admin/match-drink/session/${s.id}`} className="w-full">
                     <MatchDrinkButton variant="primary" className="w-full">

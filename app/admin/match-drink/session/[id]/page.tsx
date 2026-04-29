@@ -18,7 +18,6 @@ export default function MatchDrinkSessionAdminPage() {
     matches,
     answers,
     loading,
-    error,
     start,
     nextQuestion,
     updateStageMode,
@@ -43,7 +42,7 @@ export default function MatchDrinkSessionAdminPage() {
       try {
         await deleteSession();
         router.push("/admin/match-drink");
-      } catch (err) {
+      } catch {
         setIsDeleting(false);
       }
     }
@@ -165,7 +164,7 @@ export default function MatchDrinkSessionAdminPage() {
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)]">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
-                    <p className="text-xs text-white mb-3 italic">"{msg.message}"</p>
+                    <p className="text-xs text-white mb-3 italic">&quot;{msg.message}&quot;</p>
                     <div className="flex flex-wrap gap-1">
                       {msg.status === "pending" && (
                         <>

@@ -55,14 +55,35 @@ export function useMatchDrinkPlayer() {
   }, []);
 
   useEffect(() => {
-    refresh();
-    pollingRef.current = setInterval(refresh, 1000);
+    let mounted = true;
+    
+    const initialRefresh = async () => {
+      await refresh();
+      if (mounted) {
+        pollingRef.current = setInterval(refresh, 1000);
+      }
+    };
+
+    initialRefresh();
+
     return () => {
+      mounted = false;
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [refresh]);
 
-  const join = async (joinCode: string, nickname: string, details: any) => {
+  const join = async (
+    joinCode: string, 
+    nickname: string, 
+    details: {
+      tableNumber: string;
+      ageRange: MatchDrinkPlayer["ageRange"];
+      gender: MatchDrinkPlayer["gender"];
+      relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
+      lookingFor: MatchDrinkPlayer["lookingFor"];
+      publicConsent: boolean;
+    }
+  ) => {
     try {
       // 1. Get session by join code
       const sessRes = await fetch(`/api/match-drink/session/by-code/${joinCode.toUpperCase()}`);
@@ -83,8 +104,9 @@ export function useMatchDrinkPlayer() {
       
       setSession(sessData);
       setPlayer(playerData);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Errore durante l'ingresso";
+      setError(message);
       throw err;
     }
   };
@@ -104,8 +126,9 @@ export function useMatchDrinkPlayer() {
       if (!res.ok) throw new Error("Errore nell'invio della risposta");
       const answer = await res.json();
       setMyAnswers(prev => [...prev.filter(a => a.questionId !== questionId), answer]);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Errore nell'invio della risposta";
+      setError(message);
     }
   };
 
@@ -123,8 +146,9 @@ export function useMatchDrinkPlayer() {
       });
       if (!res.ok) throw new Error("Errore nell'invio della scelta");
       refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Errore nell'invio della scelta";
+      setError(message);
     }
   };
 
@@ -141,8 +165,9 @@ export function useMatchDrinkPlayer() {
         }),
       });
       if (!res.ok) throw new Error("Errore nell'invio del messaggio");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Errore nell'invio del messaggio";
+      setError(message);
       throw err;
     }
   };

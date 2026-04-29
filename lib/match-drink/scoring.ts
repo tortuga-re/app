@@ -4,7 +4,6 @@ import {
   MatchDrinkMatch,
   MatchDrinkPlayer,
   MatchDrinkProfile,
-  MatchDrinkQuestion,
   MatchDrinkSession,
   MatchDrinkTrait,
 } from "./types";
@@ -25,7 +24,7 @@ export const calculatePlayerProfile = (
     pericoloso: 0,
     fedele: 0,
     investigatore: 0,
-    orgoglio: 0,
+    orgoglioso: 0,
   };
 
   answers.forEach((answer) => {
@@ -108,7 +107,7 @@ const getProfileInfo = (trait: MatchDrinkTrait) => {
       label: "Investigatore Emotivo",
       description: "Hai già fatto tre teorie e due screenshot prima ancora di dire ciao. Nulla sfugge alla tua analisi.",
     },
-    orgoglio: {
+    orgoglioso: {
       label: "Sereno Solo in Superficie",
       description: "Dici che va tutto bene. Internamente stai scrivendo una sceneggiatura per il tuo prossimo confronto drammatico.",
     },

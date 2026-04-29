@@ -74,7 +74,10 @@ export const updateStageMode = async (
   current_stage_message_id?: string | null
 ) => {
   const admin = getSupabaseAdmin();
-  const updateData: any = { stage_mode, updated_at: new Date().toISOString() };
+  const updateData: Record<string, string | null | number> = { 
+    stage_mode, 
+    updated_at: new Date().toISOString() 
+  };
   if (current_stage_message_id !== undefined) {
     updateData.current_stage_message_id = current_stage_message_id;
   }
@@ -231,7 +234,7 @@ export const moderateMessage = async (
   approvedText?: string
 ) => {
   const admin = getSupabaseAdmin();
-  const updateData: any = { status, moderated_at: new Date().toISOString() };
+  const updateData: Record<string, string | null> = { status, moderated_at: new Date().toISOString() };
   if (approvedText) updateData.approved_text = approvedText;
 
   const { error } = await admin
@@ -284,7 +287,7 @@ export const acceptMatch = async (
   if (match.error || !match.data) throw new Error("Match not found");
 
   const isPlayerA = match.data.player_a_id === playerId;
-  const updateData: any = {};
+  const updateData: Record<string, string | boolean | null> = {};
   
   if (isPlayerA) {
     updateData.accepted_by_a = accepted;
@@ -355,70 +358,70 @@ export const storeMatches = async (matches: Omit<MatchDrinkMatch, "id" | "create
 };
 
 // Mappers
-const mapSession = (row: any): MatchDrinkSession => ({
-  id: row.id,
-  joinCode: row.join_code,
-  title: row.title,
-  status: row.status,
-  stageMode: row.stage_mode,
-  currentQuestionIndex: row.current_question_index,
-  currentStageMessageId: row.current_stage_message_id,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
+const mapSession = (row: Record<string, unknown>): MatchDrinkSession => ({
+  id: row.id as string,
+  joinCode: row.join_code as string,
+  title: row.title as string,
+  status: row.status as MatchDrinkSession["status"],
+  stageMode: row.stage_mode as MatchDrinkSession["stageMode"],
+  currentQuestionIndex: row.current_question_index as number,
+  currentStageMessageId: row.current_stage_message_id as string | null,
+  createdAt: row.created_at as string,
+  updatedAt: row.updated_at as string,
 });
 
-const mapPlayer = (row: any): MatchDrinkPlayer => ({
-  id: row.id,
-  sessionId: row.session_id,
-  nickname: row.nickname,
-  tableNumber: row.table_number,
-  ageRange: row.age_range,
-  gender: row.gender,
-  relationshipStatus: row.relationship_status,
-  lookingFor: row.looking_for,
-  publicConsent: row.public_consent,
-  joinedAt: row.joined_at,
+const mapPlayer = (row: Record<string, unknown>): MatchDrinkPlayer => ({
+  id: row.id as string,
+  sessionId: row.session_id as string,
+  nickname: row.nickname as string,
+  tableNumber: row.table_number as string,
+  ageRange: row.age_range as MatchDrinkPlayer["ageRange"],
+  gender: row.gender as MatchDrinkPlayer["gender"],
+  relationshipStatus: row.relationship_status as MatchDrinkPlayer["relationshipStatus"],
+  lookingFor: row.looking_for as MatchDrinkPlayer["lookingFor"],
+  publicConsent: row.public_consent as boolean,
+  joinedAt: row.joined_at as string,
 });
 
-const mapAnswer = (row: any): MatchDrinkAnswer => ({
-  id: row.id,
-  sessionId: row.session_id,
-  playerId: row.player_id,
-  questionId: row.question_id,
-  selectedOptionId: row.selected_option_id,
-  createdAt: row.created_at,
+const mapAnswer = (row: Record<string, unknown>): MatchDrinkAnswer => ({
+  id: row.id as string,
+  sessionId: row.session_id as string,
+  playerId: row.player_id as string,
+  questionId: row.question_id as string,
+  selectedOptionId: row.selected_option_id as MatchDrinkAnswer["selectedOptionId"],
+  createdAt: row.created_at as string,
 });
 
-const mapMatch = (row: any): MatchDrinkMatch => ({
-  id: row.id,
-  sessionId: row.session_id,
-  playerAId: row.player_a_id,
-  playerBId: row.player_b_id,
-  score: row.score,
-  matchType: row.match_type,
-  label: row.label,
-  commonCriterion: row.common_criterion,
-  reason: row.reason,
-  acceptedByA: row.accepted_by_a,
-  acceptedByB: row.accepted_by_b,
-  acceptedAtA: row.accepted_at_a,
-  acceptedAtB: row.accepted_at_b,
-  drinkUnlocked: row.drink_unlocked,
-  drinkRedeemed: row.drink_redeemed,
-  drinkRedeemedAt: row.drink_redeemed_at,
-  drinkCode: row.drink_code,
-  createdAt: row.created_at,
+const mapMatch = (row: Record<string, unknown>): MatchDrinkMatch => ({
+  id: row.id as string,
+  sessionId: row.session_id as string,
+  playerAId: row.player_a_id as string,
+  playerBId: row.player_b_id as string,
+  score: row.score as number,
+  matchType: row.match_type as MatchDrinkMatch["matchType"],
+  label: row.label as string,
+  commonCriterion: row.common_criterion as string,
+  reason: row.reason as string,
+  acceptedByA: row.accepted_by_a as boolean | null,
+  acceptedByB: row.accepted_by_b as boolean | null,
+  acceptedAtA: row.accepted_at_a as string | null,
+  acceptedAtB: row.accepted_at_b as string | null,
+  drinkUnlocked: row.drink_unlocked as boolean,
+  drinkRedeemed: row.drink_redeemed as boolean,
+  drinkRedeemedAt: row.drink_redeemed_at as string | null,
+  drinkCode: row.drink_code as string | null,
+  createdAt: row.created_at as string,
 });
 
-const mapMessage = (row: any): MatchDrinkBottleMessage => ({
-  id: row.id,
-  sessionId: row.session_id,
-  playerId: row.player_id,
-  message: row.message,
-  displayMode: row.display_mode,
-  status: row.status,
-  approvedText: row.approved_text,
-  createdAt: row.created_at,
-  moderatedAt: row.moderated_at,
-  shownAt: row.shown_at,
+const mapMessage = (row: Record<string, unknown>): MatchDrinkBottleMessage => ({
+  id: row.id as string,
+  sessionId: row.session_id as string,
+  playerId: row.player_id as string,
+  message: row.message as string,
+  displayMode: row.display_mode as MatchDrinkBottleMessage["displayMode"],
+  status: row.status as MatchDrinkBottleMessage["status"],
+  approvedText: row.approved_text as string | null,
+  createdAt: row.created_at as string,
+  moderatedAt: row.moderated_at as string | null,
+  shownAt: row.shown_at as string | null,
 });

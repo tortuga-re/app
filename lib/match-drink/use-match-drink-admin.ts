@@ -10,7 +10,12 @@ import {
 const STORAGE_KEY_ADMIN_PIN = "match-drink.adminPin";
 
 export function useMatchDrinkAdmin(sessionId?: string) {
-  const [pin, setPin] = useState<string>("");
+  const [pin, setPin] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(STORAGE_KEY_ADMIN_PIN) || "";
+    }
+    return "";
+  });
   const [session, setSession] = useState<MatchDrinkSession | null>(null);
   const [players, setPlayers] = useState<MatchDrinkPlayer[]>([]);
   const [messages, setMessages] = useState<MatchDrinkBottleMessage[]>([]);
@@ -20,11 +25,6 @@ export function useMatchDrinkAdmin(sessionId?: string) {
   const [error, setError] = useState<string | null>(null);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const storedPin = localStorage.getItem(STORAGE_KEY_ADMIN_PIN);
-    if (storedPin) setPin(storedPin);
-  }, []);
 
   const savePin = (newPin: string) => {
     setPin(newPin);
@@ -54,18 +54,28 @@ export function useMatchDrinkAdmin(sessionId?: string) {
   }, [sessionId, pin]);
 
   useEffect(() => {
-    if (sessionId && pin) {
-      refresh();
-      pollingRef.current = setInterval(refresh, 2000); // Admin poll can be a bit slower
-      return () => {
-        if (pollingRef.current) clearInterval(pollingRef.current);
-      };
-    } else {
-      setLoading(false);
-    }
+    let mounted = true;
+
+    const initialRefresh = async () => {
+      if (sessionId && pin) {
+        await refresh();
+        if (mounted) {
+          pollingRef.current = setInterval(refresh, 2000);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    initialRefresh();
+
+    return () => {
+      mounted = false;
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, [sessionId, pin, refresh]);
 
-  const apiCall = async (endpoint: string, body: any = {}) => {
+  const apiCall = async (endpoint: string, body: Record<string, unknown> = {}) => {
     try {
       const res = await fetch(`/api/match-drink/session/${sessionId}/${endpoint}`, {
         method: "POST",
@@ -76,9 +86,10 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         const data = await res.json();
         throw new Error(data.error || "Operazione fallita");
       }
-      refresh();
-    } catch (err: any) {
-      setError(err.message);
+      await refresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Operazione fallita";
+      setError(message);
       throw err;
     }
   };

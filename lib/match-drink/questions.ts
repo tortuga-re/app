@@ -6,7 +6,7 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     text: "Quando esci in compagnia tu sei quello che:",
     category: "warmup",
     options: [
-      { id: "A", text: "Organizza tutto", traits: { orgoglio: 1, fedele: 1 }, comment: "Abbiamo dei piccoli dittatori della serata in sala." },
+      { id: "A", text: "Organizza tutto", traits: { orgoglioso: 1, fedele: 1 }, comment: "Abbiamo dei piccoli dittatori della serata in sala." },
       { id: "B", text: "Arriva tardi ma con stile", traits: { caotico: 1, ironico: 1 }, comment: "L'importante è farsi notare quando si entra." },
       { id: "C", text: "Dice “solo una birra” e mente", traits: { festaiolo: 2, caotico: 1 }, comment: "Qui nessuno sa fermarsi a 'una cosa'." },
       { id: "D", text: "Sparisce e torna con gente nuova", traits: { libero: 2, pericoloso: 1 }, comment: "I nostri PR naturali hanno colpito ancora." },
@@ -19,10 +19,10 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     category: "gelosia",
     options: [
       { id: "A", text: "Aspetti tranquillo", traits: { timido: 1, fedele: 1 }, comment: "Santa pazienza, o forse solo disinteresse?" },
-      { id: "B", text: "Fingi tranquillità", traits: { orgoglio: 2, timido: 1 }, comment: "L'orgoglio prima di tutto, il fegato dopo." },
+      { id: "B", text: "Fingi tranquillità", traits: { orgoglioso: 2, timido: 1 }, comment: "L'orgoglioso prima di tutto, il fegato dopo." },
       { id: "C", text: "Controlli l’ultimo accesso", traits: { investigatore: 2, geloso: 1 }, comment: "Abbiamo trovato gli 007 della serata." },
       { id: "D", text: "Hai già chiesto un parere alla chat degli amici", traits: { investigatore: 1, caotico: 1 }, comment: "Il consiglio dei saggi è stato consultato." },
-      { id: "E", text: "Dici “non mi interessa” mentre ti interessa moltissimo", traits: { orgoglio: 2, geloso: 2 }, comment: "La coerenza non è il nostro forte stasera." },
+      { id: "E", text: "Dici “non mi interessa” mentre ti interessa moltissimo", traits: { orgoglioso: 2, geloso: 2 }, comment: "La coerenza non è il nostro forte stasera." },
     ],
   },
   {
@@ -46,7 +46,7 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
       { id: "B", text: "Libero", traits: { libero: 3 } },
       { id: "C", text: "Geloso", traits: { geloso: 3 } },
       { id: "D", text: "Un disastro con buone intenzioni", traits: { caotico: 2, romantico: 1 } },
-      { id: "E", text: "Sereno/a fuori, sceneggiatura dentro", traits: { investigatore: 2, orgoglio: 1 } },
+      { id: "E", text: "Sereno/a fuori, sceneggiatura dentro", traits: { investigatore: 2, orgoglioso: 1 } },
     ],
   },
   {
@@ -56,8 +56,8 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     options: [
       { id: "A", text: "Mi affeziono troppo presto", traits: { romantico: 2, fedele: 1 } },
       { id: "B", text: "Mi annoio troppo in fretta", traits: { libero: 2, pericoloso: 1 } },
-      { id: "C", text: "Dico “non sono geloso/a” ma lo sono", traits: { geloso: 3, orgoglio: 1 } },
-      { id: "D", text: "Faccio il duro/a ma poi ci resto male", traits: { orgoglio: 2, romantico: 1 } },
+      { id: "C", text: "Dico “non sono geloso/a” ma lo sono", traits: { geloso: 3, orgoglioso: 1 } },
+      { id: "D", text: "Faccio il duro/a ma poi ci resto male", traits: { orgoglioso: 2, romantico: 1 } },
       { id: "E", text: "Dico che comunico bene, poi sparisco", traits: { timido: 2, libero: 1 } },
     ],
   },
@@ -67,10 +67,10 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     category: "personalita",
     options: [
       { id: "A", text: "Lo fai capire", traits: { diretto: 3 } },
-      { id: "B", text: "Fai finta di niente", traits: { timido: 2, orgoglio: 2 } },
+      { id: "B", text: "Fai finta di niente", traits: { timido: 2, orgoglioso: 2 } },
       { id: "C", text: "Diventi improvvisamente simpatico/a", traits: { ironico: 3 } },
       { id: "D", text: "Ti comporti malissimo e poi ti chiedi perché", traits: { caotico: 3, pericoloso: 1 } },
-      { id: "E", text: "Aspetto un segnale chiarissimo e poi lo ignoro", traits: { timido: 3, orgoglio: 1 } },
+      { id: "E", text: "Aspetto un segnale chiarissimo e poi lo ignoro", traits: { timido: 3, orgoglioso: 1 } },
     ],
   },
   {
@@ -79,10 +79,10 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     category: "gelosia",
     options: [
       { id: "A", text: "Gelosia", traits: { geloso: 3 } },
-      { id: "B", text: "Orgoglio", traits: { orgoglio: 3 } },
+      { id: "B", text: "Orgoglio", traits: { orgoglioso: 3 } },
       { id: "C", text: "Messaggi non risposti", traits: { investigatore: 2, geloso: 1 } },
       { id: "D", text: "Dove mangiare", traits: { romantico: 1, caotico: 1 } },
-      { id: "E", text: "Il tono con cui è stata detta una cosa normale", traits: { investigatore: 1, orgoglio: 2 } },
+      { id: "E", text: "Il tono con cui è stata detta una cosa normale", traits: { investigatore: 1, orgoglioso: 2 } },
     ],
   },
   {
@@ -91,8 +91,8 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     category: "show",
     options: [
       { id: "A", text: "Saluto con maturità", traits: { fedele: 2, diretto: 1 } },
-      { id: "B", text: "Fingo di non vedere", traits: { timido: 2, orgoglio: 1 } },
-      { id: "C", text: "Mi trasformo in una persona migliore per 12 minuti", traits: { ironico: 2, orgoglio: 2 } },
+      { id: "B", text: "Fingo di non vedere", traits: { timido: 2, orgoglioso: 1 } },
+      { id: "C", text: "Mi trasformo in una persona migliore per 12 minuti", traits: { ironico: 2, orgoglioso: 2 } },
       { id: "D", text: "Ordino da bere e inizia il teatro", traits: { caotico: 2, festaiolo: 2 } },
       { id: "E", text: "Rido, ma internamente parte una serie Netflix", traits: { investigatore: 2, ironico: 1 } },
     ],
@@ -106,7 +106,7 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
       { id: "B", text: "“Non cerco niente di serio”", traits: { libero: 2, diretto: 1 } },
       { id: "C", text: "“Ti spiego il mio rapporto con l’ex”", traits: { geloso: 2, investigatore: 2 } },
       { id: "D", text: "“Tranquillo/a, sono una persona semplice”", traits: { ironico: 2, pericoloso: 1 } },
-      { id: "E", text: "“Io non sono geloso/a”", traits: { orgoglio: 2, geloso: 2 } },
+      { id: "E", text: "“Io non sono geloso/a”", traits: { orgoglioso: 2, geloso: 2 } },
     ],
   },
   {
@@ -115,10 +115,10 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     category: "personalita",
     options: [
       { id: "A", text: "Non mi interessa davvero", traits: { diretto: 3 } },
-      { id: "B", text: "Mi interessa ma non lo ammetto", traits: { orgoglio: 3 } },
+      { id: "B", text: "Mi interessa ma non lo ammetto", traits: { orgoglioso: 3 } },
       { id: "C", text: "Mi interessa tantissimo", traits: { romantico: 2, geloso: 1 } },
       { id: "D", text: "Ho già fatto tre teorie e due screenshot", traits: { investigatore: 3 } },
-      { id: "E", text: "Sto aspettando che qualcuno mi dica che ho ragione", traits: { orgoglio: 2, romantico: 1 } },
+      { id: "E", text: "Sto aspettando che qualcuno mi dica che ho ragione", traits: { orgoglioso: 2, romantico: 1 } },
     ],
   },
   {
@@ -126,11 +126,11 @@ export const MATCH_DRINK_QUESTIONS: MatchDrinkQuestion[] = [
     text: "Il tuo stile di corteggiamento è:",
     category: "primo_appuntamento",
     options: [
-      { id: "A", text: "Elegante", traits: { romantico: 2, orgoglio: 1 } },
+      { id: "A", text: "Elegante", traits: { romantico: 2, orgoglioso: 1 } },
       { id: "B", text: "Ironico", traits: { ironico: 3 } },
       { id: "C", text: "Diretto", traits: { diretto: 3 } },
       { id: "D", text: "Confuso ma intenso", traits: { caotico: 3, romantico: 1 } },
-      { id: "E", text: "Faccio il disinteressato/a con risultati discutibili", traits: { timido: 2, orgoglio: 2 } },
+      { id: "E", text: "Faccio il disinteressato/a con risultati discutibili", traits: { timido: 2, orgoglioso: 2 } },
     ],
   },
   {

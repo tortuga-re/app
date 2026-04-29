@@ -6,14 +6,12 @@ interface MatchDrinkShellProps {
   children: React.ReactNode;
   maxWidth?: string;
   className?: string;
-  hideNav?: boolean;
 }
 
 export function MatchDrinkShell({
   children,
   maxWidth = "max-w-md",
   className = "",
-  hideNav = false,
 }: MatchDrinkShellProps) {
   return (
     <div className={`relative min-h-screen overflow-x-hidden ${className}`}>

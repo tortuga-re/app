@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { deleteSessionData, getSession, validateAdminPin } from "@/lib/match-drink/storage";
 
 export async function GET(

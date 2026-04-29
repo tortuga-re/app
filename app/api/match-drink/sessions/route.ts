@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 import { validateAdminPin } from "@/lib/match-drink/storage";
 

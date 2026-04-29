@@ -124,7 +124,7 @@ export default function MatchDrinkStagePage() {
                     {maxCount > 0 && (
                       <div className="text-center pt-8">
                          <p className="text-3xl italic text-[var(--accent-strong)]">
-                           "{counts.find(c => c.count === maxCount)?.comment || "Il Capitano sta prendendo appunti."}"
+                           &quot;{counts.find(c => c.count === maxCount)?.comment || "Il Capitano sta prendendo appunti."}&quot;
                          </p>
                       </div>
                     )}
@@ -139,7 +139,7 @@ export default function MatchDrinkStagePage() {
               <div className="panel max-w-5xl p-16 rounded-[4rem] border-[var(--accent-strong)] border-2 bg-[var(--accent-soft)] shadow-[0_0_100px_rgba(216,176,106,0.15)] text-center relative">
                 <p className="eyebrow mb-8 text-2xl">Message in a Bottle</p>
                 <p className="text-7xl font-bold leading-tight mb-12 italic text-white">
-                  "{currentMessage.approvedText || currentMessage.message}"
+                  &quot;{currentMessage.approvedText || currentMessage.message}&quot;
                 </p>
                 <p className="text-3xl font-black uppercase tracking-[0.4em] text-[var(--accent-strong)]">
                   — {currentMessage.displayMode === "anonymous" ? "Messaggio anonimo dalla ciurma" : players.find(p => p.id === currentMessage.playerId)?.nickname}
@@ -169,7 +169,7 @@ export default function MatchDrinkStagePage() {
               </p>
               <div className="panel-muted inline-block p-8 rounded-3xl border-white/20">
                 <p className="text-2xl text-[var(--text-muted)] leading-relaxed">
-                  Se accettate entrambi l'abbinamento,<br />
+                  Se accettate entrambi l&apos;abbinamento,<br />
                   sbloccate il <span className="text-white font-black">DRINK DEL MATCH</span>:<br />
                   <span className="text-4xl font-black text-white uppercase mt-4 block">1 drink per 2 persone al prezzo di 1</span>
                 </p>
@@ -181,7 +181,7 @@ export default function MatchDrinkStagePage() {
             <div className="text-center space-y-8 animate-in fade-in duration-1000">
               <h2 className="text-7xl font-black gold-gradient uppercase">MATCH & DRINK CONCLUSO</h2>
               <p className="text-3xl text-[var(--text-muted)] max-w-4xl mx-auto leading-relaxed">
-                Se avete trovato l’amore, bene. Se avete trovato un errore, almeno avete una storia da raccontare.
+                Se avete trovato l&rsquo;amore, bene. Se avete trovato un errore, almeno avete una storia da raccontare.
               </p>
               <p className="text-5xl font-bold text-[var(--accent-strong)] mt-12 uppercase">BUONA SERATA DALLA CIURMA!</p>
             </div>

@@ -6,6 +6,7 @@ import { useMatchDrinkPlayer } from "@/lib/match-drink/use-match-drink-player";
 import { MatchDrinkShell } from "./MatchDrinkShell";
 import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
+import { MatchDrinkPlayer } from "@/lib/match-drink/types";
 import { MATCH_DRINK_QUESTIONS } from "@/lib/match-drink/questions";
 
 export function MatchDrinkPlayerController() {
@@ -123,7 +124,7 @@ export function MatchDrinkPlayerController() {
           <MatchDrinkCard className="text-center py-12">
             <h2 className="text-2xl font-bold text-white mb-4">Nessun match sicuro trovato</h2>
             <p className="text-[var(--text-muted)]">
-              A volte anche il sistema preferisce non prendersi responsabilità. Goditi il drink in solitaria o con la ciurma!
+              A volte anche il sistema preferisce non prendersi responsabilit&agrave;. Goditi il drink in solitaria o con la ciurma!
             </p>
           </MatchDrinkCard>
         </MatchDrinkShell>
@@ -132,8 +133,6 @@ export function MatchDrinkPlayerController() {
 
     const isPlayerA = myMatch.playerAId === player.id;
     const iAccepted = isPlayerA ? myMatch.acceptedByA : myMatch.acceptedByB;
-    const theyAccepted = isPlayerA ? myMatch.acceptedByB : myMatch.acceptedByA;
-    const myMatchNickname = isPlayerA ? "Il tuo match" : "Il tuo match"; // TODO: In un'app reale vorresti il nickname, ma qui dovremmo recuperarlo
 
     if (myMatch.drinkUnlocked) {
       return (
@@ -159,7 +158,7 @@ export function MatchDrinkPlayerController() {
         <MatchDrinkShell>
           <MatchDrinkCard className="text-center">
             <h2 className="text-xl font-bold text-white">Va bene così.</h2>
-            <p className="mt-4 text-[var(--text-muted)]">Il Capitano rispetta la fuga. Il tuo match resterà nell'ombra.</p>
+            <p className="mt-4 text-[var(--text-muted)]">Il Capitano rispetta la fuga. Il tuo match rester&agrave; nell&apos;ombra.</p>
           </MatchDrinkCard>
         </MatchDrinkShell>
       );
@@ -171,7 +170,7 @@ export function MatchDrinkPlayerController() {
           <MatchDrinkCard className="text-center">
             <h2 className="text-xl font-bold text-white">Tu hai accettato.</h2>
             <p className="mt-4 text-[var(--text-muted)]">
-              Ora aspettiamo l'altra metà del naufragio. Se accetta anche lei/lui, sbloccherete il Drink del Match.
+              Ora aspettiamo l&apos;altra met&agrave; del naufragio. Se accetta anche lei/lui, sbloccherete il Drink del Match.
             </p>
           </MatchDrinkCard>
         </MatchDrinkShell>
@@ -206,7 +205,7 @@ export function MatchDrinkPlayerController() {
               SÌ, ACCETTO IL MATCH
             </MatchDrinkButton>
             <MatchDrinkButton variant="secondary" size="lg" onClick={() => respondToMatch(false)}>
-              NO, RESTO NELL'OMBRA
+              NO, RESTO NELL&apos;OMBRA
             </MatchDrinkButton>
           </div>
           
@@ -222,13 +221,28 @@ export function MatchDrinkPlayerController() {
     <MatchDrinkShell>
       <MatchDrinkCard className="text-center">
         <h2 className="text-xl font-bold text-white">Match & Drink è finito.</h2>
-        <p className="mt-4 text-[var(--text-muted)]">Se avete trovato l'amore, bene. Se avete trovato un errore, almeno avete una storia da raccontare.</p>
+        <p className="mt-4 text-[var(--text-muted)]">Se avete trovato l&apos;amore, bene. Se avete trovato un errore, almeno avete una storia da raccontare.</p>
       </MatchDrinkCard>
     </MatchDrinkShell>
   );
 }
 
-function JoinForm({ onJoin, defaultCode, error }: { onJoin: any, defaultCode: string, error: string | null }) {
+function JoinForm({ 
+  onJoin, 
+  defaultCode, 
+  error 
+}: { 
+  onJoin: (code: string, nickname: string, details: {
+    tableNumber: string;
+    ageRange: MatchDrinkPlayer["ageRange"];
+    gender: MatchDrinkPlayer["gender"];
+    relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
+    lookingFor: MatchDrinkPlayer["lookingFor"];
+    publicConsent: boolean;
+  }) => Promise<void>, 
+  defaultCode: string, 
+  error: string | null 
+}) {
   const [code, setCode] = useState(defaultCode);
   const [nickname, setNickname] = useState("");
   const [table, setTable] = useState("");
@@ -245,13 +259,13 @@ function JoinForm({ onJoin, defaultCode, error }: { onJoin: any, defaultCode: st
     try {
       await onJoin(code, nickname, {
         tableNumber: table,
-        ageRange: age,
-        gender,
-        relationshipStatus: status,
-        lookingFor: looking,
+        ageRange: age as MatchDrinkPlayer["ageRange"],
+        gender: gender as MatchDrinkPlayer["gender"],
+        relationshipStatus: status as MatchDrinkPlayer["relationshipStatus"],
+        lookingFor: looking as MatchDrinkPlayer["lookingFor"],
         publicConsent: consent,
       });
-    } catch (err) {
+    } catch {
       setSubmitting(false);
     }
   };
@@ -365,7 +379,11 @@ function JoinForm({ onJoin, defaultCode, error }: { onJoin: any, defaultCode: st
   );
 }
 
-function BottleMessageForm({ onSend }: { onSend: any }) {
+function BottleMessageForm({ 
+  onSend 
+}: { 
+  onSend: (text: string, displayMode: "anonymous" | "nickname") => Promise<void> 
+}) {
   const [message, setMessage] = useState("");
   const [anon, setAnon] = useState(false);
   const [sending, setSending] = useState(false);
@@ -380,7 +398,7 @@ function BottleMessageForm({ onSend }: { onSend: any }) {
       setMessage("");
       setSent(true);
       setTimeout(() => setSent(false), 3000);
-    } catch (err) {
+    } catch {
       // handled in hook
     } finally {
       setSending(false);

@@ -31,9 +31,19 @@ export function useMatchDrinkStage(sessionId: string) {
   }, [sessionId]);
 
   useEffect(() => {
-    refresh();
-    pollingRef.current = setInterval(refresh, 1000);
+    let mounted = true;
+
+    const initialRefresh = async () => {
+      await refresh();
+      if (mounted) {
+        pollingRef.current = setInterval(refresh, 1000);
+      }
+    };
+
+    initialRefresh();
+
     return () => {
+      mounted = false;
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [refresh]);
