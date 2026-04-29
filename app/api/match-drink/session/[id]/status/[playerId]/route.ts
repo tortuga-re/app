@@ -25,11 +25,26 @@ export async function GET(
       return NextResponse.json({ error: "Invalid context" }, { status: 404 });
     }
 
+    let enrichedMatch = match;
+    if (match) {
+      const [pA, pB] = await Promise.all([
+        getPlayer(match.playerAId),
+        getPlayer(match.playerBId),
+      ]);
+      enrichedMatch = {
+        ...match,
+        playerANickname: pA?.nickname,
+        playerATable: pA?.tableNumber,
+        playerBNickname: pB?.nickname,
+        playerBTable: pB?.tableNumber,
+      };
+    }
+
     return NextResponse.json({
       session,
       player,
       answers,
-      match,
+      match: enrichedMatch,
     });
   } catch (error) {
     console.error("Error getting status:", error);

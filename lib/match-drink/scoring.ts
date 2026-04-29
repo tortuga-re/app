@@ -147,10 +147,6 @@ export const calculateMatches = (
       // Verifica preferenze di genere
       if (!isGenderCompatible(playerA, playerB)) continue;
 
-      // Evita match tra persone dello stesso tavolo
-      if (playerA.tableNumber && playerB.tableNumber && playerA.tableNumber === playerB.tableNumber) {
-        continue;
-      }
 
       const scoreInfo = calculateMatchScore(
         playerA,

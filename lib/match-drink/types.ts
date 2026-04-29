@@ -85,6 +85,11 @@ export interface MatchDrinkMatch {
   drinkRedeemedAt?: string | null;
   drinkCode?: string | null;
   createdAt: string;
+  // Enriched fields from API
+  playerANickname?: string;
+  playerATable?: string;
+  playerBNickname?: string;
+  playerBTable?: string;
 }
 
 export interface MatchDrinkBottleMessage {

@@ -171,16 +171,41 @@ export function MatchDrinkPlayerController() {
       return (
         <MatchDrinkShell>
           <MatchDrinkCard variant="accent" className="text-center">
-            <p className="eyebrow mb-4">Match confermato!</p>
-            <h2 className="text-3xl font-bold text-white mb-6 uppercase">DRINK DEL MATCH SBLOCCATO</h2>
-            <div className="panel-muted rounded-xl p-4 mb-6">
-              <p className="text-xs uppercase tracking-widest text-[var(--accent-strong)] mb-1">Codice Drink</p>
-              <p className="text-4xl font-black tracking-tighter text-white">{myMatch.drinkCode}</p>
+            <h2 className="text-3xl font-bold text-white mb-6 uppercase tracking-tighter italic">DRINK DEL MATCH SBLOCCATO!</h2>
+            
+            <div className="panel-muted rounded-xl p-8 mb-6 border-2 border-[var(--accent-strong)] bg-black/60 shadow-[0_0_50px_rgba(216,176,106,0.2)] flex flex-col items-center">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-[var(--accent-strong)] mb-6 font-black opacity-80">
+                Incontro al Tavolo {isPlayerA ? (myMatch.playerBTable || "?") : (myMatch.playerATable || "?")}
+              </p>
+              
+              <div className="relative mb-6">
+                <div className="w-24 h-24 rounded-full bg-[radial-gradient(circle_at_35%_25%,rgba(242,215,165,0.2),rgba(40,20,12,0.94)_62%)] border-2 border-[var(--accent-strong)] flex items-center justify-center shadow-[0_0_30px_rgba(216,176,106,0.3)] animate-in zoom-in duration-700">
+                   <span className="text-5xl font-black gold-gradient italic uppercase">
+                     {(isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname)?.[0] || "?"}
+                   </span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-[var(--accent-strong)] text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                  Match
+                </div>
+              </div>
+
+              <p className="text-3xl md:text-4xl font-black tracking-tighter text-white uppercase italic mb-2">
+                {isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname}
+              </p>
+              <div className="h-px w-12 bg-[var(--accent-strong)] opacity-50 mb-4" />
+              <p className="text-[10px] text-[var(--text-muted)] uppercase font-black tracking-widest text-center leading-relaxed">
+                Compatibilit&agrave;: {myMatch.score}% <br />
+                {myMatch.commonCriterion}
+              </p>
             </div>
-            <p className="text-sm mb-6">
-              Mostrate questa schermata allo staff per avere <strong>1 drink per 2 persone al prezzo di 1</strong>.
-            </p>
-            <p className="text-xs text-[var(--text-muted)] uppercase font-bold">Criterio: {myMatch.commonCriterion}</p>
+
+            <div className="space-y-4 px-2">
+              <p className="text-sm uppercase font-bold leading-relaxed text-center">
+                Mostrate questa schermata allo staff per avere <br />
+                <span className="text-xl gold-gradient font-black">1 DRINK × 2 PERSONE</span><br />
+                al prezzo di uno!
+              </p>
+            </div>
           </MatchDrinkCard>
         </MatchDrinkShell>
       );
