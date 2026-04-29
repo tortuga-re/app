@@ -6,7 +6,8 @@ import {
   getMessages,
   getPlayers, 
   getSession, 
-  validateAdminPin
+  validateAdminPin,
+  getSessionQuestions
 } from "@/lib/match-drink/storage";
 
 export async function GET(
@@ -22,17 +23,20 @@ export async function GET(
       return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
     }
 
-    const [session, players, answers, matches, messages] = await Promise.all([
+    const [session, players, answers, matches, messages, questions] = await Promise.all([
       getSession(id),
       getPlayers(id),
       getAnswers(id),
       getMatches(id),
       getMessages(id),
+      getSessionQuestions(id)
     ]);
 
     if (!session) {
       return NextResponse.json({ error: "Sessione non trovata" }, { status: 404 });
     }
+
+    session.questions = questions;
 
     return NextResponse.json({
       session,
