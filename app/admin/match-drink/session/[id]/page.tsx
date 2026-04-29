@@ -96,7 +96,7 @@ export default function MatchDrinkSessionAdminPage() {
                       onClick={() => updateStageMode("question_results")}
                       disabled={session.stageMode === "question_results"}
                     >MOSTRA RISULTATI</MatchDrinkButton>
-                    {session.currentQuestionIndex < MATCH_DRINK_QUESTIONS.length - 1 ? (
+                    {session.currentQuestionIndex < (session.questions?.length || 0) - 1 ? (
                       <MatchDrinkButton onClick={() => nextQuestion(session.currentQuestionIndex + 1)}>
                         PROSSIMA DOMANDA
                       </MatchDrinkButton>

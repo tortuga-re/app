@@ -35,7 +35,7 @@ export const createSession = async (title: string): Promise<MatchDrinkSession> =
       title,
       join_code: joinCode,
       status: "lobby",
-      stage_mode: "intro",
+      stage_mode: "lobby",
       current_question_index: 0,
       question_ids: selectedIds
     })
