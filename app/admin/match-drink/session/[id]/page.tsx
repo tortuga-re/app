@@ -6,7 +6,6 @@ import { useMatchDrinkAdmin } from "@/lib/match-drink/use-match-drink-admin";
 import { MatchDrinkShell } from "@/components/match-drink/MatchDrinkShell";
 import { MatchDrinkCard } from "@/components/match-drink/MatchDrinkCard";
 import { MatchDrinkButton } from "@/components/match-drink/MatchDrinkButton";
-import { MATCH_DRINK_QUESTIONS } from "@/lib/match-drink/questions";
 import { triggerHaptic } from "@/lib/haptics";
 
 export default function MatchDrinkSessionAdminPage() {
@@ -37,7 +36,8 @@ export default function MatchDrinkSessionAdminPage() {
   if (loading) return null;
   if (!session) return <div className="p-8 text-center">Sessione non trovata.</div>;
 
-  const currentQuestion = MATCH_DRINK_QUESTIONS[session.currentQuestionIndex];
+  const questions = session.questions || [];
+  const currentQuestion = questions[session.currentQuestionIndex];
   const totalAnswers = answers.filter(a => a.questionId === currentQuestion?.id).length;
   const confirmedMatches = matches.filter(m => m.drinkUnlocked);
 
