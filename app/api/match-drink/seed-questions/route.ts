@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { seedQuestions, validateAdminPin } from "@/lib/match-drink/storage";
 import { QUESTION_BANK } from "@/lib/match-drink/question-bank";
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const { pin } = await req.json();
+    const { searchParams } = new URL(req.url);
+    const pin = searchParams.get("pin");
 
-    if (!validateAdminPin(pin)) {
+    if (!validateAdminPin(pin || "")) {
       return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
     }
 
