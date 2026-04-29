@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { requestJson } from "@/lib/client";
@@ -12,6 +13,7 @@ type ConfirmAction = "reset-game" | "end-round" | null;
 
 export default function AdminBuzzerPage() {
   const { identity, hasIdentity } = useCustomerIdentity();
+  const canAccess = hasIdentity && isAdmin(identity.email);
   const [gameState, setGameState] = useState<BuzzerState | null>(null);
   const [entries, setEntries] = useState<BuzzerEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,17 +49,22 @@ export default function AdminBuzzerPage() {
   }, []);
 
   useEffect(() => {
-    if (!hasIdentity || !isAdmin(identity.email)) {
-      setLoading(false);
-      return;
-    }
+    if (!canAccess) return;
 
-    syncSession().then(() => {
-      fetchState();
-      const interval = setInterval(fetchState, 1000);
-      return () => clearInterval(interval);
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    void syncSession().then(() => {
+      if (cancelled) return;
+      void fetchState();
+      interval = setInterval(fetchState, 1000);
     });
-  }, [hasIdentity, identity.email, syncSession, fetchState]);
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, [canAccess, syncSession, fetchState]);
 
   const handleAction = async (action: string) => {
     setActionLoading(true);
@@ -65,8 +72,8 @@ export default function AdminBuzzerPage() {
     try {
       await requestJson(`/api/live-buzzer/admin/${action}`, { method: "POST" });
       await fetchState();
-    } catch (err: any) {
-      setError(err.message || "Errore azione");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Errore azione");
     } finally {
       setActionLoading(false);
     }
@@ -81,8 +88,8 @@ export default function AdminBuzzerPage() {
         body: JSON.stringify({ email, points, result }),
       });
       await fetchState();
-    } catch (err: any) {
-      setError(err.message || "Errore punteggio");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Errore punteggio");
     } finally {
       setActionLoading(false);
     }
@@ -107,16 +114,16 @@ export default function AdminBuzzerPage() {
     }
   };
 
-  if (!hasIdentity || !isAdmin(identity.email)) {
+  if (!canAccess) {
     return (
       <StatusBlock
         variant="error"
         title="Accesso negato"
         description="Non hai i permessi per accedere alla plancia del Capitano."
         action={
-          <a href="/" className="button-secondary inline-flex min-h-12 items-center justify-center px-6">
+          <Link href="/" className="button-secondary inline-flex min-h-12 items-center justify-center px-6">
             Torna alla base
-          </a>
+          </Link>
         }
       />
     );

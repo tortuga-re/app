@@ -9,6 +9,9 @@ import type {
 } from "@/lib/cooperto/types";
 import { triggerHaptic } from "@/lib/haptics";
 
+const automaticActivationError =
+  "Non siamo riusciti ad attivare la card in automatico. Chiedi a un pirata.";
+
 type FidelityActivationPanelProps = {
   contactCode: string;
   activeCardCode: string;
@@ -32,7 +35,7 @@ export function FidelityActivationPanel({
     }
 
     if (!contactCode.trim()) {
-      setError("Non siamo riusciti ad attivare la card. Riprova o chiedi a un pirata.");
+      setError(automaticActivationError);
       return;
     }
 
@@ -54,7 +57,7 @@ export function FidelityActivationPanel({
       if (!response.ok || !body?.profile) {
         throw new Error(
           body?.error ||
-            "Non siamo riusciti ad attivare la card. Riprova o chiedi a un pirata.",
+            automaticActivationError,
         );
       }
 
@@ -63,7 +66,7 @@ export function FidelityActivationPanel({
       setError(
         activationError instanceof Error
           ? activationError.message
-          : "Non siamo riusciti ad attivare la card. Riprova o chiedi a un pirata.",
+          : automaticActivationError,
       );
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import { BuzzerState, Team, BuzzerEntry, GameStatus, BuzzerResult } from "./types";
+import type { BuzzerState, BuzzerResult } from "./types";
 
 type GlobalStore = {
   __tortugaBuzzerState?: BuzzerState;

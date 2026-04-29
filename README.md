@@ -40,6 +40,7 @@ Le variabili richieste sono:
 - `COOPERTO_SEDE_CODE`
 - `COOPERTO_BOOKING_MODULE_CODE`
 - `COOPERTO_BOOKING_ROOM_CODES`
+- `COOPERTO_DEFAULT_FIDELITY_CARD_CODE` opzionale: usarla solo se Cooperto fornisce un codice template fidelity. Non inserire codici card personali gia assegnati a clienti; se non conosci il template corretto, lascia vuoto.
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
 - `PUSH_SUBSCRIPTIONS_FILE`
 - `WIN_WINDOW_MS` (default `250`)
@@ -94,6 +95,7 @@ Se una o piu variabili mancassero, le route interne passano automaticamente a mo
   - non viene inviato `CodiceModuloPrenotazione`
   - non viene inviato `CodiceContatto`
 - `DataPrenotazione` viene costruita in timezone Europe/Rome.
+- L'attivazione automatica della Ciurma Card prova prima `POST /api/Contatti/AggiornaFidelityCard` con solo `codiceContatto`. Se Cooperto richiede un `codiceCard`, l'app usa `COOPERTO_DEFAULT_FIDELITY_CARD_CODE` solo se configurato esplicitamente; non usa piu la prima card restituita da `FidelityCard/Elenco`.
 
 ## Deploy
 

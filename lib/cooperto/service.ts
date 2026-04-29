@@ -600,13 +600,16 @@ export const getFidelityCards = async (): Promise<CoopertoFidelityCard[]> => {
   return response.data;
 };
 
-const resolveDefaultFidelityCardCode = async () => {
-  if (coopertoConfig.defaultFidelityCardCode) {
-    return coopertoConfig.defaultFidelityCardCode;
-  }
+const fidelityActivationError =
+  "Non siamo riusciti ad attivare la card in automatico. Chiedi a un pirata.";
 
-  const cards = await getFidelityCards();
-  return cards.find((card) => card.CodiceCard?.trim())?.CodiceCard?.trim() ?? "";
+const updateContactFidelityCard = async (
+  requestBody: CoopertoUpdateFidelityCardRequest,
+) => {
+  await coopertoFetch<unknown>("/api/Contatti/AggiornaFidelityCard", {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
 };
 
 export const activateFidelityCard = async ({
@@ -632,32 +635,45 @@ export const activateFidelityCard = async ({
     };
   }
 
-  const cardCode = await resolveDefaultFidelityCardCode();
-
-  if (!cardCode) {
-    throw new Error("Nessuna fidelity card disponibile.");
-  }
-
   if (!hasCoopertoLiveConfig) {
-    return mockActivateFidelityCard(normalizedContactCode, cardCode);
+    return mockActivateFidelityCard(
+      normalizedContactCode,
+      coopertoConfig.defaultFidelityCardCode || "mock-auto-fidelity",
+    );
   }
 
-  const requestBody: CoopertoUpdateFidelityCardRequest = {
-    codiceContatto: normalizedContactCode,
-    codiceCard: cardCode,
-  };
+  try {
+    await updateContactFidelityCard({
+      codiceContatto: normalizedContactCode,
+    });
+  } catch (autoActivationError) {
+    const configuredCardCode = coopertoConfig.defaultFidelityCardCode;
 
-  await coopertoFetch<unknown>("/api/Contatti/AggiornaFidelityCard", {
-    method: "POST",
-    body: JSON.stringify(requestBody),
-  });
+    if (!configuredCardCode) {
+      throw new Error(fidelityActivationError, { cause: autoActivationError });
+    }
+
+    await updateContactFidelityCard({
+      codiceContatto: normalizedContactCode,
+      codiceCard: configuredCardCode,
+    }).catch((configuredActivationError) => {
+      throw new Error(fidelityActivationError, {
+        cause: configuredActivationError,
+      });
+    });
+  }
 
   const refreshedProfile = await getProfileData("contactCode", normalizedContactCode);
+  const refreshedCardCode = refreshedProfile.contact?.CodiceCard?.trim() ?? "";
+
+  if (!refreshedCardCode) {
+    throw new Error(fidelityActivationError);
+  }
 
   return {
     source: "live",
     status: "activated",
-    cardCode,
+    cardCode: refreshedCardCode,
     profile: refreshedProfile,
   };
 };

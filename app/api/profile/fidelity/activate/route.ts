@@ -7,6 +7,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const cleanText = (value?: string) => value?.trim() ?? "";
+const automaticActivationError =
+  "Non siamo riusciti ad attivare la card in automatico. Chiedi a un pirata.";
 
 export async function POST(request: Request) {
   const payload = (await request.json().catch(() => null)) as
@@ -37,8 +39,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error:
-          "Non siamo riusciti ad attivare la card. Riprova o chiedi a un pirata.",
+        error: automaticActivationError,
       },
       { status: 400 },
     );

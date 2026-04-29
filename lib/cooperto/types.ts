@@ -91,7 +91,7 @@ export interface CoopertoCreateContactRequest {
 
 export interface CoopertoUpdateFidelityCardRequest {
   codiceContatto: string;
-  codiceCard: string;
+  codiceCard?: string;
 }
 
 export interface CoopertoRegisterVisitRequest {

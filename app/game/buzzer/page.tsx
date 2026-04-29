@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
 import { triggerBuzzerVibration, VIBRATION_PATTERNS } from "@/lib/live-buzzer/vibration";
 import { StatusBlock } from "@/components/status-block";
-import type { BuzzerState, Team, BuzzerEntry, BuzzerResult } from "@/lib/live-buzzer/types";
+import type { BuzzerState, Team, BuzzerEntry } from "@/lib/live-buzzer/types";
 
 export default function BuzzerPage() {
   const { identity, hasIdentity } = useCustomerIdentity();
@@ -34,6 +35,50 @@ export default function BuzzerPage() {
     }
   }, [identity.email]);
 
+  const triggerFeedbackSequence = useCallback((entry: BuzzerEntry, team: Team | undefined) => {
+    let resultMsg = "";
+    switch (entry.result) {
+      case "perfect":
+        resultMsg = "Colpo da Capitano! Hai indovinato 3 su 3. +10 punti alla tua ciurma.";
+        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
+        break;
+      case "partial2":
+        resultMsg = "Bella bordata! Hai indovinato 2 su 3. +6 punti alla tua ciurma.";
+        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
+        break;
+      case "partial1":
+        resultMsg = "Mezzo tesoro è sempre tesoro. Hai indovinato 1 su 3. +3 punti.";
+        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
+        break;
+      case "wrong":
+        resultMsg = "Risposta affondata. Purtroppo hai sbagliato!";
+        triggerBuzzerVibration(VIBRATION_PATTERNS.WRONG_ANSWER);
+        break;
+    }
+
+    setFeedback({ message: resultMsg, type: "result" });
+    triggerHaptic();
+
+    setTimeout(() => {
+      setFeedback({ message: "", type: null });
+      setTimeout(() => {
+        const currentLeaderboard = gameStateRef.current?.leaderboard || [];
+        const isVisible = gameStateRef.current?.leaderboardVisible ?? true;
+        const rank = currentLeaderboard.findIndex(t => t.email === identity.email);
+        const pos = rank !== -1 ? rank + 1 : 1;
+
+        if (team && isVisible) {
+          setFeedback({ message: `Sei in posizione ${pos}!`, type: "position" });
+          setTimeout(() => {
+            setFeedback({ message: "", type: null });
+          }, 3000);
+        } else {
+          setFeedback({ message: "", type: null });
+        }
+      }, 500);
+    }, 4000);
+  }, [identity.email]);
+
   const fetchState = useCallback(async () => {
     try {
       const data = await requestJson<BuzzerState>("/api/live-buzzer/state");
@@ -56,65 +101,24 @@ export default function BuzzerPage() {
     } finally {
       setLoading(false);
     }
-  }, [identity.email]);
-
-  const triggerFeedbackSequence = (entry: BuzzerEntry, team: Team | undefined) => {
-    let resultMsg = "";
-    switch (entry.result) {
-      case "perfect": 
-        resultMsg = "Colpo da Capitano! Hai indovinato 3 su 3. +10 punti alla tua ciurma."; 
-        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
-        break;
-      case "partial2": 
-        resultMsg = "Bella bordata! Hai indovinato 2 su 3. +6 punti alla tua ciurma."; 
-        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
-        break;
-      case "partial1": 
-        resultMsg = "Mezzo tesoro è sempre tesoro. Hai indovinato 1 su 3. +3 punti."; 
-        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
-        break;
-      case "wrong": 
-        resultMsg = "Risposta affondata. Purtroppo hai sbagliato!"; 
-        triggerBuzzerVibration(VIBRATION_PATTERNS.WRONG_ANSWER);
-        break;
-    }
-
-    setFeedback({ message: resultMsg, type: "result" });
-    triggerHaptic();
-
-    setTimeout(() => {
-      setFeedback({ message: "", type: null }); // Fade out
-      setTimeout(() => {
-        const currentLeaderboard = gameStateRef.current?.leaderboard || [];
-        const isVisible = gameStateRef.current?.leaderboardVisible ?? true;
-        const rank = currentLeaderboard.findIndex(t => t.email === identity.email);
-        const pos = rank !== -1 ? rank + 1 : 1; 
-        
-        // Only show position if leaderboard is visible
-        if (team && isVisible) {
-          setFeedback({ message: `Sei in posizione ${pos}!`, type: "position" });
-          setTimeout(() => {
-            setFeedback({ message: "", type: null });
-          }, 3000);
-        } else {
-          // If hidden, just end the sequence after the result
-          setFeedback({ message: "", type: null });
-        }
-      }, 500);
-    }, 4000);
-  };
+  }, [identity.email, triggerFeedbackSequence]);
 
   useEffect(() => {
-    if (!hasIdentity) {
-      setLoading(false);
-      return;
-    }
+    if (!hasIdentity) return;
 
-    syncSession().then(() => {
-      fetchState();
-      const interval = setInterval(fetchState, 1000);
-      return () => clearInterval(interval);
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    void syncSession().then(() => {
+      if (cancelled) return;
+      void fetchState();
+      interval = setInterval(fetchState, 1000);
     });
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
   }, [hasIdentity, syncSession, fetchState]);
 
   // Haptic Detection for Turn and Round End
@@ -153,8 +157,8 @@ export default function BuzzerPage() {
       });
       setIsRegistered(true);
       triggerHaptic();
-    } catch (err: any) {
-      setError(err.message || "Errore durante la registrazione");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Errore durante la registrazione");
     } finally {
       setSubmitting(false);
     }
@@ -168,9 +172,9 @@ export default function BuzzerPage() {
     try {
       await requestJson("/api/live-buzzer/buzz", { method: "POST" });
       triggerBuzzerVibration(VIBRATION_PATTERNS.BUZZ_SENT);
-      fetchState();
-    } catch (err: any) {
-      setError(err.message || "Errore buzzer");
+      void fetchState();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Errore buzzer");
     } finally {
       setSubmitting(false);
     }
@@ -183,9 +187,9 @@ export default function BuzzerPage() {
         title="Accesso richiesto"
         description="Devi entrare nella ciurma per usare il buzzer del Capitano."
         action={
-          <a href="/ciurma" className="button-primary inline-flex min-h-12 items-center justify-center px-6">
+          <Link href="/ciurma" className="button-primary inline-flex min-h-12 items-center justify-center px-6">
             Vai al profilo
-          </a>
+          </Link>
         }
       />
     );
