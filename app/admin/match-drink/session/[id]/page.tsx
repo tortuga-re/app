@@ -106,7 +106,14 @@ export default function MatchDrinkSessionAdminPage() {
                   </>
                 )}
                 {session.status === "matching" && (
-                   <MatchDrinkButton onClick={() => updateStageMode("reveal")}>REVEAL MATCH</MatchDrinkButton>
+                   <MatchDrinkButton 
+                     onClick={() => {
+                       updateStatus("reveal");
+                       updateStageMode("reveal");
+                     }}
+                   >
+                     REVEAL MATCH
+                   </MatchDrinkButton>
                 )}
               </div>
 
