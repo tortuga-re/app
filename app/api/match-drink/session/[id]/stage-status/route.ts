@@ -5,7 +5,8 @@ import {
   getBottleMessage,
   getMessages,
   getPlayers, 
-  getSession 
+  getSession,
+  getSessionQuestions
 } from "@/lib/match-drink/storage";
 
 export async function GET(
@@ -15,11 +16,12 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const [session, players, answers, messages] = await Promise.all([
+    const [session, players, answers, messages, questions] = await Promise.all([
       getSession(id),
       getPlayers(id),
       getAnswers(id),
       getMessages(id),
+      getSessionQuestions(id),
     ]);
 
     if (!session) {
@@ -35,8 +37,10 @@ export async function GET(
       }
     }
 
+    const sessionWithQuestions = session ? { ...session, questions } : null;
+
     return NextResponse.json({
-      session,
+      session: sessionWithQuestions,
       players,
       answers,
       currentMessage,

@@ -108,6 +108,7 @@ export function useMatchDrinkPlayer() {
       relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
       lookingFor: MatchDrinkPlayer["lookingFor"];
       publicConsent: boolean;
+      avatarUrl?: string;
     },
     joinCode?: string
   ) => {

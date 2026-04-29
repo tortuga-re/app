@@ -22,7 +22,7 @@ export interface MatchDrinkQuestionOption {
 export interface MatchDrinkQuestion {
   id: string;
   text: string;
-  category: "warmup" | "personalita" | "gelosia" | "primo_appuntamento" | "red_flag" | "drink" | "show";
+  category: "light" | "ironic" | "spicy";
   options: MatchDrinkQuestionOption[];
 }
 
@@ -34,6 +34,8 @@ export interface MatchDrinkSession {
   stageMode: "lobby" | "intro" | "question" | "question_results" | "message" | "matching" | "reveal" | "ended";
   currentQuestionIndex: number;
   currentStageMessageId?: string | null;
+  questionIds?: string[] | null;
+  questions?: MatchDrinkQuestion[];
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +49,7 @@ export interface MatchDrinkPlayer {
   gender: "uomo" | "donna" | "preferisco_non_dirlo";
   relationshipStatus: "single" | "in_coppia" | "complicato" | "solo_per_ridere";
   lookingFor: "uomo" | "donna" | "entrambi" | "amicizie";
+  avatarUrl?: string;
   publicConsent: boolean;
   joinedAt: string;
 }
@@ -90,6 +93,8 @@ export interface MatchDrinkMatch {
   playerATable?: string;
   playerBNickname?: string;
   playerBTable?: string;
+  playerAAvatar?: string;
+  playerBAvatar?: string;
 }
 
 export interface MatchDrinkBottleMessage {

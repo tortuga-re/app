@@ -4,7 +4,8 @@ import {
   getPlayer, 
   getPlayerAnswers, 
   getPlayerMatch, 
-  getSession 
+  getSession,
+  getSessionQuestions
 } from "@/lib/match-drink/storage";
 
 export async function GET(
@@ -14,11 +15,12 @@ export async function GET(
   try {
     const { id, playerId } = await params;
 
-    const [session, player, answers, match] = await Promise.all([
+    const [session, player, answers, match, questions] = await Promise.all([
       getSession(id),
       getPlayer(playerId),
       getPlayerAnswers(id, playerId),
       getPlayerMatch(id, playerId),
+      getSessionQuestions(id),
     ]);
 
     if (!session || !player || player.sessionId !== id) {
@@ -35,13 +37,17 @@ export async function GET(
         ...match,
         playerANickname: pA?.nickname,
         playerATable: pA?.tableNumber,
+        playerAAvatar: pA?.avatarUrl,
         playerBNickname: pB?.nickname,
         playerBTable: pB?.tableNumber,
+        playerBAvatar: pB?.avatarUrl,
       };
     }
 
+    const sessionWithQuestions = session ? { ...session, questions } : null;
+
     return NextResponse.json({
-      session,
+      session: sessionWithQuestions,
       player,
       answers,
       match: enrichedMatch,

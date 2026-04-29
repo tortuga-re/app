@@ -13,6 +13,7 @@ import {
 type LocalPirateAvatarProps = {
   customerKey: string;
   label: string;
+  onUpload?: (url: string) => void;
 };
 
 const avatarMaxBytes = 5 * 1024 * 1024;
@@ -128,6 +129,18 @@ export function LocalPirateAvatar({ customerKey, label }: LocalPirateAvatarProps
     try {
       const dataUrl = await compressAvatar(file);
       setAvatar(dataUrl);
+      
+      // Upload to server
+      const res = await fetch("/api/match-drink/upload-avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64: dataUrl }),
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        if (onUpload) onUpload(url);
+      }
+
       setMenuOpen(false);
       setError("");
     } catch (saveError) {

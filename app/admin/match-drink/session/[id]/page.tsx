@@ -117,11 +117,20 @@ export default function MatchDrinkSessionAdminPage() {
                 )}
               </div>
 
-              {session.status === "playing" && currentQuestion && (
+              {session.status === "playing" && (
                 <div className="mt-6 panel-muted rounded-xl p-4">
-                  <p className="text-xs text-[var(--text-muted)] mb-1 uppercase tracking-widest">Domanda {session.currentQuestionIndex + 1}</p>
-                  <p className="text-lg font-bold text-white">{currentQuestion.text}</p>
-                  <p className="mt-2 text-sm text-[var(--accent-strong)] font-bold">{totalAnswers} risposte su {players.length} giocatori</p>
+                   {(() => {
+                     const questions = session.questions || [];
+                     const q = questions[session.currentQuestionIndex];
+                     if (!q) return <p className="text-sm text-[var(--text-muted)]">Caricamento domanda...</p>;
+                     return (
+                       <>
+                        <p className="text-xs text-[var(--text-muted)] mb-1 uppercase tracking-widest">Domanda {session.currentQuestionIndex + 1}</p>
+                        <p className="text-lg font-bold text-white">{q.text}</p>
+                        <p className="mt-2 text-sm text-[var(--accent-strong)] font-bold">{totalAnswers} risposte su {players.length} giocatori</p>
+                       </>
+                     );
+                   })()}
                 </div>
               )}
             </MatchDrinkCard>

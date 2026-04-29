@@ -14,6 +14,19 @@ export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
 export const createSession = async (title: string): Promise<MatchDrinkSession> => {
   const admin = getSupabaseAdmin();
   const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  
+  // Pesca 20 domande casuali suddivise per categoria
+  const { data: qLight } = await admin.from("match_drink_questions").select("id").eq("category", "light");
+  const { data: qIronic } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
+  const { data: qSpicy } = await admin.from("match_drink_questions").select("id").eq("category", "spicy");
+
+  const shuffle = (array: any[]) => array?.sort(() => Math.random() - 0.5) || [];
+  
+  const selectedIds = [
+    ...shuffle(qLight || []).slice(0, 6).map((q: any) => q.id),
+    ...shuffle(qIronic || []).slice(0, 7).map((q: any) => q.id),
+    ...shuffle(qSpicy || []).slice(0, 7).map((q: any) => q.id)
+  ];
 
   const { data, error } = await admin
     .from("match_drink_sessions")
@@ -21,8 +34,9 @@ export const createSession = async (title: string): Promise<MatchDrinkSession> =
       title,
       join_code: joinCode,
       status: "lobby",
-      stage_mode: "lobby",
+      stage_mode: "intro",
       current_question_index: 0,
+      question_ids: selectedIds
     })
     .select()
     .single();
@@ -140,6 +154,7 @@ export const joinSession = async (
       gender: player.gender,
       relationship_status: player.relationshipStatus,
       looking_for: player.lookingFor,
+      avatar_url: player.avatarUrl,
       public_consent: player.publicConsent,
     })
     .select()
@@ -404,6 +419,7 @@ const mapSession = (row: Record<string, unknown>): MatchDrinkSession => ({
   stageMode: row.stage_mode as MatchDrinkSession["stageMode"],
   currentQuestionIndex: row.current_question_index as number,
   currentStageMessageId: row.current_stage_message_id as string | null,
+  questionIds: row.question_ids as string[] | null,
   createdAt: row.created_at as string,
   updatedAt: row.updated_at as string,
 });
@@ -417,6 +433,7 @@ const mapPlayer = (row: Record<string, unknown>): MatchDrinkPlayer => ({
   gender: row.gender as MatchDrinkPlayer["gender"],
   relationshipStatus: row.relationship_status as MatchDrinkPlayer["relationshipStatus"],
   lookingFor: row.looking_for as MatchDrinkPlayer["lookingFor"],
+  avatarUrl: row.avatar_url as string,
   publicConsent: row.public_consent as boolean,
   joinedAt: row.joined_at as string,
 });
@@ -463,3 +480,30 @@ const mapMessage = (row: Record<string, unknown>): MatchDrinkBottleMessage => ({
   moderatedAt: row.moderated_at as string | null,
   shownAt: row.shown_at as string | null,
 });
+
+export const seedQuestions = async (questions: any[]) => {
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("match_drink_questions").insert(questions);
+  if (error) throw error;
+};
+
+export const getSessionQuestions = async (sessionId: string) => {
+  const admin = getSupabaseAdmin();
+  const { data: session } = await admin.from("match_drink_sessions").select("question_ids").eq("id", sessionId).single();
+  if (!session?.question_ids) return [];
+  
+  const { data: questions } = await admin.from("match_drink_questions").select("*").in("id", session.question_ids);
+  if (!questions) return [];
+
+  // Mappa per mantenere l'ordine originale di question_ids
+  return session.question_ids.map((id: string) => {
+    const q = questions.find(q => q.id === id);
+    if (!q) return null;
+    return {
+      id: q.id,
+      category: q.category,
+      text: q.text,
+      options: q.options
+    };
+  }).filter(Boolean);
+};

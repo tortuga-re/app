@@ -7,6 +7,7 @@ import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
 import { MatchDrinkPlayer } from "@/lib/match-drink/types";
 import { MATCH_DRINK_QUESTIONS } from "@/lib/match-drink/questions";
+import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
 
 export function MatchDrinkPlayerController() {
   
@@ -80,8 +81,22 @@ export function MatchDrinkPlayerController() {
 
   // Question Pad
   if (session.status === "playing") {
-    const currentQuestion = MATCH_DRINK_QUESTIONS[session.currentQuestionIndex];
+    const questions = session.questions || [];
+    const currentQuestion = questions[session.currentQuestionIndex];
+    
+    if (!currentQuestion) {
+       return (
+        <MatchDrinkShell>
+          <div className="flex flex-1 items-center justify-center">
+            <p className="eyebrow animate-pulse">In attesa della domanda...</p>
+          </div>
+        </MatchDrinkShell>
+      );
+    }
+
     const hasAnswered = myAnswers.some(a => a.questionId === currentQuestion?.id);
+    // Filtra le opzioni della domanda reale
+    const availableOptions = currentQuestion.options.map(o => o.id);
 
     return (
       <MatchDrinkShell>
@@ -100,7 +115,7 @@ export function MatchDrinkPlayerController() {
             </MatchDrinkCard>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {["A", "B", "C", "D", "E"].map((opt) => (
+              {availableOptions.map((opt) => (
                 <MatchDrinkButton
                   key={opt}
                   variant="primary"
@@ -179,10 +194,18 @@ export function MatchDrinkPlayerController() {
               </p>
               
               <div className="relative mb-6">
-                <div className="w-24 h-24 rounded-full bg-[radial-gradient(circle_at_35%_25%,rgba(242,215,165,0.2),rgba(40,20,12,0.94)_62%)] border-2 border-[var(--accent-strong)] flex items-center justify-center shadow-[0_0_30px_rgba(216,176,106,0.3)] animate-in zoom-in duration-700">
-                   <span className="text-5xl font-black gold-gradient italic uppercase">
-                     {(isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname)?.[0] || "?"}
-                   </span>
+                <div className="w-24 h-24 rounded-full border-2 border-[var(--accent-strong)] flex items-center justify-center shadow-[0_0_30px_rgba(216,176,106,0.3)] animate-in zoom-in duration-700 overflow-hidden bg-black/40">
+                   {(isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar) ? (
+                     <img 
+                       src={isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar} 
+                       alt="Partner avatar"
+                       className="w-full h-full object-cover"
+                     />
+                   ) : (
+                     <span className="text-5xl font-black gold-gradient italic uppercase">
+                       {(isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname)?.[0] || "?"}
+                     </span>
+                   )}
                 </div>
                 <div className="absolute -bottom-1 -right-1 bg-[var(--accent-strong)] text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
                   Match
@@ -309,11 +332,12 @@ function JoinForm({
   } | null
 }) {
   const [nickname, setNickname] = useState(savedProfile?.nickname || "");
-  const [table, setTable] = useState("");
-  const [age, setAge] = useState(savedProfile?.ageRange || "25-34");
-  const [gender, setGender] = useState(savedProfile?.gender || "donna");
-  const [status, setStatus] = useState(savedProfile?.relationshipStatus || "single");
-  const [looking, setLooking] = useState(savedProfile?.lookingFor || "uomo");
+  const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
+  const [ageRange, setAgeRange] = useState<MatchDrinkPlayer["ageRange"]>(savedProfile?.ageRange || "25-34");
+  const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "preferisco_non_dirlo");
+  const [relationshipStatus, setRelationshipStatus] = useState<MatchDrinkPlayer["relationshipStatus"]>(savedProfile?.relationshipStatus || "single");
+  const [lookingFor, setLookingFor] = useState<MatchDrinkPlayer["lookingFor"]>(savedProfile?.lookingFor || "entrambi");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,12 +345,13 @@ function JoinForm({
     setSubmitting(true);
     try {
       await onJoin(nickname, {
-        tableNumber: table,
-        ageRange: age as MatchDrinkPlayer["ageRange"],
-        gender: gender as MatchDrinkPlayer["gender"],
-        relationshipStatus: status as MatchDrinkPlayer["relationshipStatus"],
-        lookingFor: looking as MatchDrinkPlayer["lookingFor"],
-        publicConsent: true,
+        tableNumber,
+        ageRange,
+        gender,
+        relationshipStatus,
+        lookingFor,
+        avatarUrl,
+        publicConsent: true
       });
     } catch {
       setSubmitting(false);
@@ -341,7 +366,12 @@ function JoinForm({
           <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">Il gioco live più pericolosamente social</p>
         </div>
 
-        <MatchDrinkCard>
+        <MatchDrinkCard className="max-w-md w-full">
+          <div className="flex flex-col items-center mb-8">
+            <LocalPirateAvatar customerKey={nickname || "ospite"} label={nickname || "Nuovo Pirata"} onUpload={setAvatarUrl} />
+            <p className="text-xs uppercase tracking-widest text-[var(--accent-strong)] mt-3 font-black">Scatta la tua foto</p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="eyebrow mb-2 block">Il tuo Nickname</label>
@@ -358,8 +388,8 @@ function JoinForm({
                <div>
                 <label className="eyebrow mb-2 block">Tavolo</label>
                 <input 
-                  value={table} 
-                  onChange={e => setTable(e.target.value)}
+                  value={tableNumber} 
+                  onChange={e => setTableNumber(e.target.value)}
                   placeholder="Es. 12" 
                   className="field font-bold"
                   required
@@ -368,8 +398,8 @@ function JoinForm({
               <div>
                 <label className="eyebrow mb-2 block">Età</label>
                 <select 
-                  value={age} 
-                  onChange={e => setAge(e.target.value as MatchDrinkPlayer["ageRange"])} 
+                  value={ageRange} 
+                  onChange={e => setAgeRange(e.target.value as MatchDrinkPlayer["ageRange"])} 
                   className="field font-bold"
                 >
                   <option value="18-24">18-24</option>
@@ -396,8 +426,8 @@ function JoinForm({
               <div>
                 <label className="eyebrow mb-2 block">Stato</label>
                 <select 
-                  value={status} 
-                  onChange={e => setStatus(e.target.value as MatchDrinkPlayer["relationshipStatus"])} 
+                  value={relationshipStatus} 
+                  onChange={e => setRelationshipStatus(e.target.value as MatchDrinkPlayer["relationshipStatus"])} 
                   className="field font-bold"
                 >
                   <option value="single">Single</option>
@@ -411,8 +441,8 @@ function JoinForm({
             <div>
               <label className="eyebrow mb-2 block">Cosa cerchi stasera?</label>
               <select 
-                value={looking} 
-                onChange={e => setLooking(e.target.value as MatchDrinkPlayer["lookingFor"])} 
+                value={lookingFor} 
+                onChange={e => setLookingFor(e.target.value as MatchDrinkPlayer["lookingFor"])} 
                 className="field font-bold"
               >
                 <option value="donna">Una Donna</option>

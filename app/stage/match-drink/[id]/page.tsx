@@ -168,7 +168,9 @@ export default function MatchDrinkStagePage() {
           {session.stageMode === "question" && (
             <div className="w-full max-w-[95%] mx-auto flex flex-col justify-center h-full space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500 min-h-0">
               {(() => {
-                const q = MATCH_DRINK_QUESTIONS[session.currentQuestionIndex];
+                const questions = session.questions || [];
+                const q = questions[session.currentQuestionIndex];
+                if (!q) return <div className="text-center text-white/50">Caricamento domande...</div>;
                 return (
                   <>
                     <div className="space-y-1 text-center shrink-0">
@@ -196,7 +198,10 @@ export default function MatchDrinkStagePage() {
           {session.stageMode === "question_results" && (
             <div className="w-full max-w-[95%] mx-auto flex flex-col justify-center h-full space-y-4 animate-in fade-in duration-700 min-h-0">
               {(() => {
-                const q = MATCH_DRINK_QUESTIONS[session.currentQuestionIndex];
+                const questions = session.questions || [];
+                const q = questions[session.currentQuestionIndex];
+                if (!q) return null;
+                
                 const qAnswers = answers.filter(a => a.questionId === q.id);
                 const counts = q.options.map(opt => ({
                   ...opt,
