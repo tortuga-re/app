@@ -13,6 +13,12 @@ export async function GET(req: NextRequest) {
     }
 
     const admin = getSupabaseAdmin();
+    
+    // Verifica configurazione
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")) {
+      return NextResponse.json({ error: "Configurazione Supabase mancante nel file .env" }, { status: 500 });
+    }
+
     const { data, error } = await admin
       .from("match_drink_sessions")
       .select("*")

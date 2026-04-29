@@ -8,6 +8,7 @@ import {
 
 const STORAGE_KEY_SESSION_ID = "match-drink.sessionId";
 const STORAGE_KEY_PLAYER_ID = "match-drink.playerId";
+const STORAGE_KEY_PROFILE = "match-drink.profileData";
 
 export function useMatchDrinkPlayer() {
   const [session, setSession] = useState<MatchDrinkSession | null>(null);
@@ -16,6 +17,22 @@ export function useMatchDrinkPlayer() {
   const [myAnswers, setMyAnswers] = useState<MatchDrinkAnswer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Per l'auto-completamento se devono ri-registrarsi
+  const [savedProfile, setSavedProfile] = useState<{
+    nickname: string;
+    tableNumber: string;
+    ageRange: MatchDrinkPlayer["ageRange"];
+    gender: MatchDrinkPlayer["gender"];
+    relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
+    lookingFor: MatchDrinkPlayer["lookingFor"];
+  } | null>(() => {
+    if (typeof window !== "undefined") {
+      const data = localStorage.getItem(STORAGE_KEY_PROFILE);
+      return data ? JSON.parse(data) : null;
+    }
+    return null;
+  });
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -24,6 +41,16 @@ export function useMatchDrinkPlayer() {
     const storedPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
 
     if (!storedSessionId || !storedPlayerId) {
+      // Prova a scoprire una sessione attiva
+      try {
+        const activeRes = await fetch("/api/match-drink/active-session");
+        if (activeRes.ok) {
+          const activeSess = await activeRes.json();
+          if (activeSess) setSession(activeSess);
+        }
+      } catch (err) {
+        console.error("Discovery error:", err);
+      }
       setLoading(false);
       return;
     }
@@ -73,7 +100,6 @@ export function useMatchDrinkPlayer() {
   }, [refresh]);
 
   const join = async (
-    joinCode: string, 
     nickname: string, 
     details: {
       tableNumber: string;
@@ -82,16 +108,25 @@ export function useMatchDrinkPlayer() {
       relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
       lookingFor: MatchDrinkPlayer["lookingFor"];
       publicConsent: boolean;
-    }
+    },
+    joinCode?: string
   ) => {
     try {
-      // 1. Get session by join code
-      const sessRes = await fetch(`/api/match-drink/session/by-code/${joinCode.toUpperCase()}`);
-      if (!sessRes.ok) throw new Error("Codice sessione non valido");
-      const sessData = await sessRes.json();
+      let sessionId = session?.id;
+
+      // Se viene passato un codice, usiamo quello (legacy/overrule)
+      if (joinCode) {
+        const sessRes = await fetch(`/api/match-drink/session/by-code/${joinCode.toUpperCase()}`);
+        if (!sessRes.ok) throw new Error("Codice sessione non valido");
+        const sessData = await sessRes.json();
+        sessionId = sessData.id;
+        setSession(sessData);
+      }
+
+      if (!sessionId) throw new Error("Nessuna sessione attiva trovata");
 
       // 2. Join
-      const joinRes = await fetch(`/api/match-drink/session/${sessData.id}/join`, {
+      const joinRes = await fetch(`/api/match-drink/session/${sessionId}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname, ...details }),
@@ -99,11 +134,12 @@ export function useMatchDrinkPlayer() {
       if (!joinRes.ok) throw new Error("Errore durante l'ingresso");
       const playerData = await joinRes.json();
 
-      localStorage.setItem(STORAGE_KEY_SESSION_ID, sessData.id);
+      localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
       localStorage.setItem(STORAGE_KEY_PLAYER_ID, playerData.id);
+      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify({ nickname, ...details }));
       
-      setSession(sessData);
       setPlayer(playerData);
+      setSavedProfile({ nickname, ...details });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore durante l'ingresso";
       setError(message);
@@ -179,6 +215,7 @@ export function useMatchDrinkPlayer() {
     myAnswers,
     loading,
     error,
+    savedProfile,
     join,
     submitAnswer,
     respondToMatch,

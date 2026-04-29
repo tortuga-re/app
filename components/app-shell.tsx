@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { AppGreeting } from "@/components/app-greeting";
@@ -13,6 +14,20 @@ import { useCustomerStatus } from "@/lib/use-customer-status";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { greeting, identity } = useCustomerIdentity();
   const customerStatus = useCustomerStatus(identity.email);
+
+  const pathname = usePathname();
+  const isStageOrAdmin = pathname.startsWith("/stage/") || pathname.startsWith("/admin/");
+
+  if (isStageOrAdmin) {
+    return (
+      <div className="relative min-h-screen w-full bg-black">
+        <AnalyticsTracker />
+        <main className="w-full h-full">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">

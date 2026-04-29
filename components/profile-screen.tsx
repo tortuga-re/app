@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { StatusBlock } from "@/components/status-block";
 import { FidelityActivationPanel } from "@/components/fidelity-activation-panel";
@@ -126,9 +127,9 @@ export function CiurmaScreen() {
   );
   const emailChangeExpiresAtLabel = emailChangeRequest
     ? new Intl.DateTimeFormat("it-IT", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(emailChangeRequest.expiresAt))
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(emailChangeRequest.expiresAt))
     : "";
   useHashScroll(
     `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}`,
@@ -797,16 +798,16 @@ export function CiurmaScreen() {
             id="riconoscimento"
             className="panel hash-scroll-target rounded-[2rem] p-5 overflow-visible"
           >
-            <div className="flex min-w-0 items-center gap-4">
-                <LocalPirateAvatar
-                  customerKey={
-                    contactSnapshot.email ||
-                    identityEmail ||
-                    data.contact.CodiceContatto ||
-                    profileName
-                  }
-                  label={profileName}
-                />
+            <div className="relative z-20 flex min-w-0 items-center gap-4">
+              <LocalPirateAvatar
+                customerKey={
+                  contactSnapshot.email ||
+                  identityEmail ||
+                  data.contact.CodiceContatto ||
+                  profileName
+                }
+                label={profileName}
+              />
               <div className="min-w-0 flex-1 space-y-2">
                 <h2 className="truncate text-2xl font-semibold text-white">
                   {profileName}
@@ -878,7 +879,7 @@ export function CiurmaScreen() {
                         if (
                           emailChangeRequest &&
                           normalizeCustomerEmail(nextEmail) !==
-                            emailChangeRequest.pendingEmail
+                          emailChangeRequest.pendingEmail
                         ) {
                           setEmailChangeRequest(null);
                           setEmailChangeCode("");
@@ -1147,8 +1148,26 @@ export function CiurmaScreen() {
             </div>
 
             <div className="mt-4 grid gap-3">
+              {/* Match & Drink Card */}
+              <Link
+                href="/game/match-drink"
+                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink</p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                      Trova la tua anima gemella (o un nuovo compagno di bevute) tra i naufraghi del locale!
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
+                    GIOCA ORA
+                  </span>
+                </div>
+              </Link>
+
               {/* Buzzer Card - Client */}
-              <a 
+              <a
                 href="/game/buzzer"
                 className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
               >
@@ -1167,7 +1186,7 @@ export function CiurmaScreen() {
 
               {/* Buzzer Card - Admin (Captain only) */}
               {isAdmin(identity.email) && (
-                <a 
+                <a
                   href="/admin/buzzer"
                   className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
                 >
@@ -1183,6 +1202,26 @@ export function CiurmaScreen() {
                     </span>
                   </div>
                 </a>
+              )}
+
+              {/* Match & Drink Admin */}
+              {isAdmin(identity.email) && (
+                <Link
+                  href="/admin/match-drink"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)] bg-[var(--accent-strong)]/5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">🍸 Plancia Match & Drink</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Avvia sessioni, gestisci domande e sblocca i drink del match.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      ADMIN
+                    </span>
+                  </div>
+                </Link>
               )}
 
               {ciurmaRoadmapFeatures.map((feature) => (

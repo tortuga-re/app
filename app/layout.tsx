@@ -46,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" suppressHydrationWarning>
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning>
         <AnalyticsScripts />
         <AppShell>{children}</AppShell>
       </body>

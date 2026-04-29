@@ -122,7 +122,7 @@ export const calculateMatches = (
   answers: MatchDrinkAnswer[]
 ): Omit<MatchDrinkMatch, "id" | "createdAt">[] => {
   const eligiblePlayers = players.filter(
-    (p) => p.lookingFor !== "nessun_match" && p.relationshipStatus !== "solo_per_ridere"
+    (p) => p.relationshipStatus !== "solo_per_ridere"
   );
 
   const playerProfiles = eligiblePlayers.map((p) => {
@@ -146,6 +146,11 @@ export const calculateMatches = (
 
       // Verifica preferenze di genere
       if (!isGenderCompatible(playerA, playerB)) continue;
+
+      // Evita match tra persone dello stesso tavolo
+      if (playerA.tableNumber && playerB.tableNumber && playerA.tableNumber === playerB.tableNumber) {
+        continue;
+      }
 
       const scoreInfo = calculateMatchScore(
         playerA,
@@ -186,9 +191,10 @@ export const calculateMatches = (
 
 const isGenderCompatible = (a: MatchDrinkPlayer, b: MatchDrinkPlayer): boolean => {
   const check = (p1: MatchDrinkPlayer, p2: MatchDrinkPlayer) => {
-    if (p1.lookingFor === "uomo") return p2.gender === "uomo";
-    if (p1.lookingFor === "donna") return p2.gender === "donna";
-    if (p1.lookingFor === "entrambi") return ["uomo", "donna", "altro"].includes(p2.gender);
+    if (p1.lookingFor === "amicizie") return p2.lookingFor === "amicizie";
+    if (p1.lookingFor === "uomo") return p2.gender === "uomo" && p2.lookingFor !== "amicizie";
+    if (p1.lookingFor === "donna") return p2.gender === "donna" && p2.lookingFor !== "amicizie";
+    if (p1.lookingFor === "entrambi") return ["uomo", "donna"].includes(p2.gender) && p2.lookingFor !== "amicizie";
     return false;
   };
 

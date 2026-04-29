@@ -161,7 +161,7 @@ export function LocalPirateAvatar({ customerKey, label }: LocalPirateAvatarProps
   };
 
   return (
-    <div className={`relative shrink-0 ${menuOpen ? "z-30" : "z-10"}`}>
+    <div className={`relative shrink-0 ${menuOpen ? "z-[60]" : "z-10"}`}>
       <button
         type="button"
         className="group flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[rgba(216,176,106,0.45)] bg-[radial-gradient(circle_at_35%_25%,rgba(242,215,165,0.2),rgba(40,20,12,0.94)_62%)] shadow-[0_18px_42px_rgba(0,0,0,0.42)] transition active:scale-[0.98]"
@@ -183,7 +183,7 @@ export function LocalPirateAvatar({ customerKey, label }: LocalPirateAvatarProps
       </button>
 
       {menuOpen ? (
-        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-20 w-52 rounded-[1.25rem] border border-[rgba(216,176,106,0.26)] bg-[rgba(18,11,8,0.98)] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.48)]">
+        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-50 w-52 rounded-[1.25rem] border border-[rgba(216,176,106,0.26)] bg-[rgba(18,11,8,0.98)] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.48)]">
           {avatar ? (
             <button
               type="button"

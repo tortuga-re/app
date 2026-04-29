@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 import { 
   getAnswers,
+  getBottleMessage,
+  getMessages,
   getPlayers, 
   getSession 
 } from "@/lib/match-drink/storage";
@@ -14,10 +15,11 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const [session, players, answers] = await Promise.all([
+    const [session, players, answers, messages] = await Promise.all([
       getSession(id),
       getPlayers(id),
       getAnswers(id),
+      getMessages(id),
     ]);
 
     if (!session) {
@@ -26,13 +28,11 @@ export async function GET(
 
     let currentMessage = null;
     if (session.currentStageMessageId) {
-      const admin = getSupabaseAdmin();
-      const { data } = await admin
-        .from("match_drink_bottle_messages")
-        .select("*")
-        .eq("id", session.currentStageMessageId)
-        .single();
-      currentMessage = data;
+      currentMessage = await getBottleMessage(session.currentStageMessageId);
+      // Safety net: never serve a countdown as a display message
+      if (currentMessage?.message?.trim().startsWith("COUNTDOWN:")) {
+        currentMessage = null;
+      }
     }
 
     return NextResponse.json({
@@ -40,6 +40,7 @@ export async function GET(
       players,
       answers,
       currentMessage,
+      messages,
     });
   } catch (error) {
     console.error("Error getting stage status:", error);

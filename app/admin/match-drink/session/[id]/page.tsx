@@ -7,6 +7,7 @@ import { MatchDrinkShell } from "@/components/match-drink/MatchDrinkShell";
 import { MatchDrinkCard } from "@/components/match-drink/MatchDrinkCard";
 import { MatchDrinkButton } from "@/components/match-drink/MatchDrinkButton";
 import { MATCH_DRINK_QUESTIONS } from "@/lib/match-drink/questions";
+import { triggerHaptic } from "@/lib/haptics";
 
 export default function MatchDrinkSessionAdminPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,12 +23,16 @@ export default function MatchDrinkSessionAdminPage() {
     nextQuestion,
     updateStageMode,
     calculateMatches,
+    seedMessage,
+    sendCaptainMessage,
     moderateMessage,
     redeemDrink,
     deleteSession,
+    updateStatus,
   } = useMatchDrinkAdmin(id);
 
   const [isDeleting, setIsDeleting] = useState(false);
+  const [countdownMinutes, setCountdownMinutes] = useState(5);
 
   if (loading) return null;
   if (!session) return <div className="p-8 text-center">Sessione non trovata.</div>;
@@ -78,6 +83,11 @@ export default function MatchDrinkSessionAdminPage() {
                   <>
                     <MatchDrinkButton 
                       variant="secondary" 
+                      onClick={() => updateStageMode("intro")}
+                      disabled={session.stageMode === "intro"}
+                    >MOSTRA STATISTICHE</MatchDrinkButton>
+                    <MatchDrinkButton 
+                      variant="secondary" 
                       onClick={() => updateStageMode("question")}
                       disabled={session.stageMode === "question"}
                     >MOSTRA DOMANDA</MatchDrinkButton>
@@ -107,6 +117,79 @@ export default function MatchDrinkSessionAdminPage() {
                   <p className="mt-2 text-sm text-[var(--accent-strong)] font-bold">{totalAnswers} risposte su {players.length} giocatori</p>
                 </div>
               )}
+            </MatchDrinkCard>
+
+            {/* Registration & Countdown Management */}
+            <MatchDrinkCard>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h2 className="eyebrow">Iscrizioni</h2>
+                  <div className="flex flex-col gap-3">
+                    <div className={`p-4 rounded-2xl border-2 text-center font-black text-xl transition-all ${
+                      session.status === "lobby" 
+                        ? "border-[var(--success)] bg-[var(--success)]/10 text-[var(--success)]" 
+                        : "border-[var(--danger)] bg-[var(--danger)]/10 text-[var(--danger)]"
+                    }`}>
+                      {session.status === "lobby" ? "APERTE" : "CHIUSE"}
+                    </div>
+                    <MatchDrinkButton 
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => {
+                        triggerHaptic();
+                        updateStatus(session.status === "lobby" ? "playing" : "lobby");
+                      }}
+                    >
+                      {session.status === "lobby" ? "CHIUDI ISCRIZIONI" : "RIAPRI ISCRIZIONI"}
+                    </MatchDrinkButton>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="eyebrow">Countdown Stage</h2>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2">
+                      {[2, 5, 10].map(m => (
+                        <button
+                          key={m}
+                          onClick={() => setCountdownMinutes(m)}
+                          className={`flex-1 py-2 rounded-xl border font-bold text-xs transition-all ${
+                            countdownMinutes === m 
+                              ? "border-[var(--accent-strong)] bg-[var(--accent-strong)] text-black" 
+                              : "border-white/10 bg-white/5 text-[var(--text-muted)]"
+                          }`}
+                        >
+                          {m} MIN
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <MatchDrinkButton 
+                        className="flex-1"
+                        onClick={() => {
+                          triggerHaptic();
+                          const end = new Date(Date.now() + countdownMinutes * 60000).toISOString();
+                          sendCaptainMessage(`COUNTDOWN:${end}`);
+                        }}
+                      >
+                        AVVIA
+                      </MatchDrinkButton>
+                      <MatchDrinkButton 
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={() => {
+                          triggerHaptic();
+                          // To clear, we look for a countdown message and delete/moderate it?
+                          // Actually, sending a "CLEAR" command or just a message with empty countdown works.
+                          sendCaptainMessage(`COUNTDOWN:CLEAR`);
+                        }}
+                      >
+                        RESET
+                      </MatchDrinkButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </MatchDrinkCard>
 
             {/* Confirmed Matches */}
@@ -141,9 +224,9 @@ export default function MatchDrinkSessionAdminPage() {
           <div className="space-y-6">
              {/* Player List */}
              <MatchDrinkCard variant="muted">
-              <h2 className="eyebrow mb-4">Ciurma ({players.length})</h2>
+              <h2 className="eyebrow mb-4">Ciurma ({players.filter(p => p.nickname !== "_SYSTEM_").length})</h2>
               <div className="max-h-60 overflow-y-auto space-y-2 scrollbar-hidden">
-                {players.map(p => (
+                {players.filter(p => p.nickname !== "_SYSTEM_").map(p => (
                   <div key={p.id} className="flex items-center justify-between text-xs py-1 border-b border-[var(--border)] last:border-0">
                     <span className="text-white font-medium">{p.nickname}</span>
                     <span className="text-[var(--text-muted)]">Tavolo {p.tableNumber}</span>
@@ -154,13 +237,52 @@ export default function MatchDrinkSessionAdminPage() {
 
             {/* Moderation */}
             <MatchDrinkCard variant="muted">
-              <h2 className="eyebrow mb-4">Moderazione Messaggi</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="eyebrow">Moderazione Messaggi</h2>
+                <MatchDrinkButton 
+                  variant="secondary" 
+                  size="md" 
+                  className="text-[10px] py-1 min-h-0" 
+                  onClick={() => {
+                    triggerHaptic();
+                    seedMessage();
+                  }}
+                >
+                  GENERA MESSAGGIO ESCA
+                </MatchDrinkButton>
+              </div>
+
+              {/* Captain Message Input */}
+              <div className="mb-6 panel-muted rounded-xl p-4 border-[var(--accent-strong)] bg-[var(--accent-strong)]/5 space-y-3">
+                <p className="text-[10px] font-black text-[var(--accent-strong)] uppercase tracking-widest">Invia come Capitano</p>
+                <div className="flex gap-2">
+                  <textarea 
+                    id="captain-msg"
+                    placeholder="Scrivi un ordine o una perla di saggezza..."
+                    className="field flex-1 min-h-[60px] text-xs resize-none py-2"
+                  />
+                  <MatchDrinkButton 
+                    className="h-auto"
+                    onClick={() => {
+                      const el = document.getElementById("captain-msg") as HTMLTextAreaElement;
+                      if (el.value.trim()) {
+                        triggerHaptic();
+                        sendCaptainMessage(el.value);
+                        el.value = "";
+                      }
+                    }}
+                  >
+                    INVIA
+                  </MatchDrinkButton>
+                </div>
+              </div>
+
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hidden">
                 {messages.map(msg => (
                   <div key={msg.id} className={`p-3 rounded-lg border ${msg.status === "shown" ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : "border-[var(--border)] bg-black/20"}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-bold text-[var(--accent-strong)] uppercase">
-                        {msg.displayMode === "anonymous" ? "Anonimo" : players.find(p => p.id === msg.playerId)?.nickname}
+                        {msg.displayMode === "captain" ? "Capitano" : (msg.displayMode === "anonymous" ? "Anonimo" : players.find(p => p.id === msg.playerId)?.nickname)}
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)]">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>

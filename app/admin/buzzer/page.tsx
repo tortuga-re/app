@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
@@ -14,6 +14,17 @@ type ConfirmAction = "reset-game" | "end-round" | null;
 export default function AdminBuzzerPage() {
   const { identity, hasIdentity } = useCustomerIdentity();
   const canAccess = hasIdentity && isAdmin(identity.email);
+  
+  const [pin, setPin] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("match-drink.adminPin") || "";
+    }
+    return "";
+  });
+  const [isPinAuthorized, setIsPinAuthorized] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinError, setPinError] = useState("");
+
   const [gameState, setGameState] = useState<BuzzerState | null>(null);
   const [entries, setEntries] = useState<BuzzerEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +34,30 @@ export default function AdminBuzzerPage() {
   // Confirmation Modal State
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [confirmStep, setConfirmStep] = useState(0);
+
+  const validatePin = useCallback(async (p: string) => {
+    if (!p) return;
+    setPinLoading(true);
+    setPinError("");
+    try {
+      const res = await fetch("/api/admin/validate-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: p }),
+      });
+      if (res.ok) {
+        setIsPinAuthorized(true);
+        localStorage.setItem("match-drink.adminPin", p);
+      } else {
+        setPinError("PIN non valido");
+        setIsPinAuthorized(false);
+      }
+    } catch {
+      setPinError("Errore di validazione");
+    } finally {
+      setPinLoading(false);
+    }
+  }, []);
 
   const syncSession = useCallback(async () => {
     if (identity.email) {
@@ -34,6 +69,8 @@ export default function AdminBuzzerPage() {
     }
   }, [identity.email]);
 
+  const initialCheckDone = useRef(false);
+
   const fetchState = useCallback(async () => {
     try {
       const stateData = await requestJson<BuzzerState>("/api/live-buzzer/state");
@@ -41,15 +78,22 @@ export default function AdminBuzzerPage() {
 
       const entriesData = await requestJson<{ entries: BuzzerEntry[] }>("/api/live-buzzer/admin/entries");
       setEntries(entriesData.entries);
-    } catch (err) {
-      console.error("Failed to fetch admin state", err);
+    } catch {
+      // console.error("Failed to fetch admin state", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!canAccess) return;
+    if (pin && !isPinAuthorized && !initialCheckDone.current) {
+      initialCheckDone.current = true;
+      validatePin(pin);
+    }
+  }, [pin, isPinAuthorized, validatePin]);
+
+  useEffect(() => {
+    if (!canAccess || !isPinAuthorized) return;
 
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -64,7 +108,7 @@ export default function AdminBuzzerPage() {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [canAccess, syncSession, fetchState]);
+  }, [canAccess, isPinAuthorized, syncSession, fetchState]);
 
   const handleAction = async (action: string) => {
     setActionLoading(true);
@@ -72,8 +116,8 @@ export default function AdminBuzzerPage() {
     try {
       await requestJson(`/api/live-buzzer/admin/${action}`, { method: "POST" });
       await fetchState();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Errore azione");
+    } catch {
+      setError("Errore azione");
     } finally {
       setActionLoading(false);
     }
@@ -88,8 +132,8 @@ export default function AdminBuzzerPage() {
         body: JSON.stringify({ email, points, result }),
       });
       await fetchState();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Errore punteggio");
+    } catch {
+      setError("Errore punteggio");
     } finally {
       setActionLoading(false);
     }
@@ -126,6 +170,38 @@ export default function AdminBuzzerPage() {
           </Link>
         }
       />
+    );
+  }
+
+  if (!isPinAuthorized) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-6">
+        <div className="panel w-full max-w-sm text-center space-y-6 rounded-[2rem] p-8 border-[var(--accent-strong)]">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black text-white uppercase italic">Sblocca Plancia</h1>
+            <p className="text-sm text-[var(--text-muted)]">Inserisci il PIN del Capitano per procedere.</p>
+          </div>
+          <div className="space-y-4">
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={pin}
+              onChange={e => setPin(e.target.value)}
+              placeholder="••••"
+              className="field text-center text-3xl tracking-[0.5em] font-mono"
+            />
+            {pinError && <p className="text-[var(--danger)] text-xs font-bold uppercase">{pinError}</p>}
+            <button 
+              className="button-primary w-full min-h-12 text-sm uppercase font-black"
+              onClick={() => validatePin(pin)}
+              disabled={pinLoading || !pin}
+            >
+              {pinLoading ? "Verifica..." : "ACCEDI ALLA PLANCIA"}
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 

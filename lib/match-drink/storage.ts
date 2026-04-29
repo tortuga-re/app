@@ -7,7 +7,7 @@ import {
   MatchDrinkSession,
 } from "./types";
 
-const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "0000";
+const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
 
 export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
 
@@ -28,6 +28,18 @@ export const createSession = async (title: string): Promise<MatchDrinkSession> =
     .single();
 
   if (error) throw error;
+  
+  // Create a hidden system player for technical reasons (messages/countdown)
+  await admin.from("match_drink_players").insert({
+    session_id: data.id,
+    nickname: "_SYSTEM_",
+    age_range: "preferisco_non_dirlo",
+    gender: "preferisco_non_dirlo",
+    relationship_status: "solo_per_ridere",
+    looking_for: "amicizie",
+    public_consent: false,
+  });
+
   return mapSession(data);
 };
 
@@ -50,6 +62,20 @@ export const getSessionByJoinCode = async (code: string): Promise<MatchDrinkSess
     .select("*")
     .eq("join_code", code.toUpperCase())
     .single();
+
+  if (error || !data) return null;
+  return mapSession(data);
+};
+
+export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("match_drink_sessions")
+    .select("*")
+    .neq("status", "ended")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (error || !data) return null;
   return mapSession(data);
@@ -243,6 +269,18 @@ export const moderateMessage = async (
     .eq("id", messageId);
 
   if (error) throw error;
+};
+
+export const getBottleMessage = async (id: string): Promise<MatchDrinkBottleMessage | null> => {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("match_drink_bottle_messages")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return null;
+  return mapMessage(data);
 };
 
 export const getMatches = async (sessionId: string): Promise<MatchDrinkMatch[]> => {

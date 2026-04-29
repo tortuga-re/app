@@ -86,7 +86,9 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         const data = await res.json();
         throw new Error(data.error || "Operazione fallita");
       }
-      await refresh();
+      if (endpoint !== "delete") {
+        await refresh();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Operazione fallita";
       setError(message);
@@ -109,8 +111,11 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     nextQuestion: (index: number) => apiCall("next-question", { index }),
     updateStageMode: (mode: string, msgId?: string) => apiCall("stage-mode", { stageMode: mode, currentStageMessageId: msgId }),
     calculateMatches: () => apiCall("calculate-matches"),
+    seedMessage: () => apiCall("seed-message"),
+    sendCaptainMessage: (msg: string) => apiCall("captain-message", { message: msg }),
     moderateMessage: (id: string, action: string, text?: string) => apiCall("message/moderate", { messageId: id, action, approvedText: text }),
     redeemDrink: (matchId: string) => apiCall("redeem-drink", { matchId }),
     deleteSession: () => apiCall("delete"),
+    updateStatus: (status: string) => apiCall("status", { status }),
   };
 }

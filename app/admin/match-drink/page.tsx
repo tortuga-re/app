@@ -22,18 +22,27 @@ export default function MatchDrinkAdminPage() {
 
   const fetchSessions = useCallback(async (p: string) => {
     setLoading(true);
+    setError("");
     try {
+      // Prima validiamo il PIN con l'endpoint centralizzato
+      const valRes = await fetch("/api/admin/validate-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: p }),
+      });
+      
+      if (!valRes.ok) throw new Error("PIN non valido");
+
+      // Se valido, carichiamo le sessioni
       const res = await fetch(`/api/match-drink/sessions?pin=${p}`);
-      if (!res.ok) {
-        if (res.status === 401) throw new Error("PIN non valido");
-        throw new Error("Errore nel caricamento");
-      }
+      if (!res.ok) throw new Error("Errore nel caricamento sessioni");
+      
       const data = await res.json();
       setSessions(data);
       setIsAuthorized(true);
       localStorage.setItem("match-drink.adminPin", p);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore nel caricamento");
+      setError(err instanceof Error ? err.message : "Errore di accesso");
       setIsAuthorized(false);
     } finally {
       setLoading(false);

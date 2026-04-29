@@ -31,7 +31,7 @@ export interface MatchDrinkSession {
   joinCode: string;
   title: string;
   status: "lobby" | "playing" | "matching" | "reveal" | "ended";
-  stageMode: "lobby" | "question" | "question_results" | "message" | "matching" | "reveal" | "ended";
+  stageMode: "lobby" | "intro" | "question" | "question_results" | "message" | "matching" | "reveal" | "ended";
   currentQuestionIndex: number;
   currentStageMessageId?: string | null;
   createdAt: string;
@@ -44,9 +44,9 @@ export interface MatchDrinkPlayer {
   nickname: string;
   tableNumber?: string;
   ageRange: "18-24" | "25-34" | "35-45" | "46-plus" | "preferisco_non_dirlo";
-  gender: "uomo" | "donna" | "altro" | "preferisco_non_dirlo";
+  gender: "uomo" | "donna" | "preferisco_non_dirlo";
   relationshipStatus: "single" | "in_coppia" | "complicato" | "solo_per_ridere";
-  lookingFor: "uomo" | "donna" | "entrambi" | "nessun_match";
+  lookingFor: "uomo" | "donna" | "entrambi" | "amicizie";
   publicConsent: boolean;
   joinedAt: string;
 }
@@ -92,7 +92,7 @@ export interface MatchDrinkBottleMessage {
   sessionId: string;
   playerId: string;
   message: string;
-  displayMode: "anonymous" | "nickname";
+  displayMode: "anonymous" | "nickname" | "captain";
   status: "pending" | "approved" | "rejected" | "shown";
   approvedText?: string | null;
   createdAt: string;
