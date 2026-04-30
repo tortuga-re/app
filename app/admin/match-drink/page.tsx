@@ -19,6 +19,7 @@ export default function MatchDrinkAdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [questionCount, setQuestionCount] = useState<number>(20);
 
   const fetchSessions = useCallback(async (p: string) => {
     setLoading(true);
@@ -65,7 +66,7 @@ export default function MatchDrinkAdminPage() {
       const res = await fetch("/api/match-drink/session/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle, pin }),
+        body: JSON.stringify({ title: newTitle, pin, questionCount }),
       });
       if (!res.ok) throw new Error("Errore nella creazione");
       setNewTitle("");
@@ -122,13 +123,24 @@ export default function MatchDrinkAdminPage() {
 
         <MatchDrinkCard variant="accent">
           <h2 className="eyebrow mb-4">Crea Nuova Sessione</h2>
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <input
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               placeholder="Titolo serata (es. Sabato 29 Aprile)"
-              className="field flex-1"
+              className="field flex-[2]"
             />
+            <div className="flex items-center gap-2 flex-1">
+              <label className="text-xs uppercase font-bold text-[var(--text-muted)] whitespace-nowrap">Domande:</label>
+              <input
+                type="number"
+                value={questionCount}
+                onChange={e => setQuestionCount(parseInt(e.target.value) || 20)}
+                min={5}
+                max={40}
+                className="field w-20 text-center"
+              />
+            </div>
             <MatchDrinkButton onClick={handleCreate} loading={loading} disabled={!newTitle}>
               CREA
             </MatchDrinkButton>

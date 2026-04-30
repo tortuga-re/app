@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { 
   MatchDrinkAnswer, 
   MatchDrinkBottleMessage, 
+  MatchDrinkMatch,
   MatchDrinkPlayer, 
   MatchDrinkSession 
 } from "./types";
@@ -12,6 +13,7 @@ export function useMatchDrinkStage(sessionId: string) {
   const [answers, setAnswers] = useState<MatchDrinkAnswer[]>([]);
   const [currentMessage, setCurrentMessage] = useState<MatchDrinkBottleMessage | null>(null);
   const [messages, setMessages] = useState<MatchDrinkBottleMessage[]>([]);
+  const [matches, setMatches] = useState<MatchDrinkMatch[]>([]);
   const [loading, setLoading] = useState(true);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -26,6 +28,7 @@ export function useMatchDrinkStage(sessionId: string) {
       setAnswers(data.answers);
       setCurrentMessage(data.currentMessage);
       setMessages(data.messages || []);
+      setMatches(data.matches || []);
       setLoading(false);
     } catch (err) {
       console.error("Stage poll error:", err);
@@ -50,5 +53,5 @@ export function useMatchDrinkStage(sessionId: string) {
     };
   }, [refresh]);
 
-  return { session, players, answers, currentMessage, messages, loading };
+  return { session, players, answers, currentMessage, messages, matches, loading };
 }

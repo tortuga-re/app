@@ -181,6 +181,20 @@ export function MatchDrinkPlayerController() {
     const isPlayerA = myMatch.playerAId === player.id;
     const iAccepted = isPlayerA ? myMatch.acceptedByA : myMatch.acceptedByB;
 
+    let mainReason = myMatch.reason;
+    let spicyQ: string | null = null;
+    let spicyA: string | null = null;
+
+    if (myMatch.reason.includes("|SPICY_Q|")) {
+      const parts = myMatch.reason.split("|SPICY_Q|");
+      mainReason = parts[0];
+      const spicyParts = parts[1].split("|SPICY_A|");
+      if (spicyParts.length === 2) {
+        spicyQ = spicyParts[0];
+        spicyA = spicyParts[1];
+      }
+    }
+
     if (myMatch.drinkUnlocked) {
       return (
         <MatchDrinkShell>
@@ -218,8 +232,23 @@ export function MatchDrinkPlayerController() {
               <div className="h-px w-12 bg-[var(--accent-strong)] opacity-50 mb-4" />
               <p className="text-[10px] text-[var(--text-muted)] uppercase font-black tracking-widest text-center leading-relaxed">
                 Compatibilit&agrave;: {myMatch.score}% <br />
-                {myMatch.commonCriterion}
+                <span className="text-white">{myMatch.commonCriterion}</span>
               </p>
+              
+              <div className="mt-4 pt-4 border-t border-white/10 w-full text-center space-y-2">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase font-black tracking-widest">Cosa vi unisce:</p>
+                <p className="text-xs text-white/90 italic">&quot;{mainReason}&quot;</p>
+                
+                {spicyQ && (
+                  <div className="mt-4 p-3 rounded bg-[var(--accent-strong)]/10 border border-[var(--accent-strong)]/30">
+                    <p className="text-[10px] text-[var(--accent-strong)] uppercase font-black mb-1 flex items-center justify-center gap-1">
+                      <span>🌶️</span> Avete dato la stessa risposta
+                    </p>
+                    <p className="text-xs text-white font-bold mb-1">{spicyQ}</p>
+                    <p className="text-xs text-[var(--accent-strong)] italic">&quot;{spicyA}&quot;</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-4 px-2">
@@ -276,8 +305,18 @@ export function MatchDrinkPlayerController() {
               </div>
               <div className="space-y-1">
                 <p className="text-[var(--text-muted)] uppercase font-bold">Perché:</p>
-                <p className="italic uppercase text-xs">{myMatch.reason}</p>
+                <p className="italic uppercase text-xs">{mainReason}</p>
               </div>
+
+              {spicyQ && (
+                <div className="mt-4 p-3 rounded bg-[var(--accent-strong)]/10 border border-[var(--accent-strong)]/30">
+                  <p className="text-[10px] text-[var(--accent-strong)] uppercase font-black mb-1 flex items-center justify-center gap-1">
+                    <span>🌶️</span> Avete dato la stessa risposta
+                  </p>
+                  <p className="text-xs text-white font-bold mb-1">{spicyQ}</p>
+                  <p className="text-xs text-[var(--accent-strong)] italic">&quot;{spicyA}&quot;</p>
+                </div>
+              )}
             </div>
           </MatchDrinkCard>
 

@@ -156,7 +156,8 @@ export const calculateMatches = (
         playerProfiles.find((p) => p.playerId === playerA.id)!,
         playerProfiles.find((p) => p.playerId === playerB.id)!,
         answers.filter((a) => a.playerId === playerA.id),
-        answers.filter((a) => a.playerId === playerB.id)
+        answers.filter((a) => a.playerId === playerB.id),
+        questionsBank
       );
 
       if (!bestMatch || scoreInfo.score > bestMatch.score) {
@@ -205,19 +206,29 @@ const calculateMatchScore = (
   profA: MatchDrinkProfile,
   profB: MatchDrinkProfile,
   ansA: MatchDrinkAnswer[],
-  ansB: MatchDrinkAnswer[]
+  ansB: MatchDrinkAnswer[],
+  questionsBank: MatchDrinkQuestion[]
 ) => {
   let score = 50; // Base score
   let sameAnswers = 0;
+  let sharedSpicyQuestion: { questionText: string, answerText: string } | null = null;
 
   // Risposte uguali
-  ansA.forEach((ans) => {
+  for (const ans of ansA) {
     const matchingAns = ansB.find((ba) => ba.questionId === ans.questionId);
     if (matchingAns && matchingAns.selectedOptionId === ans.selectedOptionId) {
       score += 8;
       sameAnswers++;
+      
+      const question = questionsBank.find(q => q.id === ans.questionId);
+      if (question && question.category === "spicy" && !sharedSpicyQuestion) {
+        const option = question.options.find(o => o.id === ans.selectedOptionId);
+        if (option) {
+          sharedSpicyQuestion = { questionText: question.text, answerText: option.text };
+        }
+      }
     }
-  });
+  }
 
   // Stesso trait dominante
   if (profA.dominantTrait === profB.dominantTrait) {
@@ -246,7 +257,13 @@ const calculateMatchScore = (
     score > 55 ? "una_birra_e_vediamo" : 
     "errore_consigliato";
 
-  const { criterion, reason } = getMatchReason(profA, profB, sameAnswers, score);
+  const reasonResult = getMatchReason(profA, profB, sameAnswers, score);
+  const criterion = reasonResult.criterion;
+  let reason = reasonResult.reason;
+
+  if (sharedSpicyQuestion) {
+    reason += `|SPICY_Q|${sharedSpicyQuestion.questionText}|SPICY_A|${sharedSpicyQuestion.answerText}`;
+  }
 
   return { score, type, criterion, reason };
 };
