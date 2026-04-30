@@ -12,21 +12,25 @@ const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
 
 export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
 
-export const createSession = async (title: string): Promise<MatchDrinkSession> => {
+export const createSession = async (title: string, questionCount: number = 20): Promise<MatchDrinkSession> => {
   const admin = getSupabaseAdmin();
   const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   
-  // Pesca 20 domande casuali suddivise per categoria
+  // Pesca domande casuali suddivise per categoria proporzionalmente
   const { data: qLight } = await admin.from("match_drink_questions").select("id").eq("category", "light");
   const { data: qIronic } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
   const { data: qSpicy } = await admin.from("match_drink_questions").select("id").eq("category", "spicy");
 
   const shuffle = <T>(array: T[]): T[] => array?.sort(() => Math.random() - 0.5) || [];
   
+  const countLight = Math.floor(questionCount * 0.30);
+  const countIronic = Math.floor(questionCount * 0.35);
+  const countSpicy = questionCount - countLight - countIronic;
+  
   const selectedIds = [
-    ...shuffle(qLight || []).slice(0, 6).map((q) => q.id),
-    ...shuffle(qIronic || []).slice(0, 7).map((q) => q.id),
-    ...shuffle(qSpicy || []).slice(0, 7).map((q) => q.id)
+    ...shuffle(qLight || []).slice(0, countLight).map((q) => q.id),
+    ...shuffle(qIronic || []).slice(0, countIronic).map((q) => q.id),
+    ...shuffle(qSpicy || []).slice(0, countSpicy).map((q) => q.id)
   ];
 
   const { data, error } = await admin

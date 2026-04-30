@@ -4,6 +4,7 @@ import { useMatchDrinkStage } from "@/lib/match-drink/use-match-drink-stage";
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMatchDrinkAdmin } from "@/lib/match-drink/use-match-drink-admin";
+import { MatchDrinkMatch } from "@/lib/match-drink/types";
 
 function CountdownTimer({ targetTime, onFinish }: { targetTime: number; onFinish?: () => void }) {
   const [timeLeft, setTimeLeft] = React.useState("");
@@ -31,7 +32,7 @@ function CountdownTimer({ targetTime, onFinish }: { targetTime: number; onFinish
 
 export default function MatchDrinkStagePage() {
   const { id } = useParams<{ id: string }>();
-  const { session, players, answers, currentMessage, messages, loading } = useMatchDrinkStage(id);
+  const { session, players, answers, currentMessage, messages, matches, loading } = useMatchDrinkStage(id);
   const router = useRouter();
   const admin = useMatchDrinkAdmin(id);
   const handleCountdownFinish = React.useCallback(async () => {
@@ -304,7 +305,7 @@ export default function MatchDrinkStagePage() {
           )}
 
           {session.stageMode === "reveal" && (
-            <div className="text-center space-y-6 animate-in fade-in zoom-in duration-1000 min-h-0">
+            <div className="text-center space-y-6 animate-in fade-in zoom-in duration-1000 min-h-0 w-full">
               <h2 className="text-6xl md:text-8xl font-black gold-gradient uppercase tracking-tighter">IL VERDETTO È PRONTO</h2>
               <div className="space-y-2">
                 <p className="text-4xl md:text-5xl text-white font-black uppercase tracking-tight">
@@ -314,7 +315,35 @@ export default function MatchDrinkStagePage() {
                   CONTROLLATE ORA!
                 </p>
               </div>
-              <div className="panel-muted inline-block p-8 rounded-[2rem] border-white/20 bg-white/5 backdrop-blur-md">
+
+              {/* Match Stats */}
+              {matches && matches.length > 0 && (
+                <div className="w-full max-w-5xl mx-auto mt-8">
+                  {(() => {
+                    const byLabel = matches.reduce((acc: Record<string, number>, m: MatchDrinkMatch) => {
+                      acc[m.label] = (acc[m.label] || 0) + 1;
+                      return acc;
+                    }, {});
+                    const entries = Object.entries(byLabel).sort((a, b) => b[1] - a[1]);
+                    
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                        <div className="col-span-full mb-2">
+                          <p className="text-2xl font-black uppercase tracking-widest text-[var(--text-muted)]">Coppie Formate: <span className="text-white text-4xl ml-2">{matches.length}</span></p>
+                        </div>
+                        {entries.map(([label, count]) => (
+                          <div key={label} className="panel bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center space-y-1">
+                            <span className="text-4xl font-black text-[var(--accent-strong)]">{count}</span>
+                            <span className="text-sm font-bold text-white uppercase tracking-wider text-center">{label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              <div className="panel-muted inline-block p-8 rounded-[2rem] border-white/20 bg-white/5 backdrop-blur-md mt-4">
                 <p className="text-3xl md:text-4xl text-white leading-tight uppercase font-black">
                   Se accettate entrambi l&apos;abbinamento,<br />
                   sbloccate il <span className="gold-gradient">DRINK DEL MATCH</span>

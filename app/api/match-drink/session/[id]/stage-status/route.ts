@@ -6,7 +6,8 @@ import {
   getMessages,
   getPlayers, 
   getSession,
-  getSessionQuestions
+  getSessionQuestions,
+  getMatches
 } from "@/lib/match-drink/storage";
 
 export async function GET(
@@ -16,12 +17,13 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const [session, players, answers, messages, questions] = await Promise.all([
+    const [session, players, answers, messages, questions, matches] = await Promise.all([
       getSession(id),
       getPlayers(id),
       getAnswers(id),
       getMessages(id),
       getSessionQuestions(id),
+      getMatches(id)
     ]);
 
     if (!session) {
@@ -45,6 +47,7 @@ export async function GET(
       answers,
       currentMessage,
       messages,
+      matches,
     });
   } catch (error) {
     console.error("Error getting stage status:", error);
