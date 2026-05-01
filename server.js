@@ -5,12 +5,14 @@ try {
   const next = require('next')
 
   const dev = process.env.NODE_ENV !== 'production'
-  const hostname = '0.0.0.0'
+  const hostname = '127.0.0.1'
+  const socketPath = process.env.LSNODE_SOCKET
   const port = process.env.PORT || '3000'
-  const listenTarget = isNaN(parseInt(port, 10)) ? port : parseInt(port, 10)
+  const listenTarget = socketPath || (isNaN(parseInt(port, 10)) ? port : parseInt(port, 10))
 
   console.log('--- SERVER STARTING ---')
   console.log('NODE_ENV:', process.env.NODE_ENV)
+  console.log('LSNODE_SOCKET:', socketPath)
   console.log('PORT (raw):', process.env.PORT)
   console.log('LISTEN TARGET:', listenTarget)
   console.log('HOSTNAME:', hostname)
