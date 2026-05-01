@@ -4,7 +4,7 @@ const { parse } = require('url')
 const next = require('next')
 
 const dev = process.env.NODE_ENV !== 'production'
-const hostname = '0.0.0.0'
+const hostname = '127.0.0.1'
 const port = process.env.PORT || '3000'
 const listenTarget = isNaN(parseInt(port, 10)) ? port : parseInt(port, 10)
 
@@ -14,6 +14,7 @@ console.log('PORT (raw):', process.env.PORT)
 console.log('LISTEN TARGET:', listenTarget)
 console.log('HOSTNAME:', hostname)
 console.log('DEV MODE:', dev)
+console.log('ENV KEYS:', Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('TOKEN') && !k.includes('SECRET')).join(', '))
 
 const app = next({ dev, hostname, port: isNaN(parseInt(port, 10)) ? 3000 : parseInt(port, 10) })
 const handle = app.getRequestHandler()
