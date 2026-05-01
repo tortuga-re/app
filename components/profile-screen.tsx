@@ -217,7 +217,7 @@ export function CiurmaScreen() {
     };
   }, [hasProfile, identityEmail, isEditingLookup, updateIdentity]);
 
-  const applyProfileResponse = (response: ProfileResponse) => {
+  const applyProfileResponse = async (response: ProfileResponse) => {
     setData(response);
     setLookupEmail(response.contact?.Email || response.query);
 
@@ -899,6 +899,43 @@ export function CiurmaScreen() {
                     </span>
                   </div>
                 </Link>
+              )}
+              {/* Kantaquiz Admin */}
+              {isAdmin(identity.email) && (
+                <button
+                  onClick={async () => {
+                    const pin = prompt("Inserisci PIN Capitano:");
+                    if (!pin) return;
+                    try {
+                      const res = await fetch("/api/game/kantaquiz", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ pin }),
+                      });
+                      if (res.ok) {
+                        alert("Kantaquiz avviato! La guida Dr. Why sarà visibile per 3 ore.");
+                      } else {
+                        const err = await res.json();
+                        alert("Errore: " + err.error);
+                      }
+                    } catch (e) {
+                      alert("Errore di connessione.");
+                    }
+                  }}
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block w-full text-left transition-all hover:scale-[1.02] active:scale-95 border-orange-500 bg-orange-500/5 mt-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">🎤 Avvia Kantaquiz</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Attiva la guida Dr. Why nella tab Info per i clienti.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-orange-500 bg-orange-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-orange-400">
+                      ADMIN
+                    </span>
+                  </div>
+                </button>
               )}
 
               {ciurmaRoadmapFeatures.map((feature) => (
