@@ -15,6 +15,7 @@ export interface SavePushSubscriptionInput {
   permission?: NotificationPermission | "unsupported";
   userAgent?: string;
   installed?: boolean;
+  venueAccessExpiresAt?: number;
 }
 
 export interface StoredPushSubscription {
@@ -28,6 +29,7 @@ export interface StoredPushSubscription {
   permission?: NotificationPermission | "unsupported";
   userAgent?: string;
   installed: boolean;
+  venueAccessExpiresAt?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +56,7 @@ export interface PushSendPayload {
   icon?: string;
   badge?: string;
   renotify?: boolean;
+  onlyVenuePresent?: boolean;
 }
 
 export interface PushSendResponse {

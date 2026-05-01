@@ -49,15 +49,54 @@ const buildPayload = (payload: PushSendPayload) =>
     renotify: Boolean(payload.renotify),
   });
 
+export const sendPushToSubscription = async (
+  record: StoredPushSubscription,
+  payload: PushSendPayload,
+): Promise<boolean> => {
+  configureWebPush();
+  const notificationPayload = buildPayload(payload);
+
+  try {
+    await webpush.sendNotification(
+      toWebPushSubscription(record),
+      notificationPayload,
+    );
+    return true;
+  } catch (error) {
+    const statusCode =
+      typeof error === "object" &&
+      error !== null &&
+      "statusCode" in error &&
+      typeof error.statusCode === "number"
+        ? error.statusCode
+        : 0;
+
+    if (statusCode === 404 || statusCode === 410) {
+      await deletePushSubscription(record.endpoint);
+    }
+    return false;
+  }
+};
+
 export const sendPushNotification = async (
   payload: PushSendPayload,
 ): Promise<PushSendResponse> => {
   configureWebPush();
 
   const email = normalizeEmail(payload.email);
-  const subscriptions = (await listPushSubscriptions()).filter((record) =>
-    email ? normalizeEmail(record.email) === email : true,
-  );
+  const now = Date.now();
+  const subscriptions = (await listPushSubscriptions()).filter((record) => {
+    const emailMatch = email ? normalizeEmail(record.email) === email : true;
+    if (!emailMatch) return false;
+
+    if (payload.onlyVenuePresent) {
+      return Boolean(
+        record.venueAccessExpiresAt && record.venueAccessExpiresAt > now,
+      );
+    }
+
+    return true;
+  });
   const notificationPayload = buildPayload(payload);
 
   let sent = 0;

@@ -106,7 +106,7 @@ export function CiurmaScreen() {
   );
   const activeCardCode = data?.contact?.CodiceCard?.trim() ?? "";
   const contactCode = data?.contact?.CodiceContatto?.trim() ?? "";
-  const showLookupPanel = isEditingLookup || !hasIdentity;
+  const showLookupPanel = (isEditingLookup || !hasIdentity) && !isRegistering;
   const contactSnapshot = buildContactForm(data?.contact ?? undefined);
   const existingSavedEmail = hasProfile
     ? normalizeCustomerEmail(contactSnapshot.email || identityEmail)

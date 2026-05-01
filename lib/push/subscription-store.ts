@@ -125,6 +125,7 @@ export const savePushSubscription = async (
     permission: input.permission,
     userAgent: input.userAgent?.trim() || undefined,
     installed: Boolean(input.installed),
+    venueAccessExpiresAt: input.venueAccessExpiresAt,
     createdAt: now,
     updatedAt: now,
   };

@@ -9,6 +9,7 @@ import type {
   DeletePushSubscriptionResponse,
   SavePushSubscriptionResponse,
 } from "@/lib/push/types";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { cn } from "@/lib/utils";
 
 type DeferredPromptEvent = Event & {
@@ -98,6 +99,7 @@ const base64ToUint8Array = (value: string) => {
 
 export function PwaController() {
   const { identity } = useCustomerIdentity();
+  const { expiresAt: venueExpiresAt } = useOnPremiseAccess();
   const [clientReady, setClientReady] = useState(false);
   const [installDismissedAt, setInstallDismissedAt] = useState<number | null>(null);
   const [pushDismissedAt, setPushDismissedAt] = useState<number | null>(null);
@@ -236,10 +238,11 @@ export function PwaController() {
           permission: Notification.permission,
           userAgent: navigator.userAgent,
           installed: isInstalled,
+          venueAccessExpiresAt: venueExpiresAt,
         }),
       });
     },
-    [identity.email, isInstalled],
+    [identity.email, isInstalled, venueExpiresAt],
   );
 
   const ensurePushSubscription = useCallback(
@@ -369,7 +372,7 @@ export function PwaController() {
     return () => {
       cancelled = true;
     };
-  }, [clientReady, ensurePushSubscription, pushPermission, serviceWorkerRegistration]);
+  }, [clientReady, ensurePushSubscription, pushPermission, serviceWorkerRegistration, venueExpiresAt]);
 
   const installSnoozed =
     installDismissedAt !== null &&
