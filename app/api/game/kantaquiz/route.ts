@@ -45,6 +45,15 @@ export async function POST(req: NextRequest) {
       .upsert({ key: KANTAQUIZ_START_KEY, value: now }, { onConflict: "key" });
 
     if (error) throw error;
+    
+    // Automazione #2: Allerta Kantaquiz
+    const { sendPushNotification } = await import("@/lib/push/send");
+    void sendPushNotification({
+      title: "Il Kantaquiz inizia ora! 🎤",
+      body: "Scaldate la voce: stiamo per iniziare. Entra nell'app per partecipare alla sfida!",
+      url: "/info", // Mandiamo alla tab INFO dove c'è la card con le istruzioni
+      onlyVenuePresent: true,
+    });
 
     return NextResponse.json({ success: true, startTime: now });
   } catch (error: unknown) {

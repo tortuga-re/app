@@ -238,8 +238,6 @@ function VenuesScreenContent() {
   const [deviceOS, setDeviceOS] = useState<"ios" | "android" | "other" | null>(null);
 
   useEffect(() => {
-    setIsClientReady(true);
-    
     const detectOS = () => {
       const ua = navigator.userAgent.toLowerCase();
       if (/iphone|ipad|ipod/.test(ua)) return "ios";
@@ -247,7 +245,10 @@ function VenuesScreenContent() {
       return "other";
     };
 
-    setDeviceOS(detectOS());
+    window.requestAnimationFrame(() => {
+      setIsClientReady(true);
+      setDeviceOS(detectOS());
+    });
 
     const loadVenues = async () => {
       try {

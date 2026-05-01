@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       icon: payload.icon?.trim() || undefined,
       badge: payload.badge?.trim() || undefined,
       renotify: Boolean(payload.renotify),
+      onlyVenuePresent: Boolean(payload.onlyVenuePresent),
     });
 
     return NextResponse.json(response);

@@ -51,6 +51,14 @@ export async function POST(request: Request) {
       email: normalizeEmail(payload.email),
     });
 
+    // Automazione #1: Benvenuto a bordo
+    const { sendPushToSubscription } = await import("@/lib/push/send");
+    void sendPushToSubscription(record, {
+      title: "Benvenuto a bordo! 🏴‍☠️",
+      body: "Notifiche attive. Da ora riceverai i nostri bottini segreti e gli aggiornamenti sulle serate.",
+      url: "/ciurma",
+    });
+
     const response: SavePushSubscriptionResponse = {
       saved: true,
       record,
