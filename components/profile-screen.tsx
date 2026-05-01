@@ -28,6 +28,7 @@ import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/type
 import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { isAdmin } from "@/lib/live-buzzer/admin";
+import { PwaPushCard } from "@/components/pwa-push-card";
 
 type ContactFormState = {
   firstName: string;
@@ -802,6 +803,9 @@ export function CiurmaScreen() {
 
       {data?.contact ? (
         <>
+          <div className="mb-5">
+            <PwaPushCard />
+          </div>
           <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
             <PiratePhotoContestCard
               key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
@@ -941,6 +945,26 @@ export function CiurmaScreen() {
                     </span>
                   </div>
                 </button>
+              )}
+
+              {/* Push Admin */}
+              {isAdmin(identity.email) && (
+                <Link
+                  href="/admin/push"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-purple-500 bg-purple-500/5 mt-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">📣 Plancia Push</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Invia notifiche personalizzate a tutta la ciurma o solo ai presenti.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-purple-500 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
+                      ADMIN
+                    </span>
+                  </div>
+                </Link>
               )}
 
               {!isAdmin(identity.email) && ciurmaRoadmapFeatures.map((feature) => (
