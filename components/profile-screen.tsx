@@ -825,41 +825,46 @@ export function CiurmaScreen() {
             </div>
 
             <div className="mt-4 grid gap-3">
-              {/* Match & Drink Card */}
-              <Link
-                href="/game/match-drink"
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink - GIOVEDÌ</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      Nuove amicizie o anima gemella? Incontra persone che condividono i tuoi stessi interessi!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </Link>
+              {/* Client-facing cards (Hidden for Admins) */}
+              {!isAdmin(identity.email) && (
+                <>
+                  {/* Match & Drink - GIOVEDÌ */}
+                  <Link
+                    href="/game/match-drink"
+                    className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink - GIOVEDÌ</p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                          Nuove amicizie o anima gemella? Incontra persone che condividono i tuoi stessi interessi!
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
+                        GIOCA ORA
+                      </span>
+                    </div>
+                  </Link>
 
-              {/* Buzzer Card - Client */}
-              <a
-                href="/game/buzzer"
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </a>
+                  {/* Buzzer Card - Client */}
+                  <a
+                    href="/game/buzzer"
+                    className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                          La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                        GIOCA ORA
+                      </span>
+                    </div>
+                  </a>
+                </>
+              )}
 
               {/* Buzzer Card - Admin (Captain only) */}
               {isAdmin(identity.email) && (
@@ -938,7 +943,7 @@ export function CiurmaScreen() {
                 </button>
               )}
 
-              {ciurmaRoadmapFeatures.map((feature) => (
+              {!isAdmin(identity.email) && ciurmaRoadmapFeatures.map((feature) => (
                 <div
                   key={feature.title}
                   className="panel-muted rounded-[1.5rem] px-4 py-4"
