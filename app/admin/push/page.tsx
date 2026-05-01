@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
 import { useCustomerIdentity } from "@/lib/customer-identity";
@@ -63,7 +62,7 @@ export default function AdminPushPage() {
       } else {
         setResult({ error: data.error || "Errore durante l'invio." });
       }
-    } catch (err) {
+    } catch (_err) {
       setResult({ error: "Errore di connessione al server." });
     } finally {
       setSending(false);

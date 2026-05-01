@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error("Error starting kantaquiz:", error);
     const errMessage = error instanceof Error ? error.message : "";
-    const errCode = (error as any)?.code;
+    const errCode = error && typeof error === "object" && "code" in error ? (error as { code: unknown }).code : null;
     
     if (errCode === "PGRST116" || errMessage?.includes("relation \"public.app_state\" does not exist")) {
       return NextResponse.json({ error: "La tabella 'app_state' non esiste su Supabase. Per favore creala usando il codice SQL fornito." }, { status: 500 });

@@ -927,7 +927,7 @@ export function CiurmaScreen() {
                         const err = await res.json();
                         alert("Errore: " + err.error);
                       }
-                    } catch (e) {
+                    } catch (_e) {
                       alert("Errore di connessione.");
                     }
                   }}
