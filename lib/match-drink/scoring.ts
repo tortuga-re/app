@@ -219,7 +219,7 @@ const calculateMatchScore = (
     if (matchingAns && matchingAns.selectedOptionId === ans.selectedOptionId) {
       score += 8;
       sameAnswers++;
-      
+
       const question = questionsBank.find(q => q.id === ans.questionId);
       if (question && question.category === "spicy" && !sharedSpicyQuestion) {
         const option = question.options.find(o => o.id === ans.selectedOptionId);
@@ -251,11 +251,11 @@ const calculateMatchScore = (
   score = Math.min(Math.max(score, 0), 100);
 
   // Determina tipo e motivo
-  const type: MatchDrinkMatch["matchType"] = 
-    score > 85 ? "anime_gemelle" : 
-    score > 70 ? "compatibilita_sospetta" : 
-    score > 55 ? "una_birra_e_vediamo" : 
-    "errore_consigliato";
+  const type: MatchDrinkMatch["matchType"] =
+    score > 85 ? "anime_gemelle" :
+      score > 70 ? "compatibilita_sospetta" :
+        score > 55 ? "una_birra_e_vediamo" :
+          "errore_consigliato";
 
   const reasonResult = getMatchReason(profA, profB, sameAnswers, score);
   const criterion = reasonResult.criterion;
