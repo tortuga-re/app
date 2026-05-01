@@ -13,13 +13,14 @@ try {
   console.log('--- SERVER STARTING ---')
   console.log('NODE_ENV:', process.env.NODE_ENV)
   console.log('LSNODE_SOCKET:', socketPath)
+  console.log('LSNODE_STARTUP_FILE:', process.env.LSNODE_STARTUP_FILE)
   console.log('PORT (raw):', process.env.PORT)
   console.log('LISTEN TARGET:', listenTarget)
   console.log('HOSTNAME:', hostname)
   console.log('DEV MODE:', dev)
   console.log('ENV KEYS:', Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('TOKEN') && !k.includes('SECRET')).join(', '))
 
-  const app = next({ dev, hostname, port: isNaN(parseInt(port, 10)) ? 3000 : parseInt(port, 10) })
+  const app = next({ dev, port: isNaN(parseInt(port, 10)) ? 3000 : parseInt(port, 10) })
   const handle = app.getRequestHandler()
 
   app.prepare().then(() => {
