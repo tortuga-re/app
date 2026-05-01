@@ -41,6 +41,16 @@ export async function GET(request: Request) {
 
   try {
     const data = await getProfileData(mode, normalizedQuery);
+    
+    // Se la ricerca è per email, cerchiamo anche l'avatar su Supabase
+    if (mode === "email") {
+      const { getCustomerAvatar } = await import("@/lib/profile/avatar-service");
+      const avatarUrl = await getCustomerAvatar(normalizedQuery).catch(() => null);
+      if (avatarUrl) {
+        data.avatarUrl = avatarUrl;
+      }
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(

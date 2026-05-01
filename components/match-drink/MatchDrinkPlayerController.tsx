@@ -369,6 +369,7 @@ function JoinForm({
     gender: MatchDrinkPlayer["gender"];
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
+    avatarUrl?: string;
   } | null
 }) {
   const [nickname, setNickname] = useState(savedProfile?.nickname || "");
@@ -377,7 +378,7 @@ function JoinForm({
   const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "preferisco_non_dirlo");
   const [relationshipStatus, setRelationshipStatus] = useState<MatchDrinkPlayer["relationshipStatus"]>(savedProfile?.relationshipStatus || "single");
   const [lookingFor, setLookingFor] = useState<MatchDrinkPlayer["lookingFor"]>(savedProfile?.lookingFor || "entrambi");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>(savedProfile?.avatarUrl || "");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {

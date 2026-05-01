@@ -134,7 +134,10 @@ export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateA
       const res = await fetch("/api/match-drink/upload-avatar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base64: dataUrl }),
+        body: JSON.stringify({ 
+          base64: dataUrl,
+          email: customerKey.includes("@") ? customerKey : undefined 
+        }),
       });
       if (res.ok) {
         const { url } = await res.json();

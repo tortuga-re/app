@@ -339,6 +339,7 @@ export interface ProfileResponse {
   upcomingReservations: UpcomingReservation[];
   lookupMode: "email" | "contactCode";
   query: string;
+  avatarUrl?: string;
 }
 
 export interface FidelityActivationResponse {

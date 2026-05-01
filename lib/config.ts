@@ -28,6 +28,8 @@ export const siteConfig = {
   productionUrl: "https://app.tortugabay.it",
   accent: "#b58a4d",
   accentSoft: "#f1d8a1",
+  logoUrl: "https://tortugabay.it/wp-content/uploads/2025/08/cropped-TORTUGA-FAVICON-SMALL.png",
+  ogImageUrl: "https://tortugabay.it/wp-content/uploads/2026/05/LOGO-TORTUGA-2.png",
 };
 
 export const analyticsConfig = {

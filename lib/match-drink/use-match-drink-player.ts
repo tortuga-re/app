@@ -26,10 +26,30 @@ export function useMatchDrinkPlayer() {
     gender: MatchDrinkPlayer["gender"];
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
+    avatarUrl?: string;
   } | null>(() => {
     if (typeof window !== "undefined") {
       const data = localStorage.getItem(STORAGE_KEY_PROFILE);
-      return data ? JSON.parse(data) : null;
+      const profile = data ? JSON.parse(data) : null;
+      
+      // Se non abbiamo un avatar nel profilo del gioco, proviamo a prenderlo dall'identità globale
+      if (profile && !profile.avatarUrl) {
+        const email = localStorage.getItem("tortuga.customer-identity");
+        if (email) {
+          try {
+            const identity = JSON.parse(email);
+            if (identity.email) {
+              const avatarKey = `tortuga.customer-avatar:${identity.email.trim().toLowerCase()}`;
+              const avatar = localStorage.getItem(avatarKey);
+              if (avatar) {
+                profile.avatarUrl = avatar;
+              }
+            }
+          } catch { /* ignore */ }
+        }
+      }
+      
+      return profile;
     }
     return null;
   });

@@ -5,7 +5,8 @@ import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
-    const { base64 } = await req.json();
+    const body = await req.json();
+    const { base64, email } = body;
 
     if (!base64) {
       return NextResponse.json({ error: "Nessuna immagine fornita" }, { status: 400 });
@@ -30,6 +31,14 @@ export async function POST(req: NextRequest) {
 
     // Ritorna URL pubblico
     const publicUrl = `/match-drink-avatars/${fileName}`;
+
+    // Se viene fornita un'email, salviamo l'associazione su Supabase per la persistenza
+    if (email) {
+      const { saveCustomerAvatar } = await import("@/lib/profile/avatar-service");
+      await saveCustomerAvatar(email, publicUrl).catch((err) => {
+        console.error("Failed to persist avatar mapping:", err);
+      });
+    }
 
     return NextResponse.json({ url: publicUrl });
   } catch (error) {

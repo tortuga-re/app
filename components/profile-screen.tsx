@@ -235,6 +235,13 @@ export function CiurmaScreen() {
           ? response.contact.ConsensoMarketing === 1
           : undefined,
     });
+    
+    // Sincronizza l'avatar persistente nel LocalStorage locale
+    if (response.avatarUrl) {
+      const email = response.contact?.Email || response.query;
+      const storageKey = `tortuga.customer-avatar:${email.trim().toLowerCase()}`;
+      localStorage.setItem(storageKey, response.avatarUrl);
+    }
   };
 
   const runLookup = async () => {
