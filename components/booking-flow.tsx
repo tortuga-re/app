@@ -888,285 +888,318 @@ export function BookingFlow() {
 
       {bootstrap ? (
         <>
-          <div id="booking-form" className="panel hash-scroll-target rounded-[2rem] p-5">
-            <div className="space-y-2">
-              <p className="eyebrow">Data e Persone</p>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Scegli quando vuoi salpare e quanti sarete a bordo.
-              </p>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Data</span>
-                <input
-                  className="field min-w-0"
-                  type="date"
-                  min={baseDraft.date}
-                  value={draft.date}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, date: event.target.value }))
-                  }
-                />
-              </label>
-
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Numero persone</span>
-                <input
-                  className="field min-w-0"
-                  type="number"
-                  min={1}
-                  max={16}
-                  value={draft.pax}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      pax: Number(event.target.value) || 1,
-                    }))
-                  }
-                />
-              </label>
-            </div>
-
-            {showRoomDropdown ? (
-              <label className="mt-4 block space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Sala</span>
-                <select
-                  className="field"
-                  value={activeRoomCode}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      roomCode: event.target.value,
-                    }))
-                  }
-                >
-                  {bootstrap.rooms.map((room) => (
-                    <option key={room.code} value={room.code}>
-                      {room.publicName || room.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-
-            {canLoadAvailability ? (
-              <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
-                <div className="space-y-2">
-                  <p className="eyebrow">Slot Cena</p>
-                  <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    Gli slot si aggiornano in base alla data, alle persone e
-                    alla sala che hai scelto.
-                  </p>
-                </div>
-
-                {renderAvailabilityContent("mt-5")}
-              </div>
-            ) : null}
-
-            {requiresRoomSelection && !activeRoomCode ? (
-              <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Scegli prima la sala dal menu per vedere gli orari disponibili e
-                  orientarti meglio con la mappa del locale.
-                </p>
-              </div>
-            ) : null}
-          </div>
-
-          {activeRoomCode && selectedRoom ? (
-            <TortugaMapViewer
-              roomCode={activeRoomCode}
-              roomName={selectedRoom.publicName || selectedRoom.name}
-            />
-          ) : null}
-
-          {selectedSlot ? (
-            <div
-              id="dati-cliente"
-              ref={customerDetailsStepRef}
-              className="panel hash-scroll-target rounded-[2rem] p-5"
-            >
-              <div className="space-y-2">
-                <p className="eyebrow">Dati Cliente</p>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Ultimo passo: inserisci i tuoi dati e conferma la prenotazione.
-                </p>
-              </div>
-
-              <div className="mt-4 rounded-[1.4rem] border border-[var(--border)] bg-white/4 px-4 py-3">
-                <p className="text-sm font-semibold text-white">
-                  Slot scelto: {selectedSlot.time}
-                </p>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {formatLongDate(selectedSlot.date)} - {selectedSlot.bandLabel}
-                </p>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Nome</span>
-                  <input
-                    className="field"
-                    required
-                    value={draft.firstName}
-                    onChange={(event) => {
-                      const nextFirstName = event.target.value;
-                      setDraft((current) => ({
-                        ...current,
-                        firstName: nextFirstName,
-                      }));
-
-                      if (draft.email && isValidCustomerEmail(draft.email)) {
-                        updateIdentity({ firstName: nextFirstName });
-                      }
-                    }}
-                  />
-                </label>
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Cognome</span>
-                  <input
-                    className="field"
-                    required
-                    value={draft.lastName}
-                    onChange={(event) => {
-                      const nextLastName = event.target.value;
-                      setDraft((current) => ({
-                        ...current,
-                        lastName: nextLastName,
-                      }));
-
-                      if (draft.email && isValidCustomerEmail(draft.email)) {
-                        updateIdentity({ lastName: nextLastName });
-                      }
-                    }}
-                  />
-                </label>
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Email</span>
-                  <input
-                    className="field"
-                    type="email"
-                    required
-                    value={draft.email}
-                    onChange={(event) => {
-                      const nextEmail = normalizeCustomerEmail(event.target.value);
-
-                      setDraft((current) => ({ ...current, email: nextEmail }));
-
-                      if (isValidCustomerEmail(nextEmail)) {
-                        setIdentityFromEmail(nextEmail, {
-                          firstName: draft.firstName,
-                          lastName: draft.lastName,
-                          phone: draft.phone,
-                          marketingConsent: identity.marketingConsent,
-                        });
-                      }
-                    }}
-                  />
-                </label>
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Telefono</span>
-                  <input
-                    className="field"
-                    type="tel"
-                    required
-                    placeholder="+39..."
-                    value={draft.phone}
-                    onChange={(event) => {
-                      const nextPhone = event.target.value;
-
-                      setDraft((current) => ({ ...current, phone: nextPhone }));
-
-                      if (draft.email && isValidCustomerEmail(draft.email)) {
-                        updateIdentity({ phone: nextPhone });
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-
-              <label className="mt-3 block space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Note</span>
-                <textarea
-                  className="field min-h-28 resize-none"
-                  value={draft.note}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, note: event.target.value }))
-                  }
-                />
-              </label>
-
-              <div className="mt-4 space-y-3">
-                <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                  <input
-                    type="checkbox"
-                    checked={draft.privacyAccepted}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        privacyAccepted: event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>Accetto il trattamento privacy per inviare la prenotazione.</span>
-                </label>
-                {!shouldHideMarketingConsent ? (
-                  <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={draft.marketingAccepted}
-                      onChange={(event) =>
-                        handleMarketingConsentChange(event.target.checked)
-                      }
-                    />
-                    <span>Accetto comunicazioni marketing future di Tortuga.</span>
-                  </label>
-                ) : null}
-              </div>
-
-              <div id="conferma" className="hash-scroll-target">
-                <button
-                  type="button"
-                  className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                  onClick={() => {
-                    triggerHaptic();
-                    void submitBooking();
-                  }}
-                  disabled={submitting}
-                >
-                  {submitting ? "Creo la prenotazione..." : "Conferma prenotazione"}
-                </button>
-              </div>
-            </div>
-          ) : null}
-
           {success ? (
             <div id="prenotazione-completata" className="panel hash-scroll-target rounded-[2rem] p-5">
               <div className="space-y-2">
                 <p className="eyebrow">Prenotazione registrata</p>
+                <h2 className="text-2xl font-semibold text-white">
+                  {success.reservation.LabelStato || "Ci vediamo al Tortuga!"}
+                </h2>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  La tua richiesta e&apos; arrivata a destinazione.
+                  La tua richiesta è arrivata a destinazione correttamente. Riceverai presto una conferma all&apos;indirizzo indicato.
                 </p>
               </div>
-              <div className="mt-4 space-y-3">
-                <h2 className="text-2xl font-semibold text-white">
-                  {success.reservation.LabelStato || "Ci vediamo al Tortuga"}
-                </h2>
-                {success.reservation.DataPrenotazione ? (
+              
+              <div className="mt-6 space-y-4">
+                <div className="grid gap-3">
+                  <div className="panel-muted rounded-[1.45rem] px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      Data e Ora
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {success.reservation.DataPrenotazione 
+                        ? formatDateTime(success.reservation.DataPrenotazione) 
+                        : "Data non indicata"}
+                    </p>
+                  </div>
+                  <div className="panel-muted rounded-[1.45rem] px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      Persone
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {success.reservation.Pax} {success.reservation.Pax === 1 ? "persona" : "persone"}
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/ciurma#riconoscimento"
+                  className="button-primary flex min-h-12 w-full items-center justify-center px-5 text-sm"
+                  onClick={() => triggerHaptic()}
+                >
+                  Apri la tua ciurma
+                </Link>
+                
+                <button
+                  type="button"
+                  className="button-secondary flex min-h-12 w-full items-center justify-center px-5 text-sm"
+                  onClick={() => {
+                    triggerHaptic();
+                    setSuccess(null);
+                    setSelectedTime("");
+                    setDraft(fallbackDraft);
+                  }}
+                >
+                  Fai un&apos;altra prenotazione
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div id="booking-form" className="panel hash-scroll-target rounded-[2rem] p-5">
+                <div className="space-y-2">
+                  <p className="eyebrow">Data e Persone</p>
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    Data e ora: {formatDateTime(success.reservation.DataPrenotazione)}
+                    Scegli quando vuoi salpare e quanti sarete a bordo.
                   </p>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Data</span>
+                    <input
+                      className="field min-w-0"
+                      type="date"
+                      min={baseDraft.date}
+                      value={draft.date}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, date: event.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Numero persone</span>
+                    <input
+                      className="field min-w-0"
+                      type="number"
+                      min={1}
+                      max={16}
+                      value={draft.pax}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          pax: Number(event.target.value) || 1,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
+                {showRoomDropdown ? (
+                  <label className="mt-4 block space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Sala</span>
+                    <select
+                      className="field"
+                      value={activeRoomCode}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          roomCode: event.target.value,
+                        }))
+                      }
+                    >
+                      {bootstrap.rooms.map((room) => (
+                        <option key={room.code} value={room.code}>
+                          {room.publicName || room.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+
+                {canLoadAvailability ? (
+                  <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
+                    <div className="space-y-2">
+                      <p className="eyebrow">Slot Cena</p>
+                      <p className="text-sm leading-6 text-[var(--text-muted)]">
+                        Gli slot si aggiornano in base alla data, alle persone e
+                        alla sala che hai scelto.
+                      </p>
+                    </div>
+
+                    {renderAvailabilityContent("mt-5")}
+                  </div>
+                ) : null}
+
+                {requiresRoomSelection && !activeRoomCode ? (
+                  <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
+                    <p className="text-sm leading-6 text-[var(--text-muted)]">
+                      Scegli prima la sala dal menu per vedere gli orari disponibili e
+                      orientarti meglio con la mappa del locale.
+                    </p>
+                  </div>
                 ) : null}
               </div>
-              <Link
-                href="/ciurma#riconoscimento"
-                className="button-secondary mt-5 inline-flex min-h-11 items-center justify-center px-5"
-              >
-                Apri la tua ciurma
-              </Link>
-            </div>
-          ) : null}
+
+              {activeRoomCode && selectedRoom ? (
+                <TortugaMapViewer
+                  roomCode={activeRoomCode}
+                  roomName={selectedRoom.publicName || selectedRoom.name}
+                />
+              ) : null}
+
+              {selectedSlot ? (
+                <div
+                  id="dati-cliente"
+                  ref={customerDetailsStepRef}
+                  className="panel hash-scroll-target rounded-[2rem] p-5"
+                >
+                  <div className="space-y-2">
+                    <p className="eyebrow">Dati Cliente</p>
+                    <p className="text-sm leading-6 text-[var(--text-muted)]">
+                      Ultimo passo: inserisci i tuoi dati e conferma la prenotazione.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 rounded-[1.4rem] border border-[var(--border)] bg-white/4 px-4 py-3">
+                    <p className="text-sm font-semibold text-white">
+                      Slot scelto: {selectedSlot.time}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      {formatLongDate(selectedSlot.date)} - {selectedSlot.bandLabel}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Nome</span>
+                      <input
+                        className="field"
+                        required
+                        value={draft.firstName}
+                        onChange={(event) => {
+                          const nextFirstName = event.target.value;
+                          setDraft((current) => ({
+                            ...current,
+                            firstName: nextFirstName,
+                          }));
+
+                          if (draft.email && isValidCustomerEmail(draft.email)) {
+                            updateIdentity({ firstName: nextFirstName });
+                          }
+                        }}
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Cognome</span>
+                      <input
+                        className="field"
+                        required
+                        value={draft.lastName}
+                        onChange={(event) => {
+                          const nextLastName = event.target.value;
+                          setDraft((current) => ({
+                            ...current,
+                            lastName: nextLastName,
+                          }));
+
+                          if (draft.email && isValidCustomerEmail(draft.email)) {
+                            updateIdentity({ lastName: nextLastName });
+                          }
+                        }}
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Email</span>
+                      <input
+                        className="field"
+                        type="email"
+                        required
+                        value={draft.email}
+                        onChange={(event) => {
+                          const nextEmail = normalizeCustomerEmail(event.target.value);
+
+                          setDraft((current) => ({ ...current, email: nextEmail }));
+
+                          if (isValidCustomerEmail(nextEmail)) {
+                            setIdentityFromEmail(nextEmail, {
+                              firstName: draft.firstName,
+                              lastName: draft.lastName,
+                              phone: draft.phone,
+                              marketingConsent: identity.marketingConsent,
+                            });
+                          }
+                        }}
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Telefono</span>
+                      <input
+                        className="field"
+                        type="tel"
+                        required
+                        placeholder="+39..."
+                        value={draft.phone}
+                        onChange={(event) => {
+                          const nextPhone = event.target.value;
+
+                          setDraft((current) => ({ ...current, phone: nextPhone }));
+
+                          if (draft.email && isValidCustomerEmail(draft.email)) {
+                            updateIdentity({ phone: nextPhone });
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <label className="mt-3 block space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Note</span>
+                    <textarea
+                      className="field min-h-28 resize-none"
+                      value={draft.note}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, note: event.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <div className="mt-4 space-y-3">
+                    <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
+                      <input
+                        type="checkbox"
+                        checked={draft.privacyAccepted}
+                        onChange={(event) =>
+                          setDraft((current) => ({
+                            ...current,
+                            privacyAccepted: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Accetto il trattamento privacy per inviare la prenotazione.</span>
+                    </label>
+                    {!shouldHideMarketingConsent ? (
+                      <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
+                        <input
+                          type="checkbox"
+                          checked={draft.marketingAccepted}
+                          onChange={(event) =>
+                            handleMarketingConsentChange(event.target.checked)
+                          }
+                        />
+                        <span>Accetto comunicazioni marketing future di Tortuga.</span>
+                      </label>
+                    ) : null}
+                  </div>
+
+                  <div id="conferma" className="hash-scroll-target">
+                    <button
+                      type="button"
+                      className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
+                      onClick={() => {
+                        triggerHaptic();
+                        void submitBooking();
+                      }}
+                      disabled={submitting}
+                    >
+                      {submitting ? "Creo la prenotazione..." : "Conferma prenotazione"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
         </>
       ) : null}
     </section>

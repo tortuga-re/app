@@ -26,11 +26,27 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    apple: [{ url: "/pwa-icon/192" }],
+    apple: [{ url: siteConfig.logoUrl }],
     icon: [
-      { url: "/pwa-icon/192", type: "image/png", sizes: "192x192" },
-      { url: "/pwa-icon/512", type: "image/png", sizes: "512x512" },
+      { url: siteConfig.logoUrl, type: "image/png", sizes: "192x192" },
+      { url: siteConfig.logoUrl, type: "image/png", sizes: "512x512" },
     ],
+  },
+  openGraph: {
+    title: siteConfig.appName,
+    description: siteConfig.description,
+    url: siteConfig.productionUrl,
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: siteConfig.ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.appName,
+      },
+    ],
+    locale: "it_IT",
+    type: "website",
   },
 };
 

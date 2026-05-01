@@ -268,22 +268,22 @@ export const QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   // --- SPICY (Vietato ai minori di rum) ---
   {
     category: "spicy",
-    text: "SE IL CAPITANO DEL LOCALE TI CHIEDESSE DI FARGLI DA 'ASSISTENTE' PERSONALE PER LA NOTTE...",
+    text: "HAI MAI AVUTO UN'AVVENTURA CON UNA PERSONA DI CUI NON SAPEVI NEMMENO IL NOME?",
     options: [
-      { id: "A", text: "Obbedisco senza fare domande" },
-      { id: "B", text: "Chiedo prima quali sono i benefit" },
-      { id: "C", text: "Prendo io il comando della situazione" },
-      { id: "D", text: "Solo se c'è da bere gratis" }
+      { id: "A", text: "È capitato, ed è stato eccitante" },
+      { id: "B", text: "Mai, ho bisogno di confidenza" },
+      { id: "C", text: "Solo se l'alcol ha superato la guardia" },
+      { id: "D", text: "Succede quasi ogni weekend" }
     ]
   },
   {
     category: "spicy",
-    text: "COSA FARESTI AL CAPITANO SE NON CI FOSSERO REGOLE STASERA?",
+    text: "SE DOVESSI SCEGLIERE UN 'PECCATO' DA COMMETTERE STASERA, QUALE SAREBBE?",
     options: [
-      { id: "A", text: "Lo rapirei per me" },
-      { id: "B", text: "Un interrogatorio molto... intimo" },
-      { id: "C", text: "Gli farei togliere quella divisa" },
-      { id: "D", text: "Lo sfiderei a chi regge più shot" }
+      { id: "A", text: "Un bacio vietato con la persona sbagliata" },
+      { id: "B", text: "Bere troppo e dire tutto quello che penso" },
+      { id: "C", text: "Sparire con uno sconosciuto senza dire nulla" },
+      { id: "D", text: "Fare qualcosa di cui pentirmi domani... ma non ora" }
     ]
   },
   {
