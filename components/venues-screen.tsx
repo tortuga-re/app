@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { StatusBlock } from "@/components/status-block";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { CoopertoVenueHour, VenueResponse } from "@/lib/cooperto/types";
 import { useHashScroll } from "@/lib/hash-scroll";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { formatDateTime } from "@/lib/utils";
 
 type GroupedOpeningHour = {
@@ -21,7 +24,7 @@ function PhoneIcon() {
     <svg
       viewBox="0 0 24 24"
       aria-hidden="true"
-      className="h-4 w-4"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
@@ -38,15 +41,63 @@ function WhatsAppIcon() {
     <svg
       viewBox="0 0 24 24"
       aria-hidden="true"
-      className="h-4 w-4"
+      className="h-6 w-6"
+      fill="currentColor"
+    >
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.445 0 .01 5.437 0 12.045c0 2.112.552 4.171 1.597 6.011L0 24l6.117-1.605a11.845 11.845 0 005.932 1.577h.005c6.604 0 12.039-5.436 12.043-12.045a11.8 11.8 0 00-3.525-8.514z" />
+    </svg>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M20 11.5a8 8 0 0 1-11.8 7.02L4 20l1.6-4.01A8 8 0 1 1 20 11.5Z" />
-      <path d="M9.6 8.9c-.2-.44-.4-.45-.58-.46h-.5c-.18 0-.47.07-.72.34s-.95.93-.95 2.28 1 2.66 1.13 2.84c.14.18 1.92 3.08 4.74 4.19 2.34.92 2.82.74 3.32.69.5-.04 1.61-.66 1.83-1.3.23-.65.23-1.2.16-1.3-.07-.1-.27-.16-.57-.31s-1.78-.88-2.06-.98c-.27-.1-.48-.15-.68.16s-.77.98-.95 1.18c-.18.21-.36.23-.66.08-.3-.15-1.29-.48-2.46-1.53-.91-.81-1.53-1.8-1.71-2.1-.18-.3-.02-.46.13-.61.14-.14.3-.36.45-.54.15-.17.2-.3.3-.5.1-.2.05-.38-.02-.54-.08-.15-.67-1.72-.93-2.29Z" />
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-6 w-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-6 w-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
     </svg>
   );
 }
@@ -168,9 +219,21 @@ const groupVenueHours = (hours?: CoopertoVenueHour[] | null): GroupedOpeningHour
 };
 
 export function VenuesScreen() {
+  return (
+    <Suspense fallback={null}>
+      <VenuesScreenContent />
+    </Suspense>
+  );
+}
+
+function VenuesScreenContent() {
   const [data, setData] = useState<VenueResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { hasAccess } = useOnPremiseAccess();
+  const searchParams = useSearchParams();
+  const simDay = searchParams.get("simDay");
+  const currentDay = simDay ? parseInt(simDay, 10) : new Date().getDay();
 
   useEffect(() => {
     const loadVenues = async () => {
@@ -223,9 +286,6 @@ export function VenuesScreen() {
       <div id="programmazione" className="panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Programmazione serale</p>
-          <h2 className="text-xl font-semibold text-white">
-            Serate Tortuga
-          </h2>
         </div>
 
         <div className="mt-4 grid gap-3">
@@ -243,6 +303,27 @@ export function VenuesScreen() {
               <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                 {event.description}
               </p>
+
+              {hasAccess && (
+                <div className="mt-4">
+                  {event.day === "MERCOLEDÌ" && currentDay === 3 && (
+                    <Link
+                      href="/game/buzzer"
+                      className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
+                    >
+                      Accedi al gioco
+                    </Link>
+                  )}
+                  {event.day === "GIOVEDÌ" && currentDay === 4 && (
+                    <Link
+                      href="/game/match-drink"
+                      className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
+                    >
+                      Accedi al gioco
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -259,16 +340,19 @@ export function VenuesScreen() {
           </p>
         </div>
 
-        <div className="mt-4 grid gap-3">
+        <div className="mt-6 flex items-center justify-center gap-6">
           {tortugaInfoConfig.socialLinks.map((social) => (
             <a
               key={social.label}
               href={social.href}
               target="_blank"
               rel="noreferrer"
-              className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+              className="text-[var(--accent-strong)] transition-all hover:scale-110 active:scale-95"
+              aria-label={social.label}
             >
-              {social.label}
+              {social.label === "Instagram" && <InstagramIcon />}
+              {social.label === "Facebook" && <FacebookIcon />}
+              {social.label === "TikTok" && <TikTokIcon />}
             </a>
           ))}
         </div>
@@ -309,8 +393,8 @@ export function VenuesScreen() {
               )}
             </div>
 
-            <div className="space-y-3 border-t border-[rgba(255,216,156,0.08)] pt-4">
-              {exceptions.length ? (
+            {exceptions.length > 0 && (
+              <div className="space-y-3 border-t border-[rgba(255,216,156,0.08)] pt-4">
                 <div className="grid gap-3">
                   {exceptions.map((exception, index) => (
                     <div
@@ -337,14 +421,8 @@ export function VenuesScreen() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="panel-muted rounded-[1.4rem] px-4 py-4">
-                  <p className="text-sm text-[var(--text-muted)]">
-                    Nessuna variazione comunicata per i prossimi giorni.
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       ) : null}
@@ -386,22 +464,22 @@ export function VenuesScreen() {
           />
         </div>
 
-        <div id="contatti" className="hash-scroll-target mt-4 grid gap-3 sm:grid-cols-2">
+        <div id="contatti" className="hash-scroll-target mt-6 flex items-center justify-center gap-6">
           <a
             href={tortugaInfoConfig.phoneHref}
-            className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
+            className="text-[var(--accent-strong)] transition-all hover:scale-110 active:scale-95"
+            aria-label="Chiama"
           >
             <PhoneIcon />
-            <span>CHIAMA</span>
           </a>
           <a
             href={tortugaInfoConfig.whatsappHref}
             target="_blank"
             rel="noreferrer"
-            className="button-secondary inline-flex min-h-12 items-center justify-center gap-2 px-5 text-sm"
+            className="text-[var(--accent-strong)] transition-all hover:scale-110 active:scale-95"
+            aria-label="Scrivici su WhatsApp"
           >
             <WhatsAppIcon />
-            <span>Scrivici</span>
           </a>
         </div>
       </div>

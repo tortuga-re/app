@@ -55,9 +55,9 @@ export const tortugaInfoConfig = {
     },
     {
       day: "GIOVEDÌ",
-      title: "The Love Game",
+      title: "Match & Drink",
       description:
-        "Prossimamente. Con chi hai più affinità? Scoprilo con il nostro gioco.",
+        "Vuoi conoscere persone con i tuoi stessi interessi? Tra una risposta e l'altra, potrebbe nascere anche qualcosa di romantico.",
     },
     {
       day: "VENERDÌ",
@@ -84,6 +84,26 @@ export const tortugaInfoConfig = {
     { label: "Instagram", href: "https://www.instagram.com/tortuga.re" },
     { label: "Facebook", href: "https://www.facebook.com/tortuga.re" },
     { label: "TikTok", href: "https://www.tiktok.com/@tortugare" },
+  ],
+  reviews: [
+    {
+      author: "Andrea M.",
+      source: "Google",
+      rating: 5,
+      text: "Atmosfera fantastica e personale super accogliente! Gli hamburger sono spettacolari e le serate a tema con il karaoke rendono ogni cena un'esperienza divertente. Il posto perfetto per festeggiare con gli amici!",
+    },
+    {
+      author: "Simona R.",
+      source: "TripAdvisor",
+      rating: 5,
+      text: "Locale originale e molto curato. Ci siamo stati per una festa di compleanno e siamo rimasti colpiti dalla cortesia dello staff e dalla qualità del cibo (pinse ottime!). Divertimento assicurato.",
+    },
+    {
+      author: "Marco P.",
+      source: "Google",
+      rating: 5,
+      text: "Un punto di riferimento a Reggio Emilia per chi cerca una serata diversa. Ottimo cibo, musica e tanta allegria. Consigliatissimo per chi vuole staccare la spina e farsi due risate in compagnia.",
+    },
   ],
 } as const;
 

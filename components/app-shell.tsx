@@ -38,27 +38,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className="app-shell-content relative mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pt-5">
-        <header className="mb-6">
-          <div className="panel rounded-[2.15rem] px-5 py-4">
-            <div className="flex items-start justify-between gap-4">
-              <Link href="/" className="min-w-0 flex-1">
-                <AppGreeting
-                  greeting={greeting}
-                  statusLabel={customerStatus.tierLabel}
-                  points={customerStatus.points}
-                />
-              </Link>
+        {pathname === "/" && (
+          <header className="mb-6">
+            <div className="panel rounded-[2.15rem] px-5 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <Link href="/" className="min-w-0 flex-1">
+                  <AppGreeting
+                    greeting={greeting}
+                    statusLabel={customerStatus.tierLabel}
+                    points={customerStatus.points}
+                  />
+                </Link>
 
-              <Link
-                href="/ciurma#riconoscimento"
-                className="rounded-full border border-[var(--border)] bg-[var(--accent-soft)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-strong)] transition hover:bg-[rgba(242,215,165,0.18)]"
-                onClick={() => triggerHaptic()}
-              >
-                Ciurma
-              </Link>
+                <Link
+                  href="/ciurma#riconoscimento"
+                  className="rounded-full border border-[var(--border)] bg-[var(--accent-soft)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-strong)] transition hover:bg-[rgba(242,215,165,0.18)]"
+                  onClick={() => triggerHaptic()}
+                >
+                  Ciurma
+                </Link>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         <div className="flex flex-1 flex-col gap-5">
           <PwaController />
