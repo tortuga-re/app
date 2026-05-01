@@ -1,24 +1,27 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { createServer } = require('http')
+const { parse } = require('url')
+const next = require('next')
 
+const dev = process.env.NODE_ENV !== 'production'
+const hostname = 'localhost'
 const port = process.env.PORT || 3000
-const socketPath = process.env.LSNODE_SOCKET
-const listenTarget = socketPath || port
 
-console.log('--- HELLO WORLD TEST STARTING ---')
-console.log('NODE_ENV:', process.env.NODE_ENV)
-console.log('PORT:', process.env.PORT)
-console.log('LSNODE_SOCKET:', socketPath)
+const app = next({ dev, hostname, port })
+const handle = app.getRequestHandler()
 
-const server = createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' })
-  res.end('Tortuga App - Test Hello World Online!\nEnvironment: ' + process.env.NODE_ENV + '\nPort: ' + port)
-})
-
-server.listen(listenTarget, () => {
-  console.log('> Test Server ready on ' + listenTarget)
-})
-
-server.on('error', (err) => {
-  console.error('Test Server Error:', err)
+app.prepare().then(() => {
+  createServer(async (req, res) => {
+    try {
+      const parsedUrl = parse(req.url, true)
+      await handle(req, res, parsedUrl)
+    } catch (err) {
+      console.error('Error occurred handling', req.url, err)
+      res.statusCode = 500
+      res.end('internal server error')
+    }
+  }).listen(port, (err) => {
+    if (err) throw err
+    console.log(`> Ready on http://${hostname}:${port}`)
+  })
 })
