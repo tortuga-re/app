@@ -11,34 +11,34 @@ type PushCardMode = "invite" | "standalone-required" | "blocked" | "enabled";
 const isStandaloneDisplayMode = () => {
   if (typeof window === "undefined") return false;
   const standaloneMatch = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-  const iosStandalone = Boolean((window.navigator as any).standalone);
+  const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
   return standaloneMatch || iosStandalone;
 };
 
 export function PwaPushCard() {
   const { identity } = useCustomerIdentity();
   const [clientReady, setClientReady] = useState(false);
-  const [swActive, setSwActive] = useState(false);
-  const [pushStatus, setPushStatus] = useState<PermissionState | "unsupported" | "loading">("loading");
+  const [pushStatus, setPushStatus] = useState<NotificationPermission | "unsupported" | "loading">("loading");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setClientReady(true);
-    setIsStandalone(isStandaloneDisplayMode());
+    window.requestAnimationFrame(() => {
+      setClientReady(true);
+      setIsStandalone(isStandaloneDisplayMode());
 
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setPushStatus("unsupported");
-      return;
-    }
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setPushStatus("unsupported");
+        return;
+      }
 
-    navigator.serviceWorker.ready.then((registration) => {
-      setSwActive(true);
-      registration.pushManager.getSubscription().then((subscription) => {
-        setIsSubscribed(Boolean(subscription));
-        setPushStatus(Notification.permission);
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.pushManager.getSubscription().then((subscription) => {
+          setIsSubscribed(Boolean(subscription));
+          setPushStatus(Notification.permission);
+        });
       });
     });
   }, []);

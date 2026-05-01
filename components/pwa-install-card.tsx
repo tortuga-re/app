@@ -26,7 +26,7 @@ const writeTimestamp = (key: string, value: number) => {
 const isStandaloneDisplayMode = () => {
   if (typeof window === "undefined") return false;
   const standaloneMatch = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-  const iosStandalone = Boolean((window.navigator as any).standalone);
+  const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
   return standaloneMatch || iosStandalone;
 };
 
@@ -54,22 +54,22 @@ export function PwaInstallCard() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     
-    setClientReady(true);
-    const installed = isStandaloneDisplayMode();
-    const dismissedAt = readTimestamp(storageKeys.installPromptDismissedAt);
-    
-    setIsInstalled(installed);
-    setInstallDismissedAt(dismissedAt);
-    setIsProbablyMobile(isProbablyMobileDevice());
-    setIsIos(isIosDevice());
-    setEvaluationNow(Date.now());
+    window.requestAnimationFrame(() => {
+      setClientReady(true);
+      const installed = isStandaloneDisplayMode();
+      const dismissedAt = readTimestamp(storageKeys.installPromptDismissedAt);
+      
+      setIsInstalled(installed);
+      setInstallDismissedAt(dismissedAt);
+      setIsProbablyMobile(isProbablyMobileDevice());
+      setIsIos(isIosDevice());
+      setEvaluationNow(Date.now());
 
-    // Se non è installata e non è mai stata rifiutata, mostriamo il popup
-    if (!installed && dismissedAt === null) {
-      window.requestAnimationFrame(() => {
+      // Se non è installata e non è mai stata rifiutata, mostriamo il popup
+      if (!installed && dismissedAt === null) {
         setShowAsPopup(true);
-      });
-    }
+      }
+    });
 
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault();
