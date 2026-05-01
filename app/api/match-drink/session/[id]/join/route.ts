@@ -22,6 +22,7 @@ export async function POST(
       gender: body.gender,
       relationshipStatus: body.relationshipStatus,
       lookingFor: body.lookingFor,
+      avatarUrl: body.avatarUrl,
       publicConsent: body.publicConsent ?? false,
     });
 
