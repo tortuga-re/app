@@ -238,9 +238,10 @@ export function CiurmaScreen() {
     
     // Sincronizza l'avatar persistente nel LocalStorage locale
     if (response.avatarUrl) {
+      const { writeLocalStorageValue } = await import("@/lib/local-storage-state");
       const email = response.contact?.Email || response.query;
       const storageKey = `tortuga.customer-avatar:${email.trim().toLowerCase()}`;
-      localStorage.setItem(storageKey, response.avatarUrl);
+      writeLocalStorageValue(storageKey, response.avatarUrl, (v) => v);
     }
   };
 
