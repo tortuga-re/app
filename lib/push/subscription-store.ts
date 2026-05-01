@@ -110,7 +110,7 @@ const writePushSubscriptions = async (records: StoredPushSubscription[]) => {
 
 export const savePushSubscription = async (
   input: SavePushSubscriptionInput,
-): Promise<StoredPushSubscription> => {
+): Promise<{ record: StoredPushSubscription; isNew: boolean }> => {
   const records = await listPushSubscriptions();
   const now = new Date().toISOString();
 
@@ -134,6 +134,8 @@ export const savePushSubscription = async (
     (record) => record.endpoint === nextRecord.endpoint,
   );
 
+  const isNew = existingIndex < 0;
+
   if (existingIndex >= 0) {
     const existingRecord = records[existingIndex];
     records[existingIndex] = {
@@ -148,7 +150,10 @@ export const savePushSubscription = async (
 
   await writePushSubscriptions(records);
 
-  return existingIndex >= 0 ? records[existingIndex] : nextRecord;
+  return { 
+    record: isNew ? nextRecord : records[existingIndex], 
+    isNew 
+  };
 };
 
 export const deletePushSubscription = async (endpoint: string) => {

@@ -46,18 +46,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const record = await savePushSubscription({
+    const { record, isNew } = await savePushSubscription({
       ...payload,
       email: normalizeEmail(payload.email),
     });
 
-    // Automazione #1: Benvenuto a bordo
-    const { sendPushToSubscription } = await import("@/lib/push/send");
-    void sendPushToSubscription(record, {
-      title: "Benvenuto a bordo! 🏴‍☠️",
-      body: "Notifiche attive. Da ora riceverai i nostri bottini segreti e gli aggiornamenti sulle serate.",
-      url: "/ciurma",
-    });
+    // Automazione #1: Benvenuto a bordo (SOLO SE È UN NUOVO ABBONAMENTO)
+    if (isNew) {
+      const { sendPushToSubscription } = await import("@/lib/push/send");
+      void sendPushToSubscription(record, {
+        title: "Benvenuto a bordo! 🏴‍☠️",
+        body: "Notifiche attive. Da ora riceverai i nostri bottini segreti e gli aggiornamenti sulle serate.",
+        url: "/ciurma",
+      });
+    }
 
     const response: SavePushSubscriptionResponse = {
       saved: true,
