@@ -1,53 +1,44 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-try {
-  const { createServer } = require('http')
-  const { parse } = require('url')
-  const next = require('next')
+const { createServer } = require('http')
+const { parse } = require('url')
+const next = require('next')
 
-  const dev = process.env.NODE_ENV !== 'production'
-  const hostname = '127.0.0.1'
-  const socketPath = process.env.LSNODE_SOCKET
-  const port = process.env.PORT || '3000'
-  const listenTarget = socketPath || (isNaN(parseInt(port, 10)) ? port : parseInt(port, 10))
+const dev = process.env.NODE_ENV !== 'production'
+const port = process.env.PORT || 3000
+const hostname = 'localhost'
 
-  console.log('--- SERVER STARTING ---')
-  console.log('NODE_ENV:', process.env.NODE_ENV)
-  console.log('LSNODE_SOCKET:', socketPath)
-  console.log('LSNODE_STARTUP_FILE:', process.env.LSNODE_STARTUP_FILE)
-  console.log('PORT (raw):', process.env.PORT)
-  console.log('LISTEN TARGET:', listenTarget)
-  console.log('HOSTNAME:', hostname)
-  console.log('DEV MODE:', dev)
-  console.log('ENV KEYS:', Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('TOKEN') && !k.includes('SECRET')).join(', '))
+console.log('--- SERVER STARTING (Standard Mode) ---')
+console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('PORT:', process.env.PORT)
+console.log('LSNODE_SOCKET:', process.env.LSNODE_SOCKET)
 
-  const app = next({ dev, port: isNaN(parseInt(port, 10)) ? 3000 : parseInt(port, 10) })
-  const handle = app.getRequestHandler()
+const app = next({ dev, hostname, port: parseInt(String(port), 10) || 3000 })
+const handle = app.getRequestHandler()
 
-  app.prepare().then(() => {
-    console.log('> Next.js app prepared')
-    createServer(async (req, res) => {
-      try {
-        const parsedUrl = parse(req.url, true)
-        await handle(req, res, parsedUrl)
-      } catch (err) {
-        console.error('Error occurred handling', req.url, err)
-        res.statusCode = 500
-        res.end('internal server error')
-      }
-    }).listen(listenTarget, (err) => {
-      if (err) {
-        console.error('> Listen error:', err)
-        throw err
-      }
-      console.log(`> Ready on ${typeof listenTarget === 'string' ? listenTarget : `http://${hostname}:${listenTarget}`}`)
-    })
-  }).catch(err => {
-    console.error('> App prepare error:', err)
-    process.exit(1)
+app.prepare().then(() => {
+  console.log('> Next.js app prepared')
+  
+  const server = createServer(async (req, res) => {
+    try {
+      const parsedUrl = parse(req.url, true)
+      await handle(req, res, parsedUrl)
+    } catch (err) {
+      console.error('Error occurred handling', req.url, err)
+      res.statusCode = 500
+      res.end('internal server error')
+    }
   })
 
-} catch (globalError) {
-  console.error('--- GLOBAL CRASH ---')
-  console.error(globalError)
+  // Su Hostinger con Passenger, se PORT è undefined, spesso si aspetta la 3000
+  // ma dobbiamo assicurarci di non bloccare il loop se il binding fallisce
+  server.listen(port, (err) => {
+    if (err) {
+      console.error('Listen error:', err)
+      process.exit(1)
+    }
+    console.log(`> Ready on http://${hostname}:${port}`)
+  })
+}).catch(err => {
+  console.error('Fatal App Prepare Error:', err)
   process.exit(1)
-}
+})
