@@ -47,8 +47,14 @@ export async function POST(req: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json({ success: true, startTime: now });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error starting kantaquiz:", error);
-    return NextResponse.json({ error: "Errore interno" }, { status: 500 });
+    const errMessage = error instanceof Error ? error.message : "";
+    const errCode = (error as any)?.code;
+    
+    if (errCode === "PGRST116" || errMessage?.includes("relation \"public.app_state\" does not exist")) {
+      return NextResponse.json({ error: "La tabella 'app_state' non esiste su Supabase. Per favore creala usando il codice SQL fornito." }, { status: 500 });
+    }
+    return NextResponse.json({ error: "Errore interno: " + (errMessage || "Sconosciuto") }, { status: 500 });
   }
 }

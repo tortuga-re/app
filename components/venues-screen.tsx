@@ -370,7 +370,7 @@ function VenuesScreenContent() {
                   <p className="text-sm font-bold text-white uppercase text-balance">Scarica l&apos;App Ufficiale</p>
                   <div className="mt-2 flex gap-3">
                     <a 
-                      href="https://apps.apple.com/it/app/dr-why-quiz/id1044670005" 
+                      href="https://apps.apple.com/it/app/dr-why/id1465720345" 
                       target="_blank" 
                       rel="noreferrer"
                       className="button-secondary flex-1 py-2 text-[10px] font-bold uppercase text-center"
@@ -378,7 +378,7 @@ function VenuesScreenContent() {
                       App Store
                     </a>
                     <a 
-                      href="https://play.google.com/store/apps/details?id=com.drwhy.quiz" 
+                      href="https://play.google.com/store/apps/details?id=it.drwhy.quizonlineapp" 
                       target="_blank" 
                       rel="noreferrer"
                       className="button-secondary flex-1 py-2 text-[10px] font-bold uppercase text-center"
@@ -414,10 +414,13 @@ function VenuesScreenContent() {
             <div className="pt-4">
               <button 
                 onClick={() => {
+                  // Prova ad aprire l'app, altrimenti manda allo store
                   window.location.href = "drwhy://";
                   setTimeout(() => {
-                    window.open("https://apps.apple.com/it/app/dr-why-quiz/id1044670005", "_blank");
-                  }, 800);
+                    if (document.hasFocus()) {
+                      window.open("https://apps.apple.com/it/app/dr-why/id1465720345", "_blank");
+                    }
+                  }, 1500);
                 }}
                 className="button-primary w-full py-3 text-xs font-black uppercase tracking-widest"
               >
