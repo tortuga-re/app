@@ -794,6 +794,128 @@ export function CiurmaScreen() {
 
       {data?.contact ? (
         <>
+          <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
+            <PiratePhotoContestCard
+              key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
+              contact={data.contact}
+              onProfileResolved={handlePiratePhotoProfileResolved}
+            />
+          </div>
+
+          <div id="sfide" className="panel hash-scroll-target rounded-[2rem] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="eyebrow">Sfide e contenuti</p>
+                <h2 className="text-2xl font-semibold text-white">
+                  Sfide, inviti e contenuti speciali pensati per chi fa parte della ciurma.
+                </h2>
+              </div>
+
+              <span className="rounded-full border border-[rgba(171,128,63,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                Esclusive
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {/* Match & Drink Card */}
+              <Link
+                href="/game/match-drink"
+                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink - GIOVEDÌ</p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                      Nuove amicizie o anima gemella? Incontra persone che condividono i tuoi stessi interessi!
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
+                    GIOCA ORA
+                  </span>
+                </div>
+              </Link>
+
+              {/* Buzzer Card - Client */}
+              <a
+                href="/game/buzzer"
+                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                      La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                    GIOCA ORA
+                  </span>
+                </div>
+              </a>
+
+              {/* Buzzer Card - Admin (Captain only) */}
+              {isAdmin(identity.email) && (
+                <a
+                  href="/admin/buzzer"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">⚓ Plancia Assalto al Buzzer</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Gestisci le prenotazioni e assegna il bottino.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
+                      ADMIN
+                    </span>
+                  </div>
+                </a>
+              )}
+
+              {/* Match & Drink Admin */}
+              {isAdmin(identity.email) && (
+                <Link
+                  href="/admin/match-drink"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">🍸 Plancia Match & Drink</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Avvia sessioni, gestisci domande e sblocca i drink del match.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
+                      ADMIN
+                    </span>
+                  </div>
+                </Link>
+              )}
+
+              {ciurmaRoadmapFeatures.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="panel-muted rounded-[1.5rem] px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white">
+                        {feature.title}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        {feature.description}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[rgba(171,128,63,0.14)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      A bordo presto
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div
             id="riconoscimento"
             className="panel hash-scroll-target rounded-[2rem] p-5 overflow-visible"
@@ -1123,128 +1245,6 @@ export function CiurmaScreen() {
               </button>
             </div>
 
-          </div>
-
-          <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
-            <PiratePhotoContestCard
-              key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
-              contact={data.contact}
-              onProfileResolved={handlePiratePhotoProfileResolved}
-            />
-          </div>
-
-          <div id="sfide" className="panel hash-scroll-target rounded-[2rem] p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <p className="eyebrow">Sfide e contenuti</p>
-                <h2 className="text-2xl font-semibold text-white">
-                  Sfide, inviti e contenuti speciali pensati per chi fa parte della ciurma.
-                </h2>
-              </div>
-
-              <span className="rounded-full border border-[rgba(171,128,63,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                Esclusive
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              {/* Match & Drink Card */}
-              <Link
-                href="/game/match-drink"
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      Trova la tua anima gemella (o un nuovo compagno di bevute) tra i naufraghi del locale!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </Link>
-
-              {/* Buzzer Card - Client */}
-              <a
-                href="/game/buzzer"
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      Sii il più veloce della ciurma a prenotare la risposta!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </a>
-
-              {/* Buzzer Card - Admin (Captain only) */}
-              {isAdmin(identity.email) && (
-                <a
-                  href="/admin/buzzer"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">⚓ Plancia del Capitano</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Gestisci le prenotazioni e assegna il bottino.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
-                      ADMIN
-                    </span>
-                  </div>
-                </a>
-              )}
-
-              {/* Match & Drink Admin */}
-              {isAdmin(identity.email) && (
-                <Link
-                  href="/admin/match-drink"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)] bg-[var(--accent-strong)]/5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">🍸 Plancia Match & Drink</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Avvia sessioni, gestisci domande e sblocca i drink del match.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      ADMIN
-                    </span>
-                  </div>
-                </Link>
-              )}
-
-              {ciurmaRoadmapFeatures.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="panel-muted rounded-[1.5rem] px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white">
-                        {feature.title}
-                      </p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        {feature.description}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-[rgba(171,128,63,0.14)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      A bordo presto
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </>
       ) : null}
