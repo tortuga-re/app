@@ -4,13 +4,22 @@ const { parse } = require('url')
 const next = require('next')
 
 const dev = process.env.NODE_ENV !== 'production'
-const hostname = 'localhost'
-const port = process.env.PORT || 3000
+const hostname = '0.0.0.0'
+const port = process.env.PORT || '3000'
+const listenTarget = isNaN(parseInt(port, 10)) ? port : parseInt(port, 10)
 
-const app = next({ dev, hostname, port })
+console.log('--- SERVER STARTING ---')
+console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('PORT (raw):', process.env.PORT)
+console.log('LISTEN TARGET:', listenTarget)
+console.log('HOSTNAME:', hostname)
+console.log('DEV MODE:', dev)
+
+const app = next({ dev, hostname, port: isNaN(parseInt(port, 10)) ? 3000 : parseInt(port, 10) })
 const handle = app.getRequestHandler()
 
 app.prepare().then(() => {
+  console.log('> Next.js app prepared')
   createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true)
@@ -20,8 +29,8 @@ app.prepare().then(() => {
       res.statusCode = 500
       res.end('internal server error')
     }
-  }).listen(port, (err) => {
+  }).listen(listenTarget, (err) => {
     if (err) throw err
-    console.log(`> Ready on http://${hostname}:${port}`)
+    console.log(`> Ready on ${typeof listenTarget === 'string' ? listenTarget : `http://${hostname}:${listenTarget}`}`)
   })
 })
