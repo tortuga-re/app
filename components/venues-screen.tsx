@@ -234,8 +234,21 @@ function VenuesScreenContent() {
   const searchParams = useSearchParams();
   const simDay = searchParams.get("simDay");
   const currentDay = simDay ? parseInt(simDay, 10) : new Date().getDay();
+  const [isClientReady, setIsClientReady] = useState(false);
+  const [deviceOS, setDeviceOS] = useState<"ios" | "android" | "other" | null>(null);
 
   useEffect(() => {
+    setIsClientReady(true);
+    
+    const detectOS = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(ua)) return "ios";
+      if (/android/.test(ua)) return "android";
+      return "other";
+    };
+
+    setDeviceOS(detectOS());
+
     const loadVenues = async () => {
       try {
         const response = await requestJson<VenueResponse>("/api/venues");
@@ -264,7 +277,7 @@ function VenuesScreenContent() {
           const { startTime } = await res.json();
           setKantaquizStart(startTime);
         }
-      } catch (e) {
+      } catch {
         // Silently fail
       }
     };
@@ -369,22 +382,26 @@ function VenuesScreenContent() {
                 <div>
                   <p className="text-sm font-bold text-white uppercase text-balance">Scarica l&apos;App Ufficiale</p>
                   <div className="mt-2 flex gap-3">
-                    <a 
-                      href="https://apps.apple.com/it/app/dr-why/id1465720345" 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="button-secondary flex-1 py-2 text-[10px] font-bold uppercase text-center"
-                    >
-                      App Store
-                    </a>
-                    <a 
-                      href="https://play.google.com/store/apps/details?id=it.drwhy.quizonlineapp" 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="button-secondary flex-1 py-2 text-[10px] font-bold uppercase text-center"
-                    >
-                      Play Store
-                    </a>
+                    {(deviceOS === "ios" || deviceOS === "other") && (
+                      <a 
+                        href="https://apps.apple.com/it/app/dr-why/id1465720345" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="button-secondary flex-1 py-2 text-[10px] font-bold uppercase text-center"
+                      >
+                        App Store
+                      </a>
+                    )}
+                    {(deviceOS === "android" || deviceOS === "other") && (
+                      <a 
+                        href="https://play.google.com/store/apps/details?id=it.drwhy.quizonlineapp" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="button-secondary flex-1 py-2 text-[10px] font-bold uppercase text-center"
+                      >
+                        Play Store
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -418,7 +435,10 @@ function VenuesScreenContent() {
                   window.location.href = "drwhy://";
                   setTimeout(() => {
                     if (document.hasFocus()) {
-                      window.open("https://apps.apple.com/it/app/dr-why/id1465720345", "_blank");
+                      const storeUrl = deviceOS === "android" 
+                        ? "https://play.google.com/store/apps/details?id=it.drwhy.quizonlineapp"
+                        : "https://apps.apple.com/it/app/dr-why/id1465720345";
+                      window.open(storeUrl, "_blank");
                     }
                   }, 1500);
                 }}

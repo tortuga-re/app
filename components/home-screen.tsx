@@ -25,6 +25,7 @@ import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
+import { PwaInstallCard } from "@/components/pwa-install-card";
 
 type RouteFallback = {
   title: string;
@@ -417,7 +418,9 @@ export function HomeScreen() {
           ) : null}
 
           <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
-            <div id="fidelity" className="hash-scroll-target rounded-[2rem]">
+            <PwaInstallCard />
+            
+            <div id="fidelity" className="hash-scroll-target rounded-[2rem] mt-5">
               <FidelityStatusCard
                 title="FIDELITY TORTUGA"
                 points={rewardProgress.points}
