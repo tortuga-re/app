@@ -254,7 +254,7 @@ export function CiurmaScreen() {
           ? response.contact.ConsensoMarketing === 1
           : undefined,
     });
-    
+
     // Sincronizza l'avatar persistente nel LocalStorage locale
     if (response.avatarUrl) {
       const { writeLocalStorageValue } = await import("@/lib/local-storage-state");
