@@ -130,13 +130,7 @@ export const localExperiencePublicConfig = {
   },
 } as const;
 
-export const ciurmaRoadmapFeatures = [
-  {
-    title: "Esperienze solo in locale",
-    description:
-      "Alcune rotte si aprono solo quando sei davvero a bordo.",
-  },
-] as const;
+export const ciurmaRoadmapFeatures = [] as const;
 
 export const pwaConfig = {
   vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? "",
