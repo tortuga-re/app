@@ -817,11 +817,11 @@ export function CiurmaScreen() {
       ) : null}
 
       {!data?.contact ? (
-        <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
+        <div id="contest" className="hash-scroll-target rounded-[2rem]">
           <PiratePhotoContestCard
-            key={identityEmail || "ospite"}
-            contact={null}
-            onProfileResolved={handlePiratePhotoProfileResolved}
+            contact={data?.contact ?? null}
+            onProfileResolved={applyProfileResponse}
+            onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
           />
         </div>
       ) : null}
@@ -836,6 +836,7 @@ export function CiurmaScreen() {
               key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
               contact={data.contact}
               onProfileResolved={handlePiratePhotoProfileResolved}
+              onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
             />
           </div>
 
@@ -913,7 +914,13 @@ export function CiurmaScreen() {
               {isAdmin(identity.email) && (
                 <a
                   href="/admin/buzzer"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-purple-500 bg-purple-500/5"
+                  onClick={() => {
+                    triggerHaptic();
+                    if (data?.contact?.CodiceContatto) {
+                      void registerVisit(data.contact.CodiceContatto);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
