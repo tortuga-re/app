@@ -199,6 +199,19 @@ const buildWaitlistNote = (input: WaitlistCreateInput) => {
   return [...contextLines, "", `Note cliente: ${input.note.trim()}`].join("\n");
 };
 
+const buildBookingNote = (input: BookingCreateInput) => {
+  const roomName = input.roomCode ? tortugaRooms[input.roomCode] : "";
+  const roomLine = roomName ? `Sala scelta: ${roomName}.` : "";
+
+  if (!input.note?.trim()) {
+    return roomLine || undefined;
+  }
+
+  return roomLine
+    ? `${roomLine}\n\nNote cliente: ${input.note.trim()}`
+    : input.note.trim();
+};
+
 const buildBirthDateDateTime = (birthDate?: string) =>
   birthDate ? `${birthDate}T00:00:00` : undefined;
 
@@ -395,12 +408,13 @@ export const createBooking = async (
     CodiceSede: coopertoConfig.sedeCode,
     DataPrenotazione: buildCoopertoDateTime(input.date, input.time),
     CodiceStato: input.statusCode ?? 1,
+    CodiceSala: input.roomCode,
     Pax: input.pax,
     Nome: input.firstName,
     Cognome: input.lastName,
     Telefono: normalizePhoneNumber(input.phone),
     Email: input.email,
-    Note: input.note,
+    Note: buildBookingNote(input),
     ConsensoPrivacy: input.privacyAccepted,
     ConsensoMarketing: input.marketingAccepted,
   };
@@ -433,6 +447,7 @@ export const createWaitlist = async (
 
   const requestBody: CoopertoCreateQueueRequest = {
     CodiceSede: coopertoConfig.sedeCode,
+    CodiceSala: input.roomCode,
     Nome: input.firstName,
     Cognome: input.lastName,
     Telefono: normalizePhoneNumber(input.phone),

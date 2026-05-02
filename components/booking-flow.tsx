@@ -35,6 +35,8 @@ type BookingDraft = {
   date: string;
   pax: number;
   roomCode: string;
+  isAfterDinner: boolean;
+  childrenCount: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -53,6 +55,8 @@ const baseDraft: BookingDraft = {
   date: todayIso(),
   pax: 2,
   roomCode: "",
+  isAfterDinner: false,
+  childrenCount: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -63,6 +67,7 @@ const baseDraft: BookingDraft = {
 };
 
 const SALA_CENTRALE_ROOM_CODE = "da1d57f0-e0d5-4d7e-86be-9f8300f388b8";
+const AREA_FAMILY_ROOM_CODE = "2a2cda28-9466-4a9d-b2d0-5a0294b2fd0c";
 
 const buildDraftFallback = (
   firstName?: string,
@@ -105,11 +110,22 @@ const getVisibleBands = (availability: BookingAvailabilityResponse | null) => {
 
 const getEnabledSlots = (
   availabilityDays: BookingAvailabilityResponse["days"],
+  isAfterDinner?: boolean,
 ): DecoratedSlot[] => {
   return availabilityDays.flatMap((day) =>
     day.bands.flatMap((band) =>
       band.slots
-        .filter((slot) => slot.enabled)
+        .filter((slot) => {
+          if (!slot.enabled) {
+            return false;
+          }
+
+          if (isAfterDinner) {
+            return slot.time >= "22:30";
+          }
+
+          return true;
+        })
         .map((slot) => ({
           ...slot,
           bandLabel: band.label,
@@ -133,6 +149,8 @@ const parseStoredDraft = (
         : fallbackDraft.date,
     pax: Math.max(1, safeNumber(parsed.pax, fallbackDraft.pax)),
     roomCode: typeof parsed.roomCode === "string" ? parsed.roomCode : "",
+    isAfterDinner: typeof parsed.isAfterDinner === "boolean" ? parsed.isAfterDinner : false,
+    childrenCount: typeof parsed.childrenCount === "string" ? parsed.childrenCount : "",
     firstName:
       typeof parsed.firstName === "string" && parsed.firstName.trim()
         ? parsed.firstName
@@ -247,9 +265,17 @@ export function BookingFlow() {
     bootstrap?.rooms[0]?.code ||
     "";
   const activeRoomCode = draft.roomCode || defaultActiveRoomCode;
+  const isAreaFamily = activeRoomCode === AREA_FAMILY_ROOM_CODE;
   const selectedRoom =
     bootstrap?.rooms.find((room) => room.code === activeRoomCode) ?? null;
-  const composedCustomerNote = draft.note.trim() || undefined;
+  const composedCustomerNote = [
+    draft.isAfterDinner ? "INGRESSO DOPO CENA" : "",
+    isAreaFamily && draft.childrenCount ? `Bambini: ${draft.childrenCount}` : "",
+    draft.note.trim(),
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .trim() || undefined;
   const showRoomDropdown = requiresRoomSelection;
   const canLoadAvailability = Boolean(
     bootstrap &&
@@ -258,7 +284,7 @@ export function BookingFlow() {
       (!requiresRoomSelection || activeRoomCode),
   );
   const visibleDays = canLoadAvailability ? getVisibleBands(availability) : [];
-  const enabledSlots = getEnabledSlots(visibleDays);
+  const enabledSlots = getEnabledSlots(visibleDays, draft.isAfterDinner);
   const selectedSlot = canLoadAvailability
     ? enabledSlots.find((slot) => slot.time === selectedTime) ?? null
     : null;
@@ -430,6 +456,11 @@ export function BookingFlow() {
   ]);
 
   const submitBooking = async () => {
+    if (isAreaFamily && !draft.childrenCount.trim()) {
+      setError("Inserisci il numero di bambini per l'Area Family.");
+      return;
+    }
+
     if (!selectedSlot) {
       setError("Scegli uno slot disponibile prima di confermare.");
       return;
@@ -536,6 +567,11 @@ export function BookingFlow() {
   };
 
   const submitWaitlist = async () => {
+    if (isAreaFamily && !draft.childrenCount.trim()) {
+      setWaitlistError("Inserisci il numero di bambini per l'Area Family.");
+      return;
+    }
+
     if (!draft.firstName.trim() || !draft.lastName.trim()) {
       setWaitlistError("Inserisci nome e cognome per entrare in lista d'attesa.");
       return;
@@ -804,12 +840,12 @@ export function BookingFlow() {
             <div className={`${spacingClass} space-y-4`}>
               {visibleDays.map((day) => (
                 <div key={day.date} className="space-y-3">
-                  <p className="text-sm font-semibold text-white">
-                    {formatLongDate(day.date)}
-                  </p>
-
                   {day.bands.map((band) => {
-                    const availableSlots = band.slots.filter((slot) => slot.enabled);
+                    const availableSlots = band.slots.filter((slot) => {
+                      if (!slot.enabled) return false;
+                      if (draft.isAfterDinner) return slot.time >= "22:30";
+                      return true;
+                    });
                     const cleanedWarning = cleanText(band.warning);
 
                     if (availableSlots.length === 0) {
@@ -818,16 +854,6 @@ export function BookingFlow() {
 
                     return (
                       <div key={band.code} className="space-y-3">
-                        <div className="space-y-1">
-                          <p className="text-sm text-[var(--accent-strong)]">
-                            {band.label}
-                          </p>
-                          {band.durationMinutes ? (
-                            <p className="text-xs text-[var(--text-muted)]">
-                              Tempo di permanenza: {band.durationMinutes} min
-                            </p>
-                          ) : null}
-                        </div>
 
                         {cleanedWarning ? (
                           <p className="rounded-2xl border border-[var(--border)] bg-white/4 px-4 py-3 text-xs leading-5 text-[var(--text-muted)]">
@@ -1018,12 +1044,45 @@ export function BookingFlow() {
 
                 {canLoadAvailability ? (
                   <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
-                    <div className="space-y-2">
-                      <p className="eyebrow">Slot Cena</p>
-                      <p className="text-sm leading-6 text-[var(--text-muted)]">
-                        Gli slot si aggiornano in base alla data, alle persone e
-                        alla sala che hai scelto.
-                      </p>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 text-sm text-white">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 rounded border-[var(--border)] bg-white/4"
+                          checked={draft.isAfterDinner}
+                          onChange={(event) => {
+                            triggerHaptic();
+                            setDraft((current) => ({
+                              ...current,
+                              isAfterDinner: event.target.checked,
+                            }));
+                            setSelectedTime("");
+                          }}
+                        />
+                        <span className="font-semibold uppercase tracking-wider">
+                          Ingresso Dopo Cena
+                        </span>
+                      </label>
+
+                      {isAreaFamily ? (
+                        <label className="block space-y-2 text-sm text-[var(--text-muted)]">
+                          <span>Numero di bambini (obbligatorio)</span>
+                          <input
+                            className="field"
+                            type="number"
+                            min={1}
+                            required
+                            placeholder="Es: 2"
+                            value={draft.childrenCount}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                childrenCount: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                      ) : null}
                     </div>
 
                     {renderAvailabilityContent("mt-5")}
@@ -1061,11 +1120,23 @@ export function BookingFlow() {
                   </div>
 
                   <div className="mt-4 rounded-[1.4rem] border border-[var(--border)] bg-white/4 px-4 py-3">
-                    <p className="text-sm font-semibold text-white">
-                      Slot scelto: {selectedSlot.time}
-                    </p>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      {formatLongDate(selectedSlot.date)} - {selectedSlot.bandLabel}
+                    <p className="text-sm leading-6 text-white">
+                      Prenotazione per{" "}
+                      <span className="font-semibold">
+                        {new Intl.DateTimeFormat("it-IT", {
+                          weekday: "long",
+                        }).format(new Date(selectedSlot.date))}
+                        ,{" "}
+                        {new Intl.DateTimeFormat("it-IT", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        }).format(new Date(selectedSlot.date))}
+                      </span>
+                      , alle ore <span className="font-semibold">{selectedSlot.time}</span> per{" "}
+                      <span className="font-semibold">
+                        {draft.pax} {draft.pax === 1 ? "persona" : "persone"}
+                      </span>{" "}
+                      in <span className="font-semibold">{selectedRoom?.publicName || selectedRoom?.name || "Sala"}</span>.
                     </p>
                   </div>
 
