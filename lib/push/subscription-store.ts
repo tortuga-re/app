@@ -155,6 +155,21 @@ export const savePushSubscription = async (
     isNew 
   };
 };
+export const deletePushSubscription = async (endpoint: string) => {
+  const normalizedEndpoint = endpoint.trim();
+
+  if (!normalizedEndpoint) {
+    return false;
+  }
+
+  const records = await listPushSubscriptions();
+  const nextRecords = records.filter(
+    (record) => record.endpoint !== normalizedEndpoint,
+  );
+
+  if (nextRecords.length === records.length) {
+    return false;
+  }
 
   await writePushSubscriptions(nextRecords);
   return true;
