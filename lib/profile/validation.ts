@@ -14,6 +14,17 @@ export const normalizeProfileEmail = (value?: string) =>
 export const isValidProfileEmail = (value?: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeProfileEmail(value));
 
+export const normalizePhoneNumber = (value?: string) => {
+  const cleaned = value?.trim().replace(/\s+/g, "") ?? "";
+  if (!cleaned) return "";
+  
+  if (cleaned.startsWith("+")) return cleaned;
+  if (cleaned.startsWith("00")) return "+" + cleaned.slice(2);
+  
+  // Default prefix for Italy if no international prefix is found
+  return "+39" + cleaned;
+};
+
 export const normalizeProfileUpdateInput = (
   payload: unknown,
 ): ProfileUpdateInput => {
@@ -23,7 +34,7 @@ export const normalizeProfileUpdateInput = (
   return {
     firstName: readString(source, "firstName"),
     lastName: readString(source, "lastName"),
-    phone: readString(source, "phone"),
+    phone: normalizePhoneNumber(readString(source, "phone")),
     email: normalizeProfileEmail(readString(source, "email")),
     ...(birthDate ? { birthDate } : {}),
     marketingConsent: source.marketingConsent === true,

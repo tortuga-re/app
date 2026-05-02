@@ -29,6 +29,7 @@ import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { isAdmin } from "@/lib/live-buzzer/admin";
 import { PwaPushCard } from "@/components/pwa-push-card";
+import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 
 type ContactFormState = {
   firstName: string;
@@ -95,9 +96,11 @@ export function CiurmaScreen() {
   const [verifyingEmailChange, setVerifyingEmailChange] = useState(false);
   const [resendingEmailChange, setResendingEmailChange] = useState(false);
   const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
+  const [activeGames, setActiveGames] = useState({ buzzer: false, matchDrink: false });
   const autoLoadedKeyRef = useRef("");
 
   const identityEmail = normalizeCustomerEmail(identity.email);
+  const { registerVisit } = useVisitRegistration();
   const hasProfile = Boolean(data?.contact);
   const profileName =
     [data?.contact?.Nome, data?.contact?.Cognome].filter(Boolean).join(" ") ||
@@ -133,7 +136,7 @@ export function CiurmaScreen() {
     }).format(new Date(emailChangeRequest.expiresAt))
     : "";
   useHashScroll(
-    `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}`,
+    `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}:${isEditingProfile}:${Boolean(contactMessage)}`,
   );
 
   useEffect(() => {
@@ -147,6 +150,18 @@ export function CiurmaScreen() {
 
     return () => window.clearInterval(intervalId);
   }, [emailChangeRequest]);
+
+  useEffect(() => {
+    const fetchActiveGames = async () => {
+      try {
+        const games = await requestJson<{ buzzer: boolean; matchDrink: boolean }>("/api/game/active-status");
+        setActiveGames(games);
+      } catch (err) {
+        console.error("Failed to fetch active games status", err);
+      }
+    };
+    void fetchActiveGames();
+  }, []);
 
   useEffect(() => {
     if (!identityEmail || isEditingLookup || hasProfile) {
@@ -291,6 +306,8 @@ export function CiurmaScreen() {
         });
         setIsEditingLookup(false);
         autoLoadedKeyRef.current = normalizedEmail;
+        // eslint-disable-next-line react-hooks/immutability
+        window.location.hash = "#riconoscimento";
       } else {
         setIsEditingLookup(true);
         autoLoadedKeyRef.current = "";
@@ -385,12 +402,16 @@ export function CiurmaScreen() {
       setEmailChangeCode("");
       setContactMessage("Dati cliente aggiornati.");
       autoLoadedKeyRef.current = normalizedEmail;
+      // eslint-disable-next-line react-hooks/immutability
+      window.location.hash = "#riconoscimento";
     } catch (saveError) {
       setContactError(
         saveError instanceof Error
           ? saveError.message
           : "Non sono riuscito a salvare i dati cliente.",
       );
+      // eslint-disable-next-line react-hooks/immutability
+      window.location.hash = "#riconoscimento";
     } finally {
       setSavingContact(false);
     }
@@ -433,6 +454,8 @@ export function CiurmaScreen() {
         });
       }
       setContactForm(buildContactForm(response.contact ?? undefined));
+      // eslint-disable-next-line react-hooks/immutability
+      window.location.hash = "#riconoscimento";
       setIsEditingProfile(false);
       setIsRegistering(false);
       setIsEditingLookup(false);
@@ -509,6 +532,8 @@ export function CiurmaScreen() {
       email: normalizedEmail,
     });
     setIsRegistering(true);
+    // eslint-disable-next-line react-hooks/immutability
+    window.location.hash = "#riconoscimento";
   };
 
   const changeAccount = () => {
@@ -547,6 +572,8 @@ export function CiurmaScreen() {
     setContactForm(buildContactForm(profile.contact ?? undefined));
     autoLoadedKeyRef.current =
       normalizeCustomerEmail(profile.contact?.Email) || profile.query;
+    // eslint-disable-next-line react-hooks/immutability
+    window.location.hash = "#riconoscimento";
   };
 
   return (
@@ -677,17 +704,22 @@ export function CiurmaScreen() {
               </label>
               <label className="space-y-2 text-sm text-[var(--text-muted)]">
                 <span>Telefono</span>
-                <input
-                  className="field"
-                  type="tel"
-                  value={contactForm.phone}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      phone: event.target.value,
-                    }))
-                  }
-                />
+                <div className="relative flex items-center">
+                  <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
+                    +39
+                  </span>
+                  <input
+                    className="field pl-14"
+                    type="tel"
+                    value={contactForm.phone.replace(/^\+39/, "")}
+                    onChange={(event) =>
+                      setContactForm((current) => ({
+                        ...current,
+                        phone: "+39" + event.target.value.replace(/\D/g, ""),
+                      }))
+                    }
+                  />
+                </div>
               </label>
             </div>
 
@@ -833,40 +865,58 @@ export function CiurmaScreen() {
               {!isAdmin(identity.email) && (
                 <>
                   {/* Match & Drink - GIOVEDÌ */}
-                  <Link
-                    href="/game/match-drink"
-                    className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink - GIOVEDÌ</p>
-                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                          Nuove amicizie o anima gemella? Incontra persone che condividono i tuoi stessi interessi!
-                        </p>
+                  {activeGames.matchDrink && (
+                    <Link
+                      href="/game/match-drink"
+                      onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+                      className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink - GIOVEDÌ</p>
+                          <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                            Nuove amicizie o anima gemella? Incontra persone che condividono i tuoi stessi interessi!
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
+                          GIOCA ORA
+                        </span>
                       </div>
-                      <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
-                        GIOCA ORA
-                      </span>
-                    </div>
-                  </Link>
+                    </Link>
+                  )}
 
                   {/* Buzzer Card - Client */}
-                  <a
-                    href="/game/buzzer"
-                    className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
-                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                          La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
-                        </p>
+                  {activeGames.buzzer && (
+                    <a
+                      href="/game/buzzer"
+                      onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+                      className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
+                          <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                            La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                          GIOCA ORA
+                        </span>
                       </div>
-                      <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                        GIOCA ORA
-                      </span>
-                    </div>
-                  </a>
+                    </a>
+                  )}
+                  {hasOnPremiseAccess && (
+                    <>
+                      <CaptainChallengeTeaser
+                        className="mt-4"
+                        onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+                      />
+                      <LocalExperienceTeaser
+                        className="mt-4"
+                        onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+                      />
+                    </>
+                  )}
                 </>
               )}
 
@@ -1090,17 +1140,22 @@ export function CiurmaScreen() {
                   </label>
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
                     <span>Telefono</span>
-                    <input
-                      className="field"
-                      type="tel"
-                      value={contactForm.phone}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          phone: event.target.value,
-                        }))
-                      }
-                    />
+                    <div className="relative flex items-center">
+                      <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
+                        +39
+                      </span>
+                      <input
+                        className="field pl-14"
+                        type="tel"
+                        value={contactForm.phone.replace(/^\+39/, "")}
+                        onChange={(event) =>
+                          setContactForm((current) => ({
+                            ...current,
+                            phone: "+39" + event.target.value.replace(/\D/g, ""),
+                          }))
+                        }
+                      />
+                    </div>
                   </label>
                 </div>
 

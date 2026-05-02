@@ -6,5 +6,5 @@ export const piratePhotoServerConfig = {
     ".data/pirate-photos",
   notifyEmail:
     process.env.PIRATE_PHOTO_NOTIFY_EMAIL?.trim() ||
-    "tortuga.re@gmail.com",
+    "kinderland.re@gmail.com",
 } as const;

@@ -31,10 +31,9 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("[Tortuga fidelity] attivazione card fallita", {
-      message:
-        error instanceof Error
-          ? error.message
-          : "Errore sconosciuto attivazione fidelity.",
+      contactCode,
+      error: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error ? error.cause : undefined,
     });
 
     return NextResponse.json(

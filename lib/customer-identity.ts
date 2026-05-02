@@ -11,6 +11,7 @@ import type {
   CustomerSessionIdentity,
   CustomerSessionResponse,
 } from "@/lib/session/types";
+import { normalizePhoneNumber } from "./profile/validation";
 
 export type CustomerIdentity = {
   email: string;
@@ -120,7 +121,7 @@ const parseStoredCustomerIdentity = (raw: string): CustomerIdentity | null => {
       typeof parsed.email === "string" ? normalizeCustomerEmail(parsed.email) : "",
     firstName: typeof parsed.firstName === "string" ? cleanText(parsed.firstName) : "",
     lastName: typeof parsed.lastName === "string" ? cleanText(parsed.lastName) : "",
-    phone: typeof parsed.phone === "string" ? cleanText(parsed.phone) : "",
+    phone: typeof parsed.phone === "string" ? normalizePhoneNumber(parsed.phone) : "",
     marketingConsent:
       typeof parsed.marketingConsent === "boolean"
         ? parsed.marketingConsent
@@ -142,7 +143,7 @@ const mergeCustomerIdentity = (
       : current.firstName,
   lastName:
     updates.lastName !== undefined ? cleanText(updates.lastName) : current.lastName,
-  phone: updates.phone !== undefined ? cleanText(updates.phone) : current.phone,
+  phone: updates.phone !== undefined ? normalizePhoneNumber(updates.phone) : current.phone,
   marketingConsent:
     updates.marketingConsent !== undefined
       ? updates.marketingConsent

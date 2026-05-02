@@ -48,6 +48,7 @@ import type {
   WaitlistCreateResponse,
 } from "@/lib/cooperto/types";
 import { buildCoopertoDateTime, buildCoopertoNowDateTime } from "@/lib/utils";
+import { normalizePhoneNumber } from "@/lib/profile/validation";
 
 const withQuery = (path: string, query: Record<string, string | number | undefined>) => {
   const url = new URL(path, coopertoConfig.apiBaseUrl);
@@ -69,7 +70,8 @@ const coopertoFetch = async <T>(
     throw new Error("Configurazione Cooperto non presente.");
   }
 
-  const response = await fetch(withQuery(path, init?.query ?? {}), {
+  const url = withQuery(path, init?.query ?? {});
+  const response = await fetch(url, {
     ...init,
     headers: {
       Authorization: `Bearer ${coopertoConfig.apiKey}`,
@@ -81,6 +83,11 @@ const coopertoFetch = async <T>(
 
   if (!response.ok) {
     const body = await response.text();
+    console.error(`[Cooperto API Error] ${init?.method || "GET"} ${path}`, {
+      status: response.status,
+      statusText: response.statusText,
+      body,
+    });
     throw new Error(body || `Cooperto ha risposto con ${response.status}.`);
   }
 
@@ -90,7 +97,12 @@ const coopertoFetch = async <T>(
     return null as T;
   }
 
-  return JSON.parse(body) as T;
+  try {
+    return JSON.parse(body) as T;
+  } catch (parseError) {
+    console.error(`[Cooperto API Parse Error] ${path}`, { body, error: parseError });
+    throw new Error("Risposta da Cooperto non valida (JSON corrotto).");
+  }
 };
 
 const normalizeRooms = (rooms?: CoopertoBookingModule["SaleAbilitate"]): BookingRoom[] => {
@@ -386,7 +398,7 @@ export const createBooking = async (
     Pax: input.pax,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: input.phone,
+    Telefono: normalizePhoneNumber(input.phone),
     Email: input.email,
     Note: input.note,
     ConsensoPrivacy: input.privacyAccepted,
@@ -403,7 +415,11 @@ export const createBooking = async (
       source: "live",
       reservation,
     };
-  } catch {
+  } catch (error) {
+    console.error("[Cooperto createBooking] Errore critico:", error);
+    if (hasCoopertoLiveConfig) {
+      throw error;
+    }
     return fallbackSource(await mockBookingCreate(input));
   }
 };
@@ -419,7 +435,7 @@ export const createWaitlist = async (
     CodiceSede: coopertoConfig.sedeCode,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: input.phone,
+    Telefono: normalizePhoneNumber(input.phone),
     Email: input.email,
     Pax: input.pax,
     Note: buildWaitlistNote(input),
@@ -437,7 +453,11 @@ export const createWaitlist = async (
       source: "live",
       entry,
     };
-  } catch {
+  } catch (error) {
+    console.error("[Cooperto createWaitlist] Errore critico:", error);
+    if (hasCoopertoLiveConfig) {
+      throw error;
+    }
     return fallbackSource(await mockWaitlistCreate(input));
   }
 };
@@ -531,7 +551,8 @@ export const getProfileData = async (
       lookupMode,
       query,
     };
-  } catch {
+  } catch (error) {
+    console.warn(`[Cooperto getProfileData] Fallback a mock per ${query} (${lookupMode}):`, error);
     return fallbackSource(await mockProfile(query, lookupMode));
   }
 };
@@ -580,7 +601,11 @@ export const updateProfileContact = async (
       lookupMode: "email",
       query: input.email,
     };
-  } catch {
+  } catch (error) {
+    console.error("[Cooperto updateProfileContact] Errore critico:", error);
+    if (hasCoopertoLiveConfig) {
+      throw error;
+    }
     return fallbackSource(await mockUpdateProfileContact(input));
   }
 };
@@ -643,24 +668,31 @@ export const activateFidelityCard = async ({
   }
 
   try {
+    console.info(`[Cooperto Fidelity] Tentativo attivazione automatica per: ${normalizedContactCode}`);
     await updateContactFidelityCard({
       codiceContatto: normalizedContactCode,
     });
   } catch (autoActivationError) {
+    console.warn(`[Cooperto Fidelity] Attivazione automatica fallita per: ${normalizedContactCode}`, autoActivationError);
     const configuredCardCode = coopertoConfig.defaultFidelityCardCode;
 
     if (!configuredCardCode) {
+      console.error("[Cooperto Fidelity] Nessun codice card predefinito configurato (COOPERTO_DEFAULT_FIDELITY_CARD_CODE).");
       throw new Error(fidelityActivationError, { cause: autoActivationError });
     }
 
-    await updateContactFidelityCard({
-      codiceContatto: normalizedContactCode,
-      codiceCard: configuredCardCode,
-    }).catch((configuredActivationError) => {
+    try {
+      console.info(`[Cooperto Fidelity] Tentativo attivazione con codice predefinito (${configuredCardCode}) per: ${normalizedContactCode}`);
+      await updateContactFidelityCard({
+        codiceContatto: normalizedContactCode,
+        codiceCard: configuredCardCode,
+      });
+    } catch (configuredActivationError) {
+      console.error(`[Cooperto Fidelity] Attivazione con codice predefinito fallita per: ${normalizedContactCode}`, configuredActivationError);
       throw new Error(fidelityActivationError, {
         cause: configuredActivationError,
       });
-    });
+    }
   }
 
   const refreshedProfile = await getProfileData("contactCode", normalizedContactCode);
