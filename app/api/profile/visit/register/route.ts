@@ -32,6 +32,12 @@ export async function POST(request: Request) {
       venueCode,
     });
 
+    // Salviamo la visita anche nel nostro database per il cron del sondaggio
+    const { saveVisitToStorage } = await import("@/lib/push/subscription-store");
+    // Se contactCode contiene un @, è probabilmente l'email fallback
+    const email = payload.contactCode.includes("@") ? payload.contactCode : undefined;
+    await saveVisitToStorage(payload.contactCode, email).catch(() => null);
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("[Visit Registration API] Error:", error);

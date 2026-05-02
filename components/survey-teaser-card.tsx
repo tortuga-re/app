@@ -30,28 +30,6 @@ export function SurveyTeaserCard() {
 
       if (now >= appearanceDate && now < disappearanceDate) {
         setShow(true);
-
-        // Verifica se inviare la notifica push
-        const pushSentAtStr = localStorage.getItem(storageKeys.surveyPushSentAt);
-        const pushSentAt = pushSentAtStr ? parseInt(pushSentAtStr, 10) : 0;
-
-        // Inviamo la push solo se non è stata già inviata per questa specifica apparizione
-        if (pushSentAt < appearanceDate.getTime()) {
-          try {
-            await fetch("/api/push/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                title: "Com'è andata al Tortuga?",
-                body: "Facci sapere la tua esperienza con un mini sondaggio e ricevi un omaggio!",
-                url: "/?survey=true",
-              }),
-            });
-            localStorage.setItem(storageKeys.surveyPushSentAt, Date.now().toString());
-          } catch (err) {
-            console.error("[Survey Card] Errore invio push:", err);
-          }
-        }
       } else {
         setShow(false);
       }
