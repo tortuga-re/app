@@ -1006,75 +1006,26 @@ export function CiurmaScreen() {
                 </Link>
               )}
 
-                <div className="space-y-3">
-                  {/* Arruola un Pirata - LIVE Funnel */}
-                  <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-base font-semibold text-white">Arruola un Pirata</p>
-                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                          Invita un amico nella tua ciurma e sblocca vantaggi extra quando torna a bordo.
-                        </p>
-                      </div>
+              {!isAdmin(identity.email) && ciurmaRoadmapFeatures.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="panel-muted rounded-[1.5rem] px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white">
+                        {feature.title}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        {feature.description}
+                      </p>
                     </div>
-                    
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        triggerHaptic();
-                        const contactCode = data?.contact?.CodiceContatto;
-                        if (!contactCode) {
-                          // Scroll to recognition if not logged in
-                          window.location.hash = "#riconoscimento";
-                          return;
-                        }
-
-                        const referralUrl = `https://app.tortugabay.it/?ref=${contactCode}`;
-                        const shareData = {
-                          title: "Entra nella Ciurma Tortuga!",
-                          text: "Vieni a trovarmi al Tortuga Bay! Registrati tramite questo link per sbloccare vantaggi esclusivi.",
-                          url: referralUrl,
-                        };
-
-                        try {
-                          if (navigator.share) {
-                            await navigator.share(shareData);
-                          } else {
-                            await navigator.clipboard.writeText(referralUrl);
-                            alert("Link di invito copiato negli appunti!");
-                          }
-                        } catch (err) {
-                          console.error("Errore condivisione:", err);
-                        }
-                      }}
-                      className="button-primary mt-4 w-full py-3 text-xs font-black uppercase tracking-widest"
-                    >
-                      {data?.contact?.CodiceContatto ? "Invia Invito" : "Accedi per Invitare"}
-                    </button>
+                    <span className="rounded-full border border-[rgba(171,128,63,0.14)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      A bordo presto
+                    </span>
                   </div>
-
-                  {/* Other roadmap features */}
-                  {ciurmaRoadmapFeatures.map((feature) => (
-                    <div
-                      key={feature.title}
-                      className="panel-muted rounded-[1.5rem] px-4 py-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-base font-semibold text-white">
-                            {feature.title}
-                          </p>
-                          <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                            {feature.description}
-                          </p>
-                        </div>
-                        <span className="rounded-full border border-[rgba(171,128,63,0.14)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                          A bordo presto
-                        </span>
-                      </div>
-                    </div>
-                  ))}
                 </div>
+              ))}
             </div>
           </div>
 

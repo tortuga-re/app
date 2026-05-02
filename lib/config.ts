@@ -132,6 +132,11 @@ export const localExperiencePublicConfig = {
 
 export const ciurmaRoadmapFeatures = [
   {
+    title: "Arruola un Pirata",
+    description:
+      "Invita un amico nella tua ciurma e sblocca vantaggi extra quando torna a bordo.",
+  },
+  {
     title: "Esperienze solo in locale",
     description:
       "Alcune rotte si aprono solo quando sei davvero a bordo.",
