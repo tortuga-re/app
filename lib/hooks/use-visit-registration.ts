@@ -27,6 +27,7 @@ export function useVisitRegistration() {
       if (response.ok) {
         if (typeof window !== "undefined") {
           sessionStorage.setItem(VISIT_REGISTERED_KEY, "true");
+          localStorage.setItem("tortuga.last-visit-at", Date.now().toString());
         }
         console.info("[Visit Registration] Registered successfully for", contactCode);
       } else {

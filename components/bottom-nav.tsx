@@ -202,8 +202,8 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
 
         <div className="tortuga-divider" />
         <div>
-          <p className="px-3 text-center text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:rgba(240,211,154,0.7)]">
-            EAT. DRINK. <span className="text-[#D8B06A]" style={{ textShadow: "0 0 10px rgba(216, 176, 106, 0.9), 0 0 20px rgba(216, 176, 106, 0.4)" }}>TORTUGA</span>. REPEAT.
+          <p className="px-3 text-center text-[10px] font-semibold tracking-[0.3em] text-[color:rgba(240,211,154,0.7)]">
+            eat.drink.<span className="text-[#D8B06A]" style={{ textShadow: "0 0 10px rgba(216, 176, 106, 0.9), 0 0 20px rgba(216, 176, 106, 0.4)" }}>TORTUGA</span>.repeat.
           </p>
         </div>
       </nav>

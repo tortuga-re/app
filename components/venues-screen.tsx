@@ -331,7 +331,7 @@ function VenuesScreenContent() {
           {tortugaInfoConfig.eveningProgram.map((event) => (
             <div
               key={`${event.day}-${event.title}`}
-              className="panel-muted rounded-[1.45rem] px-4 pt-4 pb-2"
+              className="panel-muted rounded-[1.45rem] px-4 pt-4 pb-3"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
                 {event.day}
@@ -344,24 +344,28 @@ function VenuesScreenContent() {
               </p>
 
               {hasAccess && (
-                <div className="mt-4">
+                <>
                   {event.day === "MERCOLEDÌ" && currentDay === 3 && (
-                    <Link
-                      href="/game/buzzer"
-                      className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
-                    >
-                      Accedi al gioco
-                    </Link>
+                    <div className="mt-4">
+                      <Link
+                        href="/game/buzzer"
+                        className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
+                      >
+                        Accedi al gioco
+                      </Link>
+                    </div>
                   )}
                   {event.day === "GIOVEDÌ" && currentDay === 4 && (
-                    <Link
-                      href="/game/match-drink"
-                      className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
-                    >
-                      Accedi al gioco
-                    </Link>
+                    <div className="mt-4">
+                      <Link
+                        href="/game/match-drink"
+                        className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
+                      >
+                        Accedi al gioco
+                      </Link>
+                    </div>
                   )}
-                </div>
+                </>
               )}
             </div>
           ))}

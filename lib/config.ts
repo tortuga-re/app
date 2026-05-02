@@ -132,11 +132,6 @@ export const localExperiencePublicConfig = {
 
 export const ciurmaRoadmapFeatures = [
   {
-    title: "Arruola un Pirata",
-    description:
-      "Invita un amico nella tua ciurma e sblocca vantaggi extra quando torna a bordo.",
-  },
-  {
     title: "Esperienze solo in locale",
     description:
       "Alcune rotte si aprono solo quando sei davvero a bordo.",
@@ -166,5 +161,7 @@ export const storageKeys = {
   menuAccessExpiresAt: "tortuga.menu-access-expires-at",
   installPromptDismissedAt: "tortuga.install-prompt-dismissed-at",
   pushPromptDismissedAt: "tortuga.push-prompt-dismissed-at",
+  surveyPushSentAt: "tortuga.survey-push-sent-at",
   customerAvatarPrefix: "tortuga.customer-avatar",
+  lastVisitAt: "tortuga.last-visit-at",
 } as const;

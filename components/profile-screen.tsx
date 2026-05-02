@@ -904,10 +904,6 @@ export function CiurmaScreen() {
                         className="mt-4"
                         onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
                       />
-                      <LocalExperienceTeaser
-                        className="mt-4"
-                        onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                      />
                     </>
                   )}
                 </>

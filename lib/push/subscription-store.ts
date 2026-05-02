@@ -155,7 +155,6 @@ export const savePushSubscription = async (
     isNew 
   };
 };
-
 export const deletePushSubscription = async (endpoint: string) => {
   const normalizedEndpoint = endpoint.trim();
 
@@ -174,4 +173,72 @@ export const deletePushSubscription = async (endpoint: string) => {
 
   await writePushSubscriptions(nextRecords);
   return true;
+};
+
+// --- Gestione Visite per Cron Sondaggio ---
+
+const redisVisitsKey = (dateIso: string) => `tortuga:visits:${dateIso}`;
+
+export interface StoredVisit {
+  contactCode: string;
+  email?: string;
+  timestamp: string;
+  surveySent: boolean;
+}
+
+export const saveVisitToStorage = async (contactCode: string, email?: string) => {
+  if (!isRedisConfigured) return;
+
+  const today = new Date().toISOString().split("T")[0];
+  const key = redisVisitsKey(today);
+
+  try {
+    const raw = await redisCommand<string>(["GET", key]);
+    const visits: StoredVisit[] = raw ? (JSON.parse(raw) as StoredVisit[]) : [];
+
+    if (!visits.find((v) => v.contactCode === contactCode)) {
+      visits.push({
+        contactCode,
+        email: email?.trim().toLowerCase(),
+        timestamp: new Date().toISOString(),
+        surveySent: false,
+      });
+      await redisCommand<string>(["SET", key, JSON.stringify(visits)]);
+      // Scadenza dopo 7 giorni per pulizia
+      await redisCommand<string>(["EXPIRE", key, 60 * 60 * 24 * 7]);
+    }
+  } catch (err) {
+    console.error("[Visit Storage] Errore salvataggio visita:", err);
+  }
+};
+
+export const listVisitsForDate = async (dateIso: string): Promise<StoredVisit[]> => {
+  if (!isRedisConfigured) return [];
+  try {
+    const raw = await redisCommand<string>(["GET", redisVisitsKey(dateIso)]);
+    return raw ? (JSON.parse(raw) as StoredVisit[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const updateVisitSurveyStatus = async (
+  dateIso: string,
+  contactCode: string,
+) => {
+  if (!isRedisConfigured) return;
+  const key = redisVisitsKey(dateIso);
+  try {
+    const raw = await redisCommand<string>(["GET", key]);
+    if (!raw) return;
+
+    const visits: StoredVisit[] = JSON.parse(raw) as StoredVisit[];
+    const index = visits.findIndex((v) => v.contactCode === contactCode);
+    if (index >= 0) {
+      visits[index].surveySent = true;
+      await redisCommand<string>(["SET", key, JSON.stringify(visits)]);
+    }
+  } catch (err) {
+    console.error("[Visit Storage] Errore update status:", err);
+  }
 };

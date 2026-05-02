@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActiveCouponsCard } from "@/components/active-coupons-card";
 import { FidelityStatusCard } from "@/components/fidelity-status-card";
 import { StatusBlock } from "@/components/status-block";
+import { SurveyTeaserCard } from "@/components/survey-teaser-card";
 import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
@@ -405,6 +406,7 @@ export function HomeScreen() {
 
       {!loading ? (
         <>
+          <SurveyTeaserCard />
           <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
             {hasMenuAccess ? (
               <CoopertoMenuCard onClick={() => void registerVisit(profile?.contact?.CodiceContatto)} />
