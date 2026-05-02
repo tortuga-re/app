@@ -161,6 +161,8 @@ export function CiurmaScreen() {
       }
     };
     void fetchActiveGames();
+    const intervalId = window.setInterval(fetchActiveGames, 15000); // Poll every 15 seconds
+    return () => window.clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
