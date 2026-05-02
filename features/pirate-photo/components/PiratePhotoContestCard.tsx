@@ -227,14 +227,14 @@ export function PiratePhotoContestCard({
   };
 
   return (
-    <div className="panel rounded-[2rem] p-5">
+    <div className="panel rounded-[2rem] p-5 border-2 border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/5">
       <div className="space-y-2">
-        <p className="eyebrow">Scatto del Mese</p>
+        <p className="eyebrow text-[var(--accent-strong)]">Scatto del Mese</p>
         <h2 className="text-2xl font-semibold text-white">
           Mandaci la tua foto piu pirata.
         </h2>
         <p className="text-sm leading-6 text-[var(--text-muted)]">
-          Ogni mese la ciurma sceglie la migliore: cena omaggio per 2 persone.
+          Ogni mese la ciurma sceglie la migliore: <span className="text-[var(--accent-strong)] font-bold italic">cena omaggio per 2 persone.</span>
         </p>
       </div>
 
