@@ -844,9 +844,6 @@ export function CiurmaScreen() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <p className="eyebrow">Sfide e contenuti</p>
-                <h2 className="text-2xl font-semibold text-white">
-                  Sfide, inviti e contenuti speciali pensati per chi fa parte della ciurma.
-                </h2>
               </div>
 
               <span className="rounded-full border border-[rgba(171,128,63,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
