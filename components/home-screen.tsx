@@ -416,14 +416,6 @@ export function HomeScreen() {
             )}
           </div>
 
-          {hasMenuAccess ? (
-            <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-              <CaptainChallengeTeaser 
-                compact 
-                onClick={() => void registerVisit(profile?.contact?.CodiceContatto)}
-              />
-            </div>
-          ) : null}
 
           <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
             <PwaInstallCard />

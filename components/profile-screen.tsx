@@ -580,16 +580,6 @@ export function CiurmaScreen() {
 
   return (
     <section className="space-y-5">
-      {hasOnPremiseAccess ? (
-        <>
-          <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-            <CaptainChallengeTeaser />
-          </div>
-          <div id="esperienze-locale" className="hash-scroll-target rounded-[2rem]">
-            <LocalExperienceTeaser />
-          </div>
-        </>
-      ) : null}
 
       {showLookupPanel ? (
         <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
