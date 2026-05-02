@@ -15,6 +15,7 @@ import type { PiratePhotoUploadResponse } from "@/lib/pirate-photo/types";
 type PiratePhotoContestCardProps = {
   contact: ProfileResponse["contact"] | null;
   onProfileResolved?: (profile: ProfileResponse) => void;
+  onVisitTrigger?: () => void;
 };
 
 type PiratePhotoFormState = {
@@ -86,6 +87,7 @@ const formatFileSize = (size: number) => {
 export function PiratePhotoContestCard({
   contact,
   onProfileResolved,
+  onVisitTrigger,
 }: PiratePhotoContestCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { identity, updateIdentity } = useCustomerIdentity();
@@ -154,6 +156,7 @@ export function PiratePhotoContestCard({
   };
 
   const submitPhoto = async () => {
+    onVisitTrigger?.();
     const validationError = validateForm();
 
     if (validationError) {
@@ -317,6 +320,7 @@ export function PiratePhotoContestCard({
           className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
           onClick={() => {
             triggerHaptic();
+            onVisitTrigger?.();
             fileInputRef.current?.click();
           }}
         >
