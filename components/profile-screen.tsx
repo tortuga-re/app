@@ -81,6 +81,7 @@ export function CiurmaScreen() {
   const [lookupEmail, setLookupEmail] = useState("");
   const [isEditingLookup, setIsEditingLookup] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isDataExpanded, setIsDataExpanded] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
@@ -580,16 +581,6 @@ export function CiurmaScreen() {
 
   return (
     <section className="space-y-5">
-      {hasOnPremiseAccess ? (
-        <>
-          <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-            <CaptainChallengeTeaser />
-          </div>
-          <div id="esperienze-locale" className="hash-scroll-target rounded-[2rem]">
-            <LocalExperienceTeaser />
-          </div>
-        </>
-      ) : null}
 
       {showLookupPanel ? (
         <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
@@ -1083,268 +1074,275 @@ export function CiurmaScreen() {
               </div>
             ) : null}
 
-            {isEditingProfile ? (
-              <div className="mt-4 grid gap-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Nome</span>
-                    <input
-                      className="field"
-                      value={contactForm.firstName}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          firstName: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Cognome</span>
-                    <input
-                      className="field"
-                      value={contactForm.lastName}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          lastName: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
+            <div className="mt-4 space-y-3">
+              {/* Core Header (Always visible) */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                    Dati Anagrafici
+                  </p>
+                  <h3 className="text-lg font-bold text-white">
+                    {contactSnapshot.firstName} {contactSnapshot.lastName}
+                  </h3>
                 </div>
+                {!isEditingProfile && (
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(216,176,106,0.25)] bg-[rgba(216,176,106,0.1)] text-[var(--accent-strong)] transition-all active:scale-90"
+                    onClick={() => {
+                      triggerHaptic();
+                      setIsDataExpanded(!isDataExpanded);
+                    }}
+                  >
+                    <span className="text-xl font-bold leading-none">
+                      {isDataExpanded ? "−" : "+"}
+                    </span>
+                  </button>
+                )}
+              </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Email</span>
-                    <input
-                      className="field"
-                      type="email"
-                      value={contactForm.email}
-                      onChange={(event) => {
-                        const nextEmail = event.target.value;
-
-                        if (
-                          emailChangeRequest &&
-                          normalizeCustomerEmail(nextEmail) !==
-                          emailChangeRequest.pendingEmail
-                        ) {
-                          setEmailChangeRequest(null);
-                          setEmailChangeCode("");
-                        }
-
-                        setContactForm((current) => ({
-                          ...current,
-                          email: nextEmail,
-                        }));
-                      }}
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Telefono</span>
-                    <div className="relative flex items-center">
-                      <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
-                        +39
-                      </span>
+              {isEditingProfile ? (
+                <div className="grid gap-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Nome</span>
                       <input
-                        className="field pl-14"
-                        type="tel"
-                        value={contactForm.phone.replace(/^\+39/, "")}
+                        className="field"
+                        value={contactForm.firstName}
                         onChange={(event) =>
                           setContactForm((current) => ({
                             ...current,
-                            phone: "+39" + event.target.value.replace(/\D/g, ""),
+                            firstName: event.target.value,
                           }))
                         }
                       />
-                    </div>
-                  </label>
-                </div>
-
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Data di nascita</span>
-                  <input
-                    className="field"
-                    type="date"
-                    value={contactForm.birthDate}
-                    onChange={(event) =>
-                      setContactForm((current) => ({
-                        ...current,
-                        birthDate: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-
-                <label className="flex items-start gap-3 rounded-[1.4rem] border border-[rgba(171,128,63,0.16)] bg-white/4 px-4 py-3 text-sm text-[var(--text-muted)]">
-                  <input
-                    type="checkbox"
-                    checked={contactForm.marketingConsent}
-                    onChange={(event) =>
-                      setContactForm((current) => ({
-                        ...current,
-                        marketingConsent: event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>
-                    Accetto comunicazioni marketing future di Tortuga.
-                  </span>
-                </label>
-
-                {emailChangeRequest ? (
-                  <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                        Verifica email
-                      </p>
-                      <h3 className="text-lg font-semibold text-white">
-                        Controlla {emailChangeRequest.pendingEmail}
-                      </h3>
-                      <p className="text-sm leading-6 text-[var(--text-muted)]">
-                        La tua email attuale resta valida finche non confermi il
-                        codice. Il codice scade alle {emailChangeExpiresAtLabel}.
-                      </p>
-                    </div>
-
-                    <div className="mt-4 grid gap-3">
+                    </label>
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Cognome</span>
                       <input
-                        className="field text-center text-lg font-semibold tracking-[0.35em]"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={6}
-                        placeholder="000000"
-                        value={emailChangeCode}
+                        className="field"
+                        value={contactForm.lastName}
                         onChange={(event) =>
-                          setEmailChangeCode(
-                            event.target.value.replace(/\D/g, "").slice(0, 6),
-                          )
+                          setContactForm((current) => ({
+                            ...current,
+                            lastName: event.target.value,
+                          }))
                         }
                       />
+                    </label>
+                  </div>
 
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          className="button-primary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                          onClick={() => {
-                            triggerHaptic();
-                            void verifyEmailChange();
-                          }}
-                          disabled={
-                            verifyingEmailChange || emailChangeCode.trim().length !== 6
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Email</span>
+                      <input
+                        className="field"
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(event) =>
+                          setContactForm((current) => ({
+                            ...current,
+                            email: normalizeCustomerEmail(event.target.value),
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                      <span>Telefono</span>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+                          +39
+                        </span>
+                        <input
+                          className="field pl-14"
+                          type="tel"
+                          value={contactForm.phone.replace(/^\+39/, "")}
+                          onChange={(event) =>
+                            setContactForm((current) => ({
+                              ...current,
+                              phone: "+39" + event.target.value.replace(/\D/g, ""),
+                            }))
                           }
-                        >
-                          {verifyingEmailChange
-                            ? "Verifico..."
-                            : "Conferma codice"}
-                        </button>
-                        <button
-                          type="button"
-                          className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                          onClick={() => {
-                            triggerHaptic();
-                            void resendEmailChangeCode();
-                          }}
-                          disabled={
-                            resendingEmailChange || !emailChangeCanResend
-                          }
-                        >
-                          {resendingEmailChange
-                            ? "Invio..."
-                            : emailChangeCanResend
-                              ? "Reinvia codice"
-                              : `Reinvia tra ${emailChangeResendSeconds}s`}
-                        </button>
+                        />
+                      </div>
+                    </label>
+                  </div>
+
+                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <span>Data di nascita</span>
+                    <input
+                      className="field"
+                      type="date"
+                      value={contactForm.birthDate}
+                      onChange={(event) =>
+                        setContactForm((current) => ({
+                          ...current,
+                          birthDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="flex items-start gap-3 rounded-[1.4rem] border border-[rgba(171,128,63,0.16)] bg-white/4 px-4 py-3 text-sm text-[var(--text-muted)]">
+                    <input
+                      type="checkbox"
+                      checked={contactForm.marketingConsent}
+                      onChange={(event) =>
+                        setContactForm((current) => ({
+                          ...current,
+                          marketingConsent: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>
+                      Accetto comunicazioni marketing future di Tortuga.
+                    </span>
+                  </label>
+
+                  {emailChangeRequest ? (
+                    <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                          Verifica email
+                        </p>
+                        <h3 className="text-lg font-semibold text-white">
+                          Controlla {emailChangeRequest.pendingEmail}
+                        </h3>
+                        <p className="text-sm leading-6 text-[var(--text-muted)]">
+                          La tua email attuale resta valida finche non confermi il
+                          codice. Il codice scade alle {emailChangeExpiresAtLabel}.
+                        </p>
                       </div>
 
-                      <p className="text-xs leading-5 text-[var(--text-muted)]">
-                        Tentativi rimasti: {emailChangeRequest.attemptsRemaining}.
-                      </p>
+                      <div className="mt-4 grid gap-3">
+                        <input
+                          className="field text-center text-lg font-semibold tracking-[0.35em]"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={6}
+                          placeholder="000000"
+                          value={emailChangeCode}
+                          onChange={(event) =>
+                            setEmailChangeCode(
+                              event.target.value.replace(/\D/g, "").slice(0, 6),
+                            )
+                          }
+                        />
+
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            className="button-primary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                            onClick={() => {
+                              triggerHaptic();
+                              void verifyEmailChange();
+                            }}
+                            disabled={
+                              verifyingEmailChange || emailChangeCode.trim().length !== 6
+                            }
+                          >
+                            {verifyingEmailChange
+                              ? "Verifico..."
+                              : "Conferma codice"}
+                          </button>
+                          <button
+                            type="button"
+                            className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                            onClick={() => {
+                              triggerHaptic();
+                              void resendEmailChangeCode();
+                            }}
+                            disabled={
+                              resendingEmailChange || !emailChangeCanResend
+                            }
+                          >
+                            {resendingEmailChange
+                              ? "Invio..."
+                              : emailChangeCanResend
+                                ? "Reinvia codice"
+                                : `Reinvia tra ${emailChangeResendSeconds}s`}
+                          </button>
+                        </div>
+
+                        <p className="text-xs leading-5 text-[var(--text-muted)]">
+                          Tentativi rimasti: {emailChangeRequest.attemptsRemaining}.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
 
-                <button
-                  type="button"
-                  className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-                  onClick={() => {
-                    triggerHaptic();
-                    void saveContact();
-                  }}
-                  disabled={savingContact || verifyingEmailChange}
-                >
-                  {savingContact
-                    ? "Salvo le modifiche..."
-                    : emailChangeNeedsVerification
-                      ? "Invia codice verifica"
-                      : "Salva modifiche"}
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-3">
-                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Nome e cognome
-                  </p>
-                  <div className="mt-2 grid gap-2 text-sm leading-6 text-[var(--text-muted)] sm:grid-cols-2">
-                    <p>
-                      Nome:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.firstName || "Non disponibile"}
-                      </span>
-                    </p>
-                    <p>
-                      Cognome:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.lastName || "Non disponibile"}
-                      </span>
-                    </p>
+                  <button
+                    type="button"
+                    className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+                    onClick={() => {
+                      triggerHaptic();
+                      void saveContact();
+                    }}
+                    disabled={savingContact || verifyingEmailChange}
+                  >
+                    {savingContact
+                      ? "Salvo le modifiche..."
+                      : emailChangeNeedsVerification
+                        ? "Invia codice verifica"
+                        : "Salva modifiche"}
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {/* Collapsible/Missing Content */}
+                  <div className="grid gap-3">
+                    {/* Contacts (Email/Phone) - Expanded only if full, or if one is missing */}
+                    {(isDataExpanded || !contactSnapshot.email || !contactSnapshot.phone) && (
+                      <div className="panel-muted rounded-[1.5rem] px-4 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                          Contatti
+                        </p>
+                        <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
+                          <p>
+                            Email:{" "}
+                            <span className={contactSnapshot.email ? "text-white" : "text-[var(--danger)] font-semibold"}>
+                              {contactSnapshot.email || "Non disponibile"}
+                            </span>
+                          </p>
+                          <p>
+                            Telefono:{" "}
+                            <span className={contactSnapshot.phone ? "text-white" : "text-[var(--danger)] font-semibold"}>
+                              {contactSnapshot.phone || "Non disponibile"}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Birth Date - Expanded only if full, or if missing */}
+                    {(isDataExpanded || !contactSnapshot.birthDate) && (
+                      <div className="panel-muted rounded-[1.5rem] px-4 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                          Data di nascita
+                        </p>
+                        <p className={contactSnapshot.birthDate ? "mt-2 text-base font-semibold text-white" : "mt-2 text-sm text-[var(--danger)] font-semibold"}>
+                          {contactSnapshot.birthDate
+                            ? formatBirthDateLabel(contactSnapshot.birthDate)
+                            : "Non disponibile"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Contatti
-                  </p>
-                  <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
-                    <p>
-                      Email:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.email || "Non disponibile"}
-                      </span>
-                    </p>
-                    <p>
-                      Telefono:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.phone || "Non disponibile"}
-                      </span>
-                    </p>
-                  </div>
+              {!activeCardCode || showActivatedCardPanel ? (
+                <div className="mt-2">
+                  <FidelityActivationPanel
+                    contactCode={contactCode}
+                    activeCardCode={activeCardCode}
+                    qrLabel="QR ciurma Tortuga"
+                    onActivated={handleFidelityActivated}
+                  />
                 </div>
+              ) : null}
+            </div>
 
-                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Data di nascita
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-white">
-                    {contactSnapshot.birthDate
-                      ? formatBirthDateLabel(contactSnapshot.birthDate)
-                      : "Non disponibile"}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {!activeCardCode || showActivatedCardPanel ? (
-              <div className="mt-5">
-                <FidelityActivationPanel
-                  contactCode={contactCode}
-                  activeCardCode={activeCardCode}
-                  qrLabel="QR ciurma Tortuga"
-                  onActivated={handleFidelityActivated}
-                />
-              </div>
-            ) : null}
 
             <div className="mt-5 flex flex-col gap-2 border-t border-[rgba(216,176,106,0.14)] pt-4 sm:flex-row">
               <button

@@ -101,18 +101,6 @@ export function PiratePhotoContestCard({
   const [success, setSuccess] = useState("");
   const [notificationWarning, setNotificationWarning] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const previewUrl = useMemo(
-    () => (photo && isRenderablePreview(photo) ? URL.createObjectURL(photo) : ""),
-    [photo],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   const selectedPhotoLabel = useMemo(() => {
     if (!photo) {
@@ -335,32 +323,16 @@ export function PiratePhotoContestCard({
           Scegli foto
         </button>
 
-        <div className="overflow-hidden rounded-[1.55rem] border border-[rgba(216,176,106,0.2)] bg-black/22">
-          {photo && previewUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={previewUrl}
-              alt="Anteprima Scatto del Mese"
-              className="max-h-72 w-full object-cover"
-            />
-          ) : (
-            <div className="flex min-h-44 items-center justify-center px-5 text-center">
-              <div>
-                <p className="text-base font-semibold text-white">
-                  {photo ? "Foto selezionata" : "Anteprima foto"}
-                </p>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  {photo ? "Anteprima file" : "Scegli una foto per vederla qui"}
-                </p>
-              </div>
-            </div>
-          )}
-          {photo ? (
-            <p className="border-t border-[rgba(216,176,106,0.16)] px-4 py-3 text-xs leading-5 text-[var(--text-muted)]">
+        {photo ? (
+          <div className="rounded-[1.2rem] border border-[rgba(216,176,106,0.2)] bg-black/22 px-4 py-3">
+            <p className="text-xs leading-5 text-[var(--accent-strong)]">
+              Foto selezionata:
+            </p>
+            <p className="text-sm font-medium text-white truncate">
               {selectedPhotoLabel}
             </p>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <p className="text-xs leading-5 text-[var(--text-muted)]">
           Inviando la foto accetti che venga valutata dallo staff Tortuga.

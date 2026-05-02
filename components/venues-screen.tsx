@@ -331,7 +331,7 @@ function VenuesScreenContent() {
           {tortugaInfoConfig.eveningProgram.map((event) => (
             <div
               key={`${event.day}-${event.title}`}
-              className="panel-muted rounded-[1.45rem] px-4 py-4"
+              className="panel-muted rounded-[1.45rem] px-4 pt-4 pb-2"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
                 {event.day}
@@ -566,17 +566,6 @@ function VenuesScreenContent() {
           </div>
         </div>
 
-        <div id="indicazioni" className="hash-scroll-target">
-          <a
-            href={tortugaInfoConfig.mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm"
-          >
-            Ottieni indicazioni
-          </a>
-        </div>
-
         <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-black/20">
           <iframe
             title="Mappa Tortuga Bay"
@@ -587,23 +576,36 @@ function VenuesScreenContent() {
           />
         </div>
 
-        <div id="contatti" className="hash-scroll-target mt-6 flex items-center justify-center gap-6">
-          <a
-            href={tortugaInfoConfig.phoneHref}
-            className="text-[var(--accent-strong)] transition-all hover:scale-110 active:scale-95"
-            aria-label="Chiama"
-          >
-            <PhoneIcon />
-          </a>
-          <a
-            href={tortugaInfoConfig.whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[var(--accent-strong)] transition-all hover:scale-110 active:scale-95"
-            aria-label="Scrivici su WhatsApp"
-          >
-            <WhatsAppIcon />
-          </a>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div id="indicazioni" className="hash-scroll-target">
+            <a
+              href={tortugaInfoConfig.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
+            >
+              Ottieni indicazioni
+            </a>
+          </div>
+
+          <div id="contatti" className="hash-scroll-target flex items-center gap-6">
+            <a
+              href={tortugaInfoConfig.phoneHref}
+              className="text-[var(--accent-strong)] transition-all hover:scale-110 active:scale-95"
+              aria-label="Chiama"
+            >
+              <PhoneIcon />
+            </a>
+            <a
+              href={tortugaInfoConfig.whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[var(--accent-strong)] transition-all hover:scale-110 active:scale-95"
+              aria-label="Scrivici su WhatsApp"
+            >
+              <WhatsAppIcon />
+            </a>
+          </div>
         </div>
       </div>
     </section>

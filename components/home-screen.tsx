@@ -215,9 +215,6 @@ function CoopertoMenuCard({ onClick }: { onClick?: () => void }) {
     <div className="panel rounded-[2rem] p-5">
       <div className="space-y-2">
         <p className="eyebrow">Menu</p>
-        <h2 className="text-2xl font-semibold leading-tight text-white">
-          Menu e mondo Tortuga
-        </h2>
       </div>
 
       <a
@@ -416,14 +413,6 @@ export function HomeScreen() {
             )}
           </div>
 
-          {hasMenuAccess ? (
-            <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-              <CaptainChallengeTeaser 
-                compact 
-                onClick={() => void registerVisit(profile?.contact?.CodiceContatto)}
-              />
-            </div>
-          ) : null}
 
           <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
             <PwaInstallCard />
