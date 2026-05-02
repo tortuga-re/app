@@ -673,7 +673,10 @@ export const activateFidelityCard = async ({
       codiceContatto: normalizedContactCode,
     });
   } catch (autoActivationError) {
-    console.warn(`[Cooperto Fidelity] Attivazione automatica fallita per: ${normalizedContactCode}`, autoActivationError);
+    console.warn(`[Cooperto Fidelity] Attivazione automatica (senza codice) fallita per: ${normalizedContactCode}`, {
+      error: autoActivationError instanceof Error ? autoActivationError.message : autoActivationError,
+      cause: autoActivationError instanceof Error ? autoActivationError.cause : undefined,
+    });
     const configuredCardCode = coopertoConfig.defaultFidelityCardCode;
 
     if (!configuredCardCode) {
@@ -688,7 +691,10 @@ export const activateFidelityCard = async ({
         codiceCard: configuredCardCode,
       });
     } catch (configuredActivationError) {
-      console.error(`[Cooperto Fidelity] Attivazione con codice predefinito fallita per: ${normalizedContactCode}`, configuredActivationError);
+      console.error(`[Cooperto Fidelity] Attivazione con codice predefinito (${configuredCardCode}) fallita per: ${normalizedContactCode}`, {
+        error: configuredActivationError instanceof Error ? configuredActivationError.message : configuredActivationError,
+        cause: configuredActivationError instanceof Error ? configuredActivationError.cause : undefined,
+      });
       throw new Error(fidelityActivationError, {
         cause: configuredActivationError,
       });
