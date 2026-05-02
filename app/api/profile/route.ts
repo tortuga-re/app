@@ -82,12 +82,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
+  console.info(`[API Profile POST] Richiesta salvataggio per: ${payload.email}`, {
+    name: `${payload.firstName} ${payload.lastName}`,
+    hasBirthDate: Boolean(payload.birthDate),
+  });
+
   try {
     const data = await updateProfileContact({
       ...payload,
     });
+    console.info(`[API Profile POST] Successo per: ${payload.email}`, {
+      source: data.source,
+      hasContact: Boolean(data.contact),
+    });
     return NextResponse.json(data);
   } catch (error) {
+    console.error(`[API Profile POST] Errore per: ${payload.email}`, error);
     return NextResponse.json(
       {
         error:

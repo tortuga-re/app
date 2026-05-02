@@ -90,6 +90,9 @@ export function PiratePhotoContestCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { identity, updateIdentity } = useCustomerIdentity();
   const isKnownCustomer = Boolean(contact?.CodiceContatto?.trim());
+  const hasFullIdentity = Boolean(identity.email && identity.firstName && identity.lastName);
+  const shouldHideFields = isKnownCustomer || hasFullIdentity;
+
   const [form, setForm] = useState<PiratePhotoFormState>(() =>
     buildInitialForm(contact, identity),
   );
@@ -258,7 +261,7 @@ export function PiratePhotoContestCard({
         </div>
       ) : null}
 
-      {!isKnownCustomer ? (
+      {!shouldHideFields ? (
         <div className="mt-4 grid gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-2 text-sm text-[var(--text-muted)]">

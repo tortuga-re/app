@@ -7,10 +7,12 @@ export function CaptainChallengeTeaser({
   className,
   compact = false,
   framed = true,
+  onClick,
 }: {
   className?: string;
   compact?: boolean;
   framed?: boolean;
+  onClick?: () => void;
 }) {
   const content = (
     <>
@@ -40,7 +42,10 @@ export function CaptainChallengeTeaser({
       <Link
         href="/game/sfida-capitano"
         className="button-primary mt-5 inline-flex min-h-12 items-center justify-center px-5 text-sm"
-        onClick={() => triggerHaptic()}
+        onClick={() => {
+          triggerHaptic();
+          onClick?.();
+        }}
       >
         Gioca ora
       </Link>

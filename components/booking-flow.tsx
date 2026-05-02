@@ -278,7 +278,7 @@ export function BookingFlow() {
     hasNoAvailableSlots && isWaitlistContextActive && showWaitlistForm;
   const shouldHideMarketingConsent = identity.marketingConsent === true;
   useHashScroll(
-    `${loadingBootstrap}:${availabilityKey}:${Boolean(selectedSlot)}:${Boolean(success)}:${showVisibleWaitlistForm}`,
+    `${loadingBootstrap}:${availabilityKey}:${Boolean(selectedSlot)}:${Boolean(success)}:${showVisibleWaitlistForm}:${Boolean(error)}:${Boolean(waitlistError)}`,
   );
 
   useEffect(() => {
@@ -515,12 +515,14 @@ export function BookingFlow() {
         storageKeys.lastReservation,
         response.reservation,
       );
+      window.location.hash = "#prenotazione-completata";
     } catch (submitError) {
       setError(
         submitError instanceof Error
           ? submitError.message
           : "La prenotazione non e stata completata.",
       );
+      window.location.hash = "#booking-form";
     } finally {
       setSubmitting(false);
     }
@@ -577,6 +579,7 @@ export function BookingFlow() {
       setWaitlistContextKey(availabilityKey);
       setWaitlistSuccess(response);
       setShowWaitlistForm(false);
+      window.location.hash = "#waitlist-success";
     } catch (submitError) {
       setWaitlistError(
         submitError instanceof Error
@@ -686,18 +689,22 @@ export function BookingFlow() {
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Telefono</span>
-                      <input
-                        className="field"
-                        type="tel"
-                        placeholder="+39..."
-                        value={draft.phone}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            phone: event.target.value,
-                          }))
-                        }
-                      />
+                      <div className="relative flex items-center">
+                        <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
+                          +39
+                        </span>
+                        <input
+                          className="field pl-14"
+                          type="tel"
+                          value={draft.phone.replace(/^\+39/, "")}
+                          onChange={(event) =>
+                            setDraft((current) => ({
+                              ...current,
+                              phone: "+39" + event.target.value.replace(/\D/g, ""),
+                            }))
+                          }
+                        />
+                      </div>
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Email</span>
@@ -779,7 +786,7 @@ export function BookingFlow() {
               ) : null}
 
               {visibleWaitlistSuccess ? (
-                <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
+                <div id="waitlist-success" className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
                   <p className="eyebrow">Lista d&apos;attesa registrata</p>
                   <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-muted)]">
                     <p className="text-white">
@@ -847,6 +854,7 @@ export function BookingFlow() {
                                   }
                                   setSelectedTime(slot.time);
                                   setSelectedStatusCode(slot.statusCode);
+                                  window.location.hash = "#dati-cliente";
                                 }}
                               >
                                 <p className="text-base font-semibold leading-none text-white">
@@ -1125,22 +1133,26 @@ export function BookingFlow() {
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Telefono</span>
-                      <input
-                        className="field"
-                        type="tel"
-                        required
-                        placeholder="+39..."
-                        value={draft.phone}
-                        onChange={(event) => {
-                          const nextPhone = event.target.value;
+                      <div className="relative flex items-center">
+                        <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
+                          +39
+                        </span>
+                        <input
+                          className="field pl-14"
+                          type="tel"
+                          required
+                          value={draft.phone.replace(/^\+39/, "")}
+                          onChange={(event) => {
+                            const nextPhone = "+39" + event.target.value.replace(/\D/g, "");
 
-                          setDraft((current) => ({ ...current, phone: nextPhone }));
+                            setDraft((current) => ({ ...current, phone: nextPhone }));
 
-                          if (draft.email && isValidCustomerEmail(draft.email)) {
-                            updateIdentity({ phone: nextPhone });
-                          }
-                        }}
-                      />
+                            if (draft.email && isValidCustomerEmail(draft.email)) {
+                              updateIdentity({ phone: nextPhone });
+                            }
+                          }}
+                        />
+                      </div>
                     </label>
                   </div>
 

@@ -10,9 +10,9 @@ const dev = false; // Forziamo production per risparmiare memoria
 const hostname = 'localhost'
 const port = process.env.PORT || 3000
 
-const app = next({ 
-  dev, 
-  hostname, 
+const app = next({
+  dev,
+  hostname,
   port: parseInt(String(port), 10) || 3000,
   // Riduciamo ulteriormente il carico se possibile
   conf: {
@@ -27,7 +27,7 @@ const handle = app.getRequestHandler()
 
 app.prepare().then(() => {
   console.log('--- TORTUGA APP ONLINE (Low Resource Mode) ---')
-  
+
   createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true)

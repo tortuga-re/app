@@ -26,6 +26,7 @@ import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { PwaInstallCard } from "@/components/pwa-install-card";
+import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 
 type RouteFallback = {
   title: string;
@@ -209,7 +210,7 @@ function ReservationCard({
   );
 }
 
-function CoopertoMenuCard() {
+function CoopertoMenuCard({ onClick }: { onClick?: () => void }) {
   return (
     <div className="panel rounded-[2rem] p-5">
       <div className="space-y-2">
@@ -224,7 +225,10 @@ function CoopertoMenuCard() {
         target="_blank"
         rel="noreferrer"
         className="button-primary mt-5 flex min-h-14 w-full items-center justify-center px-5 text-sm"
-        onClick={() => triggerHaptic()}
+        onClick={() => {
+          triggerHaptic();
+          onClick?.();
+        }}
       >
         MENU
       </a>
@@ -278,6 +282,7 @@ function ReviewsCard() {
 
 export function HomeScreen() {
   const { identity } = useCustomerIdentity();
+  const { registerVisit } = useVisitRegistration();
   const identityEmail = normalizeCustomerEmail(identity.email);
   const viewedReservationsKeyRef = useRef("");
   const { hasAccess: hasMenuAccess } = useOnPremiseAccess();
@@ -346,7 +351,7 @@ export function HomeScreen() {
   const rewardProgress = getFidelityRewardProgress(points);
   const activeCardCode = profile?.contact?.CodiceCard?.trim() || "";
   useHashScroll(
-    `${loading}:${hasMenuAccess}:${primaryReservation?.reservationCode ?? "none"}:${activeCoupons.length}`,
+    `${loading}:${hasMenuAccess}:${primaryReservation?.reservationCode ?? "none"}:${activeCoupons.length}:${Boolean(error)}`,
   );
   const routeFallback = buildRouteFallback({
     birthdayLabel: birthdayInsight?.label,
@@ -405,7 +410,7 @@ export function HomeScreen() {
         <>
           <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
             {hasMenuAccess ? (
-              <CoopertoMenuCard />
+              <CoopertoMenuCard onClick={() => void registerVisit(profile?.contact?.CodiceContatto)} />
             ) : (
               <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
             )}
@@ -413,7 +418,10 @@ export function HomeScreen() {
 
           {hasMenuAccess ? (
             <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-              <CaptainChallengeTeaser compact />
+              <CaptainChallengeTeaser 
+                compact 
+                onClick={() => void registerVisit(profile?.contact?.CodiceContatto)}
+              />
             </div>
           ) : null}
 
