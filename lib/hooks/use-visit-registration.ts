@@ -10,8 +10,15 @@ export function useVisitRegistration() {
     if (!hasIdentity && !contactCodeOverride) return;
 
     // Check if already registered in this browser session
-    if (typeof window !== "undefined" && sessionStorage.getItem(VISIT_REGISTERED_KEY)) {
-      return;
+    if (typeof window !== "undefined") {
+      if (sessionStorage.getItem(VISIT_REGISTERED_KEY)) return;
+
+      const lastVisitAt = localStorage.getItem("tortuga.last-visit-at");
+      if (lastVisitAt) {
+        const diff = Date.now() - parseInt(lastVisitAt, 10);
+        // Se è stata registrata una visita meno di 4 ore fa, non ripetere
+        if (diff < 1000 * 60 * 60 * 4) return;
+      }
     }
 
     const contactCode = contactCodeOverride || identity.email; // Fallback to email if code not available
