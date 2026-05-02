@@ -1013,26 +1013,6 @@ export function CiurmaScreen() {
                 </Link>
               )}
 
-              {!isAdmin(identity.email) && ciurmaRoadmapFeatures.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="panel-muted rounded-[1.5rem] px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white">
-                        {feature.title}
-                      </p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        {feature.description}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-[rgba(171,128,63,0.14)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      A bordo presto
-                    </span>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
