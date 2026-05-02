@@ -409,6 +409,8 @@ export const createBooking = async (
     DataPrenotazione: buildCoopertoDateTime(input.date, input.time),
     CodiceStato: input.statusCode ?? 1,
     CodiceSala: input.roomCode,
+    CodiceModulo: coopertoConfig.bookingModuleCode,
+    CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
     Pax: input.pax,
     Nome: input.firstName,
     Cognome: input.lastName,
@@ -422,6 +424,10 @@ export const createBooking = async (
   try {
     const reservation = await coopertoFetch<CoopertoReservation>("/api/Prenotazioni/Crea", {
       method: "POST",
+      query: {
+        codiceSala: input.roomCode,
+        codiceModulo: coopertoConfig.bookingModuleCode,
+      },
       body: JSON.stringify(requestBody),
     });
 
@@ -448,6 +454,8 @@ export const createWaitlist = async (
   const requestBody: CoopertoCreateQueueRequest = {
     CodiceSede: coopertoConfig.sedeCode,
     CodiceSala: input.roomCode,
+    CodiceModulo: coopertoConfig.bookingModuleCode,
+    CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
     Nome: input.firstName,
     Cognome: input.lastName,
     Telefono: normalizePhoneNumber(input.phone),
@@ -461,6 +469,10 @@ export const createWaitlist = async (
   try {
     const entry = await coopertoFetch<CoopertoWaitlistEntry>("/api/Coda/Crea", {
       method: "POST",
+      query: {
+        codiceSala: input.roomCode,
+        codiceModulo: coopertoConfig.bookingModuleCode,
+      },
       body: JSON.stringify(requestBody),
     });
 
