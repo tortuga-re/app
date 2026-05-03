@@ -106,6 +106,25 @@ export interface CoopertoRegisterVisitRequest {
   dataVisita: string;
 }
 
+export interface CoopertoAddPointsRequest {
+  codiceContatto: string;
+  punti: number;
+  note?: string;
+}
+
+export interface CoopertoCreateContactMovementRequest {
+  CodiceContatto: string;
+  DataMovimento: string;
+  Importo: number;
+  Note?: string;
+}
+
+export interface CoopertoCreateReservationMovementRequest {
+  CodicePrenotazione: string;
+  Importo: number;
+  Note?: string;
+}
+
 export type CoopertoRegisterVisitResponse = Record<string, unknown> | null;
 
 export interface RegisterVisitResponse {
