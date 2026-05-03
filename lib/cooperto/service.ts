@@ -74,6 +74,11 @@ const coopertoFetch = async <T>(
   }
 
   const url = withQuery(path, init?.query ?? {});
+  
+  if (init?.body) {
+    console.debug(`[Cooperto Request] ${init.method || "GET"} ${path}`, init.body);
+  }
+
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -116,7 +121,7 @@ async function withRetry<T>(
   operation: () => Promise<T>,
   options: { maxRetries?: number; delayMs?: number } = {}
 ): Promise<T> {
-  const { maxRetries = 3, delayMs = 2000 } = options;
+  const { maxRetries = 5, delayMs = 3000 } = options;
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -892,12 +897,10 @@ export const createContactMovement = async (
 
   console.info(`[Cooperto API] Creazione movimento per ${request.CodiceContatto}: €${request.Importo}.`);
 
-  return await withRetry(() => 
-    coopertoFetch<boolean>("/api/Contatti/CreaMovimento", {
-      method: "POST",
-      body: JSON.stringify(request),
-    })
-  );
+  return await coopertoFetch<boolean>("/api/Contatti/CreaMovimento", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 };
 
 export const createReservationMovement = async (
@@ -910,12 +913,10 @@ export const createReservationMovement = async (
 
   console.info(`[Cooperto API] Creazione movimento su prenotazione ${request.CodicePrenotazione}: €${request.Importo}.`);
 
-  return await withRetry(() => 
-    coopertoFetch<boolean>("/api/Prenotazioni/CreaMovimento", {
-      method: "POST",
-      body: JSON.stringify(request),
-    })
-  );
+  return await coopertoFetch<boolean>("/api/Prenotazioni/CreaMovimento", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 };
 
 export const getContactReservations = async (
