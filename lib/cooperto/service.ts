@@ -74,6 +74,11 @@ const coopertoFetch = async <T>(
   }
 
   const url = withQuery(path, init?.query ?? {});
+  
+  if (init?.body) {
+    console.debug(`[Cooperto Request] ${init.method || "GET"} ${path}`, init.body);
+  }
+
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -116,7 +121,7 @@ async function withRetry<T>(
   operation: () => Promise<T>,
   options: { maxRetries?: number; delayMs?: number } = {}
 ): Promise<T> {
-  const { maxRetries = 3, delayMs = 2000 } = options;
+  const { maxRetries = 5, delayMs = 3000 } = options;
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
