@@ -61,6 +61,9 @@ export async function POST(request: Request) {
         console.log(`Fidelity mancante per ${email}, attivazione in corso...`);
         const { activateFidelityCard } = await import("@/lib/cooperto/service");
         await activateFidelityCard({ contactCode });
+        // Give Cooperto some time to commit the card activation before starting a movement transaction
+        console.info(`[Admin Process] Card attivata per ${email}, attesa 2s...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
       // 5. Find Last Reservation/Visit
@@ -105,14 +108,17 @@ export async function POST(request: Request) {
       const pointsToAdd = Math.floor(finalAmount / 10);
       
       if (pointsToAdd > 0) {
-        // Small delay to ensure the previous movement transaction is finalized on Cooperto side
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // IMPORTANT: Increase delay to ensure the previous movement transaction is finalized on Cooperto side.
+        // The provider connection error reported by users suggests a locking issue on Cooperto DB.
+        console.info(`[Admin Process] Scontrino ${receiptNumber}: Attesa 5s prima di caricare ${pointsToAdd} punti...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
         
         await addPointsToContact({
           codiceContatto: contactCode,
           punti: pointsToAdd,
           note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
         });
+        console.info(`[Admin Process] Scontrino ${receiptNumber}: Punti caricati con successo.`);
       }
 
       // 7. Update Database

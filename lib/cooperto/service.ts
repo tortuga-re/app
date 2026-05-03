@@ -101,12 +101,50 @@ const coopertoFetch = async <T>(
   }
 
   try {
-    return JSON.parse(body) as T;
+    const parsed = JSON.parse(body);
+    return parsed as T;
   } catch (parseError) {
     console.error(`[Cooperto API Parse Error] ${path}`, { body, error: parseError });
     throw new Error("Risposta da Cooperto non valida (JSON corrotto).");
   }
 };
+
+/**
+ * Esegue una funzione con tentativi multipli in caso di errori di transazione Cooperto.
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: { maxRetries?: number; delayMs?: number } = {}
+): Promise<T> {
+  const { maxRetries = 3, delayMs = 2000 } = options;
+  let lastError: any;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Controlliamo se è un errore di transazione (tipico di SQL Server/EF su Cooperto)
+      const isTransactionError = 
+        errorMessage.includes("starting a transaction") || 
+        errorMessage.includes("deadlock") ||
+        errorMessage.includes("transaction was aborted");
+
+      if (isTransactionError && attempt < maxRetries) {
+        const waitTime = delayMs * attempt;
+        console.warn(`[Cooperto Retry] Errore di transazione rilevato (Tentativo ${attempt}/${maxRetries}). Nuova prova tra ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
 
 const normalizeRooms = (rooms?: CoopertoBookingModule["SaleAbilitate"]): BookingRoom[] => {
   const allowedCodes =
@@ -661,10 +699,12 @@ const fidelityActivationError =
 const updateContactFidelityCard = async (
   requestBody: CoopertoUpdateFidelityCardRequest,
 ) => {
-  await coopertoFetch<unknown>("/api/Contatti/AggiornaFidelityCard", {
-    method: "POST",
-    body: JSON.stringify(requestBody),
-  });
+  return await withRetry(() => 
+    coopertoFetch<unknown>("/api/Contatti/AggiornaFidelityCard", {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    })
+  );
 };
 
 export const activateFidelityCard = async ({
@@ -831,10 +871,15 @@ export const addPointsToContact = async (
     return (request.punti || 0) + 100; // Mock return
   }
 
-  return await coopertoFetch<number>("/api/Contatti/AggiungiPuntiCard", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
+  console.info(`[Cooperto API] Aggiunta punti per ${request.codiceContatto}: ${request.punti} punti.`);
+
+  return await withRetry(() => 
+    coopertoFetch<number>("/api/Contatti/AggiungiPuntiCard", {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+    { maxRetries: 3, delayMs: 2000 }
+  );
 };
 
 export const createContactMovement = async (
@@ -845,10 +890,14 @@ export const createContactMovement = async (
     return true;
   }
 
-  return await coopertoFetch<boolean>("/api/Contatti/CreaMovimento", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
+  console.info(`[Cooperto API] Creazione movimento per ${request.CodiceContatto}: €${request.Importo}.`);
+
+  return await withRetry(() => 
+    coopertoFetch<boolean>("/api/Contatti/CreaMovimento", {
+      method: "POST",
+      body: JSON.stringify(request),
+    })
+  );
 };
 
 export const createReservationMovement = async (
@@ -859,10 +908,14 @@ export const createReservationMovement = async (
     return true;
   }
 
-  return await coopertoFetch<boolean>("/api/Prenotazioni/CreaMovimento", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
+  console.info(`[Cooperto API] Creazione movimento su prenotazione ${request.CodicePrenotazione}: €${request.Importo}.`);
+
+  return await withRetry(() => 
+    coopertoFetch<boolean>("/api/Prenotazioni/CreaMovimento", {
+      method: "POST",
+      body: JSON.stringify(request),
+    })
+  );
 };
 
 export const getContactReservations = async (
