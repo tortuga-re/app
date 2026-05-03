@@ -105,10 +105,13 @@ export async function POST(request: Request) {
       const pointsToAdd = Math.floor(finalAmount / 10);
       
       if (pointsToAdd > 0) {
+        // Small delay to ensure the previous movement transaction is finalized on Cooperto side
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         await addPointsToContact({
-          codiceContatto: contactCode,
-          punti: pointsToAdd,
-          note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
+          CodiceContatto: contactCode,
+          Punti: pointsToAdd,
+          Note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
         });
       }
 

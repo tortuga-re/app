@@ -107,9 +107,9 @@ export interface CoopertoRegisterVisitRequest {
 }
 
 export interface CoopertoAddPointsRequest {
-  codiceContatto: string;
-  punti: number;
-  note?: string;
+  CodiceContatto: string;
+  Punti: number;
+  Note?: string;
 }
 
 export interface CoopertoCreateContactMovementRequest {

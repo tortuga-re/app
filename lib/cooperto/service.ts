@@ -828,7 +828,7 @@ export const addPointsToContact = async (
 ): Promise<number> => {
   if (!hasCoopertoLiveConfig) {
     console.info("[Cooperto Mock] Aggiunti punti:", request);
-    return (request.punti || 0) + 100; // Mock return
+    return (request.Punti || 0) + 100; // Mock return
   }
 
   return await coopertoFetch<number>("/api/Contatti/AggiungiPuntiCard", {
