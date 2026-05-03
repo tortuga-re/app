@@ -40,8 +40,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             backgroundImage: "url('/textures/nautical-map.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            opacity: 0.25,
-            mixBlendMode: 'screen'
+            opacity: 0.6,
+            mixBlendMode: 'color-dodge',
+            filter: 'brightness(0.7) contrast(1.2)'
           }} 
         />
         <div className="absolute inset-x-0 top-20 h-32 bg-[linear-gradient(180deg,rgba(216,176,106,0.06),transparent)]" />
