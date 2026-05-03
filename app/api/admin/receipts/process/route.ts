@@ -5,6 +5,13 @@ import { updateReceiptStatus, isReceiptNumberUsed } from "@/lib/receipts/supabas
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Formatta una data nel formato YYYY-MM-DDTHH:mm:ss per Cooperto
+ */
+const formatCoopertoDate = (date: Date) => {
+  return date.toISOString().split('.')[0]; // Rimuove i millisecondi e la Z
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -60,12 +67,33 @@ export async function POST(request: Request) {
         console.log(`Fidelity mancante per ${email}, attivazione in corso...`);
         const { activateFidelityCard } = await import("@/lib/cooperto/service");
         await activateFidelityCard({ contactCode });
-        // Give Cooperto some time to commit the card activation before starting a movement transaction
-        console.info(`[Admin Process] Card attivata per ${email}, attesa 2s...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Give Cooperto some time to commit the card activation
+        console.info(`[Admin Process] Card attivata per ${email}, attesa 3s...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
 
-      // 5. Find Last Reservation/Visit
+      // 5. Calculate Points and prepare data
+      const finalAmount = body.amount || amount;
+      const pointsToAdd = Math.floor(finalAmount / 10);
+      const coopertoDate = formatCoopertoDate(new Date());
+
+      // 6. ADD POINTS FIRST (as requested, and it's safer for the customer)
+      if (pointsToAdd > 0) {
+        console.info(`[Admin Process] Scontrino ${receiptNumber}: Caricamento ${pointsToAdd} punti...`);
+        await addPointsToContact({
+          codiceContatto: contactCode,
+          punti: pointsToAdd,
+          note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
+        });
+        console.info(`[Admin Process] Scontrino ${receiptNumber}: Punti caricati con successo.`);
+      }
+
+      // 7. WAIT and then RECORD MOVEMENT
+      // Waiting 5 seconds to ensure points transaction is closed
+      console.info(`[Admin Process] Scontrino ${receiptNumber}: Attesa 5s prima di registrare spesa...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // 8. Find Last Reservation/Visit
       const reservations = await getContactReservations(contactCode);
       const pastReservations = reservations
         .filter(r => r.DataPrenotazione && new Date(r.DataPrenotazione) < new Date())
@@ -78,9 +106,6 @@ export async function POST(request: Request) {
       const lastRes = pastReservations[0];
       let coopertoSuccess = false;
 
-      // Use the amount from the request body if provided (admin might have edited it)
-      const finalAmount = body.amount || amount;
-
       if (lastRes && lastRes.CodicePrenotazione) {
         // Link to reservation
         coopertoSuccess = await createReservationMovement({
@@ -92,18 +117,18 @@ export async function POST(request: Request) {
         // Fallback to contact movement
         coopertoSuccess = await createContactMovement({
           CodiceContatto: contactCode,
-          DataMovimento: new Date().toISOString(),
+          DataMovimento: coopertoDate,
           Importo: finalAmount,
           Note: `Scontrino n. ${receiptNumber} caricato da App (nessuna prenotazione trovata)`
         });
       }
 
       if (!coopertoSuccess) {
-        return NextResponse.json({ error: "Errore durante la registrazione della spesa su Cooperto." }, { status: 500 });
+        // We don't return error yet because points were already added
+        console.warn(`[Admin Process] Scontrino ${receiptNumber}: Movimento fallito, ma i punti sono stati aggiunti.`);
       }
 
-      // 5.5 Update Database status IMMEDIATELY after movement success
-      // This prevents double movements if points addition fails later
+      // 9. Update Database status
       await updateReceiptStatus(id, { 
         status: 'approved', 
         receipt_number: receiptNumber,
@@ -111,23 +136,6 @@ export async function POST(request: Request) {
         customer_code: contactCode,
         amount: finalAmount
       });
-
-      // 6. Add Points (1 point every 10€, floor)
-      const pointsToAdd = Math.floor(finalAmount / 10);
-      
-      if (pointsToAdd > 0) {
-        // IMPORTANT: Increase delay to ensure the previous movement transaction is finalized on Cooperto side.
-        // Even with internal retry logic in addPointsToContact, a 5s delay here reduces initial collisions.
-        console.info(`[Admin Process] Scontrino ${receiptNumber}: Attesa 5s prima di caricare ${pointsToAdd} punti...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        
-        await addPointsToContact({
-          codiceContatto: contactCode,
-          punti: pointsToAdd,
-          note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
-        });
-        console.info(`[Admin Process] Scontrino ${receiptNumber}: Punti caricati con successo.`);
-      }
 
       return NextResponse.json({ success: true, message: `Scontrino approvato! Caricati ${pointsToAdd} punti.` });
     }
