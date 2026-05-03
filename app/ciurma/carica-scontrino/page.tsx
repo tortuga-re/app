@@ -133,7 +133,7 @@ export default function CaricaScontrinoPage() {
                 </div>
                 <div>
                   <p className="text-white font-bold">Scatta o Carica</p>
-                  <p className="text-[var(--text-muted)] text-xs mt-1">Assicurati che l'importo e la data siano leggibili</p>
+                  <p className="text-[var(--text-muted)] text-xs mt-1">Assicurati che l&apos;importo e la data siano leggibili</p>
                 </div>
               </div>
             )}

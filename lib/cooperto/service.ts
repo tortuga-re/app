@@ -117,7 +117,7 @@ async function withRetry<T>(
   options: { maxRetries?: number; delayMs?: number } = {}
 ): Promise<T> {
   const { maxRetries = 3, delayMs = 2000 } = options;
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
