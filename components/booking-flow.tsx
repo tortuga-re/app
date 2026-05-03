@@ -923,45 +923,49 @@ export function BookingFlow() {
       {bootstrap ? (
         <>
           {success ? (
-            <div id="prenotazione-completata" className="panel hash-scroll-target rounded-[2rem] p-5">
-              <div className="space-y-2">
-                <p className="eyebrow">Prenotazione registrata</p>
-                <h2 className="text-2xl font-semibold text-white">
-                  {success.reservation.LabelStato || "Ci vediamo al Tortuga!"}
+            <div id="prenotazione-completata" className="panel parchment-texture rounded-[2rem] p-6 text-center animate-in zoom-in duration-500">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(145deg,#ead092_0%,#b98036_100%)] shadow-[0_0_30px_rgba(216,176,106,0.4)]">
+                <svg viewBox="0 0 24 24" className="h-10 w-10 text-[#21170e]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+
+              <div className="space-y-3">
+                <p className="eyebrow text-[var(--accent-strong)]">Patto di Ciurma sigillato</p>
+                <h2 className="text-3xl font-bold text-white">
+                  {success.reservation.LabelStato || "Ti aspettiamo a bordo!"}
                 </h2>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  La tua richiesta è arrivata a destinazione correttamente. Riceverai presto una conferma all&apos;indirizzo indicato.
+                  La tua richiesta e arrivata al capitano. Riceverai presto una pergamena di conferma via email.
                 </p>
               </div>
               
-              <div className="mt-6 space-y-4">
-                <div className="grid gap-3">
-                  <div className="panel-muted rounded-[1.45rem] px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      Data e Ora
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-white">
-                      {success.reservation.DataPrenotazione 
-                        ? formatDateTime(success.reservation.DataPrenotazione) 
-                        : "Data non indicata"}
-                    </p>
-                  </div>
-                  <div className="panel-muted rounded-[1.45rem] px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      Persone
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-white">
-                      {success.reservation.Pax} {success.reservation.Pax === 1 ? "persona" : "persone"}
-                    </p>
-                  </div>
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                <div className="panel-muted rounded-[1.45rem] px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Data</p>
+                  <p className="mt-1 text-sm font-bold text-white">
+                    {success.reservation.DataPrenotazione ? formatLongDate(success.reservation.DataPrenotazione) : "-"}
+                  </p>
                 </div>
+                <div className="panel-muted rounded-[1.45rem] px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Ora</p>
+                  <p className="mt-1 text-sm font-bold text-white">
+                    {success.reservation.OraPrenotazione || (success.reservation.DataPrenotazione ? formatDateTime(success.reservation.DataPrenotazione).split(" alle ")[1] : "-")}
+                  </p>
+                </div>
+                <div className="panel-muted rounded-[1.45rem] px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Persone</p>
+                  <p className="mt-1 text-sm font-bold text-white">{success.reservation.Pax}</p>
+                </div>
+              </div>
 
+              <div className="mt-8 space-y-3">
                 <Link
                   href="/ciurma#riconoscimento"
                   className="button-primary flex min-h-12 w-full items-center justify-center px-5 text-sm"
                   onClick={() => triggerHaptic()}
                 >
-                  Apri la tua ciurma
+                  Gestisci la tua prenotazione
                 </Link>
                 
                 <button
@@ -982,7 +986,7 @@ export function BookingFlow() {
             <>
               <div id="booking-form" className="panel hash-scroll-target rounded-[2rem] p-5">
                 <div className="space-y-2">
-                  <p className="eyebrow">Data e Persone</p>
+                  <p className="eyebrow">Rotta e Ciurma</p>
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
                     Scegli quando vuoi salpare e quanti sarete a bordo.
                   </p>
@@ -990,7 +994,7 @@ export function BookingFlow() {
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Data</span>
+                    <span>Giorno del viaggio</span>
                     <input
                       className="field min-w-0"
                       type="date"
@@ -1003,7 +1007,7 @@ export function BookingFlow() {
                   </label>
 
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Numero persone</span>
+                    <span>Quanti pirati?</span>
                     <input
                       className="field min-w-0"
                       type="number"
@@ -1021,25 +1025,71 @@ export function BookingFlow() {
                 </div>
 
                 {showRoomDropdown ? (
-                  <label className="mt-4 block space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Sala</span>
-                    <select
-                      className="field"
-                      value={activeRoomCode}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          roomCode: event.target.value,
-                        }))
-                      }
-                    >
-                      {bootstrap.rooms.map((room) => (
-                        <option key={room.code} value={room.code}>
-                          {room.publicName || room.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="mt-5 space-y-3">
+                    <p className="text-sm font-medium text-[var(--text-muted)]">Scegli la Sala Richiesta</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {bootstrap.rooms.map((room) => {
+                        const isSelected = activeRoomCode === room.code;
+                        const roomName = (room.publicName || room.name).toUpperCase();
+                        
+                        // Room Icons mapping
+                        let RoomIcon = (
+                          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 3v18M3 12h18" />
+                          </svg>
+                        );
+
+                        if (roomName.includes("CENTRALE")) {
+                          RoomIcon = (
+                            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
+                              <circle cx="12" cy="12" r="9" />
+                              <circle cx="12" cy="12" r="2" />
+                              <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
+                            </svg>
+                          );
+                        } else if (roomName.includes("ESTERNA") || roomName.includes("VERANDA")) {
+                          RoomIcon = (
+                            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
+                              <path d="M12 5V3M12 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                              <path d="M12 18V21M7 8c-2 0-3 1-3 3 0 4 3 7 8 7s8-3 8-7c0-2-1-3-3-3" />
+                            </svg>
+                          );
+                        } else if (roomName.includes("FAMILY")) {
+                          RoomIcon = (
+                            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
+                              <rect x="3" y="6" width="18" height="12" rx="2" />
+                              <path d="M3 12h18M11 6v6M13 6v6" />
+                              <circle cx="12" cy="12" r="1.5" />
+                            </svg>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={room.code}
+                            type="button"
+                            className={cn(
+                              "flex flex-col items-center gap-3 rounded-[1.25rem] border p-4 transition-all hover:scale-[1.02] active:scale-95",
+                              isSelected
+                                ? "active-tab-glow border-[var(--accent-strong)] bg-[var(--accent-soft)] text-white"
+                                : "border-[rgba(255,216,156,0.1)] bg-white/4 text-[var(--text-muted)] hover:border-[rgba(255,216,156,0.3)]",
+                            )}
+                            onClick={() => {
+                              triggerHaptic();
+                              setDraft((current) => ({ ...current, roomCode: room.code }));
+                              setSelectedTime("");
+                            }}
+                          >
+                            <div className={cn("rounded-full p-2.5", isSelected ? "bg-white/10" : "bg-black/20")}>
+                              {RoomIcon}
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.12em]">{room.publicName || room.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ) : null}
 
                 {canLoadAvailability ? (
@@ -1092,8 +1142,7 @@ export function BookingFlow() {
                 {requiresRoomSelection && !activeRoomCode ? (
                   <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
                     <p className="text-sm leading-6 text-[var(--text-muted)]">
-                      Scegli prima la sala dal menu per vedere gli orari disponibili e
-                      orientarti meglio con la mappa del locale.
+                      Scegli prima la sala richiesta per vedere gli orari disponibili.
                     </p>
                   </div>
                 ) : null}
@@ -1113,7 +1162,7 @@ export function BookingFlow() {
                   className="panel hash-scroll-target rounded-[2rem] p-5"
                 >
                   <div className="space-y-2">
-                    <p className="eyebrow">Dati Cliente</p>
+                    <p className="eyebrow">Libro degli Ospiti</p>
                     <p className="text-sm leading-6 text-[var(--text-muted)]">
                       Ultimo passo: inserisci i tuoi dati e conferma la prenotazione.
                     </p>
@@ -1136,7 +1185,7 @@ export function BookingFlow() {
                       <span className="font-semibold">
                         {draft.pax} {draft.pax === 1 ? "persona" : "persone"}
                       </span>{" "}
-                      in <span className="font-semibold">{selectedRoom?.publicName || selectedRoom?.name || "Sala"}</span>.
+                      in <span className="font-semibold text-[var(--accent-strong)]">{selectedRoom?.publicName || selectedRoom?.name || "Sala"} (RICHIESTA)</span>.
                     </p>
                   </div>
 
