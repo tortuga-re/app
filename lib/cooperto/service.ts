@@ -46,6 +46,9 @@ import type {
   VenueResponse,
   WaitlistCreateInput,
   WaitlistCreateResponse,
+  CoopertoAddPointsRequest,
+  CoopertoCreateContactMovementRequest,
+  CoopertoCreateReservationMovementRequest,
 } from "@/lib/cooperto/types";
 import { buildCoopertoDateTime, buildCoopertoNowDateTime } from "@/lib/utils";
 import { normalizePhoneNumber } from "@/lib/profile/validation";
@@ -800,22 +803,85 @@ export const getVenuesData = async (): Promise<VenueResponse> => {
       })),
     );
 
-    const hoursMap = new Map<string, CoopertoVenueHours | null>();
-    for (const entry of hoursEntries) {
-      if (entry.status === "fulfilled") {
-        hoursMap.set(entry.value.code, entry.value.hours);
-      }
-    }
-
     return {
       source: "live",
-      venues: venuesResponse.data.map((venue) => ({
-        ...venue,
-        isPrimary: venue.CodiceSede === coopertoConfig.sedeCode,
-        hours: venue.CodiceSede ? hoursMap.get(venue.CodiceSede) ?? null : null,
-      })),
+      venues: venuesResponse.data.map((venue) => {
+        const hoursResult = hoursEntries.find(
+          (entry) =>
+            entry.status === "fulfilled" && entry.value.code === venue.CodiceSede,
+        );
+
+        return {
+          ...venue,
+          isPrimary: venue.CodiceSede === coopertoConfig.sedeCode,
+          hours: hoursResult?.status === "fulfilled" ? hoursResult.value.hours : null,
+        };
+      }),
     };
   } catch {
     return fallbackSource(await mockVenues());
   }
+};
+
+export const addPointsToContact = async (
+  request: CoopertoAddPointsRequest,
+): Promise<number> => {
+  if (!hasCoopertoLiveConfig) {
+    console.info("[Cooperto Mock] Aggiunti punti:", request);
+    return (request.punti || 0) + 100; // Mock return
+  }
+
+  return await coopertoFetch<number>("/api/Contatti/AggiungiPuntiCard", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+};
+
+export const createContactMovement = async (
+  request: CoopertoCreateContactMovementRequest,
+): Promise<boolean> => {
+  if (!hasCoopertoLiveConfig) {
+    console.info("[Cooperto Mock] Creato movimento contatto:", request);
+    return true;
+  }
+
+  return await coopertoFetch<boolean>("/api/Contatti/CreaMovimento", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+};
+
+export const createReservationMovement = async (
+  request: CoopertoCreateReservationMovementRequest,
+): Promise<boolean> => {
+  if (!hasCoopertoLiveConfig) {
+    console.info("[Cooperto Mock] Creato movimento prenotazione:", request);
+    return true;
+  }
+
+  return await coopertoFetch<boolean>("/api/Prenotazioni/CreaMovimento", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+};
+
+export const getContactReservations = async (
+  contactCode: string,
+): Promise<CoopertoReservation[]> => {
+  if (!hasCoopertoLiveConfig) {
+    return [];
+  }
+
+  const response = await coopertoFetch<CoopertoListResponse<CoopertoReservation>>(
+    "/api/Prenotazioni/ElencoByCodiceContatto",
+    {
+      query: {
+        codiceContatto: contactCode,
+        skip: 0,
+        pageSize: 100,
+      },
+    },
+  );
+
+  return response.data;
 };

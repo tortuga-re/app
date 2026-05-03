@@ -904,6 +904,24 @@ export function CiurmaScreen() {
                       />
                     </>
                   )}
+
+                  {/* Receipt Upload Card - Client */}
+                  <Link
+                    href="/ciurma/carica-scontrino"
+                    className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)] bg-[var(--accent-soft)]/5 mt-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-base font-semibold text-white uppercase italic">💰 Carica Scontrino</p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                          Hai cenato al Tortuga? Carica la foto dello scontrino per accumulare punti sulla tua card!
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-strong)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                        CARICA
+                      </span>
+                    </div>
+                  </Link>
                 </>
               )}
 
@@ -1004,6 +1022,26 @@ export function CiurmaScreen() {
                       </p>
                     </div>
                     <span className="rounded-full border border-purple-500 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
+                      ADMIN
+                    </span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Receipts Admin */}
+              {isAdmin(identity.email) && (
+                <Link
+                  href="/admin/scontrini"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-emerald-500 bg-emerald-500/5 mt-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">💰 Gestione Scontrini</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Valida gli scontrini inviati dai pirati e assegna i punti.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-emerald-500 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-400">
                       ADMIN
                     </span>
                   </div>
