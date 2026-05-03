@@ -897,12 +897,10 @@ export const createContactMovement = async (
 
   console.info(`[Cooperto API] Creazione movimento per ${request.CodiceContatto}: €${request.Importo}.`);
 
-  return await withRetry(() => 
-    coopertoFetch<boolean>("/api/Contatti/CreaMovimento", {
-      method: "POST",
-      body: JSON.stringify(request),
-    })
-  );
+  return await coopertoFetch<boolean>("/api/Contatti/CreaMovimento", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 };
 
 export const createReservationMovement = async (
@@ -915,12 +913,10 @@ export const createReservationMovement = async (
 
   console.info(`[Cooperto API] Creazione movimento su prenotazione ${request.CodicePrenotazione}: €${request.Importo}.`);
 
-  return await withRetry(() => 
-    coopertoFetch<boolean>("/api/Prenotazioni/CreaMovimento", {
-      method: "POST",
-      body: JSON.stringify(request),
-    })
-  );
+  return await coopertoFetch<boolean>("/api/Prenotazioni/CreaMovimento", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 };
 
 export const getContactReservations = async (
