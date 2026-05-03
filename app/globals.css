@@ -48,28 +48,7 @@ body {
   min-height: 100vh;
   color: var(--text);
   font-family: var(--font-sans), sans-serif;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(216, 176, 106, 0.07), transparent 20%),
-    radial-gradient(circle at 88% 10%, rgba(140, 98, 40, 0.09), transparent 22%),
-    linear-gradient(90deg, rgba(255, 238, 190, 0.018), transparent 16%, rgba(34, 17, 7, 0.2) 17%, transparent 18%),
-    repeating-linear-gradient(90deg,
-      rgba(255, 242, 202, 0.018) 0,
-      rgba(255, 242, 202, 0.018) 1px,
-      transparent 1px,
-      transparent 74px),
-    repeating-linear-gradient(0deg,
-      rgba(255, 255, 255, 0.016) 0,
-      rgba(255, 255, 255, 0.016) 1px,
-      transparent 1px,
-      transparent 6px),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.012) 0%, transparent 22%),
-    linear-gradient(0deg, rgba(80, 48, 18, 0.055), rgba(80, 48, 18, 0.055)),
-    repeating-linear-gradient(115deg,
-      rgba(255, 255, 255, 0.012) 0,
-      rgba(255, 255, 255, 0.012) 1px,
-      transparent 1px,
-      transparent 9px),
-    linear-gradient(180deg, var(--charcoal-wood), #000000 58%, #050302);
+  background-color: transparent;
 }
 
 body::before {
@@ -122,7 +101,7 @@ textarea {
     background:
       radial-gradient(circle at 16% 0%, rgba(221, 180, 98, 0.08), transparent 28%),
       linear-gradient(180deg, rgba(125, 90, 42, 0.11), transparent 34%),
-      linear-gradient(180deg, rgba(18, 13, 9, 0.985), rgba(4, 3, 3, 0.995));
+      linear-gradient(180deg, rgba(12, 8, 5, 0.985), rgba(4, 3, 3, 0.995));
     box-shadow:
       0 28px 76px rgba(0, 0, 0, 0.62),
       0 0 0 1px rgba(255, 225, 166, 0.025),
