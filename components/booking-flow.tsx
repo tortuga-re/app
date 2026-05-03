@@ -950,7 +950,7 @@ export function BookingFlow() {
                 <div className="panel-muted rounded-[1.45rem] px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Ora</p>
                   <p className="mt-1 text-sm font-bold text-white">
-                    {success.reservation.OraPrenotazione || (success.reservation.DataPrenotazione ? formatDateTime(success.reservation.DataPrenotazione).split(" alle ")[1] : "-")}
+                    {success.reservation.DataPrenotazione ? formatDateTime(success.reservation.DataPrenotazione).split(" alle ")[1] : "-"}
                   </p>
                 </div>
                 <div className="panel-muted rounded-[1.45rem] px-4 py-3">
