@@ -1027,50 +1027,16 @@ export function BookingFlow() {
                 {showRoomDropdown ? (
                   <div className="mt-5 space-y-3">
                     <p className="text-sm font-medium text-[var(--text-muted)]">Scegli la Sala Richiesta</p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-2">
                       {bootstrap.rooms.map((room) => {
                         const isSelected = activeRoomCode === room.code;
-                        const roomName = (room.publicName || room.name).toUpperCase();
-                        
-                        // Room Icons mapping
-                        let RoomIcon = (
-                          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
-                            <circle cx="12" cy="12" r="9" />
-                            <path d="M12 3v18M3 12h18" />
-                          </svg>
-                        );
-
-                        if (roomName.includes("CENTRALE")) {
-                          RoomIcon = (
-                            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
-                              <circle cx="12" cy="12" r="9" />
-                              <circle cx="12" cy="12" r="2" />
-                              <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
-                            </svg>
-                          );
-                        } else if (roomName.includes("ESTERNA") || roomName.includes("VERANDA")) {
-                          RoomIcon = (
-                            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
-                              <path d="M12 5V3M12 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-                              <path d="M12 18V21M7 8c-2 0-3 1-3 3 0 4 3 7 8 7s8-3 8-7c0-2-1-3-3-3" />
-                            </svg>
-                          );
-                        } else if (roomName.includes("FAMILY")) {
-                          RoomIcon = (
-                            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6">
-                              <rect x="3" y="6" width="18" height="12" rx="2" />
-                              <path d="M3 12h18M11 6v6M13 6v6" />
-                              <circle cx="12" cy="12" r="1.5" />
-                            </svg>
-                          );
-                        }
 
                         return (
                           <button
                             key={room.code}
                             type="button"
                             className={cn(
-                              "flex flex-col items-center gap-3 rounded-[1.25rem] border p-4 transition-all hover:scale-[1.02] active:scale-95",
+                              "flex flex-col items-center justify-center rounded-[1.25rem] border p-5 transition-all active:scale-95 min-h-[80px]",
                               isSelected
                                 ? "active-tab-glow border-[var(--accent-strong)] bg-[var(--accent-soft)] text-white"
                                 : "border-[rgba(255,216,156,0.1)] bg-white/4 text-[var(--text-muted)] hover:border-[rgba(255,216,156,0.3)]",
@@ -1081,10 +1047,7 @@ export function BookingFlow() {
                               setSelectedTime("");
                             }}
                           >
-                            <div className={cn("rounded-full p-2.5", isSelected ? "bg-white/10" : "bg-black/20")}>
-                              {RoomIcon}
-                            </div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.12em]">{room.publicName || room.name}</span>
+                            <span className="text-xs font-bold uppercase tracking-[0.15em] text-center">{room.publicName || room.name}</span>
                           </button>
                         );
                       })}
