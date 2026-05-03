@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 import { submitReceiptRequest } from "@/lib/receipts/supabase";
-import { normalizeCustomerEmail } from "@/lib/customer-identity";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +9,8 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const photo = formData.get("photo") as File;
     const amountStr = formData.get("amount") as string;
-    const email = normalizeCustomerEmail(formData.get("email") as string);
+    const rawEmail = formData.get("email") as string;
+    const email = rawEmail?.trim().toLowerCase();
     const customerCode = formData.get("customerCode") as string;
 
     if (!photo || !amountStr || !email) {
