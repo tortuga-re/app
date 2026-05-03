@@ -16,8 +16,10 @@ export default function AdminReceiptsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ReceiptRequest | null>(null);
   const [receiptNumber, setReceiptNumber] = useState("");
+  const [editableAmount, setEditableAmount] = useState<string>("");
   const [adminNote, setAdminNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRequests();
@@ -25,6 +27,8 @@ export default function AdminReceiptsPage() {
 
   const fetchRequests = async () => {
     setLoading(true);
+    setError(null);
+    setSuccess(null);
     try {
       // In a real app, we'd have a specific API for listing pending requests
       // For now, we can use a direct Supabase call if we have permissions, 
@@ -49,6 +53,7 @@ export default function AdminReceiptsPage() {
     
     setProcessingId(selectedRequest.id);
     setError(null);
+    setSuccess(null);
     triggerHaptic();
 
     try {
@@ -59,6 +64,7 @@ export default function AdminReceiptsPage() {
           id: selectedRequest.id,
           status,
           receiptNumber: status === 'approved' ? receiptNumber : undefined,
+          amount: status === 'approved' ? parseFloat(editableAmount) : undefined,
           adminNote,
           adminEmail: identity.email
         })
@@ -67,9 +73,11 @@ export default function AdminReceiptsPage() {
       const data = await res.json();
 
       if (res.ok) {
+        setSuccess(data.message);
         setRequests(requests.filter(r => r.id !== selectedRequest.id));
         setSelectedRequest(null);
         setReceiptNumber("");
+        setEditableAmount("");
         setAdminNote("");
       } else {
         setError(data.error);
@@ -119,6 +127,9 @@ export default function AdminReceiptsPage() {
       {error && (
         <StatusBlock variant="error" title="Errore" description={error} />
       )}
+      {success && (
+        <StatusBlock variant="success" title="Successo" description={success} />
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -135,8 +146,13 @@ export default function AdminReceiptsPage() {
           {requests.map(req => (
             <div 
               key={req.id}
-              onClick={() => setSelectedRequest(req)}
-              className={`
+            onClick={() => {
+              setSelectedRequest(req);
+              setEditableAmount(req.amount.toString());
+              setError(null);
+              setSuccess(null);
+            }}
+            className={`
                 panel rounded-[1.5rem] p-4 flex items-center justify-between gap-4 cursor-pointer transition-all hover:bg-white/5
                 ${selectedRequest?.id === req.id ? 'border-[var(--accent-strong)] bg-white/10' : 'border-white/5'}
               `}
@@ -202,9 +218,19 @@ export default function AdminReceiptsPage() {
                     </div>
                     <div className="flex items-start gap-3">
                       <Receipt className="w-5 h-5 text-[var(--accent-strong)] mt-0.5" />
-                      <div>
-                        <p className="text-xs text-[var(--text-muted)] uppercase font-bold tracking-wider">Importo Dichiarato</p>
-                        <p className="text-2xl font-black text-white">€ {selectedRequest.amount.toFixed(2)}</p>
+                      <div className="flex-1">
+                        <p className="text-xs text-[var(--text-muted)] uppercase font-bold tracking-wider">Importo</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-black text-white">€</span>
+                          <input 
+                            type="number"
+                            step="0.01"
+                            className="bg-transparent text-2xl font-black text-white border-b border-white/20 focus:border-[var(--accent-strong)] outline-none w-32"
+                            value={editableAmount}
+                            onChange={(e) => setEditableAmount(e.target.value)}
+                          />
+                        </div>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-1 italic">Puoi modificare l'importo se necessario</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">

@@ -56,7 +56,14 @@ export async function POST(request: Request) {
 
       const contactCode = profile.contact.CodiceContatto;
 
-      // 4. Find Last Reservation/Visit
+      // 4. Check Fidelity Card and activate if missing
+      if (!profile.contact.CodiceCard) {
+        console.log(`Fidelity mancante per ${email}, attivazione in corso...`);
+        const { activateFidelityCard } = await import("@/lib/cooperto/service");
+        await activateFidelityCard({ contactCode });
+      }
+
+      // 5. Find Last Reservation/Visit
       const reservations = await getContactReservations(contactCode);
       // Sort by date descending and find the latest one that is in the past
       const pastReservations = reservations
@@ -70,11 +77,14 @@ export async function POST(request: Request) {
       const lastRes = pastReservations[0];
       let coopertoSuccess = false;
 
+      // Use the amount from the request body if provided (admin might have edited it)
+      const finalAmount = body.amount || amount;
+
       if (lastRes && lastRes.CodicePrenotazione) {
         // Link to reservation
         coopertoSuccess = await createReservationMovement({
           CodicePrenotazione: lastRes.CodicePrenotazione,
-          Importo: amount,
+          Importo: finalAmount,
           Note: `Scontrino n. ${receiptNumber} caricato da App`
         });
       } else {
@@ -82,7 +92,7 @@ export async function POST(request: Request) {
         coopertoSuccess = await createContactMovement({
           CodiceContatto: contactCode,
           DataMovimento: new Date().toISOString(),
-          Importo: amount,
+          Importo: finalAmount,
           Note: `Scontrino n. ${receiptNumber} caricato da App (nessuna prenotazione trovata)`
         });
       }
@@ -91,25 +101,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Errore durante la registrazione della spesa su Cooperto." }, { status: 500 });
       }
 
-      // 5. Add Points (Optional if Cooperto doesn't do it automatically via movement)
-      // Usually movements in Cooperto trigger points based on configuration, 
-      // but we can also add them manually if needed. 
-      // For now, we assume the movement is enough or we add a base amount.
-      await addPointsToContact({
-        codiceContatto: contactCode,
-        punti: Math.floor(amount), // 1 point per Euro as example
-        note: `Punti per scontrino n. ${receiptNumber}`
-      });
+      // 6. Add Points (1 point every 10€, floor)
+      const pointsToAdd = Math.floor(finalAmount / 10);
+      
+      if (pointsToAdd > 0) {
+        await addPointsToContact({
+          codiceContatto: contactCode,
+          punti: pointsToAdd,
+          note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
+        });
+      }
 
-      // 6. Update Database
+      // 7. Update Database
       await updateReceiptStatus(id, { 
         status: 'approved', 
         receipt_number: receiptNumber,
         admin_note: adminNote,
-        customer_code: contactCode
+        customer_code: contactCode,
+        amount: finalAmount // Update with potentially edited amount
       });
 
-      return NextResponse.json({ success: true, message: "Scontrino approvato e punti accreditati!" });
+      return NextResponse.json({ success: true, message: `Scontrino approvato! Caricati ${pointsToAdd} punti.` });
     }
 
     return NextResponse.json({ error: "Azione non valida." }, { status: 400 });

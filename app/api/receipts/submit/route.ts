@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
-    
+
     // 1. Caricamento su Storage
     const fileExt = photo.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -51,16 +51,16 @@ export async function POST(request: Request) {
       image_url: publicUrl
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       id: receiptRequest.id,
-      message: "Scontrino inviato con successo! Lo verificheremo al più presto." 
+      message: "Scontrino inviato con successo! Lo verificheremo al più presto."
     });
 
   } catch (error) {
     console.error("Receipt submission error:", error);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : "Errore interno durante l'invio." 
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Errore interno durante l'invio."
     }, { status: 500 });
   }
 }
