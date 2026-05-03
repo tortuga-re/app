@@ -118,6 +118,10 @@ export function ActiveCouponsCard({
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--accent-strong)]" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+              <path d="M10 7h11M15 7v3M19 7v3M7 6v2" />
+            </svg>
             <p className="eyebrow">{title}</p>
             <span className="rounded-full border border-[rgba(255,216,156,0.1)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
               {coupons.length}
