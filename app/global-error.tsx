@@ -13,14 +13,23 @@ export default function GlobalError({
     // Log dell'errore per debug (opzionale)
     console.error("Global Error Boundary caught:", error);
     
-    // Se è un errore di caricamento (tipico post-deploy), ricarichiamo la pagina
+    // Se è un errore di caricamento (tipico post-deploy), ricarichiamo la pagina e puliamo SW
     if (
       error.message.includes("chunk") || 
       error.message.includes("Load failed") ||
       error.message.includes("404") ||
       error.message.includes("unexpected token '<'")
     ) {
-      window.location.reload();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister();
+          }
+          window.location.reload();
+        });
+      } else {
+        window.location.reload();
+      }
     }
   }, [error]);
 

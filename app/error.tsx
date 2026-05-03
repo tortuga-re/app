@@ -12,13 +12,23 @@ export default function Error({
   useEffect(() => {
     console.error("Page Error Boundary caught:", error);
     
-    // Auto-recovery for common post-deploy errors
+    // Auto-recovery for common post-deploy errors + SW purge
     if (
       error.message.includes("chunk") || 
       error.message.includes("Load failed") ||
-      error.message.includes("404")
+      error.message.includes("404") ||
+      error.message.includes("unexpected token '<'")
     ) {
-      window.location.reload();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister();
+          }
+          window.location.reload();
+        });
+      } else {
+        window.location.reload();
+      }
     }
   }, [error]);
 
