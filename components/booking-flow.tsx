@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
-import { TortugaMapViewer } from "@/components/tortuga-map-viewer";
+import dynamic from "next/dynamic";
+
+const TortugaMapViewer = dynamic(() => import("@/components/tortuga-map-viewer").then(mod => mod.TortugaMapViewer), {
+  loading: () => <div className="h-48 w-full animate-pulse rounded-[2rem] bg-white/5" />,
+  ssr: false
+});
 import { trackAppEvent } from "@/lib/analytics";
 import { storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";

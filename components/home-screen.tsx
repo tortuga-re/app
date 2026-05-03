@@ -7,7 +7,12 @@ import { ActiveCouponsCard } from "@/components/active-coupons-card";
 import { FidelityStatusCard } from "@/components/fidelity-status-card";
 import { StatusBlock } from "@/components/status-block";
 import { SurveyTeaserCard } from "@/components/survey-teaser-card";
-import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
+import dynamic from "next/dynamic";
+
+const CaptainChallengeTeaser = dynamic(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser), {
+  loading: () => <div className="h-32 w-full animate-pulse rounded-[2rem] bg-white/5" />,
+  ssr: false
+});
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";

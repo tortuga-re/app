@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -34,17 +35,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AnalyticsTracker />
 
       <div className="pointer-events-none absolute inset-0">
-        <div 
-          className="fixed inset-0 z-[-1]" 
-          style={{ 
-            backgroundColor: '#0a0a0a',
-            backgroundImage: "url('/nautical-map.png')",
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.5,
-            mixBlendMode: 'screen'
-          }} 
-        />
+        <div className="fixed inset-0 z-[-1] bg-[#0a0a0a]">
+          <Image
+            src="/nautical-map.png"
+            alt=""
+            fill
+            className="object-cover opacity-50 mix-blend-screen"
+            priority
+            quality={60}
+          />
+        </div>
         <div className="absolute inset-x-0 top-20 h-32 bg-[linear-gradient(180deg,rgba(216,176,106,0.06),transparent)]" />
       </div>
 
