@@ -52,7 +52,7 @@ export function FidelityQrCode({
     <div className="mx-auto flex w-full max-w-[248px] flex-col items-center justify-center gap-2">
       <div
         className={cn(
-          "relative w-full overflow-hidden p-[10px] shadow-[0_20px_46px_rgba(0,0,0,0.34)]",
+          "relative w-full overflow-hidden p-[10px] shadow-[0_20px_46px_rgba(0,0,0,0.34)] seal-animation",
           isVip
             ? "rounded-[2rem] border border-[rgba(226,194,122,0.5)] bg-[linear-gradient(145deg,#edd28d_0%,#b67c34_30%,#2c1c0e_37%,#090705_100%)]"
             : isCoupon

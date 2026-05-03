@@ -51,8 +51,6 @@ body {
   background-color: transparent;
 }
 
-
-
 a {
   color: inherit;
   text-decoration: none;
@@ -216,32 +214,6 @@ textarea {
   .button-primary::after {
     content: "";
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(255, 255, 255, 0.4),
-        transparent);
-    animation: button-shimmer 4s infinite;
-    pointer-events: none;
-  }
-
-  .button-primary::before {
-    content: "";
-    position: absolute;
-    inset: 1px 12%;
-    height: 38%;
-    border-radius: inherit;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent);
-    opacity: 0.62;
-    pointer-events: none;
-  }
-
-  .button-primary::after {
-    content: "";
-    position: absolute;
     inset: 0;
     background:
       linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent),
@@ -253,6 +225,17 @@ textarea {
     animation: button-shimmer 4s infinite;
     pointer-events: none;
     mix-blend-mode: soft-light;
+  }
+
+  .button-primary::before {
+    content: "";
+    position: absolute;
+    inset: 1px 12%;
+    height: 38%;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent);
+    opacity: 0.62;
+    pointer-events: none;
   }
 
   .button-primary>*,
@@ -599,31 +582,74 @@ textarea {
 @keyframes float-in {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.98);
+    transform: translateY(30px) rotateX(10deg) scale(0.95);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) rotateX(0deg) scale(1);
   }
 }
 
 @keyframes gold-pulse {
   0% {
-    box-shadow: 0 0 0 rgba(216, 176, 106, 0);
+    box-shadow: 0 0 0 rgba(216, 176, 106, 0), inset 0 0 0 rgba(216, 176, 106, 0);
   }
 
   50% {
-    box-shadow: 0 0 15px rgba(216, 176, 106, 0.4);
+    box-shadow: 0 0 20px rgba(216, 176, 106, 0.5), inset 0 0 10px rgba(216, 176, 106, 0.3);
   }
 
   100% {
-    box-shadow: 0 0 0 rgba(216, 176, 106, 0);
+    box-shadow: 0 0 0 rgba(216, 176, 106, 0), inset 0 0 0 rgba(216, 176, 106, 0);
+  }
+}
+
+@keyframes seal-unlock {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+    filter: brightness(2);
+  }
+
+  70% {
+    transform: scale(1.1) rotate(5deg);
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+@keyframes parchment-unroll {
+  0% {
+    max-height: 0;
+    opacity: 0;
+    transform: scaleY(0);
+  }
+
+  100% {
+    max-height: 2000px;
+    opacity: 1;
+    transform: scaleY(1);
   }
 }
 
 .active-tab-glow {
   animation: gold-pulse 2s infinite ease-in-out;
+}
+
+.seal-animation {
+  animation: seal-unlock 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.parchment-unroll-animation {
+  animation: parchment-unroll 1s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transform-origin: top;
 }
 
 .parchment-texture {
