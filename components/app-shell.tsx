@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 import { AnalyticsTracker } from "@/components/analytics-tracker";
@@ -18,6 +19,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname();
   const isStageOrAdmin = pathname.startsWith("/stage/") || pathname.startsWith("/admin/");
+
+  // Global handler for ChunkLoadErrors (classic PWA issue after deploy)
+  useEffect(() => {
+    const handleError = (e: ErrorEvent | PromiseRejectionEvent) => {
+      const message = "message" in e ? e.message : String(e.reason);
+      if (
+        message.includes("Loading chunk") || 
+        message.includes("unexpected token '<'") ||
+        message.includes("Load failed") ||
+        message.includes("404")
+      ) {
+        console.warn("Rilevato errore di caricamento (cache vecchia). Ricarico...");
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleError);
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleError);
+    };
+  }, []);
 
   if (isStageOrAdmin) {
     return (
