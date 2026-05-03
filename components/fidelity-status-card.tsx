@@ -63,7 +63,7 @@ export function FidelityStatusCard({
   return (
     <div
       className={cn(
-        "panel rounded-[2rem] p-5",
+        "panel parchment-texture rounded-[2rem] p-5",
         isVip &&
           "border-[rgba(194,148,74,0.42)] bg-[linear-gradient(160deg,rgba(141,103,46,0.28),rgba(0,0,0,0.98)_36%,rgba(45,31,14,0.9)_100%)] shadow-[0_26px_72px_rgba(0,0,0,0.48)]",
         className,
@@ -71,7 +71,14 @@ export function FidelityStatusCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <p className={cn("eyebrow", isVip && "text-[#e6c27a]")}>{title}</p>
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" className={cn("h-5 w-5", isVip ? "text-[#e6c27a]" : "text-[var(--accent-strong)]")} fill="currentColor">
+              <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5z" opacity="0.4" />
+              <circle cx="12" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <path d="M10 12l2-2 2 2M12 7v3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+            <p className={cn("eyebrow", isVip && "text-[#e6c27a]")}>{title}</p>
+          </div>
           <h2 className="text-2xl font-semibold text-white">{tierLabel}</h2>
           <p
             className={cn(

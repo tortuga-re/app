@@ -580,7 +580,7 @@ export function CiurmaScreen() {
   };
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-5 parchment-unroll-animation">
 
       {showLookupPanel ? (
         <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">

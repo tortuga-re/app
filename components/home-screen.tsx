@@ -129,7 +129,7 @@ function ReservationCard({
   const manageHref = getReservationManageHref();
 
   return (
-    <div className="panel rounded-[2rem] p-5">
+    <div className="panel parchment-texture rounded-[2rem] p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="eyebrow">Prossima prenotazione</p>
@@ -213,7 +213,7 @@ function ReservationCard({
 
 function CoopertoMenuCard({ onClick }: { onClick?: () => void }) {
   return (
-    <div className="panel rounded-[2rem] p-5">
+    <div className="panel parchment-texture rounded-[2rem] p-5">
       <div className="space-y-2">
         <p className="eyebrow">Menu</p>
       </div>
@@ -244,7 +244,7 @@ function StarIcon() {
 
 function ReviewsCard() {
   return (
-    <div id="recensioni" className="panel hash-scroll-target rounded-[2rem] p-5">
+    <div id="recensioni" className="panel parchment-texture hash-scroll-target rounded-[2rem] p-5">
       <div className="space-y-2">
         <p className="eyebrow">Cosa dicono di noi</p>
         <h2 className="text-2xl font-semibold leading-tight text-white">

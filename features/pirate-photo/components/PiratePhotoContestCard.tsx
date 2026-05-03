@@ -229,7 +229,15 @@ export function PiratePhotoContestCard({
   return (
     <div className="panel rounded-[2rem] p-5 border-2 border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/5">
       <div className="space-y-2">
-        <p className="eyebrow text-[var(--accent-strong)]">Scatto del Mese</p>
+        <div className="flex items-center gap-2">
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--accent-strong)]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M3 17l6-6 4 4 8-8" />
+            <path d="M17 7h4v4" />
+            <path d="M2 20h20" opacity="0.3" />
+            <circle cx="12" cy="12" r="9" opacity="0.1" />
+          </svg>
+          <p className="eyebrow text-[var(--accent-strong)]">Bottino del Mese</p>
+        </div>
         <h2 className="text-2xl font-semibold text-white">
           Mandaci la tua foto piu pirata.
         </h2>
