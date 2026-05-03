@@ -9,7 +9,8 @@ import { StatusBlock } from "@/components/status-block";
 import { SurveyTeaserCard } from "@/components/survey-teaser-card";
 import dynamic from "next/dynamic";
 
-const CaptainChallengeTeaser = dynamic(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser), {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), {
   loading: () => <div className="h-32 w-full animate-pulse rounded-[2rem] bg-white/5" />,
   ssr: false
 });
@@ -420,6 +421,9 @@ export function HomeScreen() {
             )}
           </div>
 
+          <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
+            <CaptainChallengeTeaser />
+          </div>
 
           <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
             <PwaInstallCard />
