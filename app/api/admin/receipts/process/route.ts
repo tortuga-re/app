@@ -101,28 +101,44 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Errore durante la registrazione della spesa su Cooperto." }, { status: 500 });
       }
 
-      // 6. Add Points (1 point every 10€, floor)
-      const pointsToAdd = Math.floor(finalAmount / 10);
-      
-      if (pointsToAdd > 0) {
-        // Small delay to ensure the previous movement transaction is finalized on Cooperto side
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        await addPointsToContact({
-          codiceContatto: contactCode,
-          punti: pointsToAdd,
-          note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
-        });
-      }
-
-      // 7. Update Database
+      // 5.5 Update Database status IMMEDIATELY after movement success
+      // This prevents double movements if points addition fails later
       await updateReceiptStatus(id, { 
         status: 'approved', 
         receipt_number: receiptNumber,
         admin_note: adminNote,
         customer_code: contactCode,
-        amount: finalAmount // Update with potentially edited amount
+        amount: finalAmount
       });
+
+      // 6. Add Points (1 point every 10€, floor) with Retry Logic
+      const pointsToAdd = Math.floor(finalAmount / 10);
+      
+      if (pointsToAdd > 0) {
+        let pointsSuccess = false;
+        let attempts = 0;
+        const maxAttempts = 2;
+
+        while (!pointsSuccess && attempts < maxAttempts) {
+          try {
+            attempts++;
+            // Longer delay to ensure the previous movement transaction is finalized on Cooperto side
+            // First attempt: 3s, Second attempt: 5s
+            const delay = attempts === 1 ? 3000 : 5000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            await addPointsToContact({
+              codiceContatto: contactCode,
+              punti: pointsToAdd,
+              note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
+            });
+            pointsSuccess = true;
+          } catch (error: any) {
+            console.error(`Attempt ${attempts} to add points failed:`, error);
+            // If it's the last attempt, we just log it and move on
+          }
+        }
+      }
 
       return NextResponse.json({ success: true, message: `Scontrino approvato! Caricati ${pointsToAdd} punti.` });
     }
