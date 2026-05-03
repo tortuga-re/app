@@ -63,7 +63,7 @@ export function FidelityStatusCard({
   return (
     <div
       className={cn(
-        "panel rounded-[2rem] p-5",
+        "panel parchment-texture rounded-[2rem] p-5",
         isVip &&
           "border-[rgba(194,148,74,0.42)] bg-[linear-gradient(160deg,rgba(141,103,46,0.28),rgba(0,0,0,0.98)_36%,rgba(45,31,14,0.9)_100%)] shadow-[0_26px_72px_rgba(0,0,0,0.48)]",
         className,

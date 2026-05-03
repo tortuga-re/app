@@ -154,7 +154,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
                 className={cn(
                   "flex min-h-[64px] flex-col items-center justify-center gap-2 rounded-[1.05rem] border px-2 py-3 text-[8px] font-semibold uppercase leading-tight tracking-[0.16em] transition",
                   isActive
-                    ? "border-[rgba(214,172,94,0.48)] bg-[linear-gradient(145deg,#ead092_0%,#b98036_48%,#6b4219_100%)] text-[#21170e] shadow-[0_12px_28px_rgba(181,138,77,0.32),inset_0_1px_0_rgba(255,247,218,0.34)]"
+                    ? "active-tab-glow border-[rgba(214,172,94,0.48)] bg-[linear-gradient(145deg,#ead092_0%,#b98036_48%,#6b4219_100%)] text-[#21170e] shadow-[0_12px_28px_rgba(181,138,77,0.32),inset_0_1px_0_rgba(255,247,218,0.34)]"
                     : "border-[rgba(255,216,156,0.09)] bg-[linear-gradient(180deg,rgba(216,176,106,0.04),rgba(255,255,255,0.024))] text-[var(--text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
                 )}
               >

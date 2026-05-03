@@ -119,8 +119,8 @@ export async function POST(request: Request) {
           });
         }
         console.info(`[Admin Process] Scontrino ${receiptNumber}: Movimento registrato con successo.`);
-      } catch (movError: any) {
-        const errorMsg = movError?.message || String(movError);
+      } catch (movError: unknown) {
+        const errorMsg = movError instanceof Error ? movError.message : String(movError);
         console.warn(`[Admin Process] Scontrino ${receiptNumber}: Errore durante CreaMovimento, ma procediamo comunque dato che i punti sono stati caricati.`, errorMsg);
         
         // Se l'errore NON è il solito errore di transazione, forse dovremmo preoccuparci?
