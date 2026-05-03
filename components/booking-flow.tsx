@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { StatusBlock } from "@/components/status-block";
 import dynamic from "next/dynamic";
 
-const TortugaMapViewer = dynamic(() => import("@/components/tortuga-map-viewer").then(mod => mod.TortugaMapViewer), {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TortugaMapViewer = dynamic<any>(() => import("@/components/tortuga-map-viewer").then(mod => mod.TortugaMapViewer).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), {
   loading: () => <div className="h-48 w-full animate-pulse rounded-[2rem] bg-white/5" />,
   ssr: false
 });

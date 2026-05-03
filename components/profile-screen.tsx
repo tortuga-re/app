@@ -6,14 +6,16 @@ import Link from "next/link";
 import { StatusBlock } from "@/components/status-block";
 import dynamic from "next/dynamic";
 
-const FidelityActivationPanel = dynamic(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel), { ssr: false });
-const CaptainChallengeTeaser = dynamic(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser), { ssr: false });
-const PiratePhotoContestCard = dynamic(() => import("@/features/pirate-photo/components/PiratePhotoContestCard").then(mod => mod.PiratePhotoContestCard), { ssr: false });
-const LocalPirateAvatar = dynamic(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar), { ssr: false });
-const LocalExperienceTeaser = dynamic(() => import("@/features/local-experience/components/LocalExperienceTeaser").then(mod => mod.LocalExperienceTeaser), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const FidelityActivationPanel = dynamic<any>(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PiratePhotoContestCard = dynamic<any>(() => import("@/features/pirate-photo/components/PiratePhotoContestCard").then(mod => mod.PiratePhotoContestCard).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
-import { ciurmaRoadmapFeatures } from "@/lib/config";
 import {
   formatBirthDateLabel,
   toDateInputValue,
