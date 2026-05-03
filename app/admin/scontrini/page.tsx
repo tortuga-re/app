@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { isAdmin } from "@/lib/live-buzzer/admin";
@@ -21,19 +21,11 @@ export default function AdminReceiptsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
     try {
-      // In a real app, we'd have a specific API for listing pending requests
-      // For now, we can use a direct Supabase call if we have permissions, 
-      // or a dedicated API route. Let's create a quick API for listing if needed,
-      // but for this implementation we'll use a fetch to a new route.
       const res = await fetch("/api/admin/receipts/list");
       const data = await res.json();
       if (res.ok) {
@@ -46,7 +38,12 @@ export default function AdminReceiptsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchRequests();
+  }, [fetchRequests]);
 
   const handleProcess = async (status: 'approved' | 'rejected') => {
     if (!selectedRequest) return;
@@ -230,7 +227,7 @@ export default function AdminReceiptsPage() {
                             onChange={(e) => setEditableAmount(e.target.value)}
                           />
                         </div>
-                        <p className="text-[10px] text-[var(--text-muted)] mt-1 italic">Puoi modificare l'importo se necessario</p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-1 italic">Puoi modificare l&apos;importo se necessario</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">

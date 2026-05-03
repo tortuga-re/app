@@ -32,7 +32,6 @@ export async function POST(request: Request) {
       }
 
       // 3. Process with Cooperto
-      // Get the request data from DB first to get email and amount
       const { getSupabaseAdmin } = await import("@/lib/match-drink/supabase");
       const supabase = getSupabaseAdmin();
       const { data: receiptReq, error: dbError } = await supabase
@@ -61,11 +60,13 @@ export async function POST(request: Request) {
         console.log(`Fidelity mancante per ${email}, attivazione in corso...`);
         const { activateFidelityCard } = await import("@/lib/cooperto/service");
         await activateFidelityCard({ contactCode });
+        // Give Cooperto some time to commit the card activation before starting a movement transaction
+        console.info(`[Admin Process] Card attivata per ${email}, attesa 2s...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
       // 5. Find Last Reservation/Visit
       const reservations = await getContactReservations(contactCode);
-      // Sort by date descending and find the latest one that is in the past
       const pastReservations = reservations
         .filter(r => r.DataPrenotazione && new Date(r.DataPrenotazione) < new Date())
         .sort((a, b) => {
@@ -111,33 +112,21 @@ export async function POST(request: Request) {
         amount: finalAmount
       });
 
-      // 6. Add Points (1 point every 10€, floor) with Retry Logic
+      // 6. Add Points (1 point every 10€, floor)
       const pointsToAdd = Math.floor(finalAmount / 10);
       
       if (pointsToAdd > 0) {
-        let pointsSuccess = false;
-        let attempts = 0;
-        const maxAttempts = 2;
-
-        while (!pointsSuccess && attempts < maxAttempts) {
-          try {
-            attempts++;
-            // Longer delay to ensure the previous movement transaction is finalized on Cooperto side
-            // First attempt: 3s, Second attempt: 5s
-            const delay = attempts === 1 ? 3000 : 5000;
-            await new Promise(resolve => setTimeout(resolve, delay));
-            
-            await addPointsToContact({
-              codiceContatto: contactCode,
-              punti: pointsToAdd,
-              note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
-            });
-            pointsSuccess = true;
-          } catch (error: any) {
-            console.error(`Attempt ${attempts} to add points failed:`, error);
-            // If it's the last attempt, we just log it and move on
-          }
-        }
+        // IMPORTANT: Increase delay to ensure the previous movement transaction is finalized on Cooperto side.
+        // Even with internal retry logic in addPointsToContact, a 5s delay here reduces initial collisions.
+        console.info(`[Admin Process] Scontrino ${receiptNumber}: Attesa 5s prima di caricare ${pointsToAdd} punti...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        await addPointsToContact({
+          codiceContatto: contactCode,
+          punti: pointsToAdd,
+          note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
+        });
+        console.info(`[Admin Process] Scontrino ${receiptNumber}: Punti caricati con successo.`);
       }
 
       return NextResponse.json({ success: true, message: `Scontrino approvato! Caricati ${pointsToAdd} punti.` });
