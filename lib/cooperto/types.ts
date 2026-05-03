@@ -58,6 +58,8 @@ export interface CoopertoCreateReservationRequest {
   DataPrenotazione: string;
   CodiceStato: number;
   CodiceSala?: string;
+  CodiceModulo?: string;
+  CodiceModuloPrenotazione?: string;
   Nome?: string;
   Cognome?: string;
   Telefono?: string;
@@ -71,6 +73,8 @@ export interface CoopertoCreateReservationRequest {
 export interface CoopertoCreateQueueRequest {
   CodiceSede: string;
   CodiceSala?: string;
+  CodiceModulo?: string;
+  CodiceModuloPrenotazione?: string;
   Nome?: string;
   Cognome?: string;
   Telefono: string;
