@@ -37,13 +37,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div 
           className="fixed inset-0 z-[-1]" 
           style={{ 
-            backgroundColor: '#050505',
-            backgroundImage: "url('/nautical-map.png')",
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.7,
-            mixBlendMode: 'screen',
-            filter: 'brightness(0.8) contrast(1.1)'
+            backgroundColor: '#1a140f', /* Un marrone scuro molto visibile rispetto al nero */
+            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(216, 176, 106, 0.15) 1px, transparent 0)`,
+            backgroundSize: '40px 40px',
+            opacity: 1
           }} 
         />
         <div className="absolute inset-x-0 top-20 h-32 bg-[linear-gradient(180deg,rgba(216,176,106,0.06),transparent)]" />
