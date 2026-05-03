@@ -109,9 +109,9 @@ export async function POST(request: Request) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         await addPointsToContact({
-          CodiceContatto: contactCode,
-          Punti: pointsToAdd,
-          Note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
+          codiceContatto: contactCode,
+          punti: pointsToAdd,
+          note: `Punti per scontrino n. ${receiptNumber} (Importo: €${finalAmount})`
         });
       }
 
