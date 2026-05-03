@@ -1026,7 +1026,7 @@ export function BookingFlow() {
 
                 {showRoomDropdown ? (
                   <div className="mt-5 space-y-3">
-                    <p className="text-sm font-medium text-[var(--text-muted)]">Scegli la Sala Richiesta</p>
+                    <p className="text-sm font-medium text-[var(--text-muted)]">Scegli la Sala</p>
                     <div className="grid grid-cols-2 gap-2">
                       {bootstrap.rooms.map((room) => {
                         const isSelected = activeRoomCode === room.code;
@@ -1148,7 +1148,7 @@ export function BookingFlow() {
                       <span className="font-semibold">
                         {draft.pax} {draft.pax === 1 ? "persona" : "persone"}
                       </span>{" "}
-                      in <span className="font-semibold text-[var(--accent-strong)]">{selectedRoom?.publicName || selectedRoom?.name || "Sala"} (RICHIESTA)</span>.
+                      , <span className="font-medium text-[var(--text-muted)]">Sala richiesta:</span> <span className="font-semibold text-[var(--accent-strong)]">{selectedRoom?.publicName || selectedRoom?.name || "Sala"}</span>.
                     </p>
                   </div>
 
