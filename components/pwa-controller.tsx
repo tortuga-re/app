@@ -174,6 +174,22 @@ export function PwaController() {
           return;
         }
 
+        // Force an update check on registration
+        void registration.update();
+
+        // Listen for updates and reload when a new worker takes control
+        registration.onupdatefound = () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.onstatechange = () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                console.log("Nuova versione trovata. Ricarico l'app...");
+                window.location.reload();
+              }
+            };
+          }
+        };
+
         setServiceWorkerRegistration(registration);
 
         if (!isPushSupported()) {
