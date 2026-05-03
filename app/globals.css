@@ -51,31 +51,7 @@ body {
   background-color: transparent;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: url('/textures/nautical-map.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  opacity: 0.20;
-  mix-blend-mode: screen;
-}
 
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 50% -10%, rgba(216, 176, 106, 0.12), transparent 40%),
-    radial-gradient(circle at 50% 110%, rgba(120, 81, 32, 0.1), transparent 40%);
-  opacity: 0.5;
-}
 
 a {
   color: inherit;
