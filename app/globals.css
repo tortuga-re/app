@@ -15,11 +15,11 @@
   --border-strong: rgba(212, 170, 101, 0.34);
   --text: #fbf4e8;
   --text-muted: #b5a58d;
-  --accent: #b27a34;
-  --accent-strong: #d8b06a;
   --accent-soft: rgba(216, 176, 106, 0.14);
-  --brass-worn: #a77938;
-  --brass-bright: #e4bd72;
+  --brass-worn: #8d6b38;
+  --brass-bright: #f0d59d;
+  --metal-worn: #3d342c;
+  --metal-shine: #8b7d6a;
   --burnt-wood: #130b06;
   --charcoal-wood: #070504;
   --leather-grain: rgba(95, 61, 28, 0.18);
@@ -83,6 +83,15 @@ textarea {
       inset 0 -18px 34px rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(16px);
     animation: float-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  .panel-metal {
+    border: 2px solid var(--metal-worn);
+    box-shadow: 
+      0 0 0 1px rgba(0, 0, 0, 0.8),
+      inset 0 0 10px rgba(0, 0, 0, 0.6),
+      inset 0 1px 2px rgba(255, 255, 255, 0.1);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
   }
 
   .panel::before {
@@ -260,48 +269,27 @@ textarea {
     position: relative;
     overflow: hidden;
     border-radius: 999px;
-    border: 1px solid rgba(171, 128, 63, 0.26);
-    background:
-      linear-gradient(180deg, rgba(216, 176, 106, 0.06), transparent 50%),
-      repeating-linear-gradient(110deg,
-        rgba(255, 255, 255, 0.014) 0,
-        rgba(255, 255, 255, 0.014) 1px,
-        transparent 1px,
-        transparent 9px),
-      rgba(255, 255, 255, 0.035);
-    color: var(--text);
-    box-shadow:
-      0 0 0 rgba(0, 0, 0, 0),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    transition:
-      transform 90ms ease,
-      border-color 90ms ease,
-      background 90ms ease,
-      box-shadow 90ms ease;
-  }
-
-  .button-secondary::before {
-    content: "";
-    position: absolute;
-    inset: 1px 14%;
-    height: 34%;
-    border-radius: inherit;
-    background: linear-gradient(180deg, rgba(255, 241, 202, 0.08), transparent);
-    pointer-events: none;
+    border: 1px solid rgba(171, 128, 63, 0.12);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-muted);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    transition: all 120ms ease;
+    backdrop-filter: blur(4px);
   }
 
   .button-secondary:hover {
-    transform: translateY(-1px);
-    border-color: var(--border-strong);
-    background:
-      linear-gradient(180deg, rgba(216, 176, 106, 0.05), transparent 50%),
-      rgba(255, 255, 255, 0.045);
-    box-shadow: 0 0 18px rgba(178, 122, 52, 0.08);
+    color: var(--text);
+    border-color: rgba(171, 128, 63, 0.25);
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .button-secondary:active {
-    transform: translateY(1px) scale(0.985);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transform: scale(0.97);
+  }
+
+  .cta-glow {
+    animation: gold-pulse 3s infinite ease-in-out;
+    border-color: rgba(216, 176, 106, 0.5) !important;
   }
 
   .eyebrow {
@@ -314,15 +302,11 @@ textarea {
   }
 
   .tortuga-divider {
-    height: 1px;
+    height: 2px;
     border: 0;
-    background:
-      repeating-linear-gradient(90deg,
-        rgba(216, 176, 106, 0.05) 0,
-        rgba(216, 176, 106, 0.56) 10px,
-        transparent 10px,
-        transparent 16px);
-    box-shadow: 0 0 16px rgba(178, 122, 52, 0.12);
+    background-image: repeating-linear-gradient(90deg, var(--accent-strong) 0, var(--accent-strong) 6px, transparent 6px, transparent 12px);
+    opacity: 0.25;
+    mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
   }
 
   .hero-title {

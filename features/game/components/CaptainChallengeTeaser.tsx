@@ -41,7 +41,7 @@ export function CaptainChallengeTeaser({
 
       <Link
         href="/game/sfida-capitano"
-        className="button-primary mt-5 flex w-full min-h-12 items-center justify-center px-5 text-sm"
+        className="button-primary cta-glow mt-5 flex w-full min-h-12 items-center justify-center px-5 text-sm"
         onClick={() => {
           triggerHaptic();
           onClick?.();
@@ -56,5 +56,9 @@ export function CaptainChallengeTeaser({
     return <div className={cn("space-y-1", className)}>{content}</div>;
   }
 
-  return <div className={cn("panel rounded-[2rem] p-5", className)}>{content}</div>;
+  return (
+    <div className={cn("panel parchment-texture rounded-[2rem] p-5", className)}>
+      {content}
+    </div>
+  );
 }

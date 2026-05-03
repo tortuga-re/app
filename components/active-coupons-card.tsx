@@ -114,7 +114,7 @@ export function ActiveCouponsCard({
   }, [couponKey, coupons, primaryCoupon?.DataScadenza]);
 
   return (
-    <div className={cn("panel rounded-[2rem] p-5", className)}>
+    <div className={cn("panel parchment-texture rounded-[2rem] p-5", className)}>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">

@@ -1281,7 +1281,7 @@ export function BookingFlow() {
                   <div id="conferma" className="hash-scroll-target">
                     <button
                       type="button"
-                      className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
+                      className="button-primary cta-glow mt-5 flex min-h-12 w-full items-center justify-center px-4"
                       onClick={() => {
                         triggerHaptic();
                         void submitBooking();
