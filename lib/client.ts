@@ -1,4 +1,4 @@
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 30000; // 30 seconds
 
 export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
