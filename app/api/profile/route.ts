@@ -42,13 +42,20 @@ export async function GET(request: Request) {
   try {
     const data = await getProfileData(mode, normalizedQuery);
     
-    // Se la ricerca è per email, cerchiamo anche l'avatar su Supabase
+    // Se la ricerca è per email, cerchiamo anche l'avatar e le missioni sbloccate su Supabase
     if (mode === "email") {
       const { getCustomerAvatar } = await import("@/lib/profile/avatar-service");
-      const avatarUrl = await getCustomerAvatar(normalizedQuery).catch(() => null);
+      const { getCustomerAchievements } = await import("@/lib/profile/achievement-service");
+      
+      const [avatarUrl, achievementIds] = await Promise.all([
+        getCustomerAvatar(normalizedQuery).catch(() => null),
+        getCustomerAchievements(normalizedQuery).catch(() => []),
+      ]);
+
       if (avatarUrl) {
         data.avatarUrl = avatarUrl;
       }
+      data.unlockedAchievementIds = achievementIds;
     }
 
     return NextResponse.json(data);

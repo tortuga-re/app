@@ -38,7 +38,7 @@ export default function Error({
         Aggiornamento in corso
       </h2>
       <p className="mb-8 text-sm text-white/60">
-        Stiamo caricando l'ultima versione dell'app per garantirti la massima stabilità.
+        Stiamo caricando l&apos;ultima versione dell&apos;app per garantirti la massima stabilità.
       </p>
       <button
         onClick={() => window.location.reload()}

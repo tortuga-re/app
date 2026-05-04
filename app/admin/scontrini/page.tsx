@@ -86,6 +86,38 @@ export default function AdminReceiptsPage() {
     }
   };
 
+  const handleQuickReject = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Evita di aprire il dettaglio
+    if (!confirm("Vuoi rimuovere questo scontrino dalla lista?")) return;
+
+    setProcessingId(id);
+    triggerHaptic();
+
+    try {
+      const res = await fetch("/api/admin/receipts/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          status: 'rejected',
+          adminNote: "Rimosso manualmente dalla lista",
+          adminEmail: identity.email
+        })
+      });
+
+      if (res.ok) {
+        setRequests(requests.filter(r => r.id !== id));
+      } else {
+        const data = await res.json();
+        setError(data.error || "Errore durante la rimozione.");
+      }
+    } catch (err) {
+      setError("Errore di connessione.");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   if (!isAdmin(identity.email)) {
     return (
       <div className="p-10 text-center">
@@ -163,7 +195,15 @@ export default function AdminReceiptsPage() {
                   <p className="text-[var(--accent-strong)] font-black text-lg">€ {req.amount.toFixed(2)}</p>
                 </div>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                <button 
+                  onClick={(e) => handleQuickReject(e, req.id)}
+                  disabled={processingId === req.id}
+                  className="p-2 -mr-2 -mt-2 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+                  title="Rimuovi dalla lista"
+                >
+                  <X className="w-4 h-4" />
+                </button>
                 <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
                   {new Date(req.created_at).toLocaleDateString('it-IT')}
                 </p>

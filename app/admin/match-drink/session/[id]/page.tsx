@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMatchDrinkAdmin } from "@/lib/match-drink/use-match-drink-admin";
 import { MatchDrinkShell } from "@/components/match-drink/MatchDrinkShell";
 import { MatchDrinkCard } from "@/components/match-drink/MatchDrinkCard";
 import { MatchDrinkButton } from "@/components/match-drink/MatchDrinkButton";
 import { triggerHaptic } from "@/lib/haptics";
+import { ChevronLeft } from "lucide-react";
 
 export default function MatchDrinkSessionAdminPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +57,12 @@ export default function MatchDrinkSessionAdminPage() {
 
   return (
     <MatchDrinkShell maxWidth="max-w-5xl">
+      <Link 
+        href="/ciurma" 
+        className="flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline mb-6"
+      >
+        <ChevronLeft className="w-3 h-3" /> Torna alla Ciurma
+      </Link>
       <div className="space-y-6 pb-20">
         <div className="flex items-center justify-between">
           <div>
