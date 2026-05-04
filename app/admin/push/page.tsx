@@ -5,6 +5,7 @@ import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { isAdmin } from "@/lib/live-buzzer/admin";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPushPage() {
@@ -72,7 +73,12 @@ export default function AdminPushPage() {
   return (
     <div className="mx-auto max-w-md p-6 space-y-8">
       <header className="space-y-2">
-        <Link href="/ciurma" className="text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline">← Torna alla Ciurma</Link>
+        <Link 
+          href="/ciurma" 
+          className="flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline mb-4"
+        >
+          <ChevronLeft className="w-3 h-3" /> Torna alla Ciurma
+        </Link>
         <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">Plancia Push Capitano</h1>
         <p className="text-sm text-[var(--text-muted)]">Invia messaggi istantanei a tutta la ciurma o solo ai presenti.</p>
       </header>

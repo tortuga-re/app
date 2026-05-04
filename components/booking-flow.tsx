@@ -1051,6 +1051,23 @@ export function BookingFlow() {
                               triggerHaptic();
                               setDraft((current) => ({ ...current, roomCode: room.code }));
                               setSelectedTime("");
+                              
+                              // Scroll manuale agli orari disponibili dopo un breve delay per il re-render
+                              setTimeout(() => {
+                                const el = document.getElementById("availability-section");
+                                if (el) {
+                                  const offset = 100; // Offset per non incollare l'elemento al top
+                                  const bodyRect = document.body.getBoundingClientRect().top;
+                                  const elementRect = el.getBoundingClientRect().top;
+                                  const elementPosition = elementRect - bodyRect;
+                                  const offsetPosition = elementPosition - offset;
+
+                                  window.scrollTo({
+                                    top: offsetPosition,
+                                    behavior: "smooth"
+                                  });
+                                }
+                              }, 100);
                             }}
                           >
                             <span className="text-xs font-bold uppercase tracking-[0.15em] text-center">{room.publicName || room.name}</span>
@@ -1104,7 +1121,9 @@ export function BookingFlow() {
                       ) : null}
                     </div>
 
-                    {renderAvailabilityContent("mt-5")}
+                    <div id="availability-section">
+                      {renderAvailabilityContent("mt-5")}
+                    </div>
                   </div>
                 ) : null}
 

@@ -30,10 +30,12 @@ import { useHashScroll } from "@/lib/hash-scroll";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/types";
 import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { isAdmin } from "@/lib/live-buzzer/admin";
 import { PwaPushCard } from "@/components/pwa-push-card";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
+import { missions } from "@/lib/missions";
 
 type ContactFormState = {
   firstName: string;
@@ -102,6 +104,7 @@ export function CiurmaScreen() {
   const [resendingEmailChange, setResendingEmailChange] = useState(false);
   const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
   const [activeGames, setActiveGames] = useState({ buzzer: false, matchDrink: false });
+  const [selectedMission, setSelectedMission] = useState<import("@/lib/missions").Mission | null>(null);
   const autoLoadedKeyRef = useRef("");
 
   const identityEmail = normalizeCustomerEmail(identity.email);
@@ -313,7 +316,7 @@ export function CiurmaScreen() {
         });
         setIsEditingLookup(false);
         autoLoadedKeyRef.current = normalizedEmail;
-        // eslint-disable-next-line react-hooks/immutability
+         
         window.location.hash = "#riconoscimento";
       } else {
         setIsEditingLookup(true);
@@ -461,7 +464,7 @@ export function CiurmaScreen() {
         });
       }
       setContactForm(buildContactForm(response.contact ?? undefined));
-      // eslint-disable-next-line react-hooks/immutability
+       
       window.location.hash = "#riconoscimento";
       setIsEditingProfile(false);
       setIsRegistering(false);
@@ -539,7 +542,7 @@ export function CiurmaScreen() {
       email: normalizedEmail,
     });
     setIsRegistering(true);
-    // eslint-disable-next-line react-hooks/immutability
+     
     window.location.hash = "#riconoscimento";
   };
 
@@ -579,7 +582,7 @@ export function CiurmaScreen() {
     setContactForm(buildContactForm(profile.contact ?? undefined));
     autoLoadedKeyRef.current =
       normalizeCustomerEmail(profile.contact?.Email) || profile.query;
-    // eslint-disable-next-line react-hooks/immutability
+     
     window.location.hash = "#riconoscimento";
   };
 
@@ -1059,6 +1062,16 @@ export function CiurmaScreen() {
             id="riconoscimento"
             className="panel hash-scroll-target rounded-[2rem] p-5 overflow-visible"
           >
+            <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-[var(--accent-strong)]">
+                Passaporto del pirata
+              </p>
+              <div className="flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--accent-strong)] animate-pulse" />
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Documento Valido</span>
+              </div>
+            </div>
+
             <div className="relative z-20 flex min-w-0 items-center gap-4">
               <LocalPirateAvatar
                 customerKey={
@@ -1083,6 +1096,61 @@ export function CiurmaScreen() {
                 </div>
               </div>
             </div>
+
+            {/* Missioni (Badges) - Passaporto del Pirata */}
+            <div className="mt-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                  Le tue Imprese
+                </p>
+                <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                  {missions.filter(m => m.isUnlocked(data)).length} / {missions.length} Sbloccate
+                </span>
+              </div>
+              
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden mask-fade-right">
+                {missions.map((mission) => {
+                  const isUnlocked = mission.isUnlocked(data);
+                  return (
+                    <button 
+                      key={mission.id} 
+                      onClick={() => {
+                        triggerHaptic();
+                        setSelectedMission(mission);
+                      }}
+                      className="group relative flex flex-col items-center gap-2 flex-shrink-0 outline-none"
+                    >
+                      <div 
+                        className={cn(
+                          "flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-500 overflow-hidden",
+                          isUnlocked 
+                            ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_15px_rgba(216,176,106,0.3)]" 
+                            : "border-white/5 bg-white/5 grayscale opacity-30"
+                        )}
+                      >
+                        {mission.image ? (
+                          <img 
+                            src={mission.image} 
+                            alt={mission.label} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-3xl">{mission.icon}</span>
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[9px] font-bold text-center uppercase tracking-tight leading-tight w-20 break-words",
+                        isUnlocked ? "text-white" : "text-[var(--text-muted)]"
+                      )}>
+                        {mission.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="my-8 border-t border-white/5" />
 
             {contactError ? (
               <div className="mt-4 rounded-[1.4rem] border border-[rgba(240,139,117,0.22)] bg-[rgba(240,139,117,0.08)] px-4 py-3 text-sm leading-6 text-[var(--danger)]">
@@ -1399,6 +1467,59 @@ export function CiurmaScreen() {
           </div>
         </>
       ) : null}
+
+      {/* Mission Info Modal */}
+      {selectedMission && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div 
+            className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#121212] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mt-4 flex flex-col items-center gap-6">
+              <div 
+                className={cn(
+                  "flex h-48 w-48 items-center justify-center rounded-full border shadow-2xl overflow-hidden",
+                  selectedMission.isUnlocked(data!) 
+                    ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_30px_rgba(216,176,106,0.2)]" 
+                    : "border-white/5 bg-white/5 grayscale opacity-30"
+                )}
+              >
+                {selectedMission.image ? (
+                  <img 
+                    src={selectedMission.image} 
+                    alt={selectedMission.label} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-8xl">{selectedMission.icon}</span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent-strong)]">
+                  {selectedMission.isUnlocked(data!) ? "Missione Compiuta" : "Missione Segreta"}
+                </p>
+                <h3 className="text-2xl font-bold text-white uppercase italic">
+                  {selectedMission.label}
+                </h3>
+              </div>
+
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {selectedMission.description}
+              </p>
+
+              <button
+                onClick={() => setSelectedMission(null)}
+                className="button-primary mt-4 w-full rounded-2xl py-4 text-sm font-bold uppercase tracking-widest"
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+          {/* Backdrop click to close */}
+          <div className="absolute inset-0 -z-10" onClick={() => setSelectedMission(null)} />
+        </div>
+      )}
     </section>
   );
 }

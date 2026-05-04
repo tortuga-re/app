@@ -221,7 +221,7 @@ function CoopertoMenuCard({ onClick }: { onClick?: () => void }) {
   return (
     <div className="panel parchment-texture rounded-[2rem] p-5">
       <div className="space-y-2">
-        <p className="eyebrow">Menu</p>
+        <p className="eyebrow">PIATTI DELLA CAMBUSA</p>
       </div>
 
       <a
@@ -234,7 +234,7 @@ function CoopertoMenuCard({ onClick }: { onClick?: () => void }) {
           onClick?.();
         }}
       >
-        MENU
+        PIATTI DELLA CAMBUSA
       </a>
     </div>
   );

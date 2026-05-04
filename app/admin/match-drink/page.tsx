@@ -6,6 +6,7 @@ import { MatchDrinkShell } from "@/components/match-drink/MatchDrinkShell";
 import { MatchDrinkCard } from "@/components/match-drink/MatchDrinkCard";
 import { MatchDrinkButton } from "@/components/match-drink/MatchDrinkButton";
 import { MatchDrinkSession } from "@/lib/match-drink/types";
+import { ChevronLeft } from "lucide-react";
 
 export default function MatchDrinkAdminPage() {
   const [pin, setPin] = useState<string>(() => {
@@ -109,6 +110,12 @@ export default function MatchDrinkAdminPage() {
 
   return (
     <MatchDrinkShell maxWidth="max-w-4xl">
+      <Link 
+        href="/ciurma" 
+        className="flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline mb-6"
+      >
+        <ChevronLeft className="w-3 h-3" /> Torna alla Ciurma
+      </Link>
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-white">Dashboard Match & Drink</h1>

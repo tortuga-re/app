@@ -7,6 +7,7 @@ import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
 import { isAdmin } from "@/lib/live-buzzer/admin";
+import { ChevronLeft } from "lucide-react";
 import type { BuzzerState, BuzzerEntry, BuzzerResult } from "@/lib/live-buzzer/types";
 
 type ConfirmAction = "reset-game" | "end-round" | null;
@@ -213,6 +214,12 @@ export default function AdminBuzzerPage() {
 
   return (
     <div className="space-y-6">
+      <Link 
+        href="/ciurma" 
+        className="flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline mb-4"
+      >
+        <ChevronLeft className="w-3 h-3" /> Torna alla Ciurma
+      </Link>
       {/* Universal Confirmation Modal */}
       {confirmAction && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">

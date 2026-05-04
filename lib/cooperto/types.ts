@@ -365,6 +365,7 @@ export interface ProfileResponse {
   lookupMode: "email" | "contactCode";
   query: string;
   avatarUrl?: string;
+  unlockedAchievementIds?: string[];
 }
 
 export interface FidelityActivationResponse {
