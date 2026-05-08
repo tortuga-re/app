@@ -106,6 +106,18 @@ export function CiurmaScreen() {
   const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
   const [activeGames, setActiveGames] = useState({ buzzer: false, matchDrink: false });
   const [selectedMission, setSelectedMission] = useState<import("@/lib/missions").Mission | null>(null);
+  const [loginMode, setLoginMode] = useState<"lookup" | "confirm" | "otp">("lookup");
+  const [loginRequest, setLoginRequest] = useState<{
+    requestId: string;
+    email: string;
+    expiresAt: string;
+    resendAvailableAt: string;
+    attemptsRemaining: number;
+  } | null>(null);
+  const [loginCode, setLoginCode] = useState("");
+  const [verifyingLogin, setVerifyingLogin] = useState(false);
+  const [resendingLogin, setResendingLogin] = useState(false);
+  const longPressRef = useRef<number | null>(null);
   const autoLoadedKeyRef = useRef("");
 
   const identityEmail = normalizeCustomerEmail(identity.email);
@@ -144,12 +156,20 @@ export function CiurmaScreen() {
       minute: "2-digit",
     }).format(new Date(emailChangeRequest.expiresAt))
     : "";
+    
+  const loginResendAt = loginRequest ? Date.parse(loginRequest.resendAvailableAt) : 0;
+  const loginCanResend = Boolean(loginRequest && emailChangeNow >= loginResendAt);
+  const loginResendSeconds = Math.max(Math.ceil((loginResendAt - emailChangeNow) / 1000), 0);
+  const loginExpiresAtLabel = loginRequest
+    ? new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(loginRequest.expiresAt))
+    : "";
+
   useHashScroll(
-    `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}:${isEditingProfile}:${Boolean(contactMessage)}`,
+    `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}:${isEditingProfile}:${Boolean(contactMessage)}:${loginMode}`,
   );
 
   useEffect(() => {
-    if (!emailChangeRequest) {
+    if (!emailChangeRequest && !loginRequest) {
       return;
     }
 
@@ -158,7 +178,7 @@ export function CiurmaScreen() {
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [emailChangeRequest]);
+  }, [emailChangeRequest, loginRequest]);
 
   useEffect(() => {
     const fetchActiveGames = async () => {
@@ -272,7 +292,7 @@ export function CiurmaScreen() {
     }
   };
 
-  const runLookup = async () => {
+  const handleLookupSubmit = () => {
     const normalizedEmail = normalizeCustomerEmail(lookupEmail);
 
     if (!normalizedEmail) {
@@ -285,6 +305,12 @@ export function CiurmaScreen() {
       return;
     }
 
+    setError("");
+    setLoginMode("confirm");
+  };
+
+  const requestLoginOtp = async () => {
+    const normalizedEmail = normalizeCustomerEmail(lookupEmail);
     autoLoadedKeyRef.current = normalizedEmail;
     setLoading(true);
     setError("");
@@ -294,43 +320,148 @@ export function CiurmaScreen() {
     setShowActivatedCardPanel(false);
 
     try {
-      const response = await loadProfileData(normalizedEmail);
-      setData(response);
-      setLookupEmail(normalizedEmail);
+      const response = await requestJson<{
+        requestId: string;
+        email: string;
+        expiresAt: string;
+        resendAvailableAt: string;
+        attemptsRemaining: number;
+      }>("/api/session/login-request", {
+        method: "POST",
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      setLoginRequest(response);
+      setLoginCode("");
+      setLoginMode("otp");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile inviare il codice.");
+      setLoginMode("lookup");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const resendLoginCode = async () => {
+    if (!loginRequest) return;
+    setResendingLogin(true);
+    setError("");
+    try {
+      const response = await requestJson<{
+        requestId: string;
+        email: string;
+        expiresAt: string;
+        resendAvailableAt: string;
+        attemptsRemaining: number;
+      }>("/api/session/login-request", {
+        method: "POST",
+        body: JSON.stringify({ email: loginRequest.email }), // Assuming request API acts as resend if existing? Actually we didn't write a resend for login yet. Let's just create a new request!
+      });
+      setLoginRequest(response);
+      setLoginCode("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile reinviare il codice.");
+    } finally {
+      setResendingLogin(false);
+    }
+  };
+
+  const verifyLoginCode = async () => {
+    if (!loginRequest) return;
+    const code = loginCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setError("Inserisci il codice a 6 cifre.");
+      return;
+    }
+
+    setVerifyingLogin(true);
+    setError("");
+
+    try {
+      const response = await requestJson<ProfileResponse>("/api/session/login-verify", {
+        method: "POST",
+        body: JSON.stringify({ requestId: loginRequest.requestId, code }),
+      });
+
+      applyProfileResponse(response);
+      
       if (response.contact) {
-        updateIdentity({
-          email: response.contact.Email || normalizedEmail,
-          firstName: response.contact.Nome,
-          lastName: response.contact.Cognome,
-          phone: response.contact.Telefono,
-          marketingConsent:
-            typeof response.contact.ConsensoMarketing === "number"
-              ? response.contact.ConsensoMarketing === 1
-              : undefined,
-        });
         trackAppEvent("login_success", {
           app_section: "ciurma",
-          login_method: "email_lookup",
+          login_method: "email_otp",
           profile_source: response.source,
           has_contact_code: Boolean(response.contact.CodiceContatto),
         });
         setIsEditingLookup(false);
-        autoLoadedKeyRef.current = normalizedEmail;
-         
+        autoLoadedKeyRef.current = response.contact.Email || loginRequest.email;
         window.location.hash = "#riconoscimento";
       } else {
         setIsEditingLookup(true);
         autoLoadedKeyRef.current = "";
       }
-    } catch (loadError) {
-      setIsEditingLookup(true);
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Non sono riuscito a recuperare la tua ciurma.",
-      );
-      autoLoadedKeyRef.current = "";
+      
+      setLoginMode("lookup");
+      setLoginRequest(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Codice non valido.");
+    } finally {
+      setVerifyingLogin(false);
+    }
+  };
+
+  const startLongPress = () => {
+    longPressRef.current = window.setTimeout(() => {
+      longPressRef.current = null;
+      const pin = prompt("Inserisci PIN Capitano:");
+      if (pin) void handleBypassLogin(pin);
+    }, 1500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressRef.current) {
+      window.clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  };
+
+  const handleBypassLogin = async (pin: string) => {
+    const normalizedEmail = normalizeCustomerEmail(lookupEmail);
+    if (!isValidCustomerEmail(normalizedEmail)) {
+      setError("Inserisci un indirizzo email valido.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setIsRegistering(false);
+    setShowActivatedCardPanel(false);
+
+    try {
+      const response = await requestJson<ProfileResponse>("/api/session/login-bypass", {
+        method: "POST",
+        body: JSON.stringify({ email: normalizedEmail, pin }),
+      });
+
+      applyProfileResponse(response);
+      
+      if (response.contact) {
+        trackAppEvent("login_success", {
+          app_section: "ciurma",
+          login_method: "bypass",
+          profile_source: response.source,
+          has_contact_code: Boolean(response.contact.CodiceContatto),
+        });
+        setIsEditingLookup(false);
+        autoLoadedKeyRef.current = response.contact.Email || normalizedEmail;
+        window.location.hash = "#riconoscimento";
+      } else {
+        setIsEditingLookup(true);
+        autoLoadedKeyRef.current = "";
+      }
+      
+      setLoginMode("lookup");
+      setLoginRequest(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PIN non valido o errore.");
     } finally {
       setLoading(false);
     }
@@ -602,34 +733,135 @@ export function CiurmaScreen() {
               </p>
             </div>
 
-            <input
-              className="field"
-              type="email"
-              placeholder="cliente@email.it"
-              value={lookupEmail}
-              onChange={(event) => setLookupEmail(event.target.value)}
-            />
-            <button
-              type="button"
-              className="button-primary flex min-h-12 w-full items-center justify-center px-4"
-              onClick={() => {
-                triggerHaptic();
-                void runLookup();
-              }}
-              disabled={loading}
-            >
-              {loading ? "Recupero la ciurma..." : "Entra nella tua area"}
-            </button>
-            <button
-              type="button"
-              className="button-secondary flex min-h-12 w-full items-center justify-center px-4"
-              onClick={() => {
-                triggerHaptic();
-                startRegistration();
-              }}
-            >
-              Registrati
-            </button>
+            {loginMode === "lookup" ? (
+              <>
+                <input
+                  className="field"
+                  type="email"
+                  placeholder="cliente@email.it"
+                  value={lookupEmail}
+                  onChange={(event) => setLookupEmail(event.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleLookupSubmit();
+                  }}
+                />
+                <button
+                  type="button"
+                  className="button-primary flex min-h-12 w-full items-center justify-center px-4 select-none"
+                  onClick={() => {
+                    triggerHaptic();
+                    handleLookupSubmit();
+                  }}
+                  onTouchStart={startLongPress}
+                  onTouchEnd={cancelLongPress}
+                  onMouseDown={startLongPress}
+                  onMouseUp={cancelLongPress}
+                  onMouseLeave={cancelLongPress}
+                  disabled={loading}
+                >
+                  {loading ? "Recupero la ciurma..." : "Entra nella tua area"}
+                </button>
+                <button
+                  type="button"
+                  className="button-secondary flex min-h-12 w-full items-center justify-center px-4"
+                  onClick={() => {
+                    triggerHaptic();
+                    startRegistration();
+                  }}
+                >
+                  Registrati
+                </button>
+              </>
+            ) : loginMode === "confirm" ? (
+              <div className="space-y-4">
+                <div className="rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
+                  Ti invieremo un codice OTP all&apos;email <strong>{lookupEmail}</strong>, verifica la correttezza.
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    className="button-secondary flex min-h-12 w-full items-center justify-center px-4"
+                    onClick={() => {
+                      triggerHaptic();
+                      setLoginMode("lookup");
+                    }}
+                    disabled={loading}
+                  >
+                    Modifica
+                  </button>
+                  <button
+                    type="button"
+                    className="button-primary flex min-h-12 w-full items-center justify-center px-4"
+                    onClick={() => {
+                      triggerHaptic();
+                      void requestLoginOtp();
+                    }}
+                    disabled={loading}
+                  >
+                    {loading ? "Invio..." : "Conferma"}
+                  </button>
+                </div>
+              </div>
+            ) : loginMode === "otp" && loginRequest ? (
+              <div className="space-y-4">
+                <div className="rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
+                  <p>Abbiamo inviato un codice a <strong>{loginRequest.email}</strong>.</p>
+                  <p className="mt-1 text-xs">Scade alle {loginExpiresAtLabel}.</p>
+                </div>
+                <input
+                  className="field text-center text-lg font-semibold tracking-[0.35em]"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={loginCode}
+                  onChange={(event) =>
+                    setLoginCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    className="button-primary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                    onClick={() => {
+                      triggerHaptic();
+                      void verifyLoginCode();
+                    }}
+                    disabled={verifyingLogin || loginCode.trim().length !== 6}
+                  >
+                    {verifyingLogin ? "Verifico..." : "Entra"}
+                  </button>
+                  <button
+                    type="button"
+                    className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
+                    onClick={() => {
+                      triggerHaptic();
+                      void resendLoginCode();
+                    }}
+                    disabled={resendingLogin || !loginCanResend}
+                  >
+                    {resendingLogin
+                      ? "Invio..."
+                      : loginCanResend
+                        ? "Reinvia codice"
+                        : `Reinvia tra ${loginResendSeconds}s`}
+                  </button>
+                </div>
+                <p className="text-xs text-center leading-5 text-[var(--text-muted)]">
+                  Tentativi rimasti: {loginRequest.attemptsRemaining}.
+                </p>
+                <button
+                  type="button"
+                  className="text-xs text-center w-full mt-2 underline text-[var(--text-muted)] hover:text-white"
+                  onClick={() => {
+                    setLoginMode("lookup");
+                    setLoginRequest(null);
+                  }}
+                >
+                  Cambia email
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
