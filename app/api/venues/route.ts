@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getVenuesData } from "@/lib/cooperto/service";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // 1 ora di cache
 
 export async function GET() {
   try {

@@ -235,20 +235,8 @@ function VenuesScreenContent() {
   const searchParams = useSearchParams();
   const simDay = searchParams.get("simDay");
   const currentDay = simDay ? parseInt(simDay, 10) : new Date().getDay();
-  const [deviceOS, setDeviceOS] = useState<"ios" | "android" | "other" | null>(null);
 
   useEffect(() => {
-    const detectOS = () => {
-      const ua = navigator.userAgent.toLowerCase();
-      if (/iphone|ipad|ipod/.test(ua)) return "ios";
-      if (/android/.test(ua)) return "android";
-      return "other";
-    };
-
-    window.requestAnimationFrame(() => {
-      setDeviceOS(detectOS());
-    });
-
     const loadVenues = async () => {
       try {
         const response = await requestJson<VenueResponse>("/api/venues");
@@ -266,31 +254,6 @@ function VenuesScreenContent() {
 
     void loadVenues();
   }, []);
-
-  const [kantaquizStart, setKantaquizStart] = useState<string | null>(null);
-
-  useEffect(() => {
-    const checkKantaquiz = async () => {
-      try {
-        const res = await fetch("/api/game/kantaquiz");
-        if (res.ok) {
-          const { startTime } = await res.json();
-          setKantaquizStart(startTime);
-        }
-      } catch {
-        // Silently fail
-      }
-    };
-    checkKantaquiz();
-  }, []);
-
-  const isKantaquizActive = useMemo(() => {
-    if (!kantaquizStart) return false;
-    const start = new Date(kantaquizStart).getTime();
-    const now = new Date().getTime();
-    const threeHours = 3 * 60 * 60 * 1000;
-    return now - start < threeHours;
-  }, [kantaquizStart]);
 
   const primaryVenue = useMemo(
     () => data?.venues.find((venue) => venue.isPrimary) ?? data?.venues[0] ?? null,

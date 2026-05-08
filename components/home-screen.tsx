@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ActiveCouponsCard } from "@/components/active-coupons-card";
-import { FidelityStatusCard } from "@/components/fidelity-status-card";
-import { StatusBlock } from "@/components/status-block";
-import { SurveyTeaserCard } from "@/components/survey-teaser-card";
-import { KantaquizTeaser } from "@/components/kantaquiz-teaser";
 import dynamic from "next/dynamic";
+import { StatusBlock } from "@/components/status-block";
+
+const ActiveCouponsCard = dynamic(() => import("@/components/active-coupons-card").then(mod => mod.ActiveCouponsCard), { ssr: false });
+const FidelityStatusCard = dynamic(() => import("@/components/fidelity-status-card").then(mod => mod.FidelityStatusCard), { ssr: false });
+const SurveyTeaserCard = dynamic(() => import("@/components/survey-teaser-card").then(mod => mod.SurveyTeaserCard), { ssr: false });
+const KantaquizTeaser = dynamic(() => import("@/components/kantaquiz-teaser").then(mod => mod.KantaquizTeaser), { ssr: false });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), {
