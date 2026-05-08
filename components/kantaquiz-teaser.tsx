@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 
 export function KantaquizTeaser() {
+  const { hasAccess } = useOnPremiseAccess();
   const [deviceOS, setDeviceOS] = useState<"ios" | "android" | "other" | null>(null);
   const [kantaquizStart, setKantaquizStart] = useState<string | null>(null);
 
@@ -42,7 +44,7 @@ export function KantaquizTeaser() {
     return now - start < threeHours;
   }, [kantaquizStart]);
 
-  if (!isKantaquizActive) {
+  if (!isKantaquizActive || !hasAccess) {
     return null;
   }
 
