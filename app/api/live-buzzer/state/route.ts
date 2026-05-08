@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     status: store.status,
+    isLive: store.isLive,
     currentRound: store.currentRound,
     leaderboard: leaderboardToDisplay,
     leaderboardVisible: store.leaderboardVisible,

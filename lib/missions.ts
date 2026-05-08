@@ -105,9 +105,9 @@ export const missions: Mission[] = [
   },
   {
     id: "assalto-buzzer",
-    label: "Assalto al Buzzer",
-    description: "Partecipa a un round live dell'Assalto.",
-    icon: "🛎️",
+    label: "Tortuga Music Quiz",
+    description: "Partecipa a un round live del Tortuga Music Quiz.",
+    icon: "🎵",
     image: "/badges/assalto-buzzer.png",
     category: "eventi",
     isUnlocked: (p) => p.unlockedAchievementIds?.includes("assalto-buzzer") ?? false,

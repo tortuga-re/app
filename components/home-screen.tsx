@@ -10,6 +10,7 @@ const ActiveCouponsCard = dynamic(() => import("@/components/active-coupons-card
 const FidelityStatusCard = dynamic(() => import("@/components/fidelity-status-card").then(mod => mod.FidelityStatusCard), { ssr: false });
 const SurveyTeaserCard = dynamic(() => import("@/components/survey-teaser-card").then(mod => mod.SurveyTeaserCard), { ssr: false });
 const KantaquizTeaser = dynamic(() => import("@/components/kantaquiz-teaser").then(mod => mod.KantaquizTeaser), { ssr: false });
+const BuzzerTeaser = dynamic(() => import("@/components/buzzer-teaser").then(mod => mod.BuzzerTeaser), { ssr: false });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), {
@@ -416,6 +417,7 @@ export function HomeScreen() {
         <>
           <SurveyTeaserCard />
           <KantaquizTeaser />
+          <BuzzerTeaser />
           <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
             {hasMenuAccess ? (
               <CoopertoMenuCard onClick={() => void registerVisit(profile?.contact?.CodiceContatto)} />

@@ -1126,7 +1126,7 @@ export function CiurmaScreen() {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
+                          <p className="text-base font-semibold text-white uppercase italic">🎵 Tortuga Music Quiz</p>
                           <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
                             La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
                           </p>
@@ -1180,7 +1180,7 @@ export function CiurmaScreen() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-base font-semibold text-white uppercase italic">⚓ Plancia Assalto al Buzzer</p>
+                      <p className="text-base font-semibold text-white uppercase italic">⚓ Plancia Tortuga Music Quiz</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
                         Gestisci le prenotazioni e assegna il bottino.
                       </p>
