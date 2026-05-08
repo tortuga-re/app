@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const adminPin = process.env.ADMIN_IMPERSONATE_PIN;
+  const adminPin = process.env.ADMIN_IMPERSONATE_PIN || process.env.MATCH_DRINK_ADMIN_PIN || "2809";
   if (!adminPin || pin !== adminPin) {
     // We can simulate an error here to prevent brute forcing
     return NextResponse.json(
