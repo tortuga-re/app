@@ -224,37 +224,54 @@ function CountdownDisplay({ countdownStart }: { countdownStart: number }) {
   );
 }
 
-function LeaderboardList({ leaderboard }: { leaderboard: Team[] }) {
-  // Animazione semplificata basata su posizionamento assoluto
+function LeaderboardList({ leaderboard, revealStep }: { leaderboard: Team[], revealStep: number | null }) {
+  // Se c'è un reveal step, calcola quali posizioni mostrare
+  // Esempio: 10 squadre, revealStep = 1 -> mostra solo index 9 (l'ultimo)
+  // revealStep = 2 -> mostra index 8 e 9
+  const thresholdIndex = revealStep !== null 
+    ? leaderboard.length - revealStep 
+    : 0;
+
   return (
     <div className="relative w-full max-w-4xl mx-auto h-[50vh] overflow-hidden mt-12">
-      {leaderboard.map((team, index) => (
-        <div 
-          key={team.email} 
-          className="absolute w-full flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-          style={{ top: `${index * 80}px`, zIndex: 100 - index }}
-        >
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col items-center w-12 shrink-0">
-              <span className="font-black text-[var(--accent-strong)] text-3xl">{index + 1}</span>
+      {leaderboard.map((team, index) => {
+        // Se l'indice è minore del threshold, nascondi l'elemento
+        if (revealStep !== null && index < thresholdIndex) return null;
+
+        // Calcola una posizione top dinamica ignorando gli elementi nascosti
+        // (così l'elemento mostrato sale verso l'alto o resta centrato in basso?)
+        // In realtà, vogliamo che le posizioni fisse rimangano coerenti o che si impilino partendo dal basso?
+        // Facciamo impilare partendo dall'alto della lista visibile:
+        const visibleIndex = revealStep !== null ? index - thresholdIndex : index;
+
+        return (
+          <div 
+            key={team.email} 
+            className="absolute w-full flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] animate-in slide-in-from-bottom-8 fade-in"
+            style={{ top: `${visibleIndex * 80}px`, zIndex: 100 - index }}
+          >
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col items-center w-12 shrink-0">
+                <span className="font-black text-[var(--accent-strong)] text-3xl">{index + 1}</span>
+              </div>
+              <div>
+                <p className="font-black text-2xl text-white leading-tight uppercase truncate max-w-[400px]">{team.nickname}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-black text-2xl text-white leading-tight uppercase truncate max-w-[400px]">{team.nickname}</p>
+            
+            <div className="flex items-center gap-6">
+              {team.totalPoints !== -999 && team.movement !== "same" && revealStep === null && (
+                <span className={`text-xl font-black px-3 py-1 rounded-full ${team.movement === "up" ? "text-green-400 bg-green-500/20" : "text-red-400 bg-red-500/20"} animate-in zoom-in`}>
+                  {team.movement === "up" ? "↑" : "↓"} {Math.abs(team.rankDelta)}
+                </span>
+              )}
+              <p className="text-4xl font-black text-white italic min-w-[80px] text-right">
+                {team.totalPoints === -999 ? "X" : team.totalPoints}
+              </p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-6">
-            {team.totalPoints !== -999 && team.movement !== "same" && (
-              <span className={`text-xl font-black px-3 py-1 rounded-full ${team.movement === "up" ? "text-green-400 bg-green-500/20" : "text-red-400 bg-red-500/20"} animate-in zoom-in`}>
-                {team.movement === "up" ? "↑" : "↓"} {Math.abs(team.rankDelta)}
-              </span>
-            )}
-            <p className="text-4xl font-black text-white italic min-w-[80px] text-right">
-              {team.totalPoints === -999 ? "X" : team.totalPoints}
-            </p>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -436,9 +453,12 @@ export default function BuzzerStagePage() {
         ) : (
           <div className="text-center w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-1000">
              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-widest text-white mb-12 italic gold-gradient">
-               Classifica Live
+               {gameState?.leaderboardRevealStep !== null ? "Classifica Finale" : "Classifica Live"}
              </h2>
-             <LeaderboardList leaderboard={gameState?.leaderboard || []} />
+             <LeaderboardList 
+               leaderboard={gameState?.leaderboard || []}
+               revealStep={gameState?.leaderboardRevealStep ?? null}
+             />
           </div>
         )}
       </div>

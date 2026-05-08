@@ -28,6 +28,7 @@ const getInitialState = (): BuzzerState => ({
   leaderboard: [],
   currentResponderEntryId: null,
   leaderboardVisible: true,
+  leaderboardRevealStep: null,
   frozenLeaderboard: null,
   roundEnded: false,
   lastUpdateId: "init",
@@ -147,12 +148,14 @@ export const endRound = () => {
   store.roundEnded = true;
   store.leaderboardVisible = true;
   store.frozenLeaderboard = null;
+  store.leaderboardRevealStep = null;
   notifyChange();
 };
 
 export const hideLeaderboard = () => {
   const store = getBuzzerStore();
   store.leaderboardVisible = false;
+  store.leaderboardRevealStep = null;
   // Snapshot current leaderboard (without delta/movement from future changes)
   store.frozenLeaderboard = JSON.parse(JSON.stringify(store.leaderboard));
   notifyChange();
@@ -162,6 +165,28 @@ export const showLeaderboard = () => {
   const store = getBuzzerStore();
   store.leaderboardVisible = true;
   store.frozenLeaderboard = null;
+  store.leaderboardRevealStep = null;
+  notifyChange();
+};
+
+export const startLeaderboardReveal = () => {
+  const store = getBuzzerStore();
+  store.leaderboardVisible = true;
+  store.frozenLeaderboard = null;
+  store.leaderboardRevealStep = 1;
+  notifyChange();
+};
+
+export const nextLeaderboardReveal = () => {
+  const store = getBuzzerStore();
+  if (store.leaderboardRevealStep !== null) {
+    const totalTeams = store.leaderboard.length;
+    store.leaderboardRevealStep += 1;
+    // Se mancano 2 o meno squadre da svelare, svela tutto
+    if (store.leaderboardRevealStep >= totalTeams - 1) {
+      store.leaderboardRevealStep = null;
+    }
+  }
   notifyChange();
 };
 
@@ -171,6 +196,7 @@ export const resetRound = () => {
   store.currentResponderEntryId = null;
   store.roundEnded = false;
   store.accumulatedTimeMs = 0;
+  store.leaderboardRevealStep = null;
   if (store.status === "open") {
     startActiveTimer(store);
   } else {
@@ -213,6 +239,7 @@ export const nextRound = () => {
   store.countdownStart = null;
   store.roundEnded = false;
   store.accumulatedTimeMs = 0;
+  store.leaderboardRevealStep = null;
   
   // Reset YouTube for new round if needed
   store.youtubeStatus = "playing";
