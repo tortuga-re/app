@@ -8,7 +8,7 @@ export async function GET() {
   try {
     // Check Buzzer Status
     const buzzerStore = getBuzzerStore();
-    const isBuzzerActive = buzzerStore.status !== "idle" || buzzerStore.leaderboard.length > 0;
+    const isBuzzerActive = !!buzzerStore.isLive;
 
     // Check Match & Drink Status
     const matchDrinkSession = await getActiveSession();

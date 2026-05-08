@@ -63,7 +63,7 @@ export default function AdminPushPage() {
       } else {
         setResult({ error: data.error || "Errore durante l'invio." });
       }
-    } catch (_err) {
+    } catch {
       setResult({ error: "Errore di connessione al server." });
     } finally {
       setSending(false);

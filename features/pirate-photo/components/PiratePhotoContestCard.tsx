@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import {
@@ -46,9 +46,9 @@ const allowedMonthPhotoMimeTypes = new Set([
 const getFileExtension = (file: File) =>
   file.name.split(".").pop()?.trim().toLowerCase() ?? "";
 
-const isRenderablePreview = (file: File) =>
+/* const isRenderablePreview = (file: File) =>
   ["jpg", "jpeg", "png", "webp"].includes(getFileExtension(file)) &&
-  (!file.type || ["image/jpeg", "image/png", "image/webp"].includes(file.type));
+  (!file.type || ["image/jpeg", "image/png", "image/webp"].includes(file.type)); */
 
 const validatePhoto = (file: File) => {
   const extension = getFileExtension(file);

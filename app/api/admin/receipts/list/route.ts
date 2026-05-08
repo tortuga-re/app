@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { isAdmin } from "@/lib/live-buzzer/admin";
 import { getPendingReceiptRequests } from "@/lib/receipts/supabase";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const adminEmail = searchParams.get("adminEmail"); // Note: In a real app this should be from session
-
-    // For now we trust the email or would check a session token.
-    // The client-side will send this, but we should also check the user session if possible.
-    // Given the project structure, we check against ADMIN_EMAILS.
+    // In a real app we should check the user session here.
+    // For now we check against ADMIN_EMAILS via the admin check on the client.
 
     const requests = await getPendingReceiptRequests();
 

@@ -38,16 +38,8 @@ export default function BuzzerPage() {
   const triggerFeedbackSequence = useCallback((entry: BuzzerEntry, team: Team | undefined) => {
     let resultMsg = "";
     switch (entry.result) {
-      case "perfect":
-        resultMsg = "Colpo da Capitano! Hai indovinato 3 su 3. +10 punti alla tua ciurma.";
-        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
-        break;
-      case "partial2":
-        resultMsg = "Bella bordata! Hai indovinato 2 su 3. +6 punti alla tua ciurma.";
-        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
-        break;
-      case "partial1":
-        resultMsg = "Mezzo tesoro è sempre tesoro. Hai indovinato 1 su 3. +3 punti.";
+      case "correct":
+        resultMsg = `Risposta esatta! +${entry.scoreAwarded} punti alla tua ciurma.`;
         triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
         break;
       case "wrong":
@@ -79,47 +71,51 @@ export default function BuzzerPage() {
     }, 4000);
   }, [identity.email]);
 
-  const fetchState = useCallback(async () => {
-    try {
-      const data = await requestJson<BuzzerState>("/api/live-buzzer/state");
-      setGameState(data);
-      gameStateRef.current = data;
-      
-      const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
-      setIsRegistered(Boolean(userInLeaderboard));
-      if (userInLeaderboard) {
-        setTeamInfo({ nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber });
-      }
-
-      // Check for new score feedback
-      if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
-        lastScoredIdRef.current = data.userEntry.id;
-        triggerFeedbackSequence(data.userEntry, userInLeaderboard);
-      }
-    } catch (err) {
-      console.error("Failed to fetch state", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [identity.email, triggerFeedbackSequence]);
-
   useEffect(() => {
     if (!hasIdentity) return;
 
     let cancelled = false;
-    let interval: ReturnType<typeof setInterval> | undefined;
+    let eventSource: EventSource | null = null;
 
     void syncSession().then(() => {
       if (cancelled) return;
-      void fetchState();
-      interval = setInterval(fetchState, 1000);
+      
+      eventSource = new EventSource("/api/live-buzzer/stream");
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as BuzzerState;
+          setGameState(data);
+          gameStateRef.current = data;
+          
+          const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
+          setIsRegistered(Boolean(userInLeaderboard));
+          if (userInLeaderboard) {
+            setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+          }
+
+          // Check for new score feedback
+          if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
+            lastScoredIdRef.current = data.userEntry.id;
+            triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+          }
+          setLoading(false);
+        } catch (err) {
+          console.error("SSE parse error", err);
+        }
+      };
+
+      eventSource.onerror = () => {
+        console.error("SSE connection error");
+      };
     });
 
     return () => {
       cancelled = true;
-      if (interval) clearInterval(interval);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
-  }, [hasIdentity, syncSession, fetchState]);
+  }, [hasIdentity, syncSession, identity.email, triggerFeedbackSequence]);
 
   // Haptic Detection for Turn and Round End
   useEffect(() => {
@@ -172,7 +168,6 @@ export default function BuzzerPage() {
     try {
       await requestJson("/api/live-buzzer/buzz", { method: "POST" });
       triggerBuzzerVibration(VIBRATION_PATTERNS.BUZZ_SENT);
-      void fetchState();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Errore buzzer");
     } finally {
@@ -255,12 +250,14 @@ export default function BuzzerPage() {
     if (gameState?.status === "idle") return "Gioco non ancora avviato. Attendi il Capitano.";
     if (gameState?.status === "paused") return "Buzzer in pausa. Guarda il Capitano.";
     if (gameState?.status === "closed") return "Risposte chiuse. Attendi il tuo turno.";
+    if (gameState?.status === "result_screen") return "Il Capitano ha deciso...";
+    if (gameState?.status === "countdown") return "Preparati... al via premi!";
     if (gameState?.status === "open") return "Round aperto: tocca il buzzer!";
     return "";
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-[100dvh] flex flex-col p-4 gap-4 overflow-hidden bg-black text-white">
       {/* Winner Overlay */}
       {isWinner && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-700">
@@ -299,16 +296,16 @@ export default function BuzzerPage() {
         </div>
       )}
 
-      <div className={`panel rounded-[2.5rem] p-8 text-center space-y-6 transition-all duration-500 ${isCurrentResponder ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : ""}`}>
-        <div className="space-y-2">
-          <p className="eyebrow">Round {gameState?.currentRound}</p>
-          <h2 className={`text-xl font-bold uppercase transition-all duration-300 ${isCurrentResponder ? "text-[var(--accent-strong)] scale-110" : "text-white"}`}>
+      <div className={`panel rounded-3xl p-6 text-center space-y-4 shrink-0 transition-all duration-500 flex flex-col justify-center items-center ${isCurrentResponder ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : ""}`}>
+        <div className="space-y-1">
+          <p className="eyebrow text-xs">Round {gameState?.currentRound}</p>
+          <h2 className={`text-lg font-bold uppercase transition-all duration-300 ${isCurrentResponder ? "text-[var(--accent-strong)] scale-110" : "text-white"}`}>
             {getStatusMessage()}
           </h2>
           {error && <p className="text-xs text-[var(--danger)] animate-pulse">{error}</p>}
         </div>
 
-        <div className="flex justify-center py-4">
+        <div className="flex justify-center py-2">
           <button
             onClick={handleBuzz}
             disabled={gameState?.status !== "open" || !!gameState?.userEntry || submitting || gameState?.roundEnded}
@@ -321,7 +318,7 @@ export default function BuzzerPage() {
             `}
           >
             <div className="text-center">
-              <span className="block text-3xl font-black uppercase tracking-tighter italic">BUZZ</span>
+              <span className="block text-2xl font-black uppercase tracking-tighter italic">BUZZ</span>
             </div>
             {gameState?.status === "open" && !gameState?.userEntry && !gameState?.roundEnded && (
               <div className="absolute inset-0 rounded-full animate-ping bg-[var(--accent)] opacity-20" />
@@ -330,52 +327,66 @@ export default function BuzzerPage() {
         </div>
 
         {gameState?.roundEnded && (
-          <p className="text-sm text-[var(--text-muted)] italic">Classifica finale! Grazie per aver giocato.</p>
+          <p className="text-xs text-[var(--text-muted)] italic">Classifica finale!</p>
         )}
       </div>
 
-      <div className="panel rounded-[2rem] p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white uppercase tracking-wider italic">Classifica della ciurma</h3>
-          <span className="text-xs text-[var(--text-muted)] uppercase tracking-widest">{gameState?.leaderboardVisible ? "Live" : "Nascosta"}</span>
+      <div className="panel rounded-3xl p-4 flex-1 min-h-0 flex flex-col gap-3">
+        <div className="flex items-center justify-between shrink-0">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider italic">La tua posizione</h3>
+          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">{gameState?.leaderboardVisible ? "Live" : "Nascosta"}</span>
         </div>
 
-        <div className="space-y-2">
-          {gameState?.leaderboard?.length ? (
-            gameState.leaderboard.map((team, index) => (
+        <div className="flex-1 overflow-hidden flex flex-col gap-2">
+          {(() => {
+            if (!gameState?.leaderboard?.length) return <p className="text-center py-4 text-sm text-[var(--text-muted)]">Ancora nessuna risposta data.</p>;
+            
+            const lb = gameState.leaderboard;
+            const myIndex = lb.findIndex(t => t.email === identity.email);
+            
+            let start = Math.max(0, myIndex - 2);
+            const end = Math.min(lb.length, start + 5);
+            
+            if (end - start < 5 && lb.length >= 5) {
+              start = Math.max(0, end - 5);
+            }
+            
+            const visibleLeaderboard = lb.slice(start, end).map(t => ({
+              ...t,
+              globalIndex: lb.findIndex(x => x.email === t.email)
+            }));
+
+            return visibleLeaderboard.map((team) => (
                 <div 
                   key={team.email} 
-                  className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 ${
+                  className={`flex items-center justify-between p-2 rounded-xl border transition-all duration-500 shrink-0 ${
                     team.email === identity.email 
-                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" 
-                      : "border-white/5 bg-white/2"
+                      ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/20" 
+                      : "border-white/5 bg-white/5"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-center w-8">
-                      <span className="font-bold text-[var(--accent-strong)] text-lg">{index + 1}</span>
-                      {team.movement !== "same" && (
-                        <span className={`text-[10px] font-black ${team.movement === "up" ? "text-green-500" : "text-red-500"}`}>
-                          {team.movement === "up" ? "↑" : "↓"}{Math.abs(team.rankDelta)}
-                        </span>
-                      )}
+                    <div className="flex flex-col items-center w-6">
+                      <span className="font-bold text-[var(--accent-strong)] text-base">{team.globalIndex + 1}</span>
                     </div>
                     <div>
-                      <p className="font-bold text-white leading-tight">{team.nickname}</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">Tavolo {team.tableNumber}</p>
+                      <p className="font-bold text-white text-sm leading-tight truncate max-w-[150px]">{team.nickname}</p>
+                      <p className="text-[9px] text-[var(--text-muted)] uppercase">Tavolo {team.tableNumber}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black text-white italic">
+                    <p className="text-base font-black text-white italic leading-none">
                       {team.totalPoints === -999 ? "X" : team.totalPoints}
                     </p>
-                    <p className="text-[9px] uppercase tracking-tighter text-[var(--text-muted)]">{team.totalAnswers} risp.</p>
+                    {team.totalPoints !== -999 && team.movement !== "same" && (
+                      <span className={`text-[9px] font-black ${team.movement === "up" ? "text-green-500" : "text-red-500"}`}>
+                        {team.movement === "up" ? "↑" : "↓"}{Math.abs(team.rankDelta)}
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))
-          ) : (
-            <p className="text-center py-4 text-sm text-[var(--text-muted)]">Ancora nessuna risposta data.</p>
-          )}
+            ));
+          })()}
         </div>
       </div>
     </div>

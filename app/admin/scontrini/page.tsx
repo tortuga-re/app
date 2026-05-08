@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -33,7 +34,7 @@ export default function AdminReceiptsPage() {
       } else {
         setError(data.error);
       }
-    } catch (err) {
+    } catch {
       setError("Impossibile caricare le richieste.");
     } finally {
       setLoading(false);
@@ -79,7 +80,7 @@ export default function AdminReceiptsPage() {
       } else {
         setError(data.error);
       }
-    } catch (err) {
+    } catch {
       setError("Errore durante l'elaborazione.");
     } finally {
       setProcessingId(null);
@@ -111,7 +112,7 @@ export default function AdminReceiptsPage() {
         const data = await res.json();
         setError(data.error || "Errore durante la rimozione.");
       }
-    } catch (err) {
+    } catch {
       setError("Errore di connessione.");
     } finally {
       setProcessingId(null);
