@@ -38,6 +38,7 @@ export type BuzzerState = {
   // Advanced Features
   currentResponderEntryId: string | null;
   leaderboardVisible: boolean;
+  leaderboardRevealStep: number | null;
   frozenLeaderboard: Team[] | null;
   roundEnded: boolean;
   lastUpdateId: string; // Unique ID to help client detect changes

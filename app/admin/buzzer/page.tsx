@@ -46,33 +46,57 @@ export default function AdminBuzzerPage() {
   const [confirmStep, setConfirmStep] = useState(0);
   const [teamToKick, setTeamToKick] = useState<string | null>(null);
   
-  const [savedPlaylists, setSavedPlaylists] = useState<{name: string, id: string}[]>([]);
+  const [savedPlaylists, setSavedPlaylists] = useState<{name: string, playlist_id: string, id: string}[]>([]);
   const [newPlaylistName, setNewPlaylistName] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("tortuga_buzzer_playlists");
-    if (saved) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      try { setSavedPlaylists(JSON.parse(saved)); } catch {}
-    }
+    fetch("/api/live-buzzer/admin/playlists")
+      .then(res => res.json())
+      .then(data => {
+        if (data.playlists) {
+          setSavedPlaylists(data.playlists);
+        }
+      })
+      .catch(console.error);
   }, []);
 
-  const savePlaylist = () => {
+  const savePlaylist = async () => {
     if (!playlistInput || !newPlaylistName) return;
     let pid = playlistInput;
     if (pid.includes("list=")) {
       pid = pid.split("list=")[1].split("&")[0];
     }
-    const newList = [...savedPlaylists, { name: newPlaylistName, id: pid }];
-    setSavedPlaylists(newList);
-    localStorage.setItem("tortuga_buzzer_playlists", JSON.stringify(newList));
-    setNewPlaylistName("");
+    
+    try {
+      const res = await fetch("/api/live-buzzer/admin/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add", name: newPlaylistName, playlistId: pid })
+      });
+      const data = await res.json();
+      if (data.success && data.playlist) {
+        setSavedPlaylists([...savedPlaylists, data.playlist]);
+        setNewPlaylistName("");
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const deletePlaylist = (index: number) => {
-    const newList = savedPlaylists.filter((_, i) => i !== index);
-    setSavedPlaylists(newList);
-    localStorage.setItem("tortuga_buzzer_playlists", JSON.stringify(newList));
+  const deletePlaylist = async (id: string) => {
+    try {
+      const res = await fetch("/api/live-buzzer/admin/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSavedPlaylists(savedPlaylists.filter(pl => pl.id !== id));
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const validatePin = useCallback(async (p: string) => {
@@ -191,6 +215,21 @@ export default function AdminBuzzerPage() {
       });
     } catch {
       setError("Errore YouTube");
+    }
+  };
+
+  const handleRevealAction = async (action: "start" | "next" | "full") => {
+    setActionLoading(true);
+    triggerHaptic();
+    try {
+      await requestJson("/api/live-buzzer/admin/reveal", {
+        method: "POST",
+        body: JSON.stringify({ action }),
+      });
+    } catch {
+      setError("Errore Svelamento");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -353,13 +392,61 @@ export default function AdminBuzzerPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <button 
-            className="button-secondary col-span-2 min-h-12 text-xs uppercase font-black" 
-            onClick={() => handleAction(gameState?.leaderboardVisible ? "hide-leaderboard" : "show-leaderboard")}
-            disabled={actionLoading}
-          >
-            {gameState?.leaderboardVisible ? "Nascondi Classifica" : "Mostra Classifica"}
-          </button>
+          {gameState?.roundEnded ? (
+            // Pannello Svelamento a fine partita
+            <div className="col-span-2 grid grid-cols-2 gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+              <div className="col-span-2 text-center mb-1">
+                <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Svelamento Classifica</span>
+              </div>
+              
+              {gameState?.leaderboardRevealStep === null ? (
+                <>
+                  <button 
+                    className="button-primary min-h-12 text-[10px] uppercase font-black bg-blue-600 border-blue-500" 
+                    onClick={() => handleRevealAction("start")}
+                    disabled={actionLoading}
+                  >
+                    Svela a mano a mano
+                  </button>
+                  <button 
+                    className="button-secondary min-h-12 text-[10px] uppercase font-black" 
+                    onClick={() => handleRevealAction("full")}
+                    disabled={actionLoading}
+                  >
+                    Mostra Tutta Subito
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className="button-primary col-span-2 min-h-16 text-sm uppercase font-black bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.4)] animate-pulse" 
+                    onClick={() => handleRevealAction("next")}
+                    disabled={actionLoading}
+                  >
+                    {gameState.leaderboard.length - gameState.leaderboardRevealStep <= 2 
+                      ? "🏆 SVELA I VINCITORI 🏆" 
+                      : "Avanti (Svela Prossimo)"}
+                  </button>
+                  <button 
+                    className="button-secondary col-span-2 min-h-10 text-[10px] uppercase font-black opacity-70" 
+                    onClick={() => handleRevealAction("full")}
+                    disabled={actionLoading}
+                  >
+                    Svela Tutta e Concludi
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <button 
+              className="button-secondary col-span-2 min-h-12 text-xs uppercase font-black" 
+              onClick={() => handleAction(gameState?.leaderboardVisible ? "hide-leaderboard" : "show-leaderboard")}
+              disabled={actionLoading}
+            >
+              {gameState?.leaderboardVisible ? "Nascondi Classifica" : "Mostra Classifica"}
+            </button>
+          )}
+
           <button 
             className="button-secondary min-h-12 text-xs uppercase font-black border-blue-500/50 text-blue-400" 
             onClick={() => initiateConfirm("end-round")}
@@ -509,18 +596,18 @@ export default function AdminBuzzerPage() {
             <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
               <h4 className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest">Playlist Salvate</h4>
               <div className="grid grid-cols-1 gap-2">
-                {savedPlaylists.map((pl, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                {savedPlaylists.map((pl) => (
+                  <div key={pl.id} className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
                     <span className="text-xs text-white font-bold px-2">{pl.name}</span>
                     <div className="flex gap-1">
                       <button 
-                        onClick={() => handleYoutubeAction({ action: "setPlaylist", playlistId: pl.id })}
+                        onClick={() => handleYoutubeAction({ action: "setPlaylist", playlistId: pl.playlist_id })}
                         className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-colors"
                       >
                         Carica
                       </button>
                       <button 
-                        onClick={() => deletePlaylist(idx)}
+                        onClick={() => deletePlaylist(pl.id)}
                         className="bg-red-500/20 hover:bg-red-500/40 text-red-400 px-2 py-1 rounded-lg text-[10px] font-bold uppercase transition-colors"
                       >
                         ✕
