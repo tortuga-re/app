@@ -48,10 +48,9 @@ export const createOtpStore = <T>(config: {
       : path.join(/* turbopackIgnore: true */ process.cwd(), config.localStoreFile);
 
   const ensurePersistentStore = () => {
-    if (isRedisConfigured || process.env.NODE_ENV !== "production") {
-      return;
+    if (!isRedisConfigured && process.env.NODE_ENV === "production") {
+      console.warn("ATTENZIONE: UPSTASH_REDIS_REST_URL non configurato in produzione. Verrà usato il file system locale per gli OTP.");
     }
-    throw new OtpError("Configura UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN in produzione.", 500);
   };
 
   type StoreType = Record<string, BaseOtpRecord<T>>;
