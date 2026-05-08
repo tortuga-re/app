@@ -7,6 +7,7 @@ import { ActiveCouponsCard } from "@/components/active-coupons-card";
 import { FidelityStatusCard } from "@/components/fidelity-status-card";
 import { StatusBlock } from "@/components/status-block";
 import { SurveyTeaserCard } from "@/components/survey-teaser-card";
+import { KantaquizTeaser } from "@/components/kantaquiz-teaser";
 import dynamic from "next/dynamic";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -413,6 +414,7 @@ export function HomeScreen() {
       {!loading ? (
         <>
           <SurveyTeaserCard />
+          <KantaquizTeaser />
           <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
             {hasMenuAccess ? (
               <CoopertoMenuCard onClick={() => void registerVisit(profile?.contact?.CodiceContatto)} />
