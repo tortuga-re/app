@@ -19,12 +19,15 @@ export async function GET(request: NextRequest) {
 
   if (!store.leaderboardVisible) {
     // Mask points as "X" (we use -1 or similar flag or just let client handle it)
-    // Actually, let's return a string or a flag.
     leaderboardToDisplay = leaderboardToDisplay.map(team => ({
       ...team,
       totalPoints: -999, // Flag for "X"
     }));
   }
+
+  const currentResponder = store.currentResponderEntryId 
+    ? store.entries.find(e => e.id === store.currentResponderEntryId)
+    : null;
 
   return NextResponse.json({
     status: store.status,
@@ -33,7 +36,10 @@ export async function GET(request: NextRequest) {
     leaderboardVisible: store.leaderboardVisible,
     userEntry,
     currentResponderEntryId: store.currentResponderEntryId,
+    currentResponder,
     roundEnded: store.roundEnded,
     lastUpdateId: store.lastUpdateId,
+    countdownStart: store.countdownStart,
+    lastScoredEntry: store.lastScoredEntry,
   });
 }

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
-import { Camera, Upload, CheckCircle2, ChevronLeft, Wallet } from "lucide-react";
+import { Camera, CheckCircle2, ChevronLeft, Wallet } from "lucide-react";
 
 export default function CaricaScontrinoPage() {
   const router = useRouter();
@@ -61,7 +61,7 @@ export default function CaricaScontrinoPage() {
       } else {
         setResult({ error: data.error || "Errore durante l'invio dello scontrino." });
       }
-    } catch (err) {
+    } catch {
       setResult({ error: "Errore di connessione. Riprova tra poco." });
     } finally {
       setIsSubmitting(false);
@@ -121,6 +121,7 @@ export default function CaricaScontrinoPage() {
           >
             {preview ? (
               <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={preview} alt="Anteprima scontrino" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                   <p className="text-white font-bold text-sm bg-black/60 px-4 py-2 rounded-full">Cambia Foto</p>

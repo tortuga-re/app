@@ -234,7 +234,6 @@ function VenuesScreenContent() {
   const searchParams = useSearchParams();
   const simDay = searchParams.get("simDay");
   const currentDay = simDay ? parseInt(simDay, 10) : new Date().getDay();
-  const [isClientReady, setIsClientReady] = useState(false);
   const [deviceOS, setDeviceOS] = useState<"ios" | "android" | "other" | null>(null);
 
   useEffect(() => {
@@ -246,7 +245,6 @@ function VenuesScreenContent() {
     };
 
     window.requestAnimationFrame(() => {
-      setIsClientReady(true);
       setDeviceOS(detectOS());
     });
 

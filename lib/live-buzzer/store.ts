@@ -1,10 +1,24 @@
 import type { BuzzerState, BuzzerResult } from "./types";
 
+type SubscriptionCallback = (state: BuzzerState) => void;
+
 type GlobalStore = {
   __tortugaBuzzerState?: BuzzerState;
+  __tortugaBuzzerSubscriptions?: Set<SubscriptionCallback>;
 };
 
 const _global = globalThis as unknown as GlobalStore;
+
+if (!_global.__tortugaBuzzerSubscriptions) {
+  _global.__tortugaBuzzerSubscriptions = new Set();
+}
+
+export const subscribeToBuzzerState = (callback: SubscriptionCallback) => {
+  _global.__tortugaBuzzerSubscriptions!.add(callback);
+  return () => {
+    _global.__tortugaBuzzerSubscriptions!.delete(callback);
+  };
+};
 
 const getInitialState = (): BuzzerState => ({
   status: "idle",
@@ -17,7 +31,25 @@ const getInitialState = (): BuzzerState => ({
   frozenLeaderboard: null,
   roundEnded: false,
   lastUpdateId: "init",
+  countdownStart: null,
+  isLive: false,
+  accumulatedTimeMs: 0,
+  youtubePlaylistId: null,
+  youtubeStatus: "stopped",
+  youtubeCurrentIndex: 0,
+  youtubeCommandId: 0,
 });
+
+const startActiveTimer = (store: BuzzerState) => {
+  store.roundOpenedAt = Date.now();
+};
+
+const stopActiveTimer = (store: BuzzerState) => {
+  if (store.roundOpenedAt) {
+    store.accumulatedTimeMs += (Date.now() - store.roundOpenedAt);
+    store.roundOpenedAt = null;
+  }
+};
 
 export const getBuzzerStore = (): BuzzerState => {
   if (!_global.__tortugaBuzzerState) {
@@ -26,9 +58,20 @@ export const getBuzzerStore = (): BuzzerState => {
   return _global.__tortugaBuzzerState;
 };
 
+export const calculatePoints = (timeMs: number): number => {
+  const seconds = timeMs / 1000;
+  if (seconds <= 3.0) return 20;
+  if (seconds <= 5.0) return 17;
+  if (seconds <= 8.0) return 14;
+  if (seconds <= 12.0) return 11;
+  if (seconds <= 20.0) return 8;
+  return 5;
+};
+
 const notifyChange = () => {
   const store = getBuzzerStore();
   store.lastUpdateId = Math.random().toString(36).substring(7);
+  _global.__tortugaBuzzerSubscriptions?.forEach((cb) => cb(store));
 };
 
 const updateRanks = () => {
@@ -55,21 +98,37 @@ const updateRanks = () => {
 // Admin Actions
 export const openBuzzer = () => {
   const store = getBuzzerStore();
-  store.status = "open";
-  store.roundOpenedAt = Date.now();
+  store.status = "countdown";
+  store.countdownStart = Date.now();
   store.roundEnded = false;
   store.currentResponderEntryId = null;
   notifyChange();
+
+  setTimeout(() => {
+    const currentStore = getBuzzerStore();
+    if (currentStore.status === "countdown") {
+      currentStore.status = "open";
+      startActiveTimer(currentStore);
+      currentStore.countdownStart = null;
+      // Avvia la musica DOPO il countdown
+      if (currentStore.youtubePlaylistId) {
+        currentStore.youtubeStatus = "playing";
+      }
+      notifyChange();
+    }
+  }, 3000);
 };
 
 export const pauseBuzzer = () => {
   const store = getBuzzerStore();
+  stopActiveTimer(store);
   store.status = "paused";
   notifyChange();
 };
 
 export const closeEntries = () => {
   const store = getBuzzerStore();
+  stopActiveTimer(store);
   store.status = "closed";
   
   // Set current responder to the first one in queue
@@ -83,6 +142,7 @@ export const closeEntries = () => {
 
 export const endRound = () => {
   const store = getBuzzerStore();
+  stopActiveTimer(store);
   store.status = "ended";
   store.roundEnded = true;
   store.leaderboardVisible = true;
@@ -110,8 +170,11 @@ export const resetRound = () => {
   store.entries = [];
   store.currentResponderEntryId = null;
   store.roundEnded = false;
+  store.accumulatedTimeMs = 0;
   if (store.status === "open") {
-    store.roundOpenedAt = Date.now();
+    startActiveTimer(store);
+  } else {
+    store.roundOpenedAt = null;
   }
   notifyChange();
 };
@@ -121,34 +184,107 @@ export const resetGame = () => {
   notifyChange();
 };
 
-export const nextRound = () => {
+export const activateBuzzer = () => {
   const store = getBuzzerStore();
-  store.currentRound += 1;
-  store.entries = [];
-  store.status = "idle";
-  store.roundOpenedAt = null;
-  store.currentResponderEntryId = null;
-  store.roundEnded = false;
+  store.isLive = true;
   notifyChange();
 };
 
-const findNextResponder = () => {
+export const deactivateBuzzer = () => {
   const store = getBuzzerStore();
-  const next = [...store.entries]
-    .sort((a, b) => a.relativeTimeMs - b.relativeTimeMs)
-    .find(e => !e.scored);
-  store.currentResponderEntryId = next?.id || null;
+  store.isLive = false;
+  notifyChange();
+};
+
+export const nextRound = () => {
+  const store = getBuzzerStore();
+  
+  // Se siamo all'inizio della partita, il primo click avvia il Round 1 invece di passare al 2
+  if (store.currentRound === 1 && store.status === "idle") {
+    // Non incrementiamo il round
+  } else {
+    store.currentRound += 1;
+  }
+  
+  store.entries = [];
+  store.status = "open";
+  store.currentResponderEntryId = null;
+  store.lastScoredEntry = null;
+  store.countdownStart = null;
+  store.roundEnded = false;
+  store.accumulatedTimeMs = 0;
+  
+  // Reset YouTube for new round if needed
+  store.youtubeStatus = "playing";
+  store.youtubeCommandId += 1; // Trigger next track automatically for next round
+  
+  startActiveTimer(store);
+  notifyChange();
+};
+
+export const setYoutubePlaylist = (id: string) => {
+  const store = getBuzzerStore();
+  store.youtubePlaylistId = id;
+  store.youtubeStatus = "stopped";
+  store.youtubeCommandId += 1;
+  notifyChange();
+};
+
+export const setYoutubeStatus = (status: "playing" | "paused" | "stopped", title?: string) => {
+  const store = getBuzzerStore();
+  store.youtubeStatus = status;
+  if (title) store.youtubeVideoTitle = title;
+  
+  // Se la musica va...
+  if (status === "playing") {
+    if (
+      store.status === "open" ||
+      store.status === "ended" ||
+      store.status === "closed" ||
+      store.status === "countdown" ||
+      store.status === "result_screen"
+    ) {
+      notifyChange();
+      return;
+    }
+    
+    // Altrimenti (pausa, idle, o risposta sbagliata), riapriamo i buzzer
+    store.status = "open";
+    store.countdownStart = null;
+    startActiveTimer(store);
+  }
+  
+  notifyChange();
+};
+
+export const triggerYoutubeCommand = (command: "next" | "prev" | "shuffle") => {
+  const store = getBuzzerStore();
+
+  if (command === "next") {
+    // NUOVA CANZONE: Reset totale
+    store.youtubeStatus = "playing";
+    store.status = "open";
+    store.entries = []; // Svuota la lista per il nuovo brano
+    store.currentResponderEntryId = null;
+    store.lastScoredEntry = null;
+    store.countdownStart = null;
+    startActiveTimer(store);
+  }
+  
+  store.youtubeCommandId += 1;
+  notifyChange();
 };
 
 export const assignScore = (email: string, points: number, result: BuzzerResult) => {
   const store = getBuzzerStore();
   
   // Find entry in current round
-  const entry = store.entries.find(e => e.email === email);
+  const entry = store.entries.find(e => e.email === email && e.id === store.currentResponderEntryId);
   if (entry && !entry.scored) {
     entry.scored = true;
     entry.scoreAwarded = points;
     entry.result = result;
+    store.lastScoredEntry = { ...entry };
   }
 
   // Update leaderboard
@@ -159,16 +295,55 @@ export const assignScore = (email: string, points: number, result: BuzzerResult)
     updateRanks();
   }
 
-  // If wrong and was current responder, find next
-  if (result === "wrong" && entry?.id === store.currentResponderEntryId) {
-    findNextResponder();
-  } else if (result !== "wrong" && entry?.id === store.currentResponderEntryId) {
-    // Optional: stay as responder until admin chooses next round? 
-    // The request says "Se una squadra sbaglia, passa alla successiva".
-    // If they are correct, we don't pass automatically.
+  // Passa allo schermo dei risultati, se corretta facciamo andare il video
+  store.status = "result_screen";
+  if (result === "correct") {
+    store.youtubeStatus = "playing";
   }
-
   notifyChange();
+
+  setTimeout(() => {
+    const currentStore = getBuzzerStore();
+    // Allow progression if we are in result_screen
+    if (currentStore.status !== "result_screen") return; 
+
+    if (result === "wrong" && entry?.id === currentStore.currentResponderEntryId) {
+      // Inizia il countdown per riaprire
+      currentStore.status = "countdown";
+      currentStore.countdownStart = Date.now();
+      notifyChange();
+
+      setTimeout(() => {
+        const innerStore = getBuzzerStore();
+        if (innerStore.status === "countdown") {
+          innerStore.status = "open";
+          startActiveTimer(innerStore);
+          innerStore.currentResponderEntryId = null;
+          innerStore.countdownStart = null;
+          
+          // AUTOPLAY: riavvia anche il video automaticamente
+          innerStore.youtubeStatus = "playing";
+          
+          notifyChange();
+        }
+      }, 3000);
+    }
+  }, 4000); // 4 secondi per la risposta sbagliata
+  
+  if (result === "correct") {
+    setTimeout(() => {
+      const currentStore = getBuzzerStore();
+      if (currentStore.status !== "result_screen") return; 
+
+      // Dopo 10 secondi di result_screen per risposta corretta, chiudiamo il round,
+      // e mostriamo la classifica lasciando il video in play.
+      currentStore.status = "ended";
+      currentStore.leaderboardVisible = true;
+      currentStore.currentResponderEntryId = null;
+      currentStore.lastScoredEntry = null;
+      notifyChange();
+    }, 10000); // 10 secondi di esultanza e musica
+  }
 };
 
 // User Actions
@@ -195,6 +370,24 @@ export const registerOrUpdateTeam = (email: string, nickname: string, tableNumbe
   notifyChange();
 };
 
+export const kickTeam = (email: string) => {
+  const store = getBuzzerStore();
+  store.leaderboard = store.leaderboard.filter(t => t.email !== email);
+  
+  // Rimuovi anche la sua prenotazione se presente nel round corrente
+  store.entries = store.entries.filter(e => e.email !== email);
+  
+  // Se stava rispondendo in questo momento
+  if (store.currentResponderEntryId && store.entries.findIndex(e => e.id === store.currentResponderEntryId) === -1) {
+    store.currentResponderEntryId = null;
+    store.status = "open";
+    startActiveTimer(store);
+  }
+
+  updateRanks();
+  notifyChange();
+};
+
 export const addBuzzerEntry = (email: string): boolean => {
   const store = getBuzzerStore();
   
@@ -207,17 +400,28 @@ export const addBuzzerEntry = (email: string): boolean => {
   if (alreadyBuzzed) return false;
 
   const now = Date.now();
+  const entryId = `${store.currentRound}-${email}-${now}`;
+  const relativeTime = store.accumulatedTimeMs + (now - store.roundOpenedAt);
+  
   store.entries.push({
-    id: `${store.currentRound}-${email}-${now}`,
+    id: entryId,
     roundId: store.currentRound,
     email: team.email,
     nickname: team.nickname,
     tableNumber: team.tableNumber,
     timestamp: now,
-    relativeTimeMs: now - store.roundOpenedAt,
+    relativeTimeMs: relativeTime,
     scored: false,
     result: null,
   });
+
+  // Chiudi immediatamente il buzzer e imposta il responder
+  stopActiveTimer(store);
+  store.status = "closed";
+  store.currentResponderEntryId = entryId;
+  
+  // Auto-pause YouTube
+  store.youtubeStatus = "paused";
 
   notifyChange();
   return true;

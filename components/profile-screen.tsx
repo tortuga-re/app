@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -162,14 +163,14 @@ export function CiurmaScreen() {
   useEffect(() => {
     const fetchActiveGames = async () => {
       try {
-        const games = await requestJson<{ buzzer: boolean; matchDrink: boolean }>("/api/game/active-status");
+        const games = await requestJson<{ buzzer: boolean; matchDrink: boolean }>("/api/game/active-status", { cache: "no-store" });
         setActiveGames(games);
       } catch (err) {
         console.error("Failed to fetch active games status", err);
       }
     };
     void fetchActiveGames();
-    const intervalId = window.setInterval(fetchActiveGames, 15000); // Poll every 15 seconds
+    const intervalId = window.setInterval(fetchActiveGames, 5000); // Poll every 5 seconds
     return () => window.clearInterval(intervalId);
   }, []);
 
@@ -561,6 +562,7 @@ export function CiurmaScreen() {
     setEmailChangeCode("");
     setShowActivatedCardPanel(false);
     autoLoadedKeyRef.current = "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handlePiratePhotoProfileResolved = (profile: ProfileResponse) => {
@@ -992,10 +994,10 @@ export function CiurmaScreen() {
                       if (res.ok) {
                         alert("Kantaquiz avviato! La guida Dr. Why sarà visibile per 3 ore.");
                       } else {
-                        const err = await res.json();
-                        alert("Errore: " + err.error);
+                        const errData = await res.json();
+                        alert("Errore: " + errData.error);
                       }
-                    } catch (_e) {
+                    } catch {
                       alert("Errore di connessione.");
                     }
                   }}

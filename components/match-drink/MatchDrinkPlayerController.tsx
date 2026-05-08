@@ -375,7 +375,7 @@ function JoinForm({
   const [nickname, setNickname] = useState(savedProfile?.nickname || "");
   const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
   const [ageRange, setAgeRange] = useState<MatchDrinkPlayer["ageRange"]>(savedProfile?.ageRange || "25-34");
-  const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "preferisco_non_dirlo");
+  const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "donna");
   const [relationshipStatus, setRelationshipStatus] = useState<MatchDrinkPlayer["relationshipStatus"]>(savedProfile?.relationshipStatus || "single");
   const [lookingFor, setLookingFor] = useState<MatchDrinkPlayer["lookingFor"]>(savedProfile?.lookingFor || "entrambi");
   const [avatarUrl, setAvatarUrl] = useState<string>(savedProfile?.avatarUrl || "");
@@ -461,7 +461,6 @@ function JoinForm({
                 >
                   <option value="donna">Donna</option>
                   <option value="uomo">Uomo</option>
-                  <option value="preferisco_non_dirlo">Altro/Privacy</option>
                 </select>
               </div>
               <div>
