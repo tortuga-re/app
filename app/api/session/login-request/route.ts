@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { loginOtpStore, sendLoginOtpEmail } from "@/lib/session/login-otp";
-import { normalizeCustomerEmail, isValidCustomerEmail } from "@/lib/customer-identity";
+import { normalizeProfileEmail as normalizeCustomerEmail, isValidProfileEmail as isValidCustomerEmail } from "@/lib/profile/validation";
 import { OtpError } from "@/lib/otp/store";
 
 export const dynamic = "force-dynamic";

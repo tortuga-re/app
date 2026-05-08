@@ -4,7 +4,7 @@ import {
   attachCustomerSessionCookie,
   normalizeCustomerSessionIdentity,
 } from "@/lib/session/customer-session";
-import { normalizeCustomerEmail, isValidCustomerEmail } from "@/lib/customer-identity";
+import { normalizeProfileEmail as normalizeCustomerEmail, isValidProfileEmail as isValidCustomerEmail } from "@/lib/profile/validation";
 
 export const dynamic = "force-dynamic";
 
