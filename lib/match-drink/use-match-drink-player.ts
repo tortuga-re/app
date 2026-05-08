@@ -54,7 +54,6 @@ export function useMatchDrinkPlayer() {
     return null;
   });
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const refresh = useCallback(async () => {
     const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
@@ -101,21 +100,54 @@ export function useMatchDrinkPlayer() {
     }
   }, []);
 
+  const sessionRef = useRef<MatchDrinkSession | null>(null);
+  sessionRef.current = session;
+
   useEffect(() => {
     let mounted = true;
+    let eventSource: EventSource | null = null;
     
-    const initialRefresh = async () => {
+    const init = async () => {
       await refresh();
-      if (mounted) {
-        pollingRef.current = setInterval(refresh, 1000);
-      }
+      
+      const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+      if (!storedSessionId || !mounted) return;
+
+      eventSource = new EventSource(`/api/match-drink/session/${storedSessionId}/stream`);
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data && data.session) {
+            const currentSession = sessionRef.current;
+            const newSession = data.session;
+            
+            // Aggiorna lo stato globale immediatamente
+            setSession(newSession);
+
+            // Se c'è un cambio di stato importante che richiede dati privati (es. passaggio a reveal),
+            // allora forziamo un refresh dal server per scaricare i dati privati (match, risposte)
+            if (currentSession && currentSession.status !== newSession.status) {
+              refresh();
+            }
+          }
+        } catch (err) {
+          console.error("Errore parse SSE:", err);
+        }
+      };
+
+      eventSource.onerror = () => {
+        // SSE si ricollega automaticamente, non chiudiamo la connessione
+      };
     };
 
-    initialRefresh();
+    init();
 
     return () => {
       mounted = false;
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [refresh]);
 
