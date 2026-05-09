@@ -363,7 +363,7 @@ export const assignScore = async (email: string, points: number, result: BuzzerR
         return {
           ...s,
           status: "ended" as const,
-          leaderboardVisible: true,
+          leaderboardVisible: false,
           currentResponderEntryId: null,
           lastScoredEntry: null,
         };

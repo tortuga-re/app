@@ -41,8 +41,7 @@ export const createSession = async (title: string, questionCount: number = 20): 
       status: "lobby",
       stage_mode: "lobby",
       current_question_index: 0,
-      question_ids: selectedIds,
-      bottle_messages_enabled: false
+      question_ids: selectedIds
     })
     .select()
     .single();
@@ -71,7 +70,6 @@ export const updateSession = async (id: string, updates: Partial<MatchDrinkSessi
   if (updates.stageMode !== undefined) dbUpdates.stage_mode = updates.stageMode;
   if (updates.currentQuestionIndex !== undefined) dbUpdates.current_question_index = updates.currentQuestionIndex;
   if (updates.currentStageMessageId !== undefined) dbUpdates.current_stage_message_id = updates.currentStageMessageId;
-  if (updates.bottleMessagesEnabled !== undefined) dbUpdates.bottle_messages_enabled = updates.bottleMessagesEnabled;
 
   const { error } = await admin
     .from("match_drink_sessions")
@@ -444,7 +442,7 @@ const mapSession = (row: Record<string, unknown>): MatchDrinkSession => ({
   currentQuestionIndex: row.current_question_index as number,
   currentStageMessageId: row.current_stage_message_id as string | null,
   questionIds: row.question_ids as string[] | null,
-  bottleMessagesEnabled: !!row.bottle_messages_enabled,
+  bottleMessagesEnabled: false,
   createdAt: row.created_at as string,
   updatedAt: row.updated_at as string,
 });

@@ -31,6 +31,8 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
   const lastCommandTimeRef = useRef<number>(0);
   const lastSeekedUrl = useRef<string>("");
 
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+
   const onStateChange = (event: { data: number; target: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (Date.now() - lastCommandTimeRef.current < 3000) {
       if (event.data === 0 || event.data === 2) return;
@@ -110,63 +112,88 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
   };
 
   useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-    }
-
     const initPlayer = () => {
-      if (!containerRef.current) return;
-      playerRef.current = new window.YT.Player(containerRef.current, {
-        height: '100%',
-        width: '100%',
-        playerVars: {
-          listType: 'playlist',
-          list: playlistId,
-          autoplay: 0,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          modestbranding: 1,
-          rel: 0,
-          showinfo: 0,
-          iv_load_policy: 3,
-          origin: typeof window !== 'undefined' ? window.location.origin : ''
-        },
-        events: {
-          onReady: (event: { target: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            // Enable shuffle and play a random video from the shuffled list
-            event.target.setShuffle(true);
-            if (status === "playing") {
-              // Wait a bit for shuffle to take effect before starting
-              setTimeout(() => {
-                event.target.playVideoAt(0);
-              }, 100);
-            }
+      if (!containerRef.current || playerRef.current) return;
+      
+      try {
+        playerRef.current = new window.YT.Player(containerRef.current, {
+          height: '100%',
+          width: '100%',
+          playerVars: {
+            listType: 'playlist',
+            list: playlistId,
+            autoplay: 0,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3,
+            origin: typeof window !== 'undefined' ? window.location.origin : ''
           },
-          onStateChange
-        }
-      });
+          events: {
+            onReady: (event: { target: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+              event.target.setShuffle(true);
+              setIsPlayerReady(true);
+              // Handle initial play if needed
+              if (status === "playing") {
+                setTimeout(() => {
+                  event.target.playVideoAt(0);
+                }, 200);
+              }
+            },
+            onStateChange
+          }
+        });
+      } catch (err) {
+        console.error("Error creating YT Player:", err);
+      }
     };
 
     if (window.YT && window.YT.Player) {
       initPlayer();
     } else {
-      window.onYouTubeIframeAPIReady = initPlayer;
+      // If script not present, add it
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      }
+      
+      // Save existing handler if any
+      const previousHandler = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (previousHandler) previousHandler();
+        initPlayer();
+      };
+      
+      // Fallback: check every 500ms if YT is ready (sometimes callback doesn't fire)
+      const checkInt = setInterval(() => {
+        if (window.YT && window.YT.Player && !playerRef.current) {
+          initPlayer();
+          clearInterval(checkInt);
+        }
+      }, 500);
+      return () => clearInterval(checkInt);
     }
 
     return () => {
       if (playerRef.current) {
-        playerRef.current.destroy();
+        try {
+          playerRef.current.destroy();
+        } catch (e) {
+          console.error("Error destroying player", e);
+        }
+        playerRef.current = null;
+        setIsPlayerReady(false);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playlistId]);
 
   useEffect(() => {
-    if (commandId > lastCommandId.current && playerRef.current) {
+    if (isPlayerReady && commandId > lastCommandId.current && playerRef.current) {
       lastCommandId.current = commandId;
       lastCommandTimeRef.current = Date.now();
       
@@ -193,12 +220,12 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
         }
       }
     }
-  }, [commandId, commandType]);
+  }, [commandId, commandType, isPlayerReady]);
 
   const pausedTimeRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!playerRef.current || typeof playerRef.current.playVideo !== 'function') return;
+    if (!isPlayerReady || !playerRef.current || typeof playerRef.current.playVideo !== 'function') return;
 
     if (status === "playing") {
       playerRef.current.setVolume?.(100);
@@ -218,7 +245,7 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
       pausedTimeRef.current = 0;
       playerRef.current.stopVideo();
     }
-  }, [status]);
+  }, [status, isPlayerReady]);
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden bg-black">
@@ -551,7 +578,7 @@ export function BuzzerStage() {
                Nessuno ha indovinato!
              </p>
           </div>
-        ) : (
+        ) : gameState?.leaderboardVisible ? (
           <div className="text-center w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-1000">
              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-widest text-white mb-12 italic gold-gradient">
                {gameState?.leaderboardRevealStep !== null ? "Classifica Finale" : "Classifica Live"}
@@ -561,7 +588,7 @@ export function BuzzerStage() {
                revealStep={gameState?.leaderboardRevealStep ?? null}
              />
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   );
