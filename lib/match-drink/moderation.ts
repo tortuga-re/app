@@ -35,13 +35,49 @@ function ultraNormalize(text: string): string {
 }
 
 export function moderateContent(text: string): { approved: boolean; reason?: string } {
+  const lower = text.toLowerCase();
+  
+  // 1. Controllo parole mascherate (es: c***o, f**a, m#rd@)
+  // Cerchiamo parole che contengono simboli tipici di censura (*, #, _, @, $)
+  const maskedWords = lower.split(/\s+/).filter(w => /[*#_@$]/.test(w));
+  for (const masked of maskedWords) {
+    const cleanMasked = masked.replace(/[^a-z*#_@$]/g, "");
+    if (cleanMasked.length < 3) continue;
+
+    // Confrontiamo con le radici delle parolacce originali
+    const originals = [
+      "cazzo", "figa", "merda", "stronzo", "vaffanculo", "culo", "troia", "puttana", "bastardo", "coglion",
+      "minchia", "pompino", "segaiol", "finocchio", "frocio", "zoccol", "bocchin", "crepa", "muori",
+      "negro", "ebreo", "terrone", "polentone", "baldracca", "mignotta", "sfigato", "palle"
+    ];
+
+    for (const orig of originals) {
+      if (cleanMasked.length === orig.length) {
+        // Se la lunghezza coincide, verifichiamo se le lettere presenti coincidono con le posizioni nella parola originale
+        let match = true;
+        let lettersFound = 0;
+        for (let i = 0; i < orig.length; i++) {
+          const char = cleanMasked[i];
+          if (/[a-z]/.test(char)) {
+            lettersFound++;
+            if (char !== orig[i]) {
+              match = false;
+              break;
+            }
+          }
+        }
+        // Se abbiamo almeno 2 lettere che coincidono e nessuna che sballa, è un match
+        if (match && lettersFound >= 2) return { approved: false, reason: "profanity" };
+      }
+    }
+  }
+
   const normalized = ultraNormalize(text);
 
-  // 1. Controllo Profanità "Titanium"
+  // 2. Controllo Profanità "Titanium" (Standard & Obfuscated)
   for (const root of PROFANITY_ROOTS) {
     if (normalized.includes(root)) {
       // Eccezioni per evitare falsi positivi comuni (es: qualifica, veicolo)
-      const lower = text.toLowerCase();
       if (root === "figa" && lower.includes("qualifica")) continue;
       if (root === "culo" && lower.includes("veicolo")) continue;
       
