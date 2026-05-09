@@ -363,32 +363,52 @@ export function BuzzerStage() {
         {isCountdown ? (
           <CountdownDisplay countdownStart={gameState?.countdownStart || 0} />
         ) : isResultScreen && gameState?.lastScoredEntry ? (
-          <div className="w-full h-full flex flex-col items-center justify-center animate-in zoom-in fade-in duration-500">
+          <div className="w-full h-full flex flex-col items-center justify-center animate-in zoom-in fade-in duration-500 p-8">
             {gameState.lastScoredEntry.result === "correct" ? (
-               <div className="text-center w-full relative z-10">
-                 <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
-                 <h2 className="text-7xl md:text-9xl font-black text-green-400 uppercase tracking-tighter drop-shadow-[0_0_40px_rgba(74,222,128,0.5)]">
-                   RISPOSTA ESATTA!
-                 </h2>
+               <div className="text-center w-full relative z-10 space-y-12">
+                 <div className="absolute inset-0 bg-green-500/10 blur-[120px] rounded-full scale-150" />
+                 
+                 <div className="space-y-4 relative">
+                   <h2 className="text-5xl md:text-7xl font-black text-green-400 uppercase tracking-[0.2em] drop-shadow-[0_0_30px_rgba(74,222,128,0.3)]">
+                     RISPOSTA ESATTA!
+                   </h2>
+                   <div className="h-2 w-48 bg-green-500/50 mx-auto rounded-full" />
+                 </div>
+
+                 <div className="space-y-2">
+                   <p className="text-3xl md:text-4xl font-bold text-[var(--accent-strong)] uppercase tracking-[0.4em]">La squadra</p>
+                   <h1 className="text-[10vw] md:text-[12vw] font-black leading-none uppercase text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.2)] italic tracking-tighter">
+                     {gameState.lastScoredEntry.nickname}
+                   </h1>
+                 </div>
+
                  {gameState.youtubeVideoTitle && (
-                   <div className="mt-8 mb-4 inline-block bg-black/60 border border-green-500/30 px-8 py-4 rounded-3xl backdrop-blur-md">
-                     <p className="text-sm font-black text-green-400 uppercase tracking-widest mb-1">Il brano era</p>
-                     <p className="text-2xl md:text-4xl font-bold text-white">{gameState.youtubeVideoTitle}</p>
+                   <div className="inline-block bg-black/60 border-2 border-green-500/30 px-12 py-8 rounded-[3rem] backdrop-blur-xl shadow-2xl transform hover:scale-105 transition-transform">
+                     <p className="text-2xl font-black text-green-400 uppercase tracking-widest mb-3">Il brano era</p>
+                     <p className="text-5xl md:text-7xl font-black text-white leading-tight uppercase italic">{gameState.youtubeVideoTitle}</p>
                    </div>
                  )}
-                 <p className="text-4xl md:text-5xl font-black text-white mt-4 uppercase drop-shadow-lg">
-                   +{gameState.lastScoredEntry.scoreAwarded} PUNTI
-                 </p>
+
+                 <div className="pt-8">
+                   <p className="text-7xl md:text-[9rem] font-black text-white uppercase drop-shadow-[0_0_40px_rgba(216,176,106,0.6)] gold-gradient italic">
+                     +{gameState.lastScoredEntry.scoreAwarded} PUNTI
+                   </p>
+                 </div>
                </div>
             ) : (
-               <div className="text-center w-full">
-                 <div className="absolute inset-0 bg-red-500/10 blur-3xl rounded-full" />
-                 <h2 className="text-7xl md:text-9xl font-black text-red-500 uppercase tracking-tighter drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]">
+               <div className="text-center w-full space-y-12 relative">
+                 <div className="absolute inset-0 bg-red-500/10 blur-[120px] rounded-full scale-150" />
+                 <h2 className="text-[12vw] font-black text-red-500 uppercase tracking-tighter drop-shadow-[0_0_60px_rgba(239,68,68,0.6)] italic">
                    AFFONDATI!
                  </h2>
-                 <p className="text-4xl md:text-5xl font-black text-[var(--text-muted)] mt-4 uppercase">
-                   -5 PUNTI
-                 </p>
+                 <div className="space-y-4">
+                    <p className="text-4xl md:text-6xl font-black text-white uppercase italic">
+                      {gameState.lastScoredEntry.nickname}
+                    </p>
+                    <p className="text-6xl md:text-8xl font-black text-[var(--text-muted)] uppercase tracking-widest">
+                      -5 PUNTI
+                    </p>
+                 </div>
                </div>
             )}
           </div>
