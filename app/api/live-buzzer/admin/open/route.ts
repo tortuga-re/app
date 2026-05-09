@@ -10,6 +10,6 @@ export async function POST(_request: NextRequest) {
     return NextResponse.json({ error: "Non autorizzato" }, { status: 403 });
   }
 
-  openBuzzer();
+  await openBuzzer();
   return NextResponse.json({ success: true });
 }

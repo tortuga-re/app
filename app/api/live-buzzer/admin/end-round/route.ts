@@ -11,6 +11,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Non autorizzato" }, { status: 403 });
   }
 
-  endRound();
+  await endRound();
   return NextResponse.json({ success: true });
 }

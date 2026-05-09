@@ -7,12 +7,12 @@ export async function POST(request: NextRequest) {
     const { action, playlistId, status, command, title } = body;
 
     if (action === "setPlaylist") {
-      setYoutubePlaylist(playlistId);
+      await setYoutubePlaylist(playlistId);
     } else if (action === "setStatus") {
       console.log("SERVER: Receiving setStatus", status, "with title:", title);
-      setYoutubeStatus(status, title);
+      await setYoutubeStatus(status, title);
     } else if (action === "triggerCommand") {
-      triggerYoutubeCommand(command);
+      await triggerYoutubeCommand(command);
     }
 
     return NextResponse.json({ success: true });

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    activateBuzzer();
+    await activateBuzzer();
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Failed to activate" }, { status: 500 });

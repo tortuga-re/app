@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nickname e tavolo obbligatori" }, { status: 400 });
     }
 
-    registerOrUpdateTeam(session.email, nickname.trim(), tableNumber.trim());
-    
+    await registerOrUpdateTeam(session.email, nickname.trim(), tableNumber.trim());
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Payload non valido" }, { status: 400 });
