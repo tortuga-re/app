@@ -4,11 +4,27 @@
  */
 
 const PROFANITY_ROOTS = [
+  // Parolacce base
   "cazo", "figa", "merda", "stronzo", "vafanculo", "culo", "troia", "putana", "bastard", "coglion",
   "minchia", "pompino", "sega", "finochio", "frocio", "zocol", "bochin", "crepa", "muori",
   "negro", "ebreo", "terone", "polentone", "baldraca", "mignota", "sfigat", "pale",
+  // Insulti aggiuntivi
+  "idiota", "imbecile", "deficiente", "cretino", "mongoloide", "ritardat", "handicapat",
+  "scemo", "stupido", "coglioncelo", "pirla", "bischero", "coglionaso",
+  "vacca", "cagna", "maiala", "porca", "scrofa", "befana",
+  // Termini sessuali
+  "sbora", "trombare", "fotere", "inculare", "scopare", "leccare", "suchiare",
+  "seghe", "bochinara", "mignota", "pornazzo",
+  // Allusioni / doppi sensi
   "pesce", "fregna", "patata", "fragolina", "palo", "ucelo", "pina",
-  "fuck", "shit", "bitch", "ashole", "dick", "pusy", "niger", "slut", "whore"
+  "banana", "cetriolo", "salsicia", "wurstel", "tubo", "manicheta",
+  "melone", "anguria", "susina", "prugna", "frico",
+  // Bestemmie (radici)
+  "porcodio", "porcodi", "porcomadon", "diospor", "cristospor",
+  "gesucristo", "gesucrist", "madosant", "vafandio", "crispin",
+  // Inglese / internazionale
+  "fuck", "shit", "bitch", "ashole", "dick", "pusy", "niger", "slut", "whore",
+  "cunt", "cock", "bastard", "motherfucker", "motherfuk", "wanker"
 ];
 
 const ITALIAN_PARTICLES = [
@@ -37,6 +53,17 @@ function ultraNormalize(text: string): string {
 
 export function moderateContent(text: string): { approved: boolean; reason?: string } {
   const lower = text.toLowerCase();
+
+  // Check parole blasfeme come parole standalone (evita falsi positivi con "studio", "audio", "radio")
+  const BLASPHEMY_STANDALONE = ["dio", "iddio", "gesu", "cristo", "madon", "madonna"];
+  const wordList = lower.split(/\s+/);
+  for (const word of wordList) {
+    const cleanWord = word.replace(/[^a-z]/g, "");
+    if (BLASPHEMY_STANDALONE.includes(cleanWord)) {
+      return { approved: false, reason: "profanity" };
+    }
+  }
+
   
   // 1. Controllo parole mascherate (es: c***o, f**a, m#rd@)
   // Cerchiamo parole che contengono simboli tipici di censura (*, #, _, @, $)
