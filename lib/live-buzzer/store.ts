@@ -189,10 +189,20 @@ export const startLeaderboardReveal = () =>
 export const nextLeaderboardReveal = () =>
   updateState(s => {
     if (s.leaderboardRevealStep === null) return s;
+    
+    // Se siamo già nella modalità sommario finale, chiudiamo il reveal
+    if (s.leaderboardRevealStep === 999) return { ...s, leaderboardRevealStep: null };
+
     const next = s.leaderboardRevealStep + 1;
+    
+    // Se abbiamo finito di mostrare tutte le squadre (inclusa la 1ª)
+    if (next > s.leaderboard.length) {
+      return { ...s, leaderboardRevealStep: 999 }; // Attiviamo il sommario finale
+    }
+    
     return {
       ...s,
-      leaderboardRevealStep: next >= s.leaderboard.length - 1 ? null : next,
+      leaderboardRevealStep: next,
     };
   });
 

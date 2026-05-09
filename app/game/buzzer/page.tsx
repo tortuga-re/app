@@ -333,57 +333,40 @@ export default function BuzzerPage() {
 
       <div className="panel rounded-3xl p-4 flex-1 min-h-0 flex flex-col gap-3">
         <div className="flex items-center justify-between shrink-0">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider italic">La tua posizione</h3>
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider italic">Classifica</h3>
           <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">{gameState?.leaderboardVisible ? "Live" : "Nascosta"}</span>
         </div>
-
-        <div className="flex-1 overflow-hidden flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto flex flex-col gap-2 scrollbar-hidden pr-1">
           {(() => {
             if (!gameState?.leaderboard?.length) return <p className="text-center py-4 text-sm text-[var(--text-muted)]">Ancora nessuna risposta data.</p>;
             
             const lb = gameState.leaderboard;
-            const myIndex = lb.findIndex(t => t.email === identity.email);
-            
-            let start = Math.max(0, myIndex - 2);
-            const end = Math.min(lb.length, start + 5);
-            
-            if (end - start < 5 && lb.length >= 5) {
-              start = Math.max(0, end - 5);
-            }
-            
-            const visibleLeaderboard = lb.slice(start, end).map(t => ({
-              ...t,
-              globalIndex: lb.findIndex(x => x.email === t.email)
-            }));
 
-            return visibleLeaderboard.map((team) => (
+            return lb.map((team, index) => (
                 <div 
                   key={team.email} 
-                  className={`flex items-center justify-between p-2 rounded-xl border transition-all duration-500 shrink-0 ${
+                  className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 shrink-0 ${
                     team.email === identity.email 
                       ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/20" 
                       : "border-white/5 bg-white/5"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-center w-6">
-                      <span className="font-bold text-[var(--accent-strong)] text-base">{team.globalIndex + 1}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center w-8">
+                      <span className="font-black text-[var(--accent-strong)] text-lg">{index + 1}</span>
                     </div>
                     <div>
-                      <p className="font-bold text-white text-sm leading-tight truncate max-w-[150px]">{team.nickname}</p>
-                      <p className="text-[9px] text-[var(--text-muted)] uppercase">Tavolo {team.tableNumber}</p>
+                      <p className={`font-bold text-sm leading-tight truncate max-w-[200px] ${team.email === identity.email ? "text-white" : "text-white/80"}`}>
+                        {team.nickname}
+                      </p>
+                      <p className="text-[9px] text-[var(--text-muted)] uppercase font-black">Tavolo {team.tableNumber}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-base font-black text-white italic leading-none">
-                      {team.totalPoints === -999 ? "X" : team.totalPoints}
-                    </p>
-                    {team.totalPoints !== -999 && team.movement !== "same" && (
-                      <span className={`text-[9px] font-black ${team.movement === "up" ? "text-green-500" : "text-red-500"}`}>
-                        {team.movement === "up" ? "↑" : "↓"}{Math.abs(team.rankDelta)}
-                      </span>
-                    )}
-                  </div>
+                  {team.email === identity.email && (
+                    <div className="bg-[var(--accent-strong)] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">
+                      TU
+                    </div>
+                  )}
                 </div>
             ));
           })()}
