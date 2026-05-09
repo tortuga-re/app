@@ -122,8 +122,14 @@ export function useMatchDrinkPlayer() {
             const currentSession = sessionRef.current;
             const newSession = data.session;
             
-            // Aggiorna lo stato globale immediatamente
-            setSession(newSession);
+            // Aggiorna lo stato globale immediatamente, preservando le domande se mancanti nel nuovo stato
+            setSession(prev => {
+              if (!prev) return newSession;
+              return {
+                ...newSession,
+                questions: newSession.questions || prev.questions
+              };
+            });
 
             // Se c'è un cambio di stato importante che richiede dati privati (es. passaggio a reveal),
             // allora forziamo un refresh dal server per scaricare i dati privati (match, risposte)

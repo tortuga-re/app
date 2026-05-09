@@ -72,8 +72,8 @@ class StreamManager {
     // Esegui la prima query subito
     this.poll(sessionId);
 
-    // Poi ogni 1.5 secondi
-    sessionState.interval = setInterval(() => this.poll(sessionId), 1500);
+    // Poi ogni 800ms (più reattivo per live game)
+    sessionState.interval = setInterval(() => this.poll(sessionId), 800);
   }
 
   private async poll(sessionId: string) {
