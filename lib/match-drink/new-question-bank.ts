@@ -6,100 +6,100 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "light",
     text: "IL TUO DRINK IDEALE PER INIZIARE LA SERATA È...",
     options: [
-      { id: "A", text: "Analcolico (faccio l'autista)" },
-      { id: "B", text: "Bollicine (per sentirmi importante)" },
-      { id: "C", text: "Gin Tonic (un grande classico)" },
-      { id: "D", text: "Shot ignorante (si parte forte)" }
+      { id: "A", text: "Analcolico (faccio l'autista)", traits: { timido: 2, fedele: 3 } },
+      { id: "B", text: "Bollicine (per sentirmi importante)", traits: { orgoglioso: 3, romantico: 1 } },
+      { id: "C", text: "Gin Tonic (un grande classico)", traits: { ironico: 2, diretto: 1 } },
+      { id: "D", text: "Shot ignorante (si parte forte)", traits: { festaiolo: 5, caotico: 2 } }
     ]
   },
   {
     category: "light",
     text: "COSA NOTI PER PRIMO IN UNA PERSONA AL PRIMO SGUARDO?",
     options: [
-      { id: "A", text: "Il sorriso contagioso" },
-      { id: "B", text: "Lo sguardo profondo" },
-      { id: "C", text: "Come si muove in pista" },
-      { id: "D", text: "Lo stile e come veste" }
+      { id: "A", text: "Il sorriso contagioso", traits: { romantico: 4, timido: 1 } },
+      { id: "B", text: "Lo sguardo profondo", traits: { investigatore: 3, fedele: 2 } },
+      { id: "C", text: "Come si muove in pista", traits: { festaiolo: 3, pericoloso: 1 } },
+      { id: "D", text: "Lo stile e come veste", traits: { orgoglioso: 3, diretto: 1 } }
     ]
   },
   {
     category: "light",
     text: "QUANTO TEMPO IMPIEGHI PER PREPARARTI PER UNA SERATA?",
     options: [
-      { id: "A", text: "5 minuti e sono fuori" },
-      { id: "B", text: "Mezz'ora (il tempo giusto)" },
-      { id: "C", text: "Un'ora (sono perfezionista)" },
-      { id: "D", text: "Inizio a pensarci dal lunedì" }
+      { id: "A", text: "5 minuti e sono fuori", traits: { libero: 4, diretto: 2 } },
+      { id: "B", text: "Mezz'ora (il tempo giusto)", traits: { ironico: 2, fedele: 1 } },
+      { id: "C", text: "Un'ora (sono perfezionista)", traits: { orgoglioso: 4, geloso: 1 } },
+      { id: "D", text: "Inizio a pensarci dal lunedì", traits: { investigatore: 3, romantico: 2 } }
     ]
   },
   {
     category: "light",
     text: "IL TUO SUPERPOTERE SOCIALE È...",
     options: [
-      { id: "A", text: "Ridere a tutte le battute" },
-      { id: "B", text: "Scomparire quando c'è da pagare" },
-      { id: "C", text: "Attaccare bottone con chiunque" },
-      { id: "D", text: "Dimenticare i nomi dopo 2 secondi" }
+      { id: "A", text: "Ridere a tutte le battute", traits: { timido: 3, ironico: 2 } },
+      { id: "B", text: "Scomparire quando c'è da pagare", traits: { pericoloso: 3, caotico: 3 } },
+      { id: "C", text: "Attaccare bottone con chiunque", traits: { festaiolo: 4, diretto: 2 } },
+      { id: "D", text: "Dimenticare i nomi dopo 2 secondi", traits: { libero: 3, caotico: 2 } }
     ]
   },
   {
     category: "light",
     text: "SE POTESSI VIAGGIARE NEL TEMPO, DOVE ANDRESTI?",
     options: [
-      { id: "A", text: "Nel futuro (per vedere i gadget)" },
-      { id: "B", text: "Anni '70 (mood disco e festa)" },
-      { id: "C", text: "Anni '90 (nostalgia pura)" },
-      { id: "D", text: "Ieri, per non bere quell'ultimo giro" }
+      { id: "A", text: "Nel futuro (per vedere i gadget)", traits: { investigatore: 3, libero: 2 } },
+      { id: "B", text: "Anni '70 (mood disco e festa)", traits: { festaiolo: 4, caotico: 1 } },
+      { id: "C", text: "Anni '90 (nostalgia pura)", traits: { romantico: 3, fedele: 2 } },
+      { id: "D", text: "Ieri, per non bere quell'ultimo giro", traits: { ironico: 5, diretto: 1 } }
     ]
   },
   {
     category: "light",
     text: "QUALE CANZONE TI FA SALTARE SUL TAVOLO?",
     options: [
-      { id: "A", text: "Reggaeton spinto" },
-      { id: "B", text: "Rock anni '80" },
-      { id: "C", text: "La hit commerciale del momento" },
-      { id: "D", text: "Le sigle dei cartoni (sono un bimbo dentro)" }
+      { id: "A", text: "Reggaeton spinto", traits: { festaiolo: 4, pericoloso: 2 } },
+      { id: "B", text: "Rock anni '80", traits: { orgoglioso: 2, diretto: 2 } },
+      { id: "C", text: "La hit commerciale del momento", traits: { fedele: 2, timido: 1 } },
+      { id: "D", text: "Le sigle dei cartoni (sono un bimbo dentro)", traits: { romantico: 3, ironico: 2 } }
     ]
   },
   {
     category: "light",
     text: "LA TUA VACANZA IDEALE È...",
     options: [
-      { id: "A", text: "Relax totale in spiaggia" },
-      { id: "B", text: "Avventura con zaino in spalla" },
-      { id: "C", text: "Città d'arte e musei" },
-      { id: "D", text: "Party h24 senza dormire mai" }
+      { id: "A", text: "Relax totale in spiaggia", traits: { timido: 3, fedele: 2 } },
+      { id: "B", text: "Avventura con zaino in spalla", traits: { libero: 5, caotico: 1 } },
+      { id: "C", text: "Città d'arte e musei", traits: { investigatore: 4, orgoglioso: 1 } },
+      { id: "D", text: "Party h24 senza dormire mai", traits: { festaiolo: 5, pericoloso: 2 } }
     ]
   },
   {
     category: "light",
     text: "IL TUO SPUNTINO PREFERITO DOPO LE 3 DI NOTTE?",
     options: [
-      { id: "A", text: "Kebab completo di tutto" },
-      { id: "B", text: "Cornetto caldo appena sfornato" },
-      { id: "C", text: "Pizza fredda avanzata" },
-      { id: "D", text: "Nulla, continuo a bere" }
+      { id: "A", text: "Kebab completo di tutto", traits: { caotico: 4, diretto: 1 } },
+      { id: "B", text: "Cornetto caldo appena sfornato", traits: { romantico: 3, timido: 1 } },
+      { id: "C", text: "Pizza fredda avanzata", traits: { ironico: 3, libero: 2 } },
+      { id: "D", text: "Nulla, continuo a bere", traits: { festaiolo: 5, pericoloso: 3 } }
     ]
   },
   {
     category: "light",
     text: "QUAL È IL TUO RAPPORTO CON IL TELEFONO DURANTE LA SERATA?",
     options: [
-      { id: "A", text: "Sempre in mano per le storie" },
-      { id: "B", text: "Lo perdo ogni 15 minuti" },
-      { id: "C", text: "Rispondo dopo tre giorni" },
-      { id: "D", text: "Lo uso solo per chiamare il taxi" }
+      { id: "A", text: "Sempre in mano per le storie", traits: { orgoglioso: 4, festaiolo: 1 } },
+      { id: "B", text: "Lo perdo ogni 15 minuti", traits: { caotico: 5, libero: 2 } },
+      { id: "C", text: "Rispondo dopo tre giorni", traits: { timido: 3, libero: 3 } },
+      { id: "D", text: "Lo uso solo per chiamare il taxi", traits: { diretto: 4, fedele: 2 } }
     ]
   },
   {
     category: "light",
     text: "SE FOSSI UN ANIMALE, QUALE SARESTI?",
     options: [
-      { id: "A", text: "Gatto pigro (ma elegante)" },
-      { id: "B", text: "Lupo solitario" },
-      { id: "C", text: "Cucciolo iperattivo" },
-      { id: "D", text: "Gufo (vivo solo di notte)" }
+      { id: "A", text: "Gatto pigro (ma elegante)", traits: { orgoglioso: 3, ironico: 2 } },
+      { id: "B", text: "Lupo solitario", traits: { libero: 4, timido: 2 } },
+      { id: "C", text: "Cucciolo iperattivo", traits: { romantico: 3, festaiolo: 2 } },
+      { id: "D", text: "Gufo (vivo solo di notte)", traits: { investigatore: 4, pericoloso: 1 } }
     ]
   },
   {
@@ -158,30 +158,30 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "ironic",
     text: "L'EX TI SCRIVE 'MI MANCHI' ALLE 3 DI NOTTE. COSA FAI?",
     options: [
-      { id: "A", text: "Blocco immediato" },
-      { id: "B", text: "Rispondo 'Chi sei?'" },
-      { id: "C", text: "Ci casco e vado sotto casa" },
-      { id: "D", text: "Screenshot e invio al gruppo" }
+      { id: "A", text: "Blocco immediato", traits: { diretto: 5, orgoglioso: 2 } },
+      { id: "B", text: "Rispondo 'Chi sei?'", traits: { ironico: 5, orgoglioso: 3 } },
+      { id: "C", text: "Ci casco e vado sotto casa", traits: { romantico: 4, caotico: 3 } },
+      { id: "D", text: "Screenshot e invio al gruppo", traits: { investigatore: 4, pericoloso: 2 } }
     ]
   },
   {
     category: "ironic",
     text: "LA TUA FIGURA IMBARAZZANTE PIÙ FREQUENTE?",
     options: [
-      { id: "A", text: "Salutare chi non conosco" },
-      { id: "B", text: "Dimenticare i nomi subito" },
-      { id: "C", text: "Inciampare sul nulla" },
-      { id: "D", text: "Messaggio alla persona sbagliata" }
+      { id: "A", text: "Salutare chi non conosco", traits: { timido: 3, caotico: 2 } },
+      { id: "B", text: "Dimenticare i nomi subito", traits: { libero: 4, caotico: 1 } },
+      { id: "C", text: "Inciampare sul nulla", traits: { caotico: 5, romantico: 1 } },
+      { id: "D", text: "Messaggio alla persona sbagliata", traits: { pericoloso: 4, caotico: 3 } }
     ]
   },
   {
     category: "ironic",
     text: "COME SCAPPI DA QUALCUNO CHE CI PROVA MA NON TI PIACE?",
     options: [
-      { id: "A", text: "Fingo un'emergenza bagno" },
-      { id: "B", text: "Dico che sono impegnatissimo" },
-      { id: "C", text: "Ballo malissimo per spaventarlo" },
-      { id: "D", text: "Chiamo gli amici in soccorso" }
+      { id: "A", text: "Fingo un'emergenza bagno", traits: { timido: 4, ironico: 2 } },
+      { id: "B", text: "Dico che sono impegnatissimo", traits: { diretto: 3, orgoglioso: 2 } },
+      { id: "C", text: "Ballo malissimo per spaventarlo", traits: { caotico: 5, ironico: 4 } },
+      { id: "D", text: "Chiamo gli amici in soccorso", traits: { fedele: 3, timido: 2 } }
     ]
   },
   {
@@ -310,20 +310,20 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "spicy",
     text: "UNA NOTTE NELLA STIVA CON CHI TI PIACE: COSA SUCCEDE?",
     options: [
-      { id: "A", text: "Chiacchiere e sguardi intensi" },
-      { id: "B", text: "Un bacio rubato che toglie il fiato" },
-      { id: "C", text: "Quello che succede resta segreto" },
-      { id: "D", text: "Finiremmo il rum prima di iniziare" }
+      { id: "A", text: "Chiacchiere e sguardi intensi", traits: { timido: 4, romantico: 3 } },
+      { id: "B", text: "Un bacio rubato che toglie il fiato", traits: { romantico: 5, diretto: 2 } },
+      { id: "C", text: "Quello che succede resta segreto", traits: { pericoloso: 4, investigatore: 2 } },
+      { id: "D", text: "Finiremmo il rum prima di iniziare", traits: { festaiolo: 5, caotico: 3 } }
     ]
   },
   {
     category: "spicy",
     text: "IL TUO SEGNALE SEGRETO PER FAR CAPIRE CHE TI PIACE QUALCUNO?",
     options: [
-      { id: "A", text: "Sguardo fisso finché non cede" },
-      { id: "B", text: "Offrire un drink misterioso" },
-      { id: "C", text: "Contatto fisico 'casuale' in pista" },
-      { id: "D", text: "Messaggio in bottiglia via App" }
+      { id: "A", text: "Sguardo fisso finché non cede", traits: { diretto: 4, pericoloso: 3 } },
+      { id: "B", text: "Offrire un drink misterioso", traits: { ironico: 3, romantico: 2 } },
+      { id: "C", text: "Contatto fisico 'casuale' in pista", traits: { festaiolo: 4, diretto: 3 } },
+      { id: "D", text: "Messaggio in bottiglia via App", traits: { timido: 5, romantico: 3 } }
     ]
   },
   {

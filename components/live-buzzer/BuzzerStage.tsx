@@ -6,7 +6,16 @@ import type { BuzzerState, BuzzerEntry, Team } from "@/lib/live-buzzer/types";
 declare global {
   interface Window {
     onYouTubeIframeAPIReady: () => void;
-    YT: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    YT: {
+      Player: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      PlayerState: {
+        PLAYING: number;
+        PAUSED: number;
+        ENDED: number;
+        BUFFERING: number;
+        CUED: number;
+      };
+    };
   }
 }
 
@@ -22,7 +31,7 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
   const lastCommandTimeRef = useRef<number>(0);
   const lastSeekedUrl = useRef<string>("");
 
-  const onStateChange = (event: any) => {
+  const onStateChange = (event: { data: number; target: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (Date.now() - lastCommandTimeRef.current < 3000) {
       if (event.data === 0 || event.data === 2) return;
     }
@@ -127,7 +136,7 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
           origin: typeof window !== 'undefined' ? window.location.origin : ''
         },
         events: {
-          onReady: (event: any) => {
+          onReady: (event: { target: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
             event.target.setShuffle(true);
             if (status === "playing") {
               event.target.playVideo();
@@ -149,7 +158,7 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
         playerRef.current.destroy();
       }
     };
-  }, [playlistId]);
+  }, [playlistId, status]);
 
   useEffect(() => {
     if (commandId > lastCommandId.current && playerRef.current) {
@@ -215,6 +224,46 @@ function CountdownDisplay({ countdownStart }: { countdownStart: number }) {
 }
 
 function LeaderboardList({ leaderboard, revealStep }: { leaderboard: Team[], revealStep: number | null }) {
+  // Modalità Sommario Finale (Top 10 in 2 colonne)
+  if (revealStep === 999) {
+    const top10 = leaderboard.slice(0, 10);
+    const col1 = top10.slice(0, 5);
+    const col2 = top10.slice(5, 10);
+
+    return (
+      <div className="w-full max-w-7xl mx-auto mt-8 animate-in fade-in zoom-in duration-1000">
+        <div className="grid grid-cols-2 gap-12">
+          {/* Prima Colonna (1-5) */}
+          <div className="space-y-4">
+            <h3 className="text-2xl font-black text-[var(--accent-strong)] uppercase tracking-widest mb-6 border-b border-[var(--accent-strong)]/30 pb-2">Top 5</h3>
+            {col1.map((team, i) => (
+              <div key={team.email} className={`flex items-center justify-between p-4 rounded-2xl border ${i === 0 ? "bg-[var(--accent-strong)]/20 border-[var(--accent-strong)] scale-105" : "bg-white/5 border-white/10"}`}>
+                <div className="flex items-center gap-4">
+                  <span className="font-black text-3xl text-[var(--accent-strong)] w-8">{i + 1}</span>
+                  <span className="font-black text-2xl text-white uppercase truncate max-w-[250px]">{team.nickname}</span>
+                </div>
+                <span className="text-3xl font-black italic text-white">{team.totalPoints}</span>
+              </div>
+            ))}
+          </div>
+          {/* Seconda Colonna (6-10) */}
+          <div className="space-y-4">
+            <h3 className="text-2xl font-black text-white/50 uppercase tracking-widest mb-6 border-b border-white/10 pb-2">Posizioni 6-10</h3>
+            {col2.map((team, i) => (
+              <div key={team.email} className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5">
+                <div className="flex items-center gap-4">
+                  <span className="font-black text-2xl text-[var(--text-muted)] w-8">{i + 6}</span>
+                  <span className="font-black text-xl text-white/80 uppercase truncate max-w-[250px]">{team.nickname}</span>
+                </div>
+                <span className="text-2xl font-black italic text-white/80">{team.totalPoints}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const thresholdIndex = revealStep !== null 
     ? leaderboard.length - revealStep 
     : 0;
@@ -232,11 +281,7 @@ function LeaderboardList({ leaderboard, revealStep }: { leaderboard: Team[], rev
         // In modalità reveal, mostriamo solo le squadre dal fondo fino allo step attuale
         if (revealStep !== null && index < thresholdIndex) return null;
         
-        // Calcoliamo la posizione: in reveal la prima mostrata (l'ultima in classifica) sta in fondo
-        // o meglio, la lista si costruisce dal basso verso l'alto? 
-        // Solitamente si mostra la 10ª, poi la 9ª appare SOPRA la 10ª spingendola giù.
         const visibleIndex = revealStep !== null ? index - thresholdIndex : index;
-
         const isWinner = revealStep !== null && index === 0 && revealStep >= leaderboard.length;
 
         return (

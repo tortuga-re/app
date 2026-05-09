@@ -36,20 +36,31 @@ export const calculatePlayerProfile = (
     if (!option) return;
 
     Object.entries(option.traits || {}).forEach(([trait, score]) => {
-      traitScores[trait as MatchDrinkTrait] += score;
+      if (trait in traitScores) {
+        traitScores[trait as MatchDrinkTrait] += score;
+      }
     });
   });
 
-  // Trova il trait dominante
+  // Trova il trait dominante. Se sono tutti 0, usa un trait basato sull'ID per varietà
   let dominantTrait: MatchDrinkTrait = "ironico";
-  let maxScore = -1;
+  let maxScore = 0;
+  let hasScored = false;
 
   Object.entries(traitScores).forEach(([trait, score]) => {
     if (score > maxScore) {
       maxScore = score;
       dominantTrait = trait as MatchDrinkTrait;
+      hasScored = true;
     }
   });
+
+  // Se non ha risposto a nulla o le domande non avevano trait, assegniamo un trait deterministico
+  if (!hasScored) {
+    const traits: MatchDrinkTrait[] = ["ironico", "festaiolo", "libero", "caotico", "diretto"];
+    const charSum = player.nickname.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    dominantTrait = traits[charSum % traits.length];
+  }
 
   const { label, description } = getProfileInfo(dominantTrait);
 
@@ -114,7 +125,7 @@ const getProfileInfo = (trait: MatchDrinkTrait) => {
     },
   };
 
-  return info[trait];
+  return info[trait] || info["ironico"];
 };
 
 export const calculateMatches = (
@@ -123,6 +134,7 @@ export const calculateMatches = (
   answers: MatchDrinkAnswer[],
   questionsBank: MatchDrinkQuestion[]
 ): Omit<MatchDrinkMatch, "id" | "createdAt">[] => {
+  // Filtriamo solo chi vuole giocare
   const eligiblePlayers = players.filter(
     (p) => p.relationshipStatus !== "solo_per_ridere"
   );
@@ -135,54 +147,89 @@ export const calculateMatches = (
   const matches: Omit<MatchDrinkMatch, "id" | "createdAt">[] = [];
   const matchedPlayerIds = new Set<string>();
 
-  // Semplice algoritmo di matching
+  // 1. Fase di Matching ad Alta Compatibilità (Rispetta i generi)
+  const allPotentialPairs: { 
+    aIdx: number, 
+    bIdx: number, 
+    score: number, 
+    info: { type: MatchDrinkMatch["matchType"], criterion: string, reason: string } 
+  }[] = [];
+
   for (let i = 0; i < eligiblePlayers.length; i++) {
-    const playerA = eligiblePlayers[i];
-    if (matchedPlayerIds.has(playerA.id)) continue;
-
-    let bestMatch: { player: MatchDrinkPlayer; score: number; reason: string; criterion: string; type: MatchDrinkMatch["matchType"] } | null = null;
-
     for (let j = i + 1; j < eligiblePlayers.length; j++) {
-      const playerB = eligiblePlayers[j];
-      if (matchedPlayerIds.has(playerB.id)) continue;
+      const pA = eligiblePlayers[i];
+      const pB = eligiblePlayers[j];
 
-      // Verifica preferenze di genere
-      if (!isGenderCompatible(playerA, playerB)) continue;
-
+      if (!isGenderCompatible(pA, pB)) continue;
 
       const scoreInfo = calculateMatchScore(
-        playerA,
-        playerB,
-        playerProfiles.find((p) => p.playerId === playerA.id)!,
-        playerProfiles.find((p) => p.playerId === playerB.id)!,
-        answers.filter((a) => a.playerId === playerA.id),
-        answers.filter((a) => a.playerId === playerB.id),
+        pA, pB,
+        playerProfiles[i], playerProfiles[j],
+        answers.filter(a => a.playerId === pA.id),
+        answers.filter(a => a.playerId === pB.id),
         questionsBank
       );
 
-      if (!bestMatch || scoreInfo.score > bestMatch.score) {
-        bestMatch = {
-          player: playerB,
-          ...scoreInfo,
-        };
-      }
+      allPotentialPairs.push({ aIdx: i, bIdx: j, score: scoreInfo.score, info: scoreInfo });
     }
+  }
 
-    if (bestMatch && bestMatch.score > 40) {
+  // Ordiniamo le coppie per punteggio decrescente
+  allPotentialPairs.sort((a, b) => b.score - a.score);
+
+  // Assegniamo le coppie migliori finché possibile
+  allPotentialPairs.forEach(pair => {
+    const pA = eligiblePlayers[pair.aIdx];
+    const pB = eligiblePlayers[pair.bIdx];
+
+    if (!matchedPlayerIds.has(pA.id) && !matchedPlayerIds.has(pB.id)) {
       matches.push({
         sessionId: session.id,
-        playerAId: playerA.id,
-        playerBId: bestMatch.player.id,
-        score: bestMatch.score,
-        matchType: bestMatch.type,
-        label: getMatchTypeLabel(bestMatch.type),
-        commonCriterion: bestMatch.criterion,
-        reason: bestMatch.reason,
+        playerAId: pA.id,
+        playerBId: pB.id,
+        score: pair.score,
+        matchType: pair.info.type,
+        label: getMatchTypeLabel(pair.info.type),
+        commonCriterion: pair.info.criterion,
+        reason: pair.info.reason,
         drinkUnlocked: false,
       });
-      matchedPlayerIds.add(playerA.id);
-      matchedPlayerIds.add(bestMatch.player.id);
+      matchedPlayerIds.add(pA.id);
+      matchedPlayerIds.add(pB.id);
     }
+  });
+
+  // 2. Fase di Recupero (Match forzati per chi è rimasto solo)
+  // Qui ignoriamo i generi se necessario per assicurarci che nessuno (o quasi) resti solo
+  const remainingPlayers = eligiblePlayers.filter(p => !matchedPlayerIds.has(p.id));
+  
+  while (remainingPlayers.length >= 2) {
+    const pA = remainingPlayers.shift()!;
+    const pB = remainingPlayers.shift()!;
+
+    const scoreInfo = calculateMatchScore(
+      pA, pB,
+      playerProfiles.find(p => p.playerId === pA.id)!,
+      playerProfiles.find(p => p.playerId === pB.id)!,
+      answers.filter(a => a.playerId === pA.id),
+      answers.filter(a => a.playerId === pB.id),
+      questionsBank
+    );
+
+    matches.push({
+      sessionId: session.id,
+      playerAId: pA.id,
+      playerBId: pB.id,
+      score: Math.max(scoreInfo.score, 30), // Minimo 30% per i match di recupero
+      matchType: "una_birra_e_vediamo",
+      label: "Incontro del Destino",
+      commonCriterion: "Ultimi naufraghi rimasti",
+      reason: "Il mare vi ha trascinati sulla stessa spiaggia. Chissà che non nasca un'amicizia!",
+      drinkUnlocked: false,
+    });
+    
+    matchedPlayerIds.add(pA.id);
+    matchedPlayerIds.add(pB.id);
   }
 
   return matches;
@@ -190,10 +237,14 @@ export const calculateMatches = (
 
 const isGenderCompatible = (a: MatchDrinkPlayer, b: MatchDrinkPlayer): boolean => {
   const check = (p1: MatchDrinkPlayer, p2: MatchDrinkPlayer) => {
+    // Se cerca amicizie, è compatibile con CHIUNQUE altro cerchi amicizie (indipendentemente dal sesso)
     if (p1.lookingFor === "amicizie") return p2.lookingFor === "amicizie";
+    
+    // Se cerca sesso specifico, p2 deve essere di quel sesso e NON cercare solo amicizie
     if (p1.lookingFor === "uomo") return p2.gender === "uomo" && p2.lookingFor !== "amicizie";
     if (p1.lookingFor === "donna") return p2.gender === "donna" && p2.lookingFor !== "amicizie";
     if (p1.lookingFor === "entrambi") return ["uomo", "donna"].includes(p2.gender) && p2.lookingFor !== "amicizie";
+    
     return false;
   };
 
@@ -209,15 +260,15 @@ const calculateMatchScore = (
   ansB: MatchDrinkAnswer[],
   questionsBank: MatchDrinkQuestion[]
 ) => {
-  let score = 50; // Base score
+  let score = 30; // Base score più basso per avere più varietà (era 50)
   let sameAnswers = 0;
   let sharedSpicyQuestion: { questionText: string, answerText: string } | null = null;
 
-  // Risposte uguali
+  // Risposte uguali (Max +50)
   for (const ans of ansA) {
     const matchingAns = ansB.find((ba) => ba.questionId === ans.questionId);
     if (matchingAns && matchingAns.selectedOptionId === ans.selectedOptionId) {
-      score += 8;
+      score += 6; // Leggermente meno peso (era 8)
       sameAnswers++;
 
       const question = questionsBank.find(q => q.id === ans.questionId);
@@ -230,16 +281,19 @@ const calculateMatchScore = (
     }
   }
 
-  // Stesso trait dominante
+  // Stesso trait dominante (+15)
   if (profA.dominantTrait === profB.dominantTrait) {
     score += 15;
   }
 
-  // Bonus status
+  // Bonus status (+10)
   if (a.relationshipStatus === "single" && b.relationshipStatus === "single") score += 10;
   if (a.relationshipStatus === "complicato" && b.relationshipStatus === "complicato") score += 5;
 
-  // Penalità contrasti forti
+  // Bonus Amicizie (se entrambi cercano solo quello)
+  if (a.lookingFor === "amicizie" && b.lookingFor === "amicizie") score += 15;
+
+  // Penalità contrasti forti (-20)
   if (
     (profA.traits.geloso > 5 && profB.traits.libero > 5) ||
     (profB.traits.geloso > 5 && profA.traits.libero > 5)
@@ -247,14 +301,14 @@ const calculateMatchScore = (
     score -= 20;
   }
 
-  // Normalizza
-  score = Math.min(Math.max(score, 0), 100);
+  // Normalizza tra 10 e 100 (evitiamo lo 0 assoluto)
+  score = Math.min(Math.max(score, 10), 100);
 
   // Determina tipo e motivo
   const type: MatchDrinkMatch["matchType"] =
-    score > 85 ? "anime_gemelle" :
-      score > 70 ? "compatibilita_sospetta" :
-        score > 55 ? "una_birra_e_vediamo" :
+    score >= 90 ? "anime_gemelle" :
+      score >= 75 ? "compatibilita_sospetta" :
+        score >= 50 ? "una_birra_e_vediamo" :
           "errore_consigliato";
 
   const reasonResult = getMatchReason(profA, profB, sameAnswers, score);
@@ -274,16 +328,32 @@ const getMatchReason = (
   sameAnswers: number,
   score: number
 ) => {
+  // Traduzione trait in etichetta plurale
+  const traitLabels: Record<string, string> = {
+    romantico: "Romantici",
+    geloso: "Gelosi",
+    libero: "Spiriti Liberi",
+    caotico: "Disastri Ambulanti",
+    festaiolo: "Animali da Festa",
+    diretto: "Senza Filtri",
+    timido: "Timidi",
+    ironico: "Sarcastiche",
+    pericoloso: "Red Flag Viventi",
+    fedele: "Ciurma Fedele",
+    investigatore: "Detective Social",
+    orgoglioso: "Orgogliosi",
+  };
+
   if (profA.dominantTrait === profB.dominantTrait) {
     return {
-      criterion: `Siete entrambi ${profA.dominantTrait === "caotico" ? "due disastri" : profA.dominantTrait + "s"}`,
+      criterion: `Siete entrambi ${traitLabels[profA.dominantTrait]}`,
       reason: `Avete lo stesso approccio alla vita: ${profA.profileLabel}. Fondamentalmente vi capite senza parlare.`
     };
   }
 
   if (sameAnswers >= 3) {
     return {
-      criterion: "Stessa visione del mondo (o quasi)",
+      criterion: "Stessa visione del mondo",
       reason: `Avete dato ${sameAnswers} risposte identiche. È inquietante o è destino? Decidete voi.`
     };
   }
@@ -296,7 +366,7 @@ const getMatchReason = (
   }
 
   return {
-    criterion: "Una birra e vediamo",
+    criterion: "Curiosità fatale",
     reason: "Il sistema non è sicurissimo, ma il Capitano dice che valete un brindisi."
   };
 };
@@ -310,5 +380,5 @@ const getMatchTypeLabel = (type: MatchDrinkMatch["matchType"]) => {
     pericolo_pubblico: "Pericolo Pubblico",
     compatibilita_sospetta: "Compatibilità Sospetta",
   };
-  return labels[type];
+  return labels[type] || "Match Casuale";
 };
