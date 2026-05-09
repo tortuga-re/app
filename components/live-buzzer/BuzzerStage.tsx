@@ -578,7 +578,7 @@ export function BuzzerStage() {
                Nessuno ha indovinato!
              </p>
           </div>
-        ) : (
+        ) : gameState?.leaderboardVisible ? (
           <div className="text-center w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-1000">
              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-widest text-white mb-12 italic gold-gradient">
                {gameState?.leaderboardRevealStep !== null ? "Classifica Finale" : "Classifica Live"}
@@ -588,7 +588,7 @@ export function BuzzerStage() {
                revealStep={gameState?.leaderboardRevealStep ?? null}
              />
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   );
