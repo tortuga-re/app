@@ -204,9 +204,18 @@ export default function BuzzerPage() {
           title="Sei nel locale?"
           description="Per partecipare al Music Quiz devi essere presente al Tortuga Bay. Inquadra il QR code sul tuo tavolo per sbloccare l'accesso!"
           action={
-            <Link href="/ciurma" className="button-secondary inline-flex min-h-12 items-center justify-center px-6">
-              Torna alla Ciurma
-            </Link>
+            <div className="flex flex-col gap-3 w-full">
+              <a
+                href="https://www.cooperto.link/ac6cdf"
+                className="button-primary inline-flex min-h-12 items-center justify-center gap-2 px-6 w-full text-center font-bold"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3"/><path d="M17 21v-3h3"/></svg>
+                Scannerizza il QR del Tavolo
+              </a>
+              <Link href="/ciurma" className="button-secondary inline-flex min-h-12 items-center justify-center px-6 w-full">
+                Torna alla Ciurma
+              </Link>
+            </div>
           }
         />
       );

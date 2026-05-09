@@ -177,15 +177,27 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
     }
   }, [commandId]);
 
+  const pausedTimeRef = useRef<number>(0);
+
   useEffect(() => {
     if (!playerRef.current || typeof playerRef.current.playVideo !== 'function') return;
 
     if (status === "playing") {
       playerRef.current.setVolume?.(100);
+      // If we have a saved position, seek to it first
+      if (pausedTimeRef.current > 0) {
+        playerRef.current.seekTo(pausedTimeRef.current, true);
+        pausedTimeRef.current = 0;
+      }
       playerRef.current.playVideo();
     } else if (status === "paused") {
+      // Save current position before pausing
+      if (typeof playerRef.current.getCurrentTime === 'function') {
+        pausedTimeRef.current = playerRef.current.getCurrentTime() || 0;
+      }
       playerRef.current.pauseVideo();
     } else if (status === "stopped") {
+      pausedTimeRef.current = 0;
       playerRef.current.stopVideo();
     }
   }, [status]);

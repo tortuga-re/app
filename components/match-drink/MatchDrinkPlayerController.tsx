@@ -73,9 +73,16 @@ export function MatchDrinkPlayerController() {
               </div>
               <p className="text-sm text-[var(--text-muted)] leading-relaxed">
                 Per partecipare al Match & Drink devi essere fisicamente nel locale. 
-                Inquadra il QR code sul tavolo per sbloccare le funzioni live!
+                Scannerizza il QR code sul tuo tavolo per sbloccare le funzioni live!
               </p>
-              <div className="pt-4">
+              <div className="pt-2 flex flex-col gap-3">
+                <a
+                  href="https://www.cooperto.link/ac6cdf"
+                  className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-2xl bg-[var(--accent-strong)] text-black font-black text-sm uppercase tracking-widest"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3"/><path d="M17 21v-3h3"/></svg>
+                  Scannerizza QR Tavolo
+                </a>
                 <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
                   Torna alla Ciurma
                 </Link>
