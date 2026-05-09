@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import Link from "next/link";
 
 export function BuzzerTeaser() {
-  const { hasAccess } = useOnPremiseAccess();
   const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
@@ -23,7 +21,7 @@ export function BuzzerTeaser() {
     check();
   }, []);
 
-  if (!isLive || !hasAccess) return null;
+  if (!isLive) return null;
 
   return (
     <div
