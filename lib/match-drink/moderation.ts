@@ -7,6 +7,7 @@ const PROFANITY_ROOTS = [
   "cazo", "figa", "merda", "stronzo", "vafanculo", "culo", "troia", "putana", "bastard", "coglion",
   "minchia", "pompino", "sega", "finochio", "frocio", "zocol", "bochin", "crepa", "muori",
   "negro", "ebreo", "terone", "polentone", "baldraca", "mignota", "sfigat", "pale",
+  "pesce", "fregna", "patata", "fragolina", "palo", "ucelo", "pina",
   "fuck", "shit", "bitch", "ashole", "dick", "pusy", "niger", "slut", "whore"
 ];
 
@@ -48,7 +49,8 @@ export function moderateContent(text: string): { approved: boolean; reason?: str
     const originals = [
       "cazzo", "figa", "merda", "stronzo", "vaffanculo", "culo", "troia", "puttana", "bastardo", "coglion",
       "minchia", "pompino", "segaiol", "finocchio", "frocio", "zoccol", "bocchin", "crepa", "muori",
-      "negro", "ebreo", "terrone", "polentone", "baldracca", "mignotta", "sfigato", "palle"
+      "negro", "ebreo", "terrone", "polentone", "baldracca", "mignotta", "sfigato", "palle",
+      "pesce", "fregna", "patata", "fragolina", "palo", "uccello", "pipina"
     ];
 
     for (const orig of originals) {

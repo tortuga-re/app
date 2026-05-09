@@ -332,7 +332,9 @@ export default function MatchDrinkSessionAdminPage() {
                   <div key={msg.id} className={`p-3 rounded-lg border ${msg.status === "shown" ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : "border-[var(--border)] bg-black/20"}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-bold text-[var(--accent-strong)] uppercase">
-                        {msg.displayMode === "captain" ? "Capitano" : (msg.displayMode === "anonymous" ? "Anonimo" : players.find(p => p.id === msg.playerId)?.nickname)}
+                        {msg.displayMode === "captain" ? "Capitano" : (
+                          `${players.find(p => p.id === msg.playerId)?.nickname || "Sconosciuto"}${msg.displayMode === "anonymous" ? " (Anonimo)" : ""}`
+                        )}
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)]">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
