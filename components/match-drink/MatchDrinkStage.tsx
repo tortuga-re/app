@@ -32,9 +32,37 @@ function CountdownTimer({ targetTime, onFinish }: { targetTime: number; onFinish
 
 export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
   const { session, players, answers, currentMessage, messages, matches, loading } = useMatchDrinkStage(sessionId);
+  const [messageIndex, setMessageIndex] = React.useState(0);
+  
+  const approvedMessages = React.useMemo(() => 
+    messages.filter(m => m.status === "approved" && !m.message.startsWith("COUNTDOWN:")), 
+    [messages]
+  );
+
+  React.useEffect(() => {
+    if (session?.stageMode !== "message" || approvedMessages.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setMessageIndex(prev => (prev + 1) % approvedMessages.length);
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [session?.stageMode, approvedMessages.length]);
+
+  // Reset index when stage mode changes
+  React.useEffect(() => {
+    setMessageIndex(0);
+  }, [session?.stageMode]);
+
+  const activeMessage = session?.stageMode === "message" 
+    ? (approvedMessages[messageIndex] || currentMessage)
+    : null;
+
   const router = useRouter();
   const admin = useMatchDrinkAdmin(sessionId);
-  
+
   const handleCountdownFinish = React.useCallback(async () => {
     await admin.updateStatus("playing");
     router.push(`/admin/match-drink/session/${sessionId}`);
@@ -244,13 +272,12 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
               })()}
             </div>
           )}
-
           {session.stageMode === "message" && 
-           currentMessage && 
-           !currentMessage.message.trim().startsWith("COUNTDOWN:") && (
+           activeMessage && 
+           !activeMessage.message.trim().startsWith("COUNTDOWN:") && (
             <div className="w-full max-w-[95%] mx-auto flex flex-col items-center justify-center animate-in zoom-in fade-in duration-700 h-full overflow-hidden">
               {(() => {
-                const msgText = currentMessage.approvedText || currentMessage.message;
+                const msgText = activeMessage.approvedText || activeMessage.message;
                 const len = msgText.length;
                 // Font dinamico in base alla lunghezza (ottimizzato per max 300 char)
                 const fontSize = 
@@ -259,8 +286,8 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                   len < 150 ? "text-5xl md:text-6xl" : 
                   len < 220 ? "text-4xl md:text-5xl" :
                   "text-3xl md:text-4xl";
-
-                const isCaptain = currentMessage.displayMode === "captain";
+ 
+                const isCaptain = activeMessage.displayMode === "captain";
                 
                 return (
                   <div className={`panel w-full max-h-[85vh] p-12 md:p-20 rounded-[4rem] border-4 shadow-[0_0_150px_rgba(216,176,106,0.2)] text-center relative flex flex-col justify-center overflow-hidden transition-all duration-500 ${
@@ -278,9 +305,9 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                     </div>
                     <div className="pt-8 border-t border-white/10 shrink-0">
                       <p className={`text-3xl md:text-4xl font-black uppercase tracking-[0.3em] ${isCaptain ? "gold-gradient" : "text-[var(--accent-strong)]"}`}>
-                        — {isCaptain ? "IL VOSTRO CAPITANO" : (currentMessage.displayMode === "anonymous" 
+                        — {isCaptain ? "IL VOSTRO CAPITANO" : (activeMessage.displayMode === "anonymous" 
                             ? "Messaggio anonimo dalla ciurma" 
-                            : (players.find(p => p.id === currentMessage.playerId)?.nickname || "Un misterioso Pirata"))}
+                            : (players.find(p => p.id === activeMessage.playerId)?.nickname || "Un misterioso Pirata"))}
                       </p>
                     </div>
                     {isCaptain && (

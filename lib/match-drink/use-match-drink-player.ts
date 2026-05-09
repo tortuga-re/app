@@ -199,7 +199,7 @@ export function useMatchDrinkPlayer() {
   const sendMessage = async (message: string, displayMode: "public" | "anonymous" | "nickname" = "public") => {
     if (!player) return;
     try {
-      const res = await fetch("/api/match-drink/player/message", {
+      const res = await fetch(`/api/match-drink/session/${player.sessionId}/message/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

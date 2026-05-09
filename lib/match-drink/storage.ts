@@ -241,7 +241,7 @@ export const getPlayerAnswers = async (
 };
 
 export const createBottleMessage = async (
-  message: Omit<MatchDrinkBottleMessage, "id" | "status" | "createdAt">
+  message: Omit<MatchDrinkBottleMessage, "id" | "createdAt">
 ): Promise<MatchDrinkBottleMessage> => {
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
@@ -251,7 +251,7 @@ export const createBottleMessage = async (
       player_id: message.playerId,
       message: message.message,
       display_mode: message.displayMode,
-      status: "pending",
+      status: message.status || "pending",
     })
     .select()
     .single();

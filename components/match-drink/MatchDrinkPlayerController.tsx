@@ -542,19 +542,22 @@ function BottleMessageForm({
   const [message, setMessage] = useState("");
   const [anon, setAnon] = useState(false);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
     setSending(true);
+    setError("");
     try {
       await onSend(message, anon ? "anonymous" : "nickname");
       setMessage("");
       setSent(true);
       setTimeout(() => setSent(false), 3000);
-    } catch {
-      // handled in hook
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nell'invio");
+      setTimeout(() => setError(""), 5000);
     } finally {
       setSending(false);
     }
@@ -572,6 +575,7 @@ function BottleMessageForm({
             {sent && <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Inviato!</span>}
           </div>
         </div>
+        {error && <p className="text-[10px] text-red-400 font-bold uppercase animate-pulse">{error}</p>}
         <textarea
           value={message}
           onChange={e => setMessage(e.target.value)}
