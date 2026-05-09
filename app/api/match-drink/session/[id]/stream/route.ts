@@ -25,9 +25,15 @@ export async function GET(
         sendState(session);
       });
 
+      // Heartbeat per evitare timeout di Hostinger/Nginx
+      const heartbeat = setInterval(() => {
+        try { controller.enqueue(": heartbeat\n\n"); } catch {}
+      }, 15000);
+
       // Pulisci quando il client si disconnette
       request.signal.addEventListener("abort", () => {
         unsubscribe();
+        clearInterval(heartbeat);
         try { controller.close(); } catch {}
       });
     }
