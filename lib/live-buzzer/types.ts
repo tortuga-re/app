@@ -48,8 +48,10 @@ export type BuzzerState = {
 
   // YouTube Integration
   youtubePlaylistId: string | null;
+  youtubePlaylistName?: string;
   youtubeStatus: "playing" | "paused" | "stopped";
   youtubeCurrentIndex: number;
   youtubeCommandId: number;
+  youtubeCommandType?: "next" | "prev" | "shuffle" | null;
   youtubeVideoTitle?: string;
 };

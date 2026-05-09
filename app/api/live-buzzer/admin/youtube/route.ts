@@ -4,10 +4,10 @@ import { setYoutubePlaylist, setYoutubeStatus, triggerYoutubeCommand } from "@/l
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, playlistId, status, command, title } = body;
+    const { action, playlistId, playlistName, status, command, title } = body;
 
     if (action === "setPlaylist") {
-      await setYoutubePlaylist(playlistId);
+      await setYoutubePlaylist(playlistId, playlistName);
     } else if (action === "setStatus") {
       console.log("SERVER: Receiving setStatus", status, "with title:", title);
       await setYoutubeStatus(status, title);
