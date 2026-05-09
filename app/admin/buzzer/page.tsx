@@ -543,7 +543,7 @@ export default function AdminBuzzerPage() {
           <div className="panel-muted p-3 rounded-xl border border-white/5 bg-white/2 flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-[10px] text-[var(--text-muted)] font-black uppercase">Playlist Attiva</span>
-              <span className="text-xs text-white font-mono truncate max-w-[150px]">{gameState.youtubePlaylistId}</span>
+              <span className="text-xs text-white font-mono truncate max-w-[150px]">{gameState.youtubePlaylistName || gameState.youtubePlaylistId}</span>
             </div>
             <div className="text-right">
               <span className="text-[10px] text-[var(--text-muted)] font-black uppercase">Stato</span>
@@ -566,7 +566,7 @@ export default function AdminBuzzerPage() {
                   if (pid.includes("list=")) {
                     pid = pid.split("list=")[1].split("&")[0];
                   }
-                  handleYoutubeAction({ action: "setPlaylist", playlistId: pid });
+                  handleYoutubeAction({ action: "setPlaylist", playlistId: pid, playlistName: "Playlist manuale" });
                 }}
                 className="bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase"
               >
@@ -601,7 +601,7 @@ export default function AdminBuzzerPage() {
                     <span className="text-xs text-white font-bold px-2">{pl.name}</span>
                     <div className="flex gap-1">
                       <button 
-                        onClick={() => handleYoutubeAction({ action: "setPlaylist", playlistId: pl.playlist_id })}
+                        onClick={() => handleYoutubeAction({ action: "setPlaylist", playlistId: pl.playlist_id, playlistName: pl.name })}
                         className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-colors"
                       >
                         Carica

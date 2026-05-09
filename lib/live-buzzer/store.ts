@@ -256,10 +256,11 @@ export const kickTeam = (email: string) =>
 
 // ─── YouTube ──────────────────────────────────────────────────────────────────
 
-export const setYoutubePlaylist = (id: string) =>
+export const setYoutubePlaylist = (id: string, name?: string) =>
   updateState(s => ({
     ...s,
     youtubePlaylistId: id,
+    youtubePlaylistName: name,
     youtubeStatus: "stopped" as const,
     youtubeCommandId: s.youtubeCommandId + 1,
     youtubeCommandType: "shuffle" as const,
