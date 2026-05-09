@@ -30,6 +30,7 @@ export default function MatchDrinkSessionAdminPage() {
     redeemDrink,
     deleteSession,
     updateStatus,
+    toggleMessages,
   } = useMatchDrinkAdmin(id);
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -259,10 +260,35 @@ export default function MatchDrinkSessionAdminPage() {
               </div>
             </MatchDrinkCard>
 
-            {/* Moderation */}
+              {/* Moderation */}
             <MatchDrinkCard variant="muted">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="eyebrow">Moderazione Messaggi</h2>
+              <div className="space-y-4 mb-6">
+                <h2 className="eyebrow">Gestione Messaggi</h2>
+                <div className="flex gap-2">
+                  <MatchDrinkButton 
+                    className="flex-1" 
+                    variant={session.bottleMessagesEnabled ? "primary" : "secondary"}
+                    onClick={() => toggleMessages(true)}
+                  >
+                    ABILITA
+                  </MatchDrinkButton>
+                  <MatchDrinkButton 
+                    className="flex-1" 
+                    variant={!session.bottleMessagesEnabled ? "danger" : "secondary"}
+                    onClick={() => toggleMessages(false)}
+                  >
+                    DISABILITA
+                  </MatchDrinkButton>
+                </div>
+                <div className={`p-2 rounded-lg text-center text-[10px] font-black uppercase tracking-widest ${
+                  session.bottleMessagesEnabled ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                }`}>
+                  I messaggi sono {session.bottleMessagesEnabled ? "ATTIVI" : "DISATTIVATI"} sui telefoni
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-4 pt-4 border-t border-white/10">
+                <h2 className="eyebrow">Moderazione Manuale</h2>
                 <MatchDrinkButton 
                   variant="secondary" 
                   size="md" 
@@ -306,7 +332,9 @@ export default function MatchDrinkSessionAdminPage() {
                   <div key={msg.id} className={`p-3 rounded-lg border ${msg.status === "shown" ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : "border-[var(--border)] bg-black/20"}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-bold text-[var(--accent-strong)] uppercase">
-                        {msg.displayMode === "captain" ? "Capitano" : (msg.displayMode === "anonymous" ? "Anonimo" : players.find(p => p.id === msg.playerId)?.nickname)}
+                        {msg.displayMode === "captain" ? "Capitano" : (
+                          `${players.find(p => p.id === msg.playerId)?.nickname || "Sconosciuto"}${msg.displayMode === "anonymous" ? " (Anonimo)" : ""}`
+                        )}
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)]">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>

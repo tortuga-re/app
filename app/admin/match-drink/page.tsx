@@ -56,7 +56,10 @@ export default function MatchDrinkAdminPage() {
   useEffect(() => {
     if (pin && !initialFetchDone.current) {
       initialFetchDone.current = true;
-      fetchSessions(pin);
+      fetchSessions(pin).then(() => {
+        // Attivazione automatica e push quando entriamo nella plancia
+        void fetch("/api/match-drink/admin/activate", { method: "POST" });
+      });
     }
   }, [pin, fetchSessions]);
 

@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useMatchDrinkPlayer } from "@/lib/match-drink/use-match-drink-player";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { MatchDrinkShell } from "./MatchDrinkShell";
 import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
@@ -23,6 +25,7 @@ export function MatchDrinkPlayerController() {
     respondToMatch,
     sendMessage,
   } = useMatchDrinkPlayer();
+  const { hasAccess: isPresent } = useOnPremiseAccess();
 
   if (loading) {
     return (
@@ -56,6 +59,32 @@ export function MatchDrinkPlayerController() {
   }
 
   if (!player) {
+    if (!isPresent) {
+      return (
+        <MatchDrinkShell>
+          <div className="flex flex-1 items-center justify-center p-6">
+            <MatchDrinkCard className="text-center space-y-6">
+              <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
+                <span className="text-3xl">📍</span>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-white uppercase italic">Sei al Tortuga?</h2>
+                <p className="text-sm text-[var(--text-muted)] uppercase font-bold">Accesso limitato ai presenti</p>
+              </div>
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                Per partecipare al Match & Drink devi essere fisicamente nel locale. 
+                Inquadra il QR code sul tavolo per sbloccare le funzioni live!
+              </p>
+              <div className="pt-4">
+                <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
+                  Torna alla Ciurma
+                </Link>
+              </div>
+            </MatchDrinkCard>
+          </div>
+        </MatchDrinkShell>
+      );
+    }
     return <JoinForm onJoin={join} error={error} savedProfile={savedProfile} />;
   }
 
@@ -72,7 +101,13 @@ export function MatchDrinkPlayerController() {
             </p>
           </MatchDrinkCard>
           
-          <BottleMessageForm onSend={sendMessage} />
+          {session.bottleMessagesEnabled ? (
+            <BottleMessageForm onSend={sendMessage} />
+          ) : (
+            <MatchDrinkCard variant="muted" className="py-4 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">I messaggi in bottiglia sono attualmente chiusi</p>
+            </MatchDrinkCard>
+          )}
         </div>
       </MatchDrinkShell>
     );
@@ -127,7 +162,13 @@ export function MatchDrinkPlayerController() {
             </div>
           )}
           
-          <BottleMessageForm onSend={sendMessage} />
+          {session.bottleMessagesEnabled ? (
+            <BottleMessageForm onSend={sendMessage} />
+          ) : (
+            <MatchDrinkCard variant="muted" className="py-4 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">I messaggi in bottiglia sono attualmente chiusi</p>
+            </MatchDrinkCard>
+          )}
         </div>
       </MatchDrinkShell>
     );
@@ -513,19 +554,22 @@ function BottleMessageForm({
   const [message, setMessage] = useState("");
   const [anon, setAnon] = useState(false);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
     setSending(true);
+    setError("");
     try {
       await onSend(message, anon ? "anonymous" : "nickname");
       setMessage("");
       setSent(true);
       setTimeout(() => setSent(false), 3000);
-    } catch {
-      // handled in hook
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nell'invio");
+      setTimeout(() => setError(""), 5000);
     } finally {
       setSending(false);
     }
@@ -543,6 +587,7 @@ function BottleMessageForm({
             {sent && <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Inviato!</span>}
           </div>
         </div>
+        {error && <p className="text-[10px] text-red-400 font-bold uppercase animate-pulse">{error}</p>}
         <textarea
           value={message}
           onChange={e => setMessage(e.target.value)}

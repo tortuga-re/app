@@ -17,20 +17,27 @@ export function useMatchDrinkPlayer() {
   const [myAnswers, setMyAnswers] = useState<MatchDrinkAnswer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [savedProfile, setSavedProfile] = useState<any>(null);
-
-  useEffect(() => {
+  const [savedProfile, setSavedProfile] = useState<{
+    nickname: string;
+    tableNumber: string;
+    ageRange: MatchDrinkPlayer["ageRange"];
+    gender: MatchDrinkPlayer["gender"];
+    relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
+    lookingFor: MatchDrinkPlayer["lookingFor"];
+    avatarUrl?: string;
+  } | null>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(STORAGE_KEY_PROFILE);
       if (stored) {
         try {
-          setSavedProfile(JSON.parse(stored));
+          return JSON.parse(stored);
         } catch (e) {
           console.error("Error parsing saved profile", e);
         }
       }
     }
-  }, []);
+    return null;
+  });
 
   const refresh = useCallback(async () => {
     const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
@@ -119,7 +126,15 @@ export function useMatchDrinkPlayer() {
     };
   }, [refresh]);
 
-  const join = async (nickname: string, details: any) => {
+  const join = async (nickname: string, details: {
+    tableNumber: string;
+    ageRange: MatchDrinkPlayer["ageRange"];
+    gender: MatchDrinkPlayer["gender"];
+    relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
+    lookingFor: MatchDrinkPlayer["lookingFor"];
+    publicConsent: boolean;
+    avatarUrl?: string;
+  }) => {
     setLoading(true);
     // Ottieni sessionId dalla sessione attiva se non disponibile (ma dovrebbe esserci caricata nel controller)
     // Nel controller viene passato il sessionId caricato. 
@@ -199,7 +214,7 @@ export function useMatchDrinkPlayer() {
   const sendMessage = async (message: string, displayMode: "public" | "anonymous" | "nickname" = "public") => {
     if (!player) return;
     try {
-      const res = await fetch("/api/match-drink/player/message", {
+      const res = await fetch(`/api/match-drink/session/${player.sessionId}/message/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
