@@ -101,7 +101,13 @@ export function MatchDrinkPlayerController() {
             </p>
           </MatchDrinkCard>
           
-          <BottleMessageForm onSend={sendMessage} />
+          {session.bottleMessagesEnabled ? (
+            <BottleMessageForm onSend={sendMessage} />
+          ) : (
+            <MatchDrinkCard variant="muted" className="py-4 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">I messaggi in bottiglia sono attualmente chiusi</p>
+            </MatchDrinkCard>
+          )}
         </div>
       </MatchDrinkShell>
     );
@@ -156,7 +162,13 @@ export function MatchDrinkPlayerController() {
             </div>
           )}
           
-          <BottleMessageForm onSend={sendMessage} />
+          {session.bottleMessagesEnabled ? (
+            <BottleMessageForm onSend={sendMessage} />
+          ) : (
+            <MatchDrinkCard variant="muted" className="py-4 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">I messaggi in bottiglia sono attualmente chiusi</p>
+            </MatchDrinkCard>
+          )}
         </div>
       </MatchDrinkShell>
     );

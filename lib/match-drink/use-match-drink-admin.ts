@@ -117,5 +117,6 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     redeemDrink: (matchId: string) => apiCall("redeem-drink", { matchId }),
     deleteSession: () => apiCall("delete"),
     updateStatus: (status: string) => apiCall("status", { status }),
+    toggleMessages: (enabled: boolean) => apiCall("settings", { bottleMessagesEnabled: enabled }),
   };
 }

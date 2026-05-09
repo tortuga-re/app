@@ -39,8 +39,11 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
     [messages]
   );
 
+  // Automated rotation logic (7 seconds)
   React.useEffect(() => {
     if (session?.stageMode !== "message" || approvedMessages.length <= 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessageIndex(0);
       return;
     }
 
@@ -51,10 +54,6 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
     return () => clearInterval(interval);
   }, [session?.stageMode, approvedMessages.length]);
 
-  // Reset index when stage mode changes
-  React.useEffect(() => {
-    setMessageIndex(0);
-  }, [session?.stageMode]);
 
   const activeMessage = session?.stageMode === "message" 
     ? (approvedMessages[messageIndex] || currentMessage)

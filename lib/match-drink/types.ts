@@ -36,6 +36,7 @@ export interface MatchDrinkSession {
   currentStageMessageId?: string | null;
   questionIds?: string[] | null;
   questions?: MatchDrinkQuestion[];
+  bottleMessagesEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 }

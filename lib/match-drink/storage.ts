@@ -41,7 +41,8 @@ export const createSession = async (title: string, questionCount: number = 20): 
       status: "lobby",
       stage_mode: "lobby",
       current_question_index: 0,
-      question_ids: selectedIds
+      question_ids: selectedIds,
+      bottle_messages_enabled: false
     })
     .select()
     .single();
@@ -60,6 +61,24 @@ export const createSession = async (title: string, questionCount: number = 20): 
   });
 
   return mapSession(data);
+};
+
+export const updateSession = async (id: string, updates: Partial<MatchDrinkSession>) => {
+  const admin = getSupabaseAdmin();
+  const dbUpdates: Record<string, string | number | boolean | string[] | null | undefined> = {};
+  
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+  if (updates.stageMode !== undefined) dbUpdates.stage_mode = updates.stageMode;
+  if (updates.currentQuestionIndex !== undefined) dbUpdates.current_question_index = updates.currentQuestionIndex;
+  if (updates.currentStageMessageId !== undefined) dbUpdates.current_stage_message_id = updates.currentStageMessageId;
+  if (updates.bottleMessagesEnabled !== undefined) dbUpdates.bottle_messages_enabled = updates.bottleMessagesEnabled;
+
+  const { error } = await admin
+    .from("match_drink_sessions")
+    .update(dbUpdates)
+    .eq("id", id);
+
+  if (error) throw error;
 };
 
 export const getSession = async (id: string): Promise<MatchDrinkSession | null> => {
@@ -425,6 +444,7 @@ const mapSession = (row: Record<string, unknown>): MatchDrinkSession => ({
   currentQuestionIndex: row.current_question_index as number,
   currentStageMessageId: row.current_stage_message_id as string | null,
   questionIds: row.question_ids as string[] | null,
+  bottleMessagesEnabled: !!row.bottle_messages_enabled,
   createdAt: row.created_at as string,
   updatedAt: row.updated_at as string,
 });
