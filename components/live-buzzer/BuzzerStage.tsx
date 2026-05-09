@@ -162,6 +162,7 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
         playerRef.current.destroy();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playlistId]);
 
   useEffect(() => {
@@ -192,7 +193,7 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
         }
       }
     }
-  }, [commandId]);
+  }, [commandId, commandType]);
 
   const pausedTimeRef = useRef<number>(0);
 

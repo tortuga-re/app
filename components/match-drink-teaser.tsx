@@ -7,20 +7,36 @@ export function MatchDrinkTeaser() {
   const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await fetch("/api/game/active-status");
-        if (res.ok) {
-          const data = await res.json();
-          setIsLive(!!data.matchDrink);
+    let cancelled = false;
+    let eventSource: EventSource | null = null;
+
+    const initStream = () => {
+      eventSource = new EventSource("/api/live-buzzer/stream");
+      eventSource.onmessage = (event) => {
+        try {
+          if (cancelled) return;
+          const data = JSON.parse(event.data);
+          setIsLive(!!data.matchDrinkLive);
+        } catch (err) {
+          console.error("SSE parse error in MatchDrink teaser", err);
         }
-      } catch {
-        // Silently fail
-      }
+      };
+
+      eventSource.onerror = () => {
+        if (eventSource) eventSource.close();
+        // Retry after 5s
+        setTimeout(() => {
+          if (!cancelled) initStream();
+        }, 5000);
+      };
     };
-    check();
-    const interval = setInterval(check, 5000);
-    return () => clearInterval(interval);
+
+    initStream();
+
+    return () => {
+      cancelled = true;
+      if (eventSource) eventSource.close();
+    };
   }, []);
 
   if (!isLive) return null;

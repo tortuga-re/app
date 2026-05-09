@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import { writeStoredOnPremiseAccessExpiry, onPremiseAccessDurationMs } from "@/lib/on-premise-access";
 
 const VENUE_QR_URL = "https://www.cooperto.link/ac6cdf";
@@ -13,21 +14,16 @@ interface QRScannerProps {
 }
 
 export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const rafRef = useRef<number>(0);
+  const qrRef = useRef<Html5Qrcode | null>(null);
+  const containerId = "qr-reader-container";
 
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(true);
 
-  const stopCamera = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    streamRef.current?.getTracks().forEach(t => t.stop());
-  }, []);
-
-  const handleSuccess = useCallback((scannedUrl?: string) => {
-    stopCamera();
+  const handleSuccess = useCallback((scannedUrl: string) => {
+    if (qrRef.current) {
+      qrRef.current.stop().catch(console.error);
+    }
     setScanning(false);
 
     // Extract table number if present
@@ -44,76 +40,34 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
     // Grant 4h venue access
     writeStoredOnPremiseAccessExpiry(Date.now() + onPremiseAccessDurationMs);
     setTimeout(() => onSuccess(tableNumber), 600);
-  }, [stopCamera, onSuccess]);
+  }, [onSuccess]);
 
   useEffect(() => {
-    let mounted = true;
+    const html5QrCode = new Html5Qrcode(containerId);
+    qrRef.current = html5QrCode;
 
-    const startCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }
-        });
-        if (!mounted) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    html5QrCode.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        if (decodedText === VENUE_QR_URL || decodedText.startsWith(VENUE_QR_URL)) {
+          handleSuccess(decodedText);
         }
-        scan();
-      } catch {
-        setError("Impossibile accedere alla fotocamera. Controlla i permessi.");
-      }
-    };
-
-    const scan = () => {
-      if (!mounted) return;
-
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!video || !canvas || video.readyState < 2) {
-        rafRef.current = requestAnimationFrame(scan);
-        return;
-      }
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { rafRef.current = requestAnimationFrame(scan); return; }
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Try BarcodeDetector API (Chrome/Android)
-      if ("BarcodeDetector" in window) {
-        // @ts-expect-error BarcodeDetector not in TS lib
-        const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-        detector.detect(canvas).then((barcodes: Array<{ rawValue: string }>) => {
-          if (!mounted) return;
-          for (const barcode of barcodes) {
-            const val = barcode.rawValue.trim();
-            if (val === VENUE_QR_URL || val.startsWith(VENUE_QR_URL)) {
-              handleSuccess(val);
-              return;
-            }
-          }
-          rafRef.current = requestAnimationFrame(scan);
-        }).catch(() => {
-          rafRef.current = requestAnimationFrame(scan);
-        });
-      } else {
-        // Fallback: ask user to point to the QR - no native decode available
-        // Show manual link instead
-        setError("Il tuo browser non supporta la scansione automatica. Tocca il pulsante qui sotto.");
-        stopCamera();
-      }
-    };
-
-    startCamera();
+      },
+      undefined
+    ).catch((err) => {
+      console.error("QR Error", err);
+      setError("Impossibile avviare la fotocamera. Controlla i permessi o prova a ricaricare.");
+    });
 
     return () => {
-      mounted = false;
-      stopCamera();
+      if (qrRef.current) {
+        qrRef.current.stop().catch(() => { /* already stopped or failed */ });
+      }
     };
-  }, [handleSuccess, stopCamera]);
+  }, [handleSuccess]);
 
   if (error) {
     return (
@@ -124,7 +78,6 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
           href={`${VENUE_QR_URL}?redirect=${encodeURIComponent(window.location.href)}`}
           className="button-primary block w-full py-3 text-sm font-black uppercase text-center"
           onClick={() => {
-            // Grant access anyway since they clicked the link
             writeStoredOnPremiseAccessExpiry(Date.now() + onPremiseAccessDurationMs);
           }}
         >
@@ -138,29 +91,23 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden bg-black border-2 border-[var(--accent-strong)]">
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
-          muted
-          playsInline
-        />
-        <canvas ref={canvasRef} className="hidden" />
-
-        {/* Viewfinder overlay */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-48 h-48 relative">
-            {/* Corners */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[var(--accent-strong)] rounded-tl-md" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[var(--accent-strong)] rounded-tr-md" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[var(--accent-strong)] rounded-bl-md" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[var(--accent-strong)] rounded-br-md" />
-            {/* Scan line */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-[var(--accent-strong)] animate-[scanline_2s_linear_infinite] shadow-[0_0_6px_2px_rgba(216,176,106,0.6)]" />
+        <div id={containerId} className="w-full h-full" />
+        
+        {/* Viewfinder overlay (css only) */}
+        {scanning && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="w-48 h-48 relative">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[var(--accent-strong)] rounded-tl-md" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[var(--accent-strong)] rounded-tr-md" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[var(--accent-strong)] rounded-bl-md" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[var(--accent-strong)] rounded-br-md" />
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-[var(--accent-strong)] animate-[scanline_2s_linear_infinite] shadow-[0_0_6px_2px_rgba(216,176,106,0.6)]" />
+            </div>
           </div>
-        </div>
+        )}
 
         {!scanning && (
-          <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+          <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center z-20">
             <span className="text-6xl">✅</span>
           </div>
         )}
@@ -170,7 +117,7 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
         Punta la fotocamera sul QR del tuo tavolo
       </p>
 
-      <button onClick={() => { stopCamera(); onCancel(); }} className="text-xs text-[var(--text-muted)] underline">
+      <button onClick={onCancel} className="text-xs text-[var(--text-muted)] underline">
         Annulla
       </button>
 
@@ -179,6 +126,9 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
           0% { top: 0; }
           50% { top: calc(100% - 2px); }
           100% { top: 0; }
+        }
+        #qr-reader-container video {
+          object-fit: cover !important;
         }
       `}</style>
     </div>
