@@ -198,7 +198,7 @@ export default function BuzzerPage() {
     return (
       <div className="panel rounded-[2rem] p-6 space-y-6">
         <div className="space-y-2">
-          <p className="eyebrow">Assalto al Buzzer</p>
+          <p className="eyebrow">Tortuga Music Quiz</p>
           <h2 className="text-2xl font-bold text-white">Preparati alla sfida</h2>
           <p className="text-sm text-[var(--text-muted)]">Inserisci i dati della tua squadra per iniziare.</p>
         </div>

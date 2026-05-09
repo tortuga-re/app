@@ -22,7 +22,7 @@ export const subscribeToBuzzerState = (callback: SubscriptionCallback) => {
 
 const getInitialState = (): BuzzerState => ({
   status: "idle",
-  currentRound: 1,
+  currentRound: 0,
   roundOpenedAt: null,
   entries: [],
   leaderboard: [],
@@ -225,12 +225,7 @@ export const deactivateBuzzer = () => {
 export const nextRound = () => {
   const store = getBuzzerStore();
   
-  // Se siamo all'inizio della partita, il primo click avvia il Round 1 invece di passare al 2
-  if (store.currentRound === 1 && store.status === "idle") {
-    // Non incrementiamo il round
-  } else {
-    store.currentRound += 1;
-  }
+  store.currentRound += 1;
   
   store.entries = [];
   store.status = "open";

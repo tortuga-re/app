@@ -339,17 +339,17 @@ export default function BuzzerStagePage() {
       {/* Header Overlay - SEMPRE VISIBILE */}
       <div className="relative z-20 flex items-center justify-between p-8 md:p-12">
         <div className="flex flex-col">
-          <h1 className="text-3xl md:text-5xl font-black italic gold-gradient tracking-tighter">
+          <h1 className="text-5xl md:text-7xl font-black italic gold-gradient tracking-tighter">
             TORTUGA MUSIC QUIZ
           </h1>
-          <p className="text-[var(--accent)] font-bold tracking-[0.4em] uppercase text-xs md:text-sm">
+          <p className="text-[var(--accent)] font-bold tracking-[0.4em] uppercase text-sm md:text-base">
             Buzzer Live Edition
           </p>
         </div>
 
         <div className="flex flex-col items-end">
-          <div className="px-6 py-2 bg-[var(--accent-strong)]/10 border border-[var(--accent-strong)]/30 rounded-full">
-            <p className="text-xl md:text-2xl font-black text-white italic">
+          <div className="px-8 py-3 bg-[var(--accent-strong)]/10 border border-[var(--accent-strong)]/30 rounded-full">
+            <p className="text-3xl md:text-5xl font-black text-white italic">
               ROUND {gameState?.currentRound}
             </p>
           </div>

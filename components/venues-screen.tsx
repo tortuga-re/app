@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { StatusBlock } from "@/components/status-block";
 import { KantaquizTeaser } from "@/components/kantaquiz-teaser";
+import { BuzzerTeaser } from "@/components/buzzer-teaser";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { CoopertoVenueHour, VenueResponse } from "@/lib/cooperto/types";
@@ -335,6 +336,7 @@ function VenuesScreenContent() {
       </div>
 
       <KantaquizTeaser />
+      <BuzzerTeaser />
 
       <div id="social" className="panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
