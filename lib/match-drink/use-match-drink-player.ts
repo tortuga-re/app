@@ -263,6 +263,7 @@ export function useMatchDrinkPlayer() {
     submitAnswer,
     sendMessage,
     respondToMatch,
-    refresh
+    refresh,
+    setSavedProfile
   };
 }
