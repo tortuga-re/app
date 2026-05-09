@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getState } from "@/lib/live-buzzer/store";
 import { getCustomerSession } from "@/lib/session/customer-session";
 import type { BuzzerState } from "@/lib/live-buzzer/types";
+import { getActiveSession } from "@/lib/match-drink/storage";
 
 export const dynamic = "force-dynamic";
 
-const formatState = (store: BuzzerState, email: string | undefined) => {
+const formatState = (store: BuzzerState, email: string | undefined, matchDrinkLive: boolean) => {
   const userEntry = email
     ? store.entries.find(e => e.email === email)
     : null;
@@ -28,6 +29,7 @@ const formatState = (store: BuzzerState, email: string | undefined) => {
   return {
     status: store.status,
     isLive: store.isLive,
+    matchDrinkLive,
     currentRound: store.currentRound,
     leaderboard: leaderboardToDisplay,
     leaderboardVisible: store.leaderboardVisible,
@@ -55,6 +57,7 @@ export async function GET(request: NextRequest) {
   const stream = new ReadableStream({
     start(controller) {
       let lastUpdateId = "";
+      let lastMatchDrinkLive = false;
       let closed = false;
 
       const send = (payload: unknown) => {
@@ -69,10 +72,17 @@ export async function GET(request: NextRequest) {
       const poll = async () => {
         if (closed) return;
         try {
-          const state = await getState();
-          if (state.lastUpdateId !== lastUpdateId) {
+          const [state, matchDrinkSession] = await Promise.all([
+            getState(),
+            getActiveSession(),
+          ]);
+          
+          const matchDrinkLive = !!matchDrinkSession;
+          
+          if (state.lastUpdateId !== lastUpdateId || matchDrinkLive !== lastMatchDrinkLive) {
             lastUpdateId = state.lastUpdateId;
-            send(formatState(state, email));
+            lastMatchDrinkLive = matchDrinkLive;
+            send(formatState(state, email, matchDrinkLive));
           }
         } catch {
           // silently continue polling
