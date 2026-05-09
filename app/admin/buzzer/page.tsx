@@ -382,11 +382,11 @@ export default function AdminBuzzerPage() {
               {gameState?.leaderboardVisible ? "Classifica Live" : "Classifica Nascosta"}
             </span>
             <a 
-              href="/stage/buzzer" 
+              href="/stage" 
               target="_blank" 
               className="ml-auto flex items-center gap-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-full text-[10px] font-black uppercase tracking-wider text-white transition-all"
             >
-              🖥️ Apri Stage
+              🖥️ Apri Smart Stage
             </a>
           </div>
         </div>

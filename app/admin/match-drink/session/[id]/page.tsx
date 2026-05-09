@@ -70,8 +70,8 @@ export default function MatchDrinkSessionAdminPage() {
             <p className="font-mono text-[var(--accent-strong)]">CODE: {session.joinCode}</p>
           </div>
           <div className="flex gap-2">
-            <a href={`/stage/match-drink/${session.id}`} target="_blank" rel="noreferrer">
-              <MatchDrinkButton variant="secondary" size="md">STAGE SCREEN</MatchDrinkButton>
+            <a href="/stage" target="_blank" rel="noreferrer">
+              <MatchDrinkButton variant="secondary" size="md">SMART STAGE</MatchDrinkButton>
             </a>
             <MatchDrinkButton variant="danger" size="md" onClick={handleDelete} loading={isDeleting}>ELIMINA</MatchDrinkButton>
           </div>
