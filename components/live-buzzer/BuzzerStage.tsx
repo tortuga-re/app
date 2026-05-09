@@ -219,24 +219,51 @@ function LeaderboardList({ leaderboard, revealStep }: { leaderboard: Team[], rev
     ? leaderboard.length - revealStep 
     : 0;
 
+  // Se ci sono molte squadre, riduciamo leggermente l'altezza delle righe
+  const rowHeight = leaderboard.length > 12 ? 65 : 80;
+  const totalHeight = (leaderboard.length - (revealStep !== null ? thresholdIndex : 0)) * rowHeight;
+
   return (
-    <div className="relative w-full max-w-4xl mx-auto h-[50vh] overflow-hidden mt-12">
+    <div 
+      className="relative w-full max-w-5xl mx-auto mt-8 transition-all duration-500 flex flex-col items-center"
+      style={{ height: `${Math.max(totalHeight, 400)}px` }}
+    >
       {leaderboard.map((team, index) => {
+        // In modalità reveal, mostriamo solo le squadre dal fondo fino allo step attuale
         if (revealStep !== null && index < thresholdIndex) return null;
+        
+        // Calcoliamo la posizione: in reveal la prima mostrata (l'ultima in classifica) sta in fondo
+        // o meglio, la lista si costruisce dal basso verso l'alto? 
+        // Solitamente si mostra la 10ª, poi la 9ª appare SOPRA la 10ª spingendola giù.
         const visibleIndex = revealStep !== null ? index - thresholdIndex : index;
+
+        const isWinner = revealStep !== null && index === 0 && revealStep >= leaderboard.length;
 
         return (
           <div 
             key={team.email} 
-            className="absolute w-full flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] animate-in slide-in-from-bottom-8 fade-in"
-            style={{ top: `${visibleIndex * 80}px`, zIndex: 100 - index }}
+            className={`absolute w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-700 ease-out animate-in slide-in-from-bottom-12 fade-in ${
+              isWinner 
+                ? "bg-[var(--accent-strong)]/20 border-[var(--accent-strong)] shadow-[0_0_40px_rgba(216,176,106,0.4)] scale-110 z-50 ring-4 ring-[var(--accent-soft)]" 
+                : "border-white/10 bg-white/5 backdrop-blur-md"
+            }`}
+            style={{ 
+              top: `${visibleIndex * rowHeight}px`, 
+              zIndex: 100 - index,
+              transitionDelay: `${(index - thresholdIndex) * 50}ms`
+            }}
           >
             <div className="flex items-center gap-6">
               <div className="flex flex-col items-center w-12 shrink-0">
-                <span className="font-black text-[var(--accent-strong)] text-3xl">{index + 1}</span>
+                <span className={`font-black text-3xl ${isWinner ? "text-white" : "text-[var(--accent-strong)]"}`}>
+                  {index + 1}
+                </span>
               </div>
-              <div>
-                <p className="font-black text-2xl text-white leading-tight uppercase truncate max-w-[400px]">{team.nickname}</p>
+              <div className="flex flex-col">
+                <p className={`font-black text-2xl leading-tight uppercase truncate max-w-[500px] ${isWinner ? "text-white" : "text-white/90"}`}>
+                  {team.nickname}
+                </p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Tavolo {team.tableNumber}</p>
               </div>
             </div>
             
@@ -246,10 +273,15 @@ function LeaderboardList({ leaderboard, revealStep }: { leaderboard: Team[], rev
                   {team.movement === "up" ? "↑" : "↓"} {Math.abs(team.rankDelta)}
                 </span>
               )}
-              <p className="text-4xl font-black text-white italic min-w-[80px] text-right">
+              <p className={`text-4xl font-black italic min-w-[100px] text-right ${isWinner ? "text-white" : "text-white"}`}>
                 {team.totalPoints === -999 ? "X" : team.totalPoints}
               </p>
             </div>
+            {isWinner && (
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2">
+                <span className="text-4xl">🏆</span>
+              </div>
+            )}
           </div>
         );
       })}
