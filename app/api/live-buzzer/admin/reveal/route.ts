@@ -10,20 +10,20 @@ export async function POST(req: NextRequest) {
 
     switch (action) {
       case "start":
-        startLeaderboardReveal();
+        await startLeaderboardReveal();
         break;
       case "next":
-        nextLeaderboardReveal();
+        await nextLeaderboardReveal();
         break;
       case "full":
-        showLeaderboard();
+        await showLeaderboard();
         break;
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Action failed" }, { status: 500 });
   }
 }
