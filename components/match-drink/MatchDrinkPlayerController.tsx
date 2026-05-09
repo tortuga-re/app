@@ -9,9 +9,10 @@ import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
 import { MatchDrinkPlayer } from "@/lib/match-drink/types";
 import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
+import { QRScanner } from "@/components/QRScanner";
 
 export function MatchDrinkPlayerController() {
-  
+  const [showQRScanner, setShowQRScanner] = useState(false);
   const {
     session,
     player,
@@ -24,6 +25,7 @@ export function MatchDrinkPlayerController() {
     submitAnswer,
     respondToMatch,
     sendMessage,
+    setSavedProfile,
   } = useMatchDrinkPlayer();
   const { hasAccess: isPresent } = useOnPremiseAccess();
 
@@ -64,22 +66,51 @@ export function MatchDrinkPlayerController() {
         <MatchDrinkShell>
           <div className="flex flex-1 items-center justify-center p-6">
             <MatchDrinkCard className="text-center space-y-6">
-              <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
-                <span className="text-3xl">📍</span>
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black text-white uppercase italic">Sei al Tortuga?</h2>
-                <p className="text-sm text-[var(--text-muted)] uppercase font-bold">Accesso limitato ai presenti</p>
-              </div>
-              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                Per partecipare al Match & Drink devi essere fisicamente nel locale. 
-                Inquadra il QR code sul tavolo per sbloccare le funzioni live!
-              </p>
-              <div className="pt-4">
-                <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
-                  Torna alla Ciurma
-                </Link>
-              </div>
+              {showQRScanner ? (
+                <QRScanner 
+                  onSuccess={(table) => {
+                    if (table) {
+                      setSavedProfile(prev => ({
+                        nickname: prev?.nickname || "",
+                        ageRange: prev?.ageRange || "25-34",
+                        gender: prev?.gender || "donna",
+                        relationshipStatus: prev?.relationshipStatus || "single",
+                        lookingFor: prev?.lookingFor || "entrambi",
+                        ...prev,
+                        tableNumber: table 
+                      }));
+                    }
+                    setShowQRScanner(false);
+                  }} 
+                  onCancel={() => setShowQRScanner(false)} 
+                />
+              ) : (
+                <>
+                  <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
+                    <span className="text-3xl">📍</span>
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black text-white uppercase italic">Sei al Tortuga?</h2>
+                    <p className="text-sm text-[var(--text-muted)] uppercase font-bold">Accesso limitato ai presenti</p>
+                  </div>
+                  <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                    Per partecipare al Match & Drink devi essere fisicamente nel locale. 
+                    Scannerizza il QR code sul tuo tavolo per sbloccare l&apos;accesso!
+                  </p>
+                  <div className="pt-2 flex flex-col gap-3">
+                    <MatchDrinkButton 
+                      size="lg" 
+                      className="w-full"
+                      onClick={() => setShowQRScanner(true)}
+                    >
+                      📷 Scannerizza QR Tavolo
+                    </MatchDrinkButton>
+                    <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
+                      Torna alla Ciurma
+                    </Link>
+                  </div>
+                </>
+              )}
             </MatchDrinkCard>
           </div>
         </MatchDrinkShell>

@@ -9,6 +9,7 @@ import { triggerHaptic } from "@/lib/haptics";
 import { triggerBuzzerVibration, VIBRATION_PATTERNS } from "@/lib/live-buzzer/vibration";
 import { StatusBlock } from "@/components/status-block";
 import type { BuzzerState, Team, BuzzerEntry } from "@/lib/live-buzzer/types";
+import { QRScanner } from "@/components/QRScanner";
 
 export default function BuzzerPage() {
   const { identity, hasIdentity } = useCustomerIdentity();
@@ -19,6 +20,7 @@ export default function BuzzerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   // Feedback State
   const [feedback, setFeedback] = useState<{ message: string; type: "result" | "position" | null }>({ message: "", type: null });
@@ -81,14 +83,14 @@ export default function BuzzerPage() {
 
     void syncSession().then(() => {
       if (cancelled) return;
-      
+
       eventSource = new EventSource("/api/live-buzzer/stream");
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as BuzzerState;
           setGameState(data);
           gameStateRef.current = data;
-          
+
           const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
           setIsRegistered(Boolean(userInLeaderboard));
           if (userInLeaderboard) {
@@ -204,9 +206,32 @@ export default function BuzzerPage() {
           title="Sei nel locale?"
           description="Per partecipare al Music Quiz devi essere presente al Tortuga Bay. Inquadra il QR code sul tuo tavolo per sbloccare l'accesso!"
           action={
-            <Link href="/ciurma" className="button-secondary inline-flex min-h-12 items-center justify-center px-6">
-              Torna alla Ciurma
-            </Link>
+            <div className="flex flex-col gap-3 w-full">
+              {showQRScanner ? (
+                <div className="bg-black/20 p-4 rounded-3xl border border-white/10">
+                  <QRScanner
+                    onSuccess={(table) => {
+                      if (table) setTeamInfo(prev => ({ ...prev, tableNumber: table }));
+                      setShowQRScanner(false);
+                    }}
+                    onCancel={() => setShowQRScanner(false)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowQRScanner(true)}
+                    className="button-primary inline-flex min-h-12 items-center justify-center gap-2 px-6 w-full text-center font-bold"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3" /><path d="M17 21v-3h3" /></svg>
+                    Scannerizza il QR del Tavolo
+                  </button>
+                  <Link href="/ciurma" className="button-secondary inline-flex min-h-12 items-center justify-center px-6 w-full">
+                    Torna alla Ciurma
+                  </Link>
+                </>
+              )}
+            </div>
           }
         />
       );
@@ -280,19 +305,19 @@ export default function BuzzerPage() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-700">
           <div className="text-center space-y-8 animate-in zoom-in duration-1000">
             <div className="relative inline-block">
-               <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-40 animate-pulse" />
-               <span className="relative text-9xl">👑</span>
+              <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-40 animate-pulse" />
+              <span className="relative text-9xl">👑</span>
             </div>
             <div className="space-y-2">
               <h1 className="text-5xl font-black text-white italic tracking-tighter uppercase animate-bounce">Vittoria!</h1>
               <p className="text-[var(--accent-strong)] text-xl font-bold uppercase tracking-widest italic">Sei il nuovo Capitano</p>
             </div>
             <div className="panel p-6 rounded-[2rem] border-[var(--accent-strong)] bg-black/50 backdrop-blur-md">
-               <p className="text-sm text-[var(--text-muted)] uppercase mb-1">Squadra Vincitrice</p>
-               <p className="text-3xl font-black text-white uppercase italic">{gameState?.leaderboard[0]?.nickname}</p>
+              <p className="text-sm text-[var(--text-muted)] uppercase mb-1">Squadra Vincitrice</p>
+              <p className="text-3xl font-black text-white uppercase italic">{gameState?.leaderboard[0]?.nickname}</p>
             </div>
-            <button 
-              onClick={() => { /* maybe close overlay or just let it be */ }} 
+            <button
+              onClick={() => { /* maybe close overlay or just let it be */ }}
               className="button-primary px-10 min-h-14 uppercase font-black italic tracking-widest"
             >
               Onore alla Ciurma
@@ -328,8 +353,8 @@ export default function BuzzerPage() {
             disabled={gameState?.status !== "open" || !!gameState?.userEntry || submitting || gameState?.roundEnded}
             className={`
               relative w-48 h-48 rounded-full flex items-center justify-center transition-all duration-300
-              ${gameState?.status === "open" && !gameState?.userEntry 
-                ? "button-primary shadow-[0_0_50px_rgba(178,122,52,0.4)] scale-105 active:scale-95" 
+              ${gameState?.status === "open" && !gameState?.userEntry
+                ? "button-primary shadow-[0_0_50px_rgba(178,122,52,0.4)] scale-105 active:scale-95"
                 : "bg-white/5 border border-white/10 text-[var(--text-muted)] opacity-50 grayscale"}
               ${isCurrentResponder ? "border-[var(--accent-strong)] shadow-[0_0_80px_rgba(178,122,52,0.6)] animate-pulse" : ""}
             `}
@@ -356,35 +381,34 @@ export default function BuzzerPage() {
         <div className="flex-1 overflow-y-auto flex flex-col gap-2 scrollbar-hidden pr-1">
           {(() => {
             if (!gameState?.leaderboard?.length) return <p className="text-center py-4 text-sm text-[var(--text-muted)]">Ancora nessuna risposta data.</p>;
-            
+
             const lb = gameState.leaderboard;
 
             return lb.map((team, index) => (
-                <div 
-                  key={team.email} 
-                  className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 shrink-0 ${
-                    team.email === identity.email 
-                      ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/20" 
-                      : "border-white/5 bg-white/5"
+              <div
+                key={team.email}
+                className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 shrink-0 ${team.email === identity.email
+                  ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/20"
+                  : "border-white/5 bg-white/5"
                   }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-center w-8">
-                      <span className="font-black text-[var(--accent-strong)] text-lg">{index + 1}</span>
-                    </div>
-                    <div>
-                      <p className={`font-bold text-sm leading-tight truncate max-w-[200px] ${team.email === identity.email ? "text-white" : "text-white/80"}`}>
-                        {team.nickname}
-                      </p>
-                      <p className="text-[9px] text-[var(--text-muted)] uppercase font-black">Tavolo {team.tableNumber}</p>
-                    </div>
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center w-8">
+                    <span className="font-black text-[var(--accent-strong)] text-lg">{index + 1}</span>
                   </div>
-                  {team.email === identity.email && (
-                    <div className="bg-[var(--accent-strong)] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">
-                      TU
-                    </div>
-                  )}
+                  <div>
+                    <p className={`font-bold text-sm leading-tight truncate max-w-[200px] ${team.email === identity.email ? "text-white" : "text-white/80"}`}>
+                      {team.nickname}
+                    </p>
+                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-black">Tavolo {team.tableNumber}</p>
+                  </div>
                 </div>
+                {team.email === identity.email && (
+                  <div className="bg-[var(--accent-strong)] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">
+                    TU
+                  </div>
+                )}
+              </div>
             ));
           })()}
         </div>
