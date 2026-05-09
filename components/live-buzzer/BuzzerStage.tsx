@@ -158,7 +158,7 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
         playerRef.current.destroy();
       }
     };
-  }, [playlistId, status]);
+  }, [playlistId]);
 
   useEffect(() => {
     if (commandId > lastCommandId.current && playerRef.current) {
@@ -172,7 +172,11 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
       });
 
       if (typeof playerRef.current.nextVideo === 'function') {
-        playerRef.current.nextVideo();
+        try {
+          playerRef.current.nextVideo();
+        } catch (e) {
+          console.error("Error calling nextVideo", e);
+        }
       }
     }
   }, [commandId]);
