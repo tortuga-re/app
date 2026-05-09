@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useMatchDrinkPlayer } from "@/lib/match-drink/use-match-drink-player";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { MatchDrinkShell } from "./MatchDrinkShell";
 import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
@@ -23,6 +25,7 @@ export function MatchDrinkPlayerController() {
     respondToMatch,
     sendMessage,
   } = useMatchDrinkPlayer();
+  const { hasAccess: isPresent } = useOnPremiseAccess();
 
   if (loading) {
     return (
@@ -56,6 +59,32 @@ export function MatchDrinkPlayerController() {
   }
 
   if (!player) {
+    if (!isPresent) {
+      return (
+        <MatchDrinkShell>
+          <div className="flex flex-1 items-center justify-center p-6">
+            <MatchDrinkCard className="text-center space-y-6">
+              <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
+                <span className="text-3xl">📍</span>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-white uppercase italic">Sei al Tortuga?</h2>
+                <p className="text-sm text-[var(--text-muted)] uppercase font-bold">Accesso limitato ai presenti</p>
+              </div>
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                Per partecipare al Match & Drink devi essere fisicamente nel locale. 
+                Inquadra il QR code sul tavolo per sbloccare le funzioni live!
+              </p>
+              <div className="pt-4">
+                <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
+                  Torna alla Ciurma
+                </Link>
+              </div>
+            </MatchDrinkCard>
+          </div>
+        </MatchDrinkShell>
+      );
+    }
     return <JoinForm onJoin={join} error={error} savedProfile={savedProfile} />;
   }
 

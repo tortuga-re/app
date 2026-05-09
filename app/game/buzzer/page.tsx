@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useCustomerIdentity } from "@/lib/customer-identity";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
 import { triggerBuzzerVibration, VIBRATION_PATTERNS } from "@/lib/live-buzzer/vibration";
@@ -11,6 +12,7 @@ import type { BuzzerState, Team, BuzzerEntry } from "@/lib/live-buzzer/types";
 
 export default function BuzzerPage() {
   const { identity, hasIdentity } = useCustomerIdentity();
+  const { hasAccess: isPresent } = useOnPremiseAccess();
   const [gameState, setGameState] = useState<BuzzerState | null>(null);
   const [teamInfo, setTeamInfo] = useState({ nickname: "", tableNumber: "" });
   const [isRegistered, setIsRegistered] = useState(false);
@@ -195,6 +197,21 @@ export default function BuzzerPage() {
   }
 
   if (!isRegistered) {
+    if (!isPresent) {
+      return (
+        <StatusBlock
+          variant="info"
+          title="Sei nel locale?"
+          description="Per partecipare al Music Quiz devi essere presente al Tortuga Bay. Inquadra il QR code sul tuo tavolo per sbloccare l'accesso!"
+          action={
+            <Link href="/ciurma" className="button-secondary inline-flex min-h-12 items-center justify-center px-6">
+              Torna alla Ciurma
+            </Link>
+          }
+        />
+      );
+    }
+
     return (
       <div className="panel rounded-[2rem] p-6 space-y-6">
         <div className="space-y-2">
