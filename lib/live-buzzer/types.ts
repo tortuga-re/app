@@ -51,5 +51,6 @@ export type BuzzerState = {
   youtubeStatus: "playing" | "paused" | "stopped";
   youtubeCurrentIndex: number;
   youtubeCommandId: number;
+  youtubeCommandType?: "next" | "prev" | "shuffle" | null;
   youtubeVideoTitle?: string;
 };

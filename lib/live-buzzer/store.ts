@@ -235,6 +235,7 @@ export const nextRound = () =>
     roundOpenedAt: Date.now(),
     youtubeStatus: "playing" as const,
     youtubeCommandId: s.youtubeCommandId + 1,
+    youtubeCommandType: "next" as const,
   }));
 
 export const kickTeam = (email: string) =>
@@ -261,6 +262,7 @@ export const setYoutubePlaylist = (id: string) =>
     youtubePlaylistId: id,
     youtubeStatus: "stopped" as const,
     youtubeCommandId: s.youtubeCommandId + 1,
+    youtubeCommandType: "shuffle" as const,
   }));
 
 export const setYoutubeStatus = (status: "playing" | "paused" | "stopped", title?: string) =>
@@ -288,9 +290,10 @@ export const triggerYoutubeCommand = (command: "next" | "prev" | "shuffle") =>
         countdownStart: null,
         roundOpenedAt: Date.now(),
         youtubeCommandId: s.youtubeCommandId + 1,
+        youtubeCommandType: "next" as const,
       };
     }
-    return { ...s, youtubeCommandId: s.youtubeCommandId + 1 };
+    return { ...s, youtubeCommandId: s.youtubeCommandId + 1, youtubeCommandType: command };
   });
 
 // ─── Score ────────────────────────────────────────────────────────────────────

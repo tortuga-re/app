@@ -24,7 +24,7 @@ type StageState = BuzzerState & {
   currentResponder?: BuzzerEntry | null;
 };
 
-function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, status: string, commandId: number }) {
+function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlistId: string, status: string, commandId: number, commandType?: string | null }) {
   const playerRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const containerRef = useRef<HTMLDivElement>(null);
   const lastCommandId = useRef(commandId);
@@ -137,9 +137,13 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
         },
         events: {
           onReady: (event: { target: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+            // Enable shuffle and play a random video from the shuffled list
             event.target.setShuffle(true);
             if (status === "playing") {
-              event.target.playVideo();
+              // Wait a bit for shuffle to take effect before starting
+              setTimeout(() => {
+                event.target.playVideoAt(0);
+              }, 100);
             }
           },
           onStateChange
@@ -171,11 +175,20 @@ function YouTubePlayer({ playlistId, status, commandId }: { playlistId: string, 
         body: JSON.stringify({ action: "setStatus", status: "playing", title: "Caricamento brano..." }),
       });
 
-      if (typeof playerRef.current.nextVideo === 'function') {
+      if (playerRef.current) {
         try {
-          playerRef.current.nextVideo();
+          if (commandType === "shuffle") {
+            playerRef.current.setShuffle(true);
+            playerRef.current.playVideoAt(0);
+          } else if (commandType === "next") {
+            playerRef.current.nextVideo();
+          } else if (commandType === "prev") {
+            playerRef.current.previousVideo();
+          } else {
+            playerRef.current.nextVideo();
+          }
         } catch (e) {
-          console.error("Error calling nextVideo", e);
+          console.error("Error calling youtube command", e);
         }
       }
     }
@@ -405,6 +418,7 @@ export function BuzzerStage() {
             playlistId={gameState.youtubePlaylistId}
             status={gameState.youtubeStatus}
             commandId={gameState.youtubeCommandId}
+            commandType={gameState.youtubeCommandType}
           />
           <div className="absolute inset-0 bg-black/40" />
         </div>
