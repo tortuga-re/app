@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { validateAdminPin } from "@/lib/match-drink/storage";
+import { validateAdminPin, deleteSessionData } from "@/lib/match-drink/storage";
 
 export async function POST(
   req: NextRequest,
@@ -16,13 +16,8 @@ export async function POST(
 
     const supabase = getSupabaseAdmin();
 
-    // Delete session (cascade will handle players, answers, messages, matches)
-    const { error } = await supabase
-      .from("match_drink_sessions")
-      .delete()
-      .eq("id", sessionId);
-
-    if (error) throw error;
+    // Delete session and all related data using centralized logic
+    await deleteSessionData(sessionId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

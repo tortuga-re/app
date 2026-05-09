@@ -407,6 +407,13 @@ export const redeemDrink = async (matchId: string) => {
 
 export const deleteSessionData = async (sessionId: string) => {
   const admin = getSupabaseAdmin();
+  
+  // Eliminiamo tutto ciò che è collegato alla sessione in ordine logico per evitare errori di vincolo
+  await admin.from("match_drink_matches").delete().eq("session_id", sessionId);
+  await admin.from("match_drink_answers").delete().eq("session_id", sessionId);
+  await admin.from("match_drink_bottle_messages").delete().eq("session_id", sessionId);
+  await admin.from("match_drink_players").delete().eq("session_id", sessionId);
+  
   const { error } = await admin
     .from("match_drink_sessions")
     .delete()
