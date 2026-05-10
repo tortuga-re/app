@@ -42,11 +42,11 @@ const newUpdateId = () => Math.random().toString(36).substring(7);
 export async function getState(): Promise<BuzzerState> {
   try {
     const admin = getSupabaseAdmin();
-    const { data, error } = await admin
+    const { data, error } = (await admin
       .from("buzzer_session")
       .select("state")
       .eq("id", 1)
-      .single();
+      .single()) as any;
 
     if (error || !data) return getInitialState();
     return data.state as BuzzerState;
@@ -280,8 +280,6 @@ export const setYoutubePlaylist = (id: string, name?: string) =>
     youtubePlaylistId: id,
     youtubePlaylistName: name,
     youtubeStatus: "stopped" as const,
-    youtubeCommandId: s.youtubeCommandId + 1,
-    youtubeCommandType: "shuffle" as const,
   }));
 
 export const setYoutubeStatus = (status: "playing" | "paused" | "stopped", title?: string) =>
@@ -289,7 +287,7 @@ export const setYoutubeStatus = (status: "playing" | "paused" | "stopped", title
     const base = { ...s, youtubeStatus: status, youtubeVideoTitle: title ?? s.youtubeVideoTitle };
     if (status === "playing") {
       const alreadyActive = ["open", "ended", "closed", "countdown", "result_screen"].includes(s.status);
-      if (!alreadyActive) {
+      if (!alreadyActive && s.status !== "idle") {
         return { ...base, status: "open" as const, countdownStart: null, roundOpenedAt: Date.now() };
       }
     }

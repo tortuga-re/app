@@ -191,7 +191,7 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
         setIsPlayerReady(false);
       }
     };
-  }, [playlistId]);
+  }, [playlistId, status]);
 
   useEffect(() => {
     if (isPlayerReady && commandId > lastCommandId.current && playerRef.current) {
@@ -400,6 +400,7 @@ export function BuzzerStage() {
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
     const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any = null;
 
     const fetchState = async () => {
