@@ -8,6 +8,10 @@ export async function GET(request: NextRequest) {
   const session = getCustomerSession(request);
   const store = await getState();
 
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
+
   const userEntry = session
     ? store.entries.find(e => e.email === session.email)
     : null;
@@ -27,19 +31,11 @@ export async function GET(request: NextRequest) {
     ? store.entries.find(e => e.id === store.currentResponderEntryId)
     : null;
 
+  // Restituiamo TUTTO lo stato per evitare che il polling sovrascriva campi mancanti (es. playlistId)
   return NextResponse.json({
-    status: store.status,
-    isLive: store.isLive,
-    currentRound: store.currentRound,
-    leaderboard: leaderboardToDisplay,
-    leaderboardVisible: store.leaderboardVisible,
-    leaderboardRevealStep: store.leaderboardRevealStep,
+    ...store,
     userEntry,
-    currentResponderEntryId: store.currentResponderEntryId,
     currentResponder,
-    roundEnded: store.roundEnded,
-    lastUpdateId: store.lastUpdateId,
-    countdownStart: store.countdownStart,
-    lastScoredEntry: store.lastScoredEntry,
+    leaderboard: leaderboardToDisplay,
   });
 }
