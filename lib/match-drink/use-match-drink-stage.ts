@@ -7,6 +7,12 @@ import {
   MatchDrinkSession 
 } from "./types";
 import { getSupabase } from "./supabase";
+import {
+  applyModeratedMessage,
+  mergeMessages,
+  upsertMessage,
+  type MatchDrinkMessageModeratedPayload
+} from "./message-state";
 
 export function useMatchDrinkStage(sessionId: string) {
   const [session, setSession] = useState<MatchDrinkSession | null>(null);
@@ -26,13 +32,15 @@ export function useMatchDrinkStage(sessionId: string) {
       const res = await fetch(`/api/match-drink/session/${sessionId}/stage-status?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
-          if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
-          setSession(data.session);
+        if (data.session) {
+          if (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current) {
+            if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+            setSession(data.session);
+          }
           setPlayers(data.players || []);
           setAnswers(data.answers || []);
           setCurrentMessage(data.currentMessage);
-          setMessages(data.messages || []);
+          setMessages(prev => mergeMessages(prev, data.messages || []));
           setMatches(data.matches || []);
         }
       }
@@ -75,22 +83,26 @@ export function useMatchDrinkStage(sessionId: string) {
       })
       .on("broadcast", { event: "new_message" }, ({ payload }) => {
         if (mounted && payload) {
-          setMessages(prev => {
-            if (prev.find(m => m.id === payload.id)) return prev;
-            return [payload, ...prev];
-          });
+          setMessages(prev => upsertMessage(prev, payload));
           if (payload.displayMode === "captain" || payload.status === "shown") {
             void refresh();
           }
         }
       })
-      .on("broadcast", { event: "message_moderated" }, ({ payload }) => {
+      .on("broadcast", { event: "message_moderated" }, ({ payload }: { payload: MatchDrinkMessageModeratedPayload }) => {
         if (mounted && payload) {
-          setMessages(prev => prev.map(m => 
-            m.id === payload.messageId 
-              ? { ...m, status: payload.status, approvedText: payload.approvedText } 
-              : m
-          ));
+          setMessages(prev => applyModeratedMessage(prev, payload));
+          setCurrentMessage(prev => {
+            if (!prev || prev.id !== payload.messageId) return prev;
+            if (payload.message) return payload.message;
+            if (!payload.status) return prev;
+            return {
+              ...prev,
+              status: payload.status,
+              approvedText: payload.approvedText === undefined ? prev.approvedText : payload.approvedText,
+              moderatedAt: payload.moderatedAt === undefined ? prev.moderatedAt : payload.moderatedAt,
+            };
+          });
           void refresh(); // Quando un messaggio viene approvato
         }
       })

@@ -7,6 +7,12 @@ import {
   MatchDrinkSession 
 } from "./types";
 import { getSupabase } from "./supabase";
+import {
+  applyModeratedMessage,
+  mergeMessages,
+  upsertMessage,
+  type MatchDrinkMessageModeratedPayload
+} from "./message-state";
 
 const STORAGE_KEY_ADMIN_PIN = "match-drink.adminPin";
 
@@ -43,11 +49,13 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         return;
       }
       const data = await res.json();
-      if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
-        if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
-        setSession(data.session);
+      if (data.session) {
+        if (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current) {
+          if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+          setSession(data.session);
+        }
         setPlayers(data.players);
-        setMessages(data.messages);
+        setMessages(prev => mergeMessages(prev, data.messages || []));
         setMatches(data.matches);
         setAnswers(data.answers);
         setLoading(false);
@@ -83,10 +91,13 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         .on("broadcast", { event: "new_answer" }, () => void refresh())
         .on("broadcast", { event: "new_message" }, ({ payload }) => {
           if (mounted && payload) {
-            setMessages(prev => {
-              if (prev.find(m => m.id === payload.id)) return prev;
-              return [payload, ...prev];
-            });
+            setMessages(prev => upsertMessage(prev, payload));
+          }
+          void refresh();
+        })
+        .on("broadcast", { event: "message_moderated" }, ({ payload }: { payload: MatchDrinkMessageModeratedPayload }) => {
+          if (mounted && payload) {
+            setMessages(prev => applyModeratedMessage(prev, payload));
           }
           void refresh();
         })
