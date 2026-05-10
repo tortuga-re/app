@@ -58,9 +58,18 @@ export async function getState(): Promise<BuzzerState> {
 async function writeState(state: BuzzerState): Promise<void> {
   try {
     const admin = getSupabaseAdmin();
+    
+    // 1. Persistenza su DB
     await admin
       .from("buzzer_session")
       .upsert({ id: 1, state, updated_at: new Date().toISOString() });
+
+    // 2. Broadcast Realtime per reattività istantanea
+    await admin.channel("live-buzzer").send({
+      type: "broadcast",
+      event: "state_update",
+      payload: state,
+    });
   } catch (e) {
     console.error("BuzzerStore write error:", e);
   }

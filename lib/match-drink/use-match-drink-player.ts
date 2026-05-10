@@ -5,6 +5,7 @@ import {
   MatchDrinkPlayer, 
   MatchDrinkSession 
 } from "./types";
+import { getSupabase } from "./supabase";
 
 const STORAGE_KEY_SESSION_ID = "match-drink.sessionId";
 const STORAGE_KEY_PLAYER_ID = "match-drink.playerId";
@@ -95,6 +96,8 @@ export function useMatchDrinkPlayer() {
   useEffect(() => {
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
+    const supabase = getSupabase();
+    let channel: any = null;
     
     const startPolling = () => {
       if (pollInterval) clearInterval(pollInterval);
@@ -102,14 +105,35 @@ export function useMatchDrinkPlayer() {
         if (document.visibilityState === "visible") {
           refresh();
         }
-      }, 1000); // Poll ogni secondo per massima reattività
+      }, 10000); // Fallback lento (10s) ora che abbiamo Realtime
     };
 
     const init = async () => {
       await refresh();
-      if (mounted) {
-        startPolling();
+      if (!mounted) return;
+
+      const currentSessionId = session?.id || localStorage.getItem(STORAGE_KEY_SESSION_ID);
+      
+      if (currentSessionId) {
+        // Sottoscrizione Realtime a Supabase per aggiornamenti istantanei
+        channel = supabase
+          .channel(`session:${currentSessionId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "match_drink_sessions",
+              filter: `id=eq.${currentSessionId}`,
+            },
+            () => {
+              if (mounted) refresh();
+            }
+          )
+          .subscribe();
       }
+
+      startPolling();
     };
 
     init();
@@ -125,9 +149,10 @@ export function useMatchDrinkPlayer() {
     return () => {
       mounted = false;
       if (pollInterval) clearInterval(pollInterval);
+      if (channel) supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [refresh]);
+  }, [refresh, session?.id]);
 
   const join = async (nickname: string, details: {
     tableNumber: string;
