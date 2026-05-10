@@ -48,8 +48,18 @@ export function useMatchDrinkPlayer() {
 
     if (!currentSessionId || !currentPlayerId) {
       if (!currentSessionId) {
-        setSession(null);
-        setPlayer(null);
+        // Proviamo a recuperare la sessione attiva se non ne abbiamo una
+        try {
+          const activeRes = await fetch("/api/match-drink/session/active", { cache: "no-store" });
+          if (activeRes.ok) {
+            const activeData = await activeRes.json();
+            if (activeData.session) {
+              setSession(activeData.session);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching active session", e);
+        }
       }
       setLoading(false);
       return;

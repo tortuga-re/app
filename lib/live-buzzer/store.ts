@@ -177,6 +177,7 @@ export const endRound = () =>
       leaderboardVisible: true,
       frozenLeaderboard: null,
       leaderboardRevealStep: null,
+      leaderboardRevealFinished: false,
     };
   });
 
@@ -202,6 +203,7 @@ export const startLeaderboardReveal = () =>
     leaderboardVisible: true,
     frozenLeaderboard: null,
     leaderboardRevealStep: 1,
+    leaderboardRevealFinished: false,
   }));
 
 export const nextLeaderboardReveal = () =>
@@ -215,12 +217,14 @@ export const nextLeaderboardReveal = () =>
     
     // Se abbiamo finito di mostrare tutte le squadre (inclusa la 1ª)
     if (next > s.leaderboard.length) {
-      return { ...s, leaderboardRevealStep: 999 }; // Attiviamo il sommario finale
+      return { ...s, leaderboardRevealStep: 999, leaderboardRevealFinished: true }; // Attiviamo il sommario finale
     }
     
     return {
       ...s,
       leaderboardRevealStep: next,
+      // Se abbiamo appena mostrato la prima posizione, consideriamo il reveal finito per i telefoni
+      leaderboardRevealFinished: next >= s.leaderboard.length
     };
   });
 
@@ -232,6 +236,7 @@ export const resetRound = () =>
     roundEnded: false,
     accumulatedTimeMs: 0,
     leaderboardRevealStep: null,
+    leaderboardRevealFinished: false,
     roundOpenedAt: s.status === "open" ? Date.now() : null,
   }));
 

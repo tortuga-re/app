@@ -71,6 +71,17 @@ export function useMatchDrinkStage(sessionId: string) {
       .on("broadcast", { event: "new_answer" }, () => {
         void refresh(); // Quando arriva una risposta, aggiorniamo i dati
       })
+      .on("broadcast", { event: "new_message" }, ({ payload }) => {
+        if (mounted && payload) {
+          setMessages(prev => {
+            if (prev.find(m => m.id === payload.id)) return prev;
+            return [payload, ...prev];
+          });
+          if (payload.displayMode === "captain" || payload.status === "shown") {
+            void refresh();
+          }
+        }
+      })
       .on("broadcast", { event: "message_moderated" }, () => {
         void refresh(); // Quando un messaggio viene approvato
       })

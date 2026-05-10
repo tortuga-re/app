@@ -332,7 +332,7 @@ export default function BuzzerPage() {
 
   const isCurrentResponder = gameState?.userEntry?.id === gameState?.currentResponderEntryId;
   const userRank = gameState ? gameState.leaderboard.findIndex(t => t.email === identity.email) + 1 : 0;
-  const isWinner = gameState?.roundEnded && userRank === 1;
+  const isWinner = gameState?.roundEnded && userRank === 1 && gameState?.leaderboardRevealFinished;
 
   const getStatusMessage = () => {
     if (gameState?.roundEnded) {
