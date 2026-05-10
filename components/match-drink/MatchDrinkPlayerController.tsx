@@ -116,6 +116,27 @@ export function MatchDrinkPlayerController() {
         </MatchDrinkShell>
       );
     }
+    if (session.status !== "lobby") {
+      return (
+        <MatchDrinkShell>
+          <div className="flex flex-1 items-center justify-center p-6 text-center">
+            <MatchDrinkCard className="space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 flex items-center justify-center">
+                <span className="text-3xl">⛔</span>
+              </div>
+              <h2 className="text-2xl font-black text-white uppercase italic">Iscrizioni Chiuse</h2>
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed uppercase font-bold">
+                Il Capitano ha già levato l&apos;ancora!<br />
+                Non puoi più unirti a questa sfida, ma resta nei paraggi per la prossima.
+              </p>
+              <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase mt-4">
+                Torna alla Ciurma
+              </Link>
+            </MatchDrinkCard>
+          </div>
+        </MatchDrinkShell>
+      );
+    }
     return <JoinForm onJoin={join} error={error} savedProfile={savedProfile} />;
   }
 

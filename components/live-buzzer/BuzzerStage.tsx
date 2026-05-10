@@ -499,32 +499,32 @@ export function BuzzerStage() {
         ) : isResultScreen && gameState?.lastScoredEntry ? (
           <div className="w-full h-full flex flex-col items-center justify-center animate-in zoom-in fade-in duration-500 p-8">
             {gameState.lastScoredEntry.result === "correct" ? (
-                <div className="text-center w-full relative z-10 space-y-6">
+                <div className="text-center w-full relative z-10 space-y-2 md:space-y-4 max-h-full flex flex-col justify-center">
                   <div className="absolute inset-0 bg-green-500/10 blur-[120px] rounded-full scale-150" />
                   
-                  <div className="space-y-2 relative">
-                    <h2 className="text-4xl md:text-6xl font-black text-green-400 uppercase tracking-[0.2em] drop-shadow-[0_0_30px_rgba(74,222,128,0.3)]">
+                  <div className="relative shrink-0">
+                    <h2 className="text-3xl md:text-5xl font-black text-green-400 uppercase tracking-[0.2em] drop-shadow-[0_0_30px_rgba(74,222,128,0.3)]">
                       RISPOSTA ESATTA!
                     </h2>
-                    <div className="h-1.5 w-32 bg-green-500/50 mx-auto rounded-full" />
+                    <div className="h-1 w-24 bg-green-500/50 mx-auto rounded-full mt-2" />
                   </div>
 
-                  <div className="space-y-1">
-                    <p className="text-2xl md:text-3xl font-bold text-[var(--accent-strong)] uppercase tracking-[0.4em]">La squadra</p>
-                    <h1 className="text-[8vw] md:text-[10vw] font-black leading-none uppercase text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.2)] italic tracking-tighter">
+                  <div className="shrink-0">
+                    <p className="text-xl md:text-2xl font-bold text-[var(--accent-strong)] uppercase tracking-[0.4em] mb-1">La squadra</p>
+                    <h1 className="text-[7vw] md:text-[8vw] font-black leading-none uppercase text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.2)] italic tracking-tighter truncate px-4">
                       {gameState.lastScoredEntry.nickname}
                     </h1>
                   </div>
 
                   {gameState.youtubeVideoTitle && (
-                    <div className="inline-block bg-black/60 border-2 border-green-500/30 px-10 py-6 rounded-[2.5rem] backdrop-blur-xl shadow-2xl transform hover:scale-105 transition-transform">
-                      <p className="text-xl font-black text-green-400 uppercase tracking-widest mb-2">Il brano era</p>
-                      <p className="text-4xl md:text-6xl font-black text-white leading-tight uppercase italic">{gameState.youtubeVideoTitle}</p>
+                    <div className="inline-block bg-black/60 border-2 border-green-500/30 px-6 py-4 md:px-10 md:py-6 rounded-[2rem] backdrop-blur-xl shadow-2xl transform hover:scale-105 transition-transform mx-auto max-w-[90%] shrink-0">
+                      <p className="text-sm md:text-lg font-black text-green-400 uppercase tracking-widest mb-1">Il brano era</p>
+                      <p className="text-2xl md:text-4xl lg:text-5xl font-black text-white leading-tight uppercase italic truncate">{gameState.youtubeVideoTitle}</p>
                     </div>
                   )}
 
-                  <div className="pt-4">
-                    <p className="text-6xl md:text-[7rem] font-black text-white uppercase drop-shadow-[0_0_40px_rgba(216,176,106,0.6)] gold-gradient italic">
+                  <div className="pt-2 shrink-0">
+                    <p className="text-5xl md:text-7xl lg:text-[8rem] font-black text-white uppercase drop-shadow-[0_0_40px_rgba(216,176,106,0.6)] gold-gradient italic leading-none">
                       +{gameState.lastScoredEntry.scoreAwarded} PUNTI
                     </p>
                   </div>

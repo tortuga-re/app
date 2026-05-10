@@ -14,6 +14,10 @@ export async function POST(
       return NextResponse.json({ error: "Sessione non trovata" }, { status: 404 });
     }
 
+    if (session.status !== "lobby") {
+      return NextResponse.json({ error: "Le iscrizioni per questa sfida sono chiuse." }, { status: 403 });
+    }
+
     const player = await joinSession({
       sessionId: id,
       nickname: body.nickname,

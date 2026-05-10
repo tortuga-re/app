@@ -50,8 +50,9 @@ export default function MatchDrinkSessionAdminPage() {
       try {
         await deleteSession();
         router.push("/admin/match-drink");
-      } catch {
+      } catch (err) {
         setIsDeleting(false);
+        alert("Errore durante l'eliminazione: " + (err instanceof Error ? err.message : "Errore sconosciuto"));
       }
     }
   };

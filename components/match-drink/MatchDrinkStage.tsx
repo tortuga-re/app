@@ -203,26 +203,25 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                     <div className="space-y-1 text-center shrink-0">
                       <p className="text-2xl text-[var(--accent-strong)] font-black uppercase tracking-[0.5em]">Domanda {session.currentQuestionIndex + 1}</p>
                       <h2 className="text-4xl md:text-6xl font-black leading-tight uppercase tracking-tight text-white">{q.text}</h2>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-3 w-full min-h-0 overflow-hidden py-4 max-w-6xl mx-auto">
+                    </div>                    <div className="flex-1 grid grid-cols-2 gap-6 w-full min-h-0 overflow-hidden py-6 max-w-7xl mx-auto">
                       {q.options.map(opt => (
                         <div 
                           key={opt.id} 
-                          className="flex-1 relative flex items-center group animate-in slide-in-from-left duration-500"
+                          className="relative flex items-center group animate-in slide-in-from-bottom duration-500"
                           style={{ animationDelay: `${parseInt(opt.id) * 150}ms` }}
                         >
                           {/* Option Bar */}
-                          <div className="flex-1 h-full bg-[#3d0010] border-l-8 border-[var(--accent-strong)] rounded-r-[1rem] flex items-center px-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
+                          <div className="w-full h-full bg-white/5 border-l-[1rem] border-[var(--accent-strong)] rounded-r-[2rem] flex items-center px-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden backdrop-blur-sm border border-white/10">
+                            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-soft)]/20 to-transparent pointer-events-none" />
                             
                             {/* Number Circle */}
-                            <div className="flex items-center justify-center w-14 h-14 md:w-20 md:h-20 rounded-full bg-white text-[#3d0010] shrink-0 shadow-lg border-4 border-[var(--accent-strong)]">
-                              <span className="text-3xl md:text-5xl font-black leading-none">{opt.id}</span>
+                            <div className="flex items-center justify-center w-20 h-20 md:w-28 md:h-28 rounded-3xl bg-white text-black shrink-0 shadow-2xl border-4 border-[var(--accent-strong)] transform -rotate-3 group-hover:rotate-0 transition-transform">
+                              <span className="text-5xl md:text-7xl font-black leading-none">{opt.id}</span>
                             </div>
-
+ 
                             {/* Text */}
-                            <div className="flex-1 ml-6 md:ml-10 overflow-hidden">
-                              <span className="text-3xl md:text-5xl font-black uppercase text-white tracking-tight block truncate drop-shadow-md">
+                            <div className="flex-1 ml-8 md:ml-12 overflow-hidden">
+                              <span className="text-3xl md:text-5xl lg:text-6xl font-black uppercase text-white tracking-tighter block leading-tight drop-shadow-lg">
                                 {opt.text}
                               </span>
                             </div>
@@ -230,6 +229,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                         </div>
                       ))}
                     </div>
+
                   </>
                 );
               })()}
@@ -255,34 +255,36 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                     <div className="space-y-1 text-center shrink-0">
                       <p className="text-2xl text-[var(--accent-strong)] font-black uppercase tracking-[0.5em]">Risultati Domanda {session.currentQuestionIndex + 1}</p>
                       <h2 className="text-4xl md:text-6xl font-black leading-tight uppercase tracking-tight text-white">{q.text}</h2>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-3 w-full min-h-0 overflow-hidden py-4 max-w-6xl mx-auto">
+                    </div>                    <div className="flex-1 grid grid-cols-2 gap-6 w-full min-h-0 overflow-hidden py-6 max-w-7xl mx-auto">
                       {counts.map(c => (
-                        <div key={c.id} className="flex-1 relative bg-[#1a1a1a] rounded-r-[1rem] border border-white/10 overflow-hidden flex items-center px-6 min-h-0 shadow-lg">
+                        <div key={c.id} className="relative bg-white/5 rounded-r-[2rem] border border-white/10 overflow-hidden flex items-center px-8 min-h-0 shadow-2xl backdrop-blur-sm">
                           {/* Progress Bar Background */}
                           <div 
-                            className="absolute inset-y-0 left-0 bg-[#800020]/60 border-r-4 border-[var(--accent-strong)] transition-all duration-1000 shadow-[0_0_20px_rgba(216,176,106,0.2)]"
+                            className="absolute inset-y-0 left-0 bg-[var(--accent-strong)]/30 border-r-4 border-[var(--accent-strong)] transition-all duration-1000 shadow-[0_0_40px_rgba(216,176,106,0.3)]"
                             style={{ width: `${(c.count / (qAnswers.length || 1)) * 100}%` }}
                           />
                           
                           <div className="relative z-10 w-full flex items-center">
                             {/* Number Circle */}
-                            <div className="flex items-center justify-center w-14 h-14 md:w-20 md:h-20 rounded-full bg-white text-[#3d0010] shrink-0 shadow-lg border-4 border-[var(--accent-strong)]">
+                            <div className="flex items-center justify-center w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-white text-black shrink-0 shadow-xl border-4 border-[var(--accent-strong)]">
                               <span className="text-3xl md:text-5xl font-black leading-none">{c.id}</span>
                             </div>
-
-                            <span className="text-3xl md:text-5xl font-black flex-1 ml-10 uppercase text-white tracking-tight truncate drop-shadow-lg">{c.text}</span>
+ 
+                            <div className="flex-1 ml-6 md:ml-10 overflow-hidden">
+                              <span className="text-2xl md:text-4xl font-black uppercase text-white tracking-tighter truncate block drop-shadow-lg">{c.text}</span>
+                            </div>
                             
-                            <div className="ml-8 flex flex-col items-end shrink-0">
-                              <span className="text-4xl md:text-7xl font-black text-white tabular-nums drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
+                            <div className="ml-4 flex flex-col items-end shrink-0">
+                              <span className="text-4xl md:text-6xl font-black text-white tabular-nums drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
                                 {Math.round((c.count / (qAnswers.length || 1)) * 100)}%
                               </span>
-                              <span className="text-sm font-black text-[var(--accent-strong)] uppercase tracking-widest">{c.count} VOTI</span>
+                              <span className="text-[10px] md:text-xs font-black text-[var(--accent-strong)] uppercase tracking-[0.2em]">{c.count} VOTI</span>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
+
                     {maxCount > 0 && (
                       <div className="text-center pt-2 shrink-0">
                          <p className="text-2xl md:text-3xl italic text-[var(--accent-strong)] font-black uppercase tracking-tight leading-tight">

@@ -44,6 +44,18 @@ export function useMatchDrinkPlayer() {
     const storedPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
 
     if (!storedSessionId || !storedPlayerId) {
+      // Prova a recuperare la sessione attiva se non siamo ancora loggati
+      try {
+        const res = await fetch("/api/match-drink/active-session");
+        if (res.ok) {
+          const activeSession = await res.json();
+          if (activeSession) {
+            setSession(activeSession);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching discovery session:", err);
+      }
       setLoading(false);
       return;
     }
@@ -85,18 +97,23 @@ export function useMatchDrinkPlayer() {
     let eventSource: EventSource | null = null;
     
     const init = async () => {
-      await refresh();
+      if (!session) {
+        await refresh();
+      }
       
-      const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
-      if (!storedSessionId || !mounted) return;
+      // Usa l'ID dallo stato (discovery) o da localStorage
+      const currentSessionId = session?.id || localStorage.getItem(STORAGE_KEY_SESSION_ID);
+      if (!currentSessionId || !mounted) return;
 
-      eventSource = new EventSource(`/api/match-drink/session/${storedSessionId}/stream`);
+      eventSource = new EventSource(`/api/match-drink/session/${currentSessionId}/stream`);
       
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           
-          if (data.type === "session_update") {
+          if (data.session) {
+             setSession(data.session);
+          } else if (data.type === "session_update") {
             setSession(data.session);
           } else if (data.type === "player_update") {
             if (sessionRef.current?.stageMode === "reveal") {
@@ -124,7 +141,7 @@ export function useMatchDrinkPlayer() {
       mounted = false;
       if (eventSource) eventSource.close();
     };
-  }, [refresh]);
+  }, [refresh, session?.id]);
 
   const join = async (nickname: string, details: {
     tableNumber: string;
