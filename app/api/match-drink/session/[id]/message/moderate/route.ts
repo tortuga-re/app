@@ -13,13 +13,15 @@ export async function POST(
       return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
     }
 
-    if (action === "approve") {
-      await moderateMessage(messageId, "approved", approvedText);
-    } else if (action === "reject") {
-      await moderateMessage(messageId, "rejected");
-    } else if (action === "show") {
-      await moderateMessage(messageId, "shown");
-      await updateStageMode(id, "message", messageId);
+    const status = (action === "approved" || action === "approve") ? "approved" : 
+                   (action === "rejected" || action === "reject") ? "rejected" : 
+                   (action === "shown" || action === "show") ? "shown" : null;
+
+    if (status) {
+      await moderateMessage(messageId, status as any, approvedText);
+      if (status === "shown") {
+        await updateStageMode(id, "message", messageId);
+      }
     }
 
     return NextResponse.json({ ok: true });

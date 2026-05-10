@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { validateAdminPin } from "@/lib/match-drink/storage";
+import { createBottleMessage, validateAdminPin } from "@/lib/match-drink/storage";
 
 const SEED_MESSAGES = [
   "Qualcuno ha del rum extra? Chiedo per un amico al tavolo 5.",
@@ -15,6 +15,9 @@ const SEED_MESSAGES = [
   "Cercasi compagno/a di scorribande per il resto della serata. Requisiti: fegato d'acciaio.",
   "Se stasera non finisce in un arrembaggio, non sono contento.",
   "Il tavolo 3 sta cercando di battere il record di shot? Chiedo per unirmi.",
+  "Stasera il vento soffia dalla parte giusta per un incontro galante...",
+  "Ho perso la bussola, ma i tuoi occhi mi indicano la rotta.",
+  "Un brindisi a chi non ha ancora trovato il suo match, la serata è lunga!"
 ];
 
 export async function POST(
@@ -46,17 +49,15 @@ export async function POST(
        return NextResponse.json({ error: "Nessun naufrago a bordo per generare messaggi" }, { status: 400 });
     }
 
-    const { error } = await supabase.from("match_drink_bottle_messages").insert({
-      session_id: sessionId,
-      player_id: randomPlayerId,
+    const newMessage = await createBottleMessage({
+      sessionId,
+      playerId: randomPlayerId,
       message,
-      display_mode: "anonymous",
+      displayMode: "anonymous",
       status: "pending",
     });
 
-    if (error) throw error;
-
-    return NextResponse.json({ success: true, message });
+    return NextResponse.json({ success: true, message: newMessage });
   } catch (error) {
     console.error("Seed message error:", error);
     return NextResponse.json({ error: "Errore generazione messaggio" }, { status: 500 });
