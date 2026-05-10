@@ -8,14 +8,10 @@ export async function POST() {
   try {
     let session = await getActiveSession();
     
-    // Se non c'è una sessione attiva, ne creiamo una automatica in Lobby
+    // Se non c'è una sessione attiva, non facciamo nulla.
+    // L'utente deve crearne una manualmente dalla dashboard.
     if (!session) {
-      const today = new Date().toLocaleDateString("it-IT", { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long' 
-      });
-      session = await createSession(`Sessione ${today}`, 20);
+      return NextResponse.json({ success: true, message: "Nessuna sessione attiva da attivare" });
     }
 
     // Invia push a tutti

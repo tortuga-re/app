@@ -17,6 +17,15 @@ export async function POST(req: NextRequest) {
     const parsedQuestionCount = questionCount ? parseInt(questionCount, 10) : 20;
 
     const session = await createSession(title, parsedQuestionCount);
+    
+    // Invia push di attivazione
+    try {
+      const { sendGameStartPush } = await import("@/lib/game/activation");
+      void sendGameStartPush("matchDrink");
+    } catch (e) {
+      console.error("Failed to send start push:", e);
+    }
+
     return NextResponse.json(session);
   } catch (error) {
     console.error("Error creating session:", error);
