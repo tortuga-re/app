@@ -7,6 +7,7 @@ import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
 import { triggerBuzzerVibration, VIBRATION_PATTERNS } from "@/lib/live-buzzer/vibration";
+import { getSupabase } from "@/lib/match-drink/supabase";
 import { StatusBlock } from "@/components/status-block";
 import type { BuzzerState, Team, BuzzerEntry } from "@/lib/live-buzzer/types";
 import { QRScanner } from "@/components/QRScanner";
@@ -103,19 +104,44 @@ export default function BuzzerPage() {
 
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
+    const supabase = getSupabase();
+    let channel: any = null;
 
     void syncSession().then(() => {
       if (!mounted) return;
       
       const startPolling = () => {
         if (pollInterval) clearInterval(pollInterval);
-        // Polling veloce (800ms) per il buzzer competitivo
+        // Fallback lento (10s) ora che abbiamo Realtime
         pollInterval = setInterval(() => {
           if (document.visibilityState === "visible") {
             void fetchState();
           }
-        }, 800);
+        }, 10000);
       };
+
+      // Sottoscrizione Realtime Broadcast per reattività istantanea
+      channel = supabase
+        .channel("live-buzzer")
+        .on("broadcast", { event: "state_update" }, ({ payload }) => {
+          if (mounted && payload) {
+            setGameState(payload);
+            gameStateRef.current = payload;
+            
+            // Sync local team info and feedback
+            const data = payload as BuzzerState;
+            const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
+            setIsRegistered(Boolean(userInLeaderboard));
+            if (userInLeaderboard) {
+              setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+            }
+            if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
+              lastScoredIdRef.current = data.userEntry.id;
+              triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+            }
+          }
+        })
+        .subscribe();
 
       void fetchState();
       startPolling();
@@ -132,9 +158,10 @@ export default function BuzzerPage() {
     return () => {
       mounted = false;
       if (pollInterval) clearInterval(pollInterval);
+      if (channel) supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [hasIdentity, syncSession, fetchState]);
+  }, [hasIdentity, syncSession, fetchState, identity.email, triggerFeedbackSequence]);
 
   // Haptic Detection for Turn and Round End
   useEffect(() => {
