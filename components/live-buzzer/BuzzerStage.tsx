@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import type { BuzzerState, BuzzerEntry, Team } from "@/lib/live-buzzer/types";
+import { getSupabase } from "@/lib/match-drink/supabase";
 
 declare global {
   interface Window {
@@ -190,7 +191,7 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
         setIsPlayerReady(false);
       }
     };
-  }, [playlistId]);
+  }, [playlistId, status]);
 
   useEffect(() => {
     if (isPlayerReady && commandId > lastCommandId.current && playerRef.current) {
@@ -396,30 +397,50 @@ export function BuzzerStage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-    let eventSource: EventSource | null = null;
+    let mounted = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+    const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null;
 
-    eventSource = new EventSource("/api/live-buzzer/stream");
-    eventSource.onmessage = (event) => {
+    const fetchState = async () => {
       try {
-        if (cancelled) return;
-        const data = JSON.parse(event.data) as StageState;
-        setGameState(data);
-        setLoading(false);
+        const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
+        if (res.ok && mounted) {
+          const data = await res.json();
+          setGameState(data);
+          setLoading(false);
+        }
       } catch (err) {
-        console.error("SSE parse error", err);
+        console.error("Stage fetch error", err);
       }
     };
 
-    eventSource.onerror = () => {
-      console.error("SSE connection error");
+    const startPolling = () => {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        void fetchState();
+      }, 2000); // Polling ogni 2 secondi come paracadute
     };
+
+    // Sottoscrizione Realtime Broadcast per reattività istantanea
+    channel = supabase
+      .channel("live-buzzer-stage")
+      .on("broadcast", { event: "state_update" }, ({ payload }) => {
+        if (mounted && payload) {
+          setGameState(payload);
+          setLoading(false);
+        }
+      })
+      .subscribe();
+
+    void fetchState();
+    startPolling();
 
     return () => {
-      cancelled = true;
-      if (eventSource) {
-        eventSource.close();
-      }
+      mounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 

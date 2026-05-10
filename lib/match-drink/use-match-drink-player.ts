@@ -97,6 +97,7 @@ export function useMatchDrinkPlayer() {
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
     const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any = null;
     
     const startPolling = () => {
@@ -105,7 +106,7 @@ export function useMatchDrinkPlayer() {
         if (document.visibilityState === "visible") {
           refresh();
         }
-      }, 10000); // Fallback lento (10s) ora che abbiamo Realtime
+      }, 3000); // Paracadute a 3s
     };
 
     const init = async () => {
@@ -115,21 +116,19 @@ export function useMatchDrinkPlayer() {
       const currentSessionId = session?.id || localStorage.getItem(STORAGE_KEY_SESSION_ID);
       
       if (currentSessionId) {
-        // Sottoscrizione Realtime a Supabase per aggiornamenti istantanei
         channel = supabase
-          .channel(`session:${currentSessionId}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "match_drink_sessions",
-              filter: `id=eq.${currentSessionId}`,
-            },
-            () => {
-              if (mounted) refresh();
+          .channel(`player-${currentSessionId}`)
+          .on("broadcast", { event: "session_update" }, ({ payload }) => {
+            if (mounted && payload) {
+              setSession(prev => prev ? { ...prev, ...payload } : prev);
             }
-          )
+          })
+          .on("broadcast", { event: "match_updated" }, () => {
+            if (mounted) refresh();
+          })
+          .on("broadcast", { event: "matches_stored" }, () => {
+            if (mounted) refresh();
+          })
           .subscribe();
       }
 

@@ -117,7 +117,7 @@ export default function BuzzerPage() {
           if (document.visibilityState === "visible") {
             void fetchState();
           }
-        }, 10000);
+        }, 2000);
       };
 
       // Sottoscrizione Realtime Broadcast per reattività istantanea

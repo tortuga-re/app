@@ -6,6 +6,7 @@ import {
   MatchDrinkPlayer, 
   MatchDrinkSession 
 } from "./types";
+import { getSupabase } from "./supabase";
 
 const STORAGE_KEY_ADMIN_PIN = "match-drink.adminPin";
 
@@ -55,12 +56,13 @@ export function useMatchDrinkAdmin(sessionId?: string) {
 
   useEffect(() => {
     let mounted = true;
+    const supabase = getSupabase();
 
     const initialRefresh = async () => {
       if (sessionId && pin) {
         await refresh();
         if (mounted) {
-          pollingRef.current = setInterval(refresh, 2000);
+          pollingRef.current = setInterval(refresh, 3000); // 3s backup
         }
       } else {
         setLoading(false);
@@ -69,9 +71,27 @@ export function useMatchDrinkAdmin(sessionId?: string) {
 
     initialRefresh();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null;
+    if (sessionId) {
+      channel = supabase
+        .channel(`admin-${sessionId}`)
+        .on("broadcast", { event: "new_answer" }, () => void refresh())
+        .on("broadcast", { event: "new_message" }, () => void refresh())
+        .on("broadcast", { event: "match_updated" }, () => void refresh())
+        .on("broadcast", { event: "player_joined" }, () => void refresh())
+        .on("broadcast", { event: "session_update" }, ({ payload }) => {
+          if (mounted && payload) {
+            setSession(prev => prev ? { ...prev, ...payload } : prev);
+          }
+        })
+        .subscribe();
+    }
+
     return () => {
       mounted = false;
       if (pollingRef.current) clearInterval(pollingRef.current);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [sessionId, pin, refresh]);
 

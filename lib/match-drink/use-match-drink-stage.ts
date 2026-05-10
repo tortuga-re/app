@@ -6,6 +6,7 @@ import {
   MatchDrinkPlayer, 
   MatchDrinkSession 
 } from "./types";
+import { getSupabase } from "./supabase";
 
 export function useMatchDrinkStage(sessionId: string) {
   const [session, setSession] = useState<MatchDrinkSession | null>(null);
@@ -37,21 +38,39 @@ export function useMatchDrinkStage(sessionId: string) {
 
   useEffect(() => {
     let mounted = true;
+    const supabase = getSupabase();
+    const channelName = `match-drink-${sessionId}`;
 
     const initialRefresh = async () => {
       await refresh();
       if (mounted) {
-        pollingRef.current = setInterval(refresh, 1000);
+        pollingRef.current = setInterval(refresh, 2000); // Riduciamo polling ora che c'è Realtime
       }
     };
 
     initialRefresh();
 
+    const channel = supabase
+      .channel(`stage-${channelName}`)
+      .on("broadcast", { event: "session_update" }, ({ payload }) => {
+        if (mounted && payload) {
+          setSession(prev => prev ? { ...prev, ...payload } : prev);
+        }
+      })
+      .on("broadcast", { event: "new_answer" }, () => {
+        void refresh(); // Quando arriva una risposta, aggiorniamo i dati
+      })
+      .on("broadcast", { event: "message_moderated" }, () => {
+        void refresh(); // Quando un messaggio viene approvato
+      })
+      .subscribe();
+
     return () => {
       mounted = false;
       if (pollingRef.current) clearInterval(pollingRef.current);
+      void supabase.removeChannel(channel);
     };
-  }, [refresh]);
+  }, [refresh, sessionId]);
 
   return { session, players, answers, currentMessage, messages, matches, loading };
 }
