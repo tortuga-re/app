@@ -119,7 +119,8 @@ export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
   return mapSession(data);
 };
 
-export const broadcastMatchDrinkUpdate = async (sessionId: string, event: string, payload: Record<string, unknown> = {}) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const broadcastMatchDrinkUpdate = async (sessionId: string, event: string, payload: any = {}) => {
   try {
     const admin = getSupabaseAdmin();
     await admin.channel(`match-drink-${sessionId}`).send({
