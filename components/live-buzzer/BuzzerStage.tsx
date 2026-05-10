@@ -210,6 +210,9 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
             playerRef.current.setShuffle(true);
             playerRef.current.playVideoAt(0);
           } else if (commandType === "next") {
+            if (status === "stopped" || status === "paused") {
+              playerRef.current.playVideo();
+            }
             playerRef.current.nextVideo();
           } else if (commandType === "prev") {
             playerRef.current.previousVideo();
@@ -425,7 +428,7 @@ export function BuzzerStage() {
 
     // Sottoscrizione Realtime Broadcast per reattività istantanea
     channel = supabase
-      .channel("live-buzzer-stage")
+      .channel("live-buzzer")
       .on("broadcast", { event: "state_update" }, ({ payload }) => {
         if (mounted && payload) {
           setGameState(payload);

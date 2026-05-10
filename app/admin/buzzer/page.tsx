@@ -180,7 +180,7 @@ export default function AdminBuzzerPage() {
       
       // Sottoscrizione Realtime Broadcast per reattività istantanea
       channel = supabase
-        .channel("live-buzzer-admin")
+        .channel("live-buzzer")
         .on("broadcast", { event: "state_update" }, ({ payload }) => {
           if (mounted && payload) {
             setGameState(payload);
@@ -566,7 +566,12 @@ export default function AdminBuzzerPage() {
           <div className="panel-muted p-3 rounded-xl border border-white/5 bg-white/2 flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-[10px] text-[var(--text-muted)] font-black uppercase">Playlist Attiva</span>
-              <span className="text-xs text-white font-mono truncate max-w-[150px]">{gameState.youtubePlaylistName || gameState.youtubePlaylistId}</span>
+              <span className="text-sm text-white font-bold truncate max-w-[200px]">
+                {gameState.youtubePlaylistName || "Senza Nome"}
+              </span>
+              <span className="text-[9px] text-[var(--text-muted)] font-mono truncate max-w-[150px]">
+                ID: {gameState.youtubePlaylistId}
+              </span>
             </div>
             <div className="text-right">
               <span className="text-[10px] text-[var(--text-muted)] font-black uppercase">Stato</span>
