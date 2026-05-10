@@ -92,7 +92,7 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         })
         .on("broadcast", { event: "match_updated" }, () => void refresh())
         .on("broadcast", { event: "player_joined" }, () => void refresh())
-        .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
+        .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           if (mounted && payload) {
             if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
               if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;

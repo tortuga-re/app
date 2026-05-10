@@ -46,7 +46,7 @@ export async function getState(): Promise<BuzzerState> {
       .from("buzzer_session")
       .select("state")
       .eq("id", 1)
-      .single()) as any;
+      .single()) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     if (error || !data) return getInitialState();
     return data.state as BuzzerState;
@@ -75,7 +75,7 @@ async function writeState(state: BuzzerState): Promise<void> {
   }
 }
 
-let updateQueue: Promise<any> = Promise.resolve();
+let updateQueue: Promise<any> = Promise.resolve(); // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** Read current state, apply updater, write back. Returns new state. 
  * Serialized via a queue to prevent race conditions on shared host. */

@@ -29,6 +29,8 @@ export function useMatchDrinkStage(sessionId: string) {
         if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
           if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
           setSession(data.session);
+          setPlayers(data.players || []);
+          setAnswers(data.answers || []);
           setCurrentMessage(data.currentMessage);
           setMessages(data.messages || []);
           setMatches(data.matches || []);
@@ -56,7 +58,7 @@ export function useMatchDrinkStage(sessionId: string) {
 
     const channel = supabase
       .channel(channelName)
-      .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
+      .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         if (mounted && payload) {
           if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
             if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;

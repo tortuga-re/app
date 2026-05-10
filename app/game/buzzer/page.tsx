@@ -113,6 +113,7 @@ export default function BuzzerPage() {
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
     const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any = null;
 
     void syncSession().then(() => {

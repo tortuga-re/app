@@ -42,7 +42,6 @@ export function useMatchDrinkPlayer() {
   });
 
   const refresh = useCallback(async () => {
-    const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
     const currentSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
     const currentPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
 
@@ -125,7 +124,7 @@ export function useMatchDrinkPlayer() {
       if (currentSessionId) {
         channel = supabase
           .channel(`match-drink-${currentSessionId}`)
-          .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
+          .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
             if (mounted && payload) {
               if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
                 if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;

@@ -459,7 +459,7 @@ export function BuzzerStage() {
     // Sottoscrizione Realtime Broadcast per reattività istantanea
     channel = supabase
       .channel("live-buzzer")
-      .on("broadcast", { event: "state_update" }, ({ payload }) => {
+      .on("broadcast", { event: "state_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         if (mounted && payload) {
           const incomingId = Number(payload.lastUpdateId) || 0;
           const currentId = Number(lastUpdateIdRef.current) || 0;
