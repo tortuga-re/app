@@ -181,17 +181,40 @@ function YouTubePlayer({ playlistId, status, commandId, commandType }: { playlis
     }
 
     return () => {
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch (e) {
-          console.error("Error destroying player", e);
-        }
-        playerRef.current = null;
-        setIsPlayerReady(false);
-      }
+      // We only destroy if the component unmounts or if playlistId changes significantly
     };
-  }, [playlistId, status]);
+  }, []);
+
+  // Handle Playlist Changes
+  useEffect(() => {
+    if (!playlistId || !isPlayerReady || !playerRef.current) return;
+    
+    try {
+      playerRef.current.cuePlaylist({
+        listType: 'playlist',
+        list: playlistId,
+        index: 0,
+        startSeconds: 0,
+        suggestedQuality: 'large'
+      });
+      playerRef.current.setShuffle(true);
+    } catch (e) {
+      console.error("Error cueing playlist", e);
+    }
+  }, [playlistId, isPlayerReady]);
+
+  // Handle Status Changes
+  useEffect(() => {
+    if (!isPlayerReady || !playerRef.current) return;
+    
+    if (status === "playing") {
+      playerRef.current.playVideo();
+    } else if (status === "paused") {
+      playerRef.current.pauseVideo();
+    } else if (status === "stopped") {
+      playerRef.current.stopVideo();
+    }
+  }, [status, isPlayerReady]);
 
   useEffect(() => {
     if (isPlayerReady && commandId > lastCommandId.current && playerRef.current) {
