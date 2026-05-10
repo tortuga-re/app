@@ -119,6 +119,19 @@ export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
   return mapSession(data);
 };
 
+export const broadcastMatchDrinkUpdate = async (sessionId: string, event: string, payload: Record<string, unknown> = {}) => {
+  try {
+    const admin = getSupabaseAdmin();
+    await admin.channel(`match-drink-${sessionId}`).send({
+      type: "broadcast",
+      event,
+      payload,
+    });
+  } catch (e) {
+    console.error("MatchDrink Broadcast error:", e);
+  }
+};
+
 export const updateSessionStatus = async (
   id: string,
   status: MatchDrinkSession["status"]
@@ -130,6 +143,7 @@ export const updateSessionStatus = async (
     .eq("id", id);
 
   if (error) throw error;
+  void broadcastMatchDrinkUpdate(id, "session_update", { status });
 };
 
 export const updateStageMode = async (
@@ -152,6 +166,7 @@ export const updateStageMode = async (
     .eq("id", id);
 
   if (error) throw error;
+  void broadcastMatchDrinkUpdate(id, "session_update", { stageMode: stage_mode, currentStageMessageId: current_stage_message_id });
 };
 
 export const updateQuestionIndex = async (id: string, index: number) => {
@@ -162,6 +177,7 @@ export const updateQuestionIndex = async (id: string, index: number) => {
     .eq("id", id);
 
   if (error) throw error;
+  void broadcastMatchDrinkUpdate(id, "session_update", { currentQuestionIndex: index });
 };
 
 export const joinSession = async (
@@ -185,7 +201,9 @@ export const joinSession = async (
     .single();
 
   if (error) throw error;
-  return mapPlayer(data);
+  const result = mapPlayer(data);
+  void broadcastMatchDrinkUpdate(player.sessionId, "player_joined", result);
+  return result;
 };
 
 export const getPlayer = async (id: string): Promise<MatchDrinkPlayer | null> => {
@@ -230,7 +248,9 @@ export const saveAnswer = async (
     .single();
 
   if (error) throw error;
-  return mapAnswer(data);
+  const result = mapAnswer(data);
+  void broadcastMatchDrinkUpdate(answer.sessionId, "new_answer", result);
+  return result;
 };
 
 export const getAnswers = async (sessionId: string): Promise<MatchDrinkAnswer[]> => {
@@ -276,7 +296,9 @@ export const createBottleMessage = async (
     .single();
 
   if (error) throw error;
-  return mapMessage(data);
+  const result = mapMessage(data);
+  void broadcastMatchDrinkUpdate(message.sessionId, "new_message", result);
+  return result;
 };
 
 export const getMessages = async (
@@ -308,6 +330,11 @@ export const moderateMessage = async (
     .eq("id", messageId);
 
   if (error) throw error;
+  
+  const msg = await getBottleMessage(messageId);
+  if (msg) {
+    void broadcastMatchDrinkUpdate(msg.sessionId, "message_moderated", { messageId, status, approvedText });
+  }
 };
 
 export const getBottleMessage = async (id: string): Promise<MatchDrinkBottleMessage | null> => {
@@ -346,7 +373,7 @@ export const getPlayerMatch = async (
     .maybeSingle();
 
   if (error) throw error;
-  return data ? mapMatch(data) : null;
+  return data ? mapMatch(data as Record<string, unknown>) : null;
 };
 
 export const acceptMatch = async (
@@ -390,6 +417,8 @@ export const acceptMatch = async (
     .eq("id", matchId);
 
   if (error) throw error;
+
+  void broadcastMatchDrinkUpdate(match.data.session_id, "match_updated", { matchId, playerId, drinkUnlocked: !!updateData.drink_unlocked });
 };
 
 export const redeemDrink = async (matchId: string) => {
@@ -439,6 +468,10 @@ export const storeMatches = async (matches: Omit<MatchDrinkMatch, "id" | "create
     })));
 
   if (error) throw error;
+  
+  if (matches.length > 0) {
+    void broadcastMatchDrinkUpdate(matches[0].sessionId, "matches_stored");
+  }
 };
 
 // Mappers

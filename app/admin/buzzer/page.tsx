@@ -7,6 +7,7 @@ import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
 import { isAdmin } from "@/lib/live-buzzer/admin";
+import { getSupabase } from "@/lib/match-drink/supabase";
 import { ChevronLeft } from "lucide-react";
 import type { BuzzerState, BuzzerEntry, BuzzerResult } from "@/lib/live-buzzer/types";
 
@@ -145,38 +146,60 @@ export default function AdminBuzzerPage() {
   useEffect(() => {
     if (!canAccess || !isPinAuthorized) return;
 
-    let cancelled = false;
-    let eventSource: EventSource | null = null;
+    let mounted = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+    const supabase = getSupabase();
+    let channel: any = null;
 
-    void syncSession().then(() => {
-      if (cancelled) return;
-      void fetch("/api/live-buzzer/admin/activate", { method: "POST" });
-      
-      eventSource = new EventSource("/api/live-buzzer/stream");
-      eventSource.onmessage = (event) => {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const data = JSON.parse(event.data) as any;
+    const fetchState = async () => {
+      try {
+        const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
+        if (res.ok && mounted) {
+          const data = await res.json();
           setGameState(data);
           if (data.entries) {
             setEntries(data.entries);
           }
           setLoading(false);
-        } catch (err) {
-          console.error("SSE parse error", err);
         }
-      };
+      } catch (err) {
+        console.error("Admin fetch error", err);
+      }
+    };
 
-      eventSource.onerror = () => {
-        console.error("SSE connection error");
-      };
+    const startPolling = () => {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        void fetchState();
+      }, 2000); // Polling ogni 2 secondi come paracadute
+    };
+
+    void syncSession().then(() => {
+      if (!mounted) return;
+      void fetch("/api/live-buzzer/admin/activate", { method: "POST" });
+      
+      // Sottoscrizione Realtime Broadcast per reattività istantanea
+      channel = supabase
+        .channel("live-buzzer-admin")
+        .on("broadcast", { event: "state_update" }, ({ payload }) => {
+          if (mounted && payload) {
+            setGameState(payload);
+            if (payload.entries) {
+              setEntries(payload.entries);
+            }
+            setLoading(false);
+          }
+        })
+        .subscribe();
+
+      void fetchState();
+      startPolling();
     });
 
     return () => {
-      cancelled = true;
-      if (eventSource) {
-        eventSource.close();
-      }
+      mounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [canAccess, isPinAuthorized, syncSession]);
 

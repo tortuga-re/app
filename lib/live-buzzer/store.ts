@@ -75,14 +75,21 @@ async function writeState(state: BuzzerState): Promise<void> {
   }
 }
 
-/** Read current state, apply updater, write back. Returns new state. */
+let updateQueue: Promise<any> = Promise.resolve();
+
+/** Read current state, apply updater, write back. Returns new state. 
+ * Serialized via a queue to prevent race conditions on shared host. */
 export async function updateState(
   updater: (s: BuzzerState) => BuzzerState
 ): Promise<BuzzerState> {
-  const current = await getState();
-  const next = { ...updater(current), lastUpdateId: newUpdateId() };
-  await writeState(next);
-  return next;
+  const result = updateQueue.then(async () => {
+    const current = await getState();
+    const next = { ...updater(current), lastUpdateId: newUpdateId() };
+    await writeState(next);
+    return next;
+  });
+  updateQueue = result.catch(() => {}); // Prevent queue from breaking on error
+  return result;
 }
 
 // ─── Rank calculation (pure) ──────────────────────────────────────────────────
@@ -119,6 +126,8 @@ export const openBuzzer = async () => {
   // After 3s countdown, switch to open
   setTimeout(async () => {
     await updateState(s => {
+      // Importante: verifichiamo che siamo ancora in countdown e che l'ID update sia coerente
+      // Se l'admin ha fatto altro nel frattempo, non forziamo 'open'
       if (s.status !== "countdown") return s;
       return {
         ...s,
@@ -309,6 +318,7 @@ export const triggerYoutubeCommand = (command: "next" | "prev" | "shuffle") =>
 // ─── Score ────────────────────────────────────────────────────────────────────
 
 export const assignScore = async (email: string, points: number, result: BuzzerResult) => {
+  // Salviamo l'UpdateID generato per validare i timeout successivi
   const state = await updateState(s => {
     const entries = s.entries.map(e => {
       if (e.id === s.currentResponderEntryId && e.email === email && !e.scored) {
@@ -339,19 +349,25 @@ export const assignScore = async (email: string, points: number, result: BuzzerR
     };
   });
 
-  // After-score timeouts (still in-process, but final write goes to Supabase)
+  const triggerUpdateId = state.lastUpdateId;
+
+  // After-score timeouts
   setTimeout(async () => {
+    // Verifichiamo se nel frattempo lo stato è cambiato o se un altro update ha sovrascritto questo
     const current = await getState();
-    if (current.status !== "result_screen") return;
+    if (current.status !== "result_screen" || current.lastUpdateId !== triggerUpdateId) return;
 
     if (result === "wrong") {
       await updateState(s => {
-        if (s.status !== "result_screen") return s;
+        if (s.status !== "result_screen" || s.lastUpdateId !== triggerUpdateId) return s;
         return { ...s, status: "countdown" as const, countdownStart: Date.now() };
       });
+      
+      const countdownUpdateId = (await getState()).lastUpdateId;
+      
       setTimeout(async () => {
         await updateState(s => {
-          if (s.status !== "countdown") return s;
+          if (s.status !== "countdown" || s.lastUpdateId !== countdownUpdateId) return s;
           return {
             ...s,
             status: "open" as const,
@@ -368,7 +384,7 @@ export const assignScore = async (email: string, points: number, result: BuzzerR
   if (result === "correct") {
     setTimeout(async () => {
       await updateState(s => {
-        if (s.status !== "result_screen") return s;
+        if (s.status !== "result_screen" || s.lastUpdateId !== triggerUpdateId) return s;
         return {
           ...s,
           status: "ended" as const,
