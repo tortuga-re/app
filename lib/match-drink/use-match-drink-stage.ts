@@ -19,17 +19,21 @@ export function useMatchDrinkStage(sessionId: string) {
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  const lastUpdatedAtRef = useRef<string>("");
   const refresh = useCallback(async () => {
+    if (!sessionId) return;
     try {
-      const res = await fetch(`/api/match-drink/session/${sessionId}/stage-status`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setSession(data.session);
-      setPlayers(data.players);
-      setAnswers(data.answers);
-      setCurrentMessage(data.currentMessage);
-      setMessages(data.messages || []);
-      setMatches(data.matches || []);
+      const res = await fetch(`/api/match-drink/session/${sessionId}/stage-status`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
+          if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+          setSession(data.session);
+          setCurrentMessage(data.currentMessage);
+          setMessages(data.messages || []);
+          setMatches(data.matches || []);
+        }
+      }
       setLoading(false);
     } catch (err) {
       console.error("Stage poll error:", err);
@@ -52,9 +56,12 @@ export function useMatchDrinkStage(sessionId: string) {
 
     const channel = supabase
       .channel(channelName)
-      .on("broadcast", { event: "session_update" }, ({ payload }) => {
+      .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
         if (mounted && payload) {
-          setSession(prev => prev ? { ...prev, ...payload } : prev);
+          if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
+            if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
+            setSession(prev => prev ? { ...prev, ...payload } : prev);
+          }
         }
       })
       .on("broadcast", { event: "new_answer" }, () => {

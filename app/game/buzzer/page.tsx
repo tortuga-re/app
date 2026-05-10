@@ -29,6 +29,7 @@ export default function BuzzerPage() {
   const lastResponderIdRef = useRef<string | null>(null);
   const lastRoundEndedRef = useRef<boolean>(false);
   const gameStateRef = useRef<BuzzerState | null>(null);
+  const lastUpdateIdRef = useRef<number | string>(0);
 
   const syncSession = useCallback(async () => {
     if (identity.email) {
@@ -78,20 +79,27 @@ export default function BuzzerPage() {
 
   const fetchState = useCallback(async () => {
     try {
-      const data = await requestJson<BuzzerState>("/api/live-buzzer/state");
-      setGameState(data);
-      gameStateRef.current = data;
+      const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const incomingId = typeof data.lastUpdateId === 'number' ? data.lastUpdateId : 0;
+        const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+        if (incomingId >= currentId) {
+          lastUpdateIdRef.current = incomingId;
+          setGameState(data);
+          gameStateRef.current = data;
+          
+          const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
+          setIsRegistered(Boolean(userInLeaderboard));
+          if (userInLeaderboard) {
+            setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+          }
 
-      const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
-      setIsRegistered(Boolean(userInLeaderboard));
-      if (userInLeaderboard) {
-        setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
-      }
-
-      // Check for new score feedback
-      if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
-        lastScoredIdRef.current = data.userEntry.id;
-        triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+          if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
+            lastScoredIdRef.current = data.userEntry.id;
+            triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+          }
+        }
       }
       setLoading(false);
     } catch (err) {
@@ -125,19 +133,24 @@ export default function BuzzerPage() {
         .channel("live-buzzer")
         .on("broadcast", { event: "state_update" }, ({ payload }) => {
           if (mounted && payload) {
-            setGameState(payload);
-            gameStateRef.current = payload;
-            
-            // Sync local team info and feedback
-            const data = payload as BuzzerState;
-            const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
-            setIsRegistered(Boolean(userInLeaderboard));
-            if (userInLeaderboard) {
-              setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
-            }
-            if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
-              lastScoredIdRef.current = data.userEntry.id;
-              triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+            const incomingId = typeof payload.lastUpdateId === 'number' ? payload.lastUpdateId : 0;
+            const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+            if (incomingId >= currentId) {
+              lastUpdateIdRef.current = incomingId;
+              setGameState(payload);
+              gameStateRef.current = payload;
+              
+              // Sync local team info and feedback
+              const data = payload as BuzzerState;
+              const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
+              setIsRegistered(Boolean(userInLeaderboard));
+              if (userInLeaderboard) {
+                setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+              }
+              if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
+                lastScoredIdRef.current = data.userEntry.id;
+                triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+              }
             }
           }
         })
