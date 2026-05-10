@@ -79,6 +79,7 @@ export const updateSession = async (id: string, updates: Partial<MatchDrinkSessi
     .eq("id", id);
 
   if (error) throw error;
+  void broadcastMatchDrinkUpdate(id, "session_update", { ...updates, updatedAt: new Date().toISOString() });
 };
 
 export const getSession = async (id: string): Promise<MatchDrinkSession | null> => {

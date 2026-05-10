@@ -280,6 +280,7 @@ export const setYoutubePlaylist = (id: string, name?: string) =>
     youtubePlaylistId: id,
     youtubePlaylistName: name,
     youtubeStatus: "stopped" as const,
+    youtubeCommandId: s.youtubeCommandId + 1,
   }));
 
 export const setYoutubeStatus = (status: "playing" | "paused" | "stopped", title?: string) =>

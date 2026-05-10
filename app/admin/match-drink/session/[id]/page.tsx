@@ -343,15 +343,20 @@ export default function MatchDrinkSessionAdminPage() {
                     <div className="flex flex-wrap gap-1">
                       {msg.status === "pending" && (
                         <>
-                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "approve")}>OK</MatchDrinkButton>
-                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" variant="secondary" onClick={() => moderateMessage(msg.id, "reject")}>NO</MatchDrinkButton>
+                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "approved")}>APPROVA</MatchDrinkButton>
+                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" variant="secondary" onClick={() => moderateMessage(msg.id, "rejected")}>RIFIUTA</MatchDrinkButton>
                         </>
                       )}
-                      {msg.status === "approved" && (
-                        <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "show")}>MOSTRA IN STAGE</MatchDrinkButton>
+                      {(msg.status === "approved" || msg.status === "shown") && (
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded uppercase">In Rotazione</span>
+                          {msg.status !== "shown" && (
+                             <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "shown")}>EVIDENZIA</MatchDrinkButton>
+                          )}
+                        </div>
                       )}
                       {msg.status === "shown" && (
-                        <span className="text-[10px] font-bold text-[var(--accent-strong)] ml-auto">LIVE</span>
+                        <span className="text-[10px] font-bold text-[var(--accent-strong)] ml-auto animate-pulse">LIVE ORA</span>
                       )}
                     </div>
                   </div>
