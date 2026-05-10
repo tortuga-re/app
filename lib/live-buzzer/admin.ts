@@ -1,5 +1,6 @@
 export const ADMIN_EMAILS = [
   "kinderland.re@gmail.com",
+  "tommasop96@gmail.com",
 ];
 
 export function isAdmin(email?: string): boolean {
