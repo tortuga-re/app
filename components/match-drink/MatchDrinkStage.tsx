@@ -196,7 +196,6 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
             </div>
           )}
 
-          {session.stageMode === "question" && (
           {(session.stageMode === "question" || session.stageMode === "question_results") && (
             <div className="w-full max-w-[95%] mx-auto flex flex-col justify-center h-full space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500 min-h-0">
               {(() => {
