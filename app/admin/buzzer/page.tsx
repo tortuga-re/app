@@ -157,8 +157,8 @@ export default function AdminBuzzerPage() {
         const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
         if (res.ok && mounted) {
           const data = await res.json();
-          const incomingId = typeof data.lastUpdateId === 'number' ? data.lastUpdateId : 0;
-          const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+          const incomingId = Number(data.lastUpdateId) || 0;
+          const currentId = Number(lastUpdateIdRef.current) || 0;
           
           if (incomingId >= currentId) {
             lastUpdateIdRef.current = incomingId;
@@ -190,8 +190,8 @@ export default function AdminBuzzerPage() {
         .channel("live-buzzer")
         .on("broadcast", { event: "state_update" }, ({ payload }) => {
           if (mounted && payload) {
-            const incomingId = typeof payload.lastUpdateId === 'number' ? payload.lastUpdateId : 0;
-            const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+            const incomingId = Number(payload.lastUpdateId) || 0;
+            const currentId = Number(lastUpdateIdRef.current) || 0;
             if (incomingId >= currentId) {
               lastUpdateIdRef.current = incomingId;
               setGameState(payload);

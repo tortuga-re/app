@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { validateAdminPin } from "@/lib/match-drink/storage";
+import { createBottleMessage, updateStageMode, validateAdminPin } from "@/lib/match-drink/storage";
 
 export async function POST(
   req: NextRequest,
@@ -53,29 +53,19 @@ export async function POST(
     const playerId = players[0].id;
     const isCountdown = message.startsWith("COUNTDOWN:");
 
-    const { data: msgData, error: msgError } = await supabase.from("match_drink_bottle_messages").insert({
-      session_id: sessionId,
-      player_id: playerId,
+    const newMessage = await createBottleMessage({
+      sessionId,
+      playerId,
       message,
-      display_mode: "captain",
+      displayMode: "captain",
       status: "approved",
-    }).select().single();
-
-    if (msgError) throw msgError;
+    });
 
     if (!isCountdown) {
-      const { error: sessionError } = await supabase
-        .from("match_drink_sessions")
-        .update({
-          current_stage_message_id: msgData.id,
-          stage_mode: "message",
-        })
-        .eq("id", sessionId);
-
-      if (sessionError) throw sessionError;
+      await updateStageMode(sessionId, "message", newMessage.id);
     }
 
-    return NextResponse.json({ success: true, messageId: msgData.id });
+    return NextResponse.json({ success: true, messageId: newMessage.id });
   } catch (error) {
     console.error("Captain message error:", error);
     return NextResponse.json({ error: "Errore invio messaggio capitano" }, { status: 500 });

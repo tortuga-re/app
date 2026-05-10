@@ -196,104 +196,82 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
             </div>
           )}
 
-          {session.stageMode === "question" && (
+          {(session.stageMode === "question" || session.stageMode === "question_results") && (
             <div className="w-full max-w-[95%] mx-auto flex flex-col justify-center h-full space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500 min-h-0">
               {(() => {
                 const questions = session.questions || [];
                 const q = questions[session.currentQuestionIndex];
                 if (!q) return <div className="text-center text-white/50">Caricamento domande...</div>;
-                return (
-                  <>
-                    <div className="space-y-1 text-center shrink-0">
-                      <p className="text-2xl text-[var(--accent-strong)] font-black uppercase tracking-[0.5em]">Domanda {session.currentQuestionIndex + 1}</p>
-                      <h2 className="text-4xl md:text-6xl font-black leading-tight uppercase tracking-tight text-white">{q.text}</h2>
-                    </div>                    <div className="flex-1 flex flex-col gap-4 w-full min-h-0 overflow-y-auto py-6 max-w-5xl mx-auto px-4">
-                      {q.options.map(opt => (
-                        <div 
-                          key={opt.id} 
-                          className="relative flex items-center group animate-in slide-in-from-bottom duration-500"
-                          style={{ animationDelay: `${parseInt(opt.id) * 150}ms` }}
-                        >
-                          {/* Option Bar */}
-                          <div className="w-full min-h-[5rem] md:min-h-[7rem] bg-white/5 border-l-[1rem] border-[var(--accent-strong)] rounded-r-[2rem] flex items-center px-8 shadow-[0_10px_30px_rgba(0,0,0,0.6)] relative overflow-hidden backdrop-blur-sm border border-white/10">
-                            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-soft)]/20 to-transparent pointer-events-none" />
-                            
-                            {/* Number Circle */}
-                            <div className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white text-black shrink-0 shadow-2xl border-4 border-[var(--accent-strong)] transform -rotate-3 group-hover:rotate-0 transition-transform">
-                              <span className="text-3xl md:text-5xl font-black leading-none">{opt.id}</span>
-                            </div>
- 
-                            {/* Text */}
-                            <div className="flex-1 ml-8 md:ml-12 overflow-hidden">
-                              <span className="text-3xl md:text-5xl lg:text-6xl font-black uppercase text-white tracking-tighter block leading-tight drop-shadow-lg">
-                                {opt.text}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                  </>
-                );
-              })()}
-            </div>
-          )}
-
-          {session.stageMode === "question_results" && (
-            <div className="w-full max-w-[95%] mx-auto flex flex-col justify-center h-full space-y-4 animate-in fade-in duration-700 min-h-0">
-              {(() => {
-                const questions = session.questions || [];
-                const q = questions[session.currentQuestionIndex];
-                if (!q) return null;
                 
+                const isResult = session.stageMode === "question_results";
                 const qAnswers = answers.filter(a => a.questionId === q.id);
-                const counts = q.options.map(opt => ({
-                  ...opt,
-                  count: qAnswers.filter(a => a.selectedOptionId === opt.id).length
-                }));
-                const maxCount = Math.max(...counts.map(c => c.count)) || 1;
-
+                const totalAnswers = qAnswers.length || 1;
+                
                 return (
                   <>
                     <div className="space-y-1 text-center shrink-0">
-                      <p className="text-2xl text-[var(--accent-strong)] font-black uppercase tracking-[0.5em]">Risultati Domanda {session.currentQuestionIndex + 1}</p>
+                      <p className="text-2xl text-[var(--accent-strong)] font-black uppercase tracking-[0.5em]">
+                        {isResult ? `Risultati Domanda ${session.currentQuestionIndex + 1}` : `Domanda ${session.currentQuestionIndex + 1}`}
+                      </p>
                       <h2 className="text-4xl md:text-6xl font-black leading-tight uppercase tracking-tight text-white">{q.text}</h2>
-                    </div>                    <div className="flex-1 flex flex-col gap-4 w-full min-h-0 overflow-y-auto py-6 max-w-5xl mx-auto px-4">
-                      {counts.map(c => (
-                        <div key={c.id} className="relative bg-white/5 rounded-r-[2rem] border border-white/10 overflow-hidden flex items-center px-8 min-h-0 shadow-2xl backdrop-blur-sm">
-                          {/* Progress Bar Background */}
-                          <div 
-                            className="absolute inset-y-0 left-0 bg-[var(--accent-strong)]/30 border-r-4 border-[var(--accent-strong)] transition-all duration-1000 shadow-[0_0_20px_rgba(216,176,106,0.3)]"
-                            style={{ width: `${(c.count / (qAnswers.length || 1)) * 100}%` }}
-                          />
-                          
-                          <div className="relative z-10 w-full flex items-center">
-                            {/* Number Circle */}
-                            <div className="flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white text-black shrink-0 shadow-xl border-2 border-[var(--accent-strong)]">
-                              <span className="text-2xl md:text-3xl font-black leading-none">{c.id}</span>
-                            </div>
- 
-                            <div className="flex-1 ml-6 md:ml-10 overflow-hidden">
-                              <span className="text-2xl md:text-4xl font-black uppercase text-white tracking-tighter truncate block drop-shadow-lg">{c.text}</span>
-                            </div>
-                            
-                            <div className="ml-4 flex flex-col items-end shrink-0">
-                              <span className="text-2xl md:text-4xl font-black text-white tabular-nums drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-                                {Math.round((c.count / (qAnswers.length || 1)) * 100)}%
-                              </span>
-                              <span className="text-[10px] md:text-xs font-black text-[var(--accent-strong)] uppercase tracking-[0.2em]">{c.count}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
                     </div>
 
-                    {maxCount > 0 && (
-                      <div className="text-center pt-2 shrink-0">
-                         <p className="text-2xl md:text-3xl italic text-[var(--accent-strong)] font-black uppercase tracking-tight leading-tight">
-                           &quot;{counts.find(c => c.count === maxCount)?.comment || "Il Capitano sta prendendo appunti."}&quot;
-                         </p>
+                    <div className="flex-1 flex flex-col gap-3 w-full py-4 max-w-6xl mx-auto px-4 h-full">
+                      {q.options.map((opt, idx) => {
+                        const count = qAnswers.filter(a => a.selectedOptionId === opt.id).length;
+                        const percent = Math.round((count / totalAnswers) * 100);
+                        
+                        return (
+                          <div 
+                            key={opt.id} 
+                            className="relative flex-1 flex items-stretch group animate-in slide-in-from-bottom duration-500 min-h-[4rem]"
+                            style={{ animationDelay: `${idx * 100}ms` }}
+                          >
+                            {/* Option Bar */}
+                            <div className="w-full bg-white/5 border-l-[1rem] border-[var(--accent-strong)] rounded-r-[2rem] flex items-center px-10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative overflow-hidden backdrop-blur-md border border-white/10">
+                              
+                              {/* Progress Bar Background (Only in Results Mode) */}
+                              <div 
+                                className={`absolute inset-y-0 left-0 bg-gradient-to-r from-[var(--accent-strong)]/30 to-[var(--accent-strong)]/10 border-r-4 border-[var(--accent-strong)]/60 transition-all duration-1000 ease-out ${isResult ? "opacity-100" : "opacity-0"}`}
+                                style={{ width: isResult ? `${percent}%` : "0%" }}
+                              />
+                              
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                              
+                              <div className="relative z-10 w-full flex items-center">
+                                {/* Number Circle */}
+                                <div className="flex items-center justify-center w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-white text-black shrink-0 shadow-2xl border-4 border-[var(--accent-strong)] transform -rotate-2 group-hover:rotate-0 transition-transform">
+                                  <span className="text-4xl md:text-6xl font-black leading-none">{opt.id}</span>
+                                </div>
+    
+                                {/* Text */}
+                                <div className="flex-1 ml-10 md:ml-16 overflow-hidden">
+                                  <span className="text-3xl md:text-5xl lg:text-6xl font-black uppercase text-white tracking-tighter block leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                                    {opt.text}
+                                  </span>
+                                </div>
+
+                                {/* Result Overlay (Only in Results Mode) */}
+                                {isResult && (
+                                  <div className="ml-6 flex flex-col items-end shrink-0 animate-in zoom-in slide-in-from-right duration-700">
+                                    <span className="text-4xl md:text-7xl font-black text-white tabular-nums drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] gold-gradient italic">
+                                      {percent}%
+                                    </span>
+                                    <span className="text-xs md:text-sm font-black text-[var(--accent-strong)] uppercase tracking-[0.3em]">{count} VOTI</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {isResult && (
+                      <div className="text-center pt-2 shrink-0 animate-in fade-in duration-1000 delay-700">
+                        <p className="text-2xl md:text-3xl italic text-[var(--accent-strong)] font-black uppercase tracking-tight leading-tight">
+                          &quot;{q.options.find(o => qAnswers.filter(a => a.selectedOptionId === o.id).length === Math.max(...q.options.map(o2 => qAnswers.filter(a2 => a2.selectedOptionId === o2.id).length)))?.comment || "Il Capitano sta prendendo appunti."}&quot;
+                        </p>
                       </div>
                     )}
                   </>
