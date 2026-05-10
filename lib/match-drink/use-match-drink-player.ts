@@ -190,7 +190,7 @@ export function useMatchDrinkPlayer() {
     }
 
     try {
-      const res = await fetch("/api/match-drink/player/join", {
+      const res = await fetch(`/api/match-drink/session/${activeSessionId}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -225,7 +225,7 @@ export function useMatchDrinkPlayer() {
   const submitAnswer = async (questionId: string, optionId: string) => {
     if (!player) return;
     try {
-      const res = await fetch("/api/match-drink/player/answer", {
+      const res = await fetch(`/api/match-drink/session/${player.sessionId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
