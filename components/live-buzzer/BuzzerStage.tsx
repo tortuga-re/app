@@ -459,7 +459,7 @@ export function BuzzerStage() {
     // Sottoscrizione Realtime Broadcast per reattività istantanea
     channel = supabase
       .channel("live-buzzer")
-      .on("broadcast", { event: "state_update" }, ({ payload }) => {
+      .on("broadcast", { event: "state_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         if (mounted && payload) {
           const incomingId = Number(payload.lastUpdateId) || 0;
           const currentId = Number(lastUpdateIdRef.current) || 0;
@@ -555,6 +555,17 @@ export function BuzzerStage() {
       <div className={`relative h-full flex-1 flex flex-col items-center justify-center z-10 w-full transition-all duration-700 ${(gameState?.youtubeStatus === 'playing' && !isResultScreen && !gameState?.leaderboardVisible) ? 'opacity-0 invisible pointer-events-none' : 'opacity-100 visible'}`}>
         {isCountdown ? (
           <CountdownDisplay countdownStart={gameState?.countdownStart || 0} />
+        ) : gameState?.leaderboardVisible ? (
+          <div className="text-center w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-1000">
+             <h2 className="text-5xl md:text-7xl font-black uppercase tracking-widest text-white mb-12 italic gold-gradient">
+               {gameState?.leaderboardRevealStep !== null ? "Classifica Finale" : "Classifica Live"}
+             </h2>
+             <LeaderboardList 
+               leaderboard={gameState?.leaderboard || []}
+               revealStep={gameState?.leaderboardRevealStep ?? null}
+             />
+          </div>
+
         ) : isResultScreen && gameState?.lastScoredEntry ? (
           <div className="w-full h-full flex flex-col items-center justify-center animate-in zoom-in fade-in duration-500 p-8">
             {gameState.lastScoredEntry.result === "correct" ? (
@@ -636,16 +647,6 @@ export function BuzzerStage() {
              <p className="text-3xl md:text-5xl font-black text-[var(--text-muted)] mt-8 uppercase relative z-10">
                Nessuno ha indovinato!
              </p>
-          </div>
-        ) : gameState?.leaderboardVisible ? (
-          <div className="text-center w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-1000">
-             <h2 className="text-5xl md:text-7xl font-black uppercase tracking-widest text-white mb-12 italic gold-gradient">
-               {gameState?.leaderboardRevealStep !== null ? "Classifica Finale" : "Classifica Live"}
-             </h2>
-             <LeaderboardList 
-               leaderboard={gameState?.leaderboard || []}
-               revealStep={gameState?.leaderboardRevealStep ?? null}
-             />
           </div>
         ) : null}
       </div>

@@ -209,7 +209,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
           )}
 
           {(session.stageMode === "question" || session.stageMode === "question_results") && (
-            <div className="w-full max-w-[95%] mx-auto flex flex-col justify-center h-full space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500 min-h-0">
+            <div className="w-full max-w-[95%] mx-auto flex flex-col h-full space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500 py-4 overflow-hidden">
               {(() => {
                 const questions = session.questions || [];
                 const q = questions[session.currentQuestionIndex];
@@ -228,7 +228,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                       <h2 className="text-4xl md:text-6xl font-black leading-tight uppercase tracking-tight text-white">{q.text}</h2>
                     </div>
 
-                    <div className="flex-1 flex flex-col gap-3 w-full py-4 max-w-6xl mx-auto px-4 h-full">
+                    <div className="flex-1 flex flex-col gap-4 w-full max-w-6xl mx-auto px-4 min-h-0">
                       {q.options.map((opt, idx) => {
                         const count = qAnswers.filter(a => a.selectedOptionId === opt.id).length;
                         const percent = Math.round((count / totalAnswers) * 100);

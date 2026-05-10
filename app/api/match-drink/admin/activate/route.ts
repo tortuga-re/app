@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    let session = await getActiveSession();
+    const session = await getActiveSession();
     
     // Se non c'è una sessione attiva, non facciamo nulla.
     // L'utente deve crearne una manualmente dalla dashboard.

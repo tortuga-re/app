@@ -113,6 +113,7 @@ export default function BuzzerPage() {
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
     const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any = null;
 
     void syncSession().then(() => {
@@ -332,7 +333,7 @@ export default function BuzzerPage() {
 
   const isCurrentResponder = gameState?.userEntry?.id === gameState?.currentResponderEntryId;
   const userRank = gameState ? gameState.leaderboard.findIndex(t => t.email === identity.email) + 1 : 0;
-  const isWinner = gameState?.roundEnded && userRank === 1;
+  const isWinner = gameState?.roundEnded && userRank === 1 && gameState?.leaderboardRevealFinished;
 
   const getStatusMessage = () => {
     if (gameState?.roundEnded) {

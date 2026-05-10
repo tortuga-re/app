@@ -42,14 +42,23 @@ export function useMatchDrinkPlayer() {
   });
 
   const refresh = useCallback(async () => {
-    const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
     const currentSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
     const currentPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
 
     if (!currentSessionId || !currentPlayerId) {
       if (!currentSessionId) {
-        setSession(null);
-        setPlayer(null);
+        // Proviamo a recuperare la sessione attiva se non ne abbiamo una
+        try {
+          const activeRes = await fetch("/api/match-drink/session/active", { cache: "no-store" });
+          if (activeRes.ok) {
+            const activeData = await activeRes.json();
+            if (activeData.session) {
+              setSession(activeData.session);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching active session", e);
+        }
       }
       setLoading(false);
       return;
@@ -115,7 +124,7 @@ export function useMatchDrinkPlayer() {
       if (currentSessionId) {
         channel = supabase
           .channel(`match-drink-${currentSessionId}`)
-          .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
+          .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
             if (mounted && payload) {
               if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
                 if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;

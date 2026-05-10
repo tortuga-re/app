@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     : (store.frozenLeaderboard || store.leaderboard);
 
   if (!store.leaderboardVisible) {
-    leaderboardToDisplay = leaderboardToDisplay.map(team => ({
+    leaderboardToDisplay = leaderboardToDisplay.map((team: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       ...team,
       totalPoints: -999,
     }));

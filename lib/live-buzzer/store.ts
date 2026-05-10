@@ -46,7 +46,7 @@ export async function getState(): Promise<BuzzerState> {
       .from("buzzer_session")
       .select("state")
       .eq("id", 1)
-      .single()) as any;
+      .single()) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     if (error || !data) return getInitialState();
     return data.state as BuzzerState;
@@ -75,7 +75,7 @@ async function writeState(state: BuzzerState): Promise<void> {
   }
 }
 
-let updateQueue: Promise<any> = Promise.resolve();
+let updateQueue: Promise<any> = Promise.resolve(); // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** Read current state, apply updater, write back. Returns new state. 
  * Serialized via a queue to prevent race conditions on shared host. */
@@ -177,6 +177,7 @@ export const endRound = () =>
       leaderboardVisible: true,
       frozenLeaderboard: null,
       leaderboardRevealStep: null,
+      leaderboardRevealFinished: false,
     };
   });
 
@@ -202,6 +203,7 @@ export const startLeaderboardReveal = () =>
     leaderboardVisible: true,
     frozenLeaderboard: null,
     leaderboardRevealStep: 1,
+    leaderboardRevealFinished: false,
   }));
 
 export const nextLeaderboardReveal = () =>
@@ -215,12 +217,14 @@ export const nextLeaderboardReveal = () =>
     
     // Se abbiamo finito di mostrare tutte le squadre (inclusa la 1ª)
     if (next > s.leaderboard.length) {
-      return { ...s, leaderboardRevealStep: 999 }; // Attiviamo il sommario finale
+      return { ...s, leaderboardRevealStep: 999, leaderboardRevealFinished: true }; // Attiviamo il sommario finale
     }
     
     return {
       ...s,
       leaderboardRevealStep: next,
+      // Se abbiamo appena mostrato la prima posizione, consideriamo il reveal finito per i telefoni
+      leaderboardRevealFinished: next >= s.leaderboard.length
     };
   });
 
@@ -232,6 +236,7 @@ export const resetRound = () =>
     roundEnded: false,
     accumulatedTimeMs: 0,
     leaderboardRevealStep: null,
+    leaderboardRevealFinished: false,
     roundOpenedAt: s.status === "open" ? Date.now() : null,
   }));
 

@@ -150,6 +150,7 @@ export default function AdminBuzzerPage() {
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
     const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any = null;
 
     const fetchState = async () => {

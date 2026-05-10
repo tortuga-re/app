@@ -18,7 +18,7 @@ export async function POST(
                    (action === "shown" || action === "show") ? "shown" : null;
 
     if (status) {
-      await moderateMessage(messageId, status as any, approvedText);
+      await moderateMessage(messageId, status as any, approvedText); // eslint-disable-line @typescript-eslint/no-explicit-any
       if (status === "shown") {
         await updateStageMode(id, "message", messageId);
       }

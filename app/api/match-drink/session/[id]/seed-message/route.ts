@@ -43,15 +43,43 @@ export async function POST(
     
     const randomPlayerId = players && players.length > 0 
       ? players[Math.floor(Math.random() * players.length)].id 
-      : (await supabase.from("match_drink_players").select("id").eq("session_id", sessionId).eq("nickname", "_SYSTEM_").single()).data?.id;
+      : null;
 
-    if (!randomPlayerId) {
-       return NextResponse.json({ error: "Nessun naufrago a bordo" }, { status: 400 });
+    let targetPlayerId = randomPlayerId;
+
+    if (!targetPlayerId) {
+      // Create or get system player
+      const { data: sysPlayer, error: sysError } = await supabase
+        .from("match_drink_players")
+        .select("id")
+        .eq("session_id", sessionId)
+        .eq("nickname", "_SYSTEM_")
+        .maybeSingle();
+      
+      if (!sysPlayer) {
+        const { data: newSys, error: newSysError } = await supabase
+          .from("match_drink_players")
+          .insert({
+            session_id: sessionId,
+            nickname: "_SYSTEM_",
+            age_range: "preferisco_non_dirlo",
+            gender: "preferisco_non_dirlo",
+            relationship_status: "solo_per_ridere",
+            looking_for: "amicizie",
+            public_consent: false,
+          })
+          .select()
+          .single();
+        if (newSysError) throw newSysError;
+        targetPlayerId = newSys.id;
+      } else {
+        targetPlayerId = sysPlayer.id;
+      }
     }
 
     const newMessage = await createBottleMessage({
       sessionId,
-      playerId: randomPlayerId,
+      playerId: targetPlayerId,
       message,
       displayMode: "anonymous",
       status: "pending",

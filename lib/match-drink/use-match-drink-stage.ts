@@ -29,6 +29,8 @@ export function useMatchDrinkStage(sessionId: string) {
         if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
           if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
           setSession(data.session);
+          setPlayers(data.players || []);
+          setAnswers(data.answers || []);
           setCurrentMessage(data.currentMessage);
           setMessages(data.messages || []);
           setMatches(data.matches || []);
@@ -56,7 +58,7 @@ export function useMatchDrinkStage(sessionId: string) {
 
     const channel = supabase
       .channel(channelName)
-      .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
+      .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         if (mounted && payload) {
           if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
             if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
@@ -70,6 +72,17 @@ export function useMatchDrinkStage(sessionId: string) {
       })
       .on("broadcast", { event: "new_answer" }, () => {
         void refresh(); // Quando arriva una risposta, aggiorniamo i dati
+      })
+      .on("broadcast", { event: "new_message" }, ({ payload }) => {
+        if (mounted && payload) {
+          setMessages(prev => {
+            if (prev.find(m => m.id === payload.id)) return prev;
+            return [payload, ...prev];
+          });
+          if (payload.displayMode === "captain" || payload.status === "shown") {
+            void refresh();
+          }
+        }
       })
       .on("broadcast", { event: "message_moderated" }, () => {
         void refresh(); // Quando un messaggio viene approvato
