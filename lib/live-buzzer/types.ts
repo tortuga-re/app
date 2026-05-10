@@ -41,7 +41,7 @@ export type BuzzerState = {
   leaderboardRevealStep: number | null;
   frozenLeaderboard: Team[] | null;
   roundEnded: boolean;
-  lastUpdateId: string; // Unique ID to help client detect changes
+  lastUpdateId: string | number; // Unique ID to help client detect changes
   countdownStart?: number | null;
   lastScoredEntry?: BuzzerEntry | null;
   isLive?: boolean;

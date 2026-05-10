@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      let lastUpdateId = "";
+      let lastUpdateId: string | number = "";
       let lastMatchDrinkLive = false;
       let closed = false;
 

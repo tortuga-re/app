@@ -32,6 +32,7 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     localStorage.setItem(STORAGE_KEY_ADMIN_PIN, newPin);
   };
 
+  const lastUpdatedAtRef = useRef<string>("");
   const refresh = useCallback(async () => {
     if (!sessionId) return;
     try {
@@ -42,13 +43,16 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         return;
       }
       const data = await res.json();
-      setSession(data.session);
-      setPlayers(data.players);
-      setMessages(data.messages);
-      setMatches(data.matches);
-      setAnswers(data.answers);
-      setLoading(false);
-      setError(null);
+      if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
+        if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+        setSession(data.session);
+        setPlayers(data.players);
+        setMessages(data.messages);
+        setMatches(data.matches);
+        setAnswers(data.answers);
+        setLoading(false);
+        setError(null);
+      }
     } catch (err) {
       console.error("Admin poll error:", err);
     }
@@ -80,9 +84,12 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         .on("broadcast", { event: "new_message" }, () => void refresh())
         .on("broadcast", { event: "match_updated" }, () => void refresh())
         .on("broadcast", { event: "player_joined" }, () => void refresh())
-        .on("broadcast", { event: "session_update" }, ({ payload }) => {
+        .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
           if (mounted && payload) {
-            setSession(prev => prev ? { ...prev, ...payload } : prev);
+            if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
+              if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
+              setSession(prev => prev ? { ...prev, ...payload } : prev);
+            }
           }
         })
         .subscribe();
