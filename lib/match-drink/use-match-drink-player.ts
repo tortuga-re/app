@@ -117,7 +117,7 @@ export function useMatchDrinkPlayer() {
       
       if (currentSessionId) {
         channel = supabase
-          .channel(`player-${currentSessionId}`)
+          .channel(`match-drink-${currentSessionId}`)
           .on("broadcast", { event: "session_update" }, ({ payload }) => {
             if (mounted && payload) {
               setSession(prev => prev ? { ...prev, ...payload } : prev);
