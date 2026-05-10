@@ -102,7 +102,7 @@ export function useMatchDrinkPlayer() {
         if (document.visibilityState === "visible") {
           refresh();
         }
-      }, 3500); // Poll ogni 3.5 secondi per non saturare il server
+      }, 1000); // Poll ogni secondo per massima reattività
     };
 
     const init = async () => {

@@ -75,51 +75,66 @@ export default function BuzzerPage() {
     }, 4000);
   }, [identity.email]);
 
+  const fetchState = useCallback(async () => {
+    try {
+      const data = await requestJson<BuzzerState>("/api/live-buzzer/state");
+      setGameState(data);
+      gameStateRef.current = data;
+
+      const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
+      setIsRegistered(Boolean(userInLeaderboard));
+      if (userInLeaderboard) {
+        setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+      }
+
+      // Check for new score feedback
+      if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
+        lastScoredIdRef.current = data.userEntry.id;
+        triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error("Fetch state error", err);
+    }
+  }, [identity.email, triggerFeedbackSequence]);
+
   useEffect(() => {
     if (!hasIdentity) return;
 
-    let cancelled = false;
-    let eventSource: EventSource | null = null;
+    let mounted = true;
+    let pollInterval: NodeJS.Timeout | null = null;
 
     void syncSession().then(() => {
-      if (cancelled) return;
-
-      eventSource = new EventSource("/api/live-buzzer/stream");
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data) as BuzzerState;
-          setGameState(data);
-          gameStateRef.current = data;
-
-          const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
-          setIsRegistered(Boolean(userInLeaderboard));
-          if (userInLeaderboard) {
-            setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+      if (!mounted) return;
+      
+      const startPolling = () => {
+        if (pollInterval) clearInterval(pollInterval);
+        // Polling veloce (800ms) per il buzzer competitivo
+        pollInterval = setInterval(() => {
+          if (document.visibilityState === "visible") {
+            void fetchState();
           }
-
-          // Check for new score feedback
-          if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
-            lastScoredIdRef.current = data.userEntry.id;
-            triggerFeedbackSequence(data.userEntry, userInLeaderboard);
-          }
-          setLoading(false);
-        } catch (err) {
-          console.error("SSE parse error", err);
-        }
+        }, 800);
       };
 
-      eventSource.onerror = () => {
-        console.error("SSE connection error");
-      };
+      void fetchState();
+      startPolling();
     });
 
-    return () => {
-      cancelled = true;
-      if (eventSource) {
-        eventSource.close();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void fetchState();
       }
     };
-  }, [hasIdentity, syncSession, identity.email, triggerFeedbackSequence]);
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      mounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [hasIdentity, syncSession, fetchState]);
 
   // Haptic Detection for Turn and Round End
   useEffect(() => {
