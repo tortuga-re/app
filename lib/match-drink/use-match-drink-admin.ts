@@ -75,7 +75,7 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     let channel: any = null;
     if (sessionId) {
       channel = supabase
-        .channel(`admin-${sessionId}`)
+        .channel(`match-drink-${sessionId}`)
         .on("broadcast", { event: "new_answer" }, () => void refresh())
         .on("broadcast", { event: "new_message" }, () => void refresh())
         .on("broadcast", { event: "match_updated" }, () => void refresh())

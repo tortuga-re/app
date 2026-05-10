@@ -51,7 +51,7 @@ export function useMatchDrinkStage(sessionId: string) {
     initialRefresh();
 
     const channel = supabase
-      .channel(`stage-${channelName}`)
+      .channel(channelName)
       .on("broadcast", { event: "session_update" }, ({ payload }) => {
         if (mounted && payload) {
           setSession(prev => prev ? { ...prev, ...payload } : prev);
