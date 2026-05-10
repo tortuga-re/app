@@ -35,7 +35,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
   const [messageIndex, setMessageIndex] = React.useState(0);
   
   const approvedMessages = React.useMemo(() => 
-    messages.filter(m => m.status === "approved" && !m.message.startsWith("COUNTDOWN:")), 
+    messages.filter(m => (m.status === "approved" || m.status === "shown") && !m.message.startsWith("COUNTDOWN:")), 
     [messages]
   );
 
