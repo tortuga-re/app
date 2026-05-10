@@ -198,11 +198,12 @@ export function useCustomerIdentity() {
 
   const updateIdentity = useCallback(
     (updates: Partial<CustomerIdentity>) => {
-      const nextIdentity = mergeCustomerIdentity(identity, updates);
-      setIdentityState(nextIdentity);
-      void persistCustomerSession(nextIdentity);
+      setIdentityState((current) => {
+        const next = mergeCustomerIdentity(current, updates);
+        return next;
+      });
     },
-    [identity, setIdentityState],
+    [setIdentityState],
   );
 
   const setIdentityFromEmail = useCallback(
@@ -213,17 +214,17 @@ export function useCustomerIdentity() {
         return false;
       }
 
-      const nextIdentity = mergeCustomerIdentity(identity, {
-        email: normalizedEmail,
-        ...extra,
+      setIdentityState((current) => {
+        const next = mergeCustomerIdentity(current, {
+          email: normalizedEmail,
+          ...extra,
+        });
+        return next;
       });
-
-      setIdentityState(nextIdentity);
-      void persistCustomerSession(nextIdentity);
 
       return true;
     },
-    [identity, setIdentityState],
+    [setIdentityState],
   );
 
   const clearIdentity = useCallback(() => {
