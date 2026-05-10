@@ -37,7 +37,7 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     if (!sessionId) return;
     try {
       // Consolidated status for admin too? Yes, let's create it.
-      const res = await fetch(`/api/match-drink/session/${sessionId}/admin-status?pin=${pin}`);
+      const res = await fetch(`/api/match-drink/session/${sessionId}/admin-status?pin=${pin}&t=${Date.now()}`);
       if (!res.ok) {
         if (res.status === 401) setError("PIN non valido");
         return;
@@ -89,6 +89,7 @@ export function useMatchDrinkAdmin(sessionId?: string) {
             if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
               if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
               setSession(prev => prev ? { ...prev, ...payload } : prev);
+              void refresh(); // Forza aggiornamento completo per catturare messaggi evidenziati ecc
             }
           }
         })

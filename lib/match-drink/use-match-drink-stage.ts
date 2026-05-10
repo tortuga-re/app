@@ -23,7 +23,7 @@ export function useMatchDrinkStage(sessionId: string) {
   const refresh = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const res = await fetch(`/api/match-drink/session/${sessionId}/stage-status`, { cache: "no-store" });
+      const res = await fetch(`/api/match-drink/session/${sessionId}/stage-status?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
@@ -61,6 +61,10 @@ export function useMatchDrinkStage(sessionId: string) {
           if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
             if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
             setSession(prev => prev ? { ...prev, ...payload } : prev);
+            // Se l'aggiornamento contiene un nuovo messaggio da mostrare, forziamo il refresh per caricarlo
+            if (payload.currentStageMessageId) {
+              void refresh();
+            }
           }
         }
       })

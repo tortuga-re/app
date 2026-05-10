@@ -43,10 +43,10 @@ export async function POST(
     
     const randomPlayerId = players && players.length > 0 
       ? players[Math.floor(Math.random() * players.length)].id 
-      : null;
+      : (await supabase.from("match_drink_players").select("id").eq("session_id", sessionId).eq("nickname", "_SYSTEM_").single()).data?.id;
 
     if (!randomPlayerId) {
-       return NextResponse.json({ error: "Nessun naufrago a bordo per generare messaggi" }, { status: 400 });
+       return NextResponse.json({ error: "Nessun naufrago a bordo" }, { status: 400 });
     }
 
     const newMessage = await createBottleMessage({

@@ -129,7 +129,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
             </div>
           )}
 
-          {(session.stageMode === "intro" || (session.stageMode === "message" && !currentMessage)) && (
+          {(session.stageMode === "intro" || (session.stageMode === "message" && !activeMessage)) && (
             <div className="w-full max-w-[95%] mx-auto flex flex-col items-center justify-center animate-in fade-in zoom-in duration-1000 h-full text-center space-y-4 min-h-0">
               <div className="space-y-1 shrink-0">
                 <h1 className={`text-6xl md:text-8xl font-black uppercase tracking-tighter italic ${session.status === "lobby" ? "text-[var(--success)] drop-shadow-[0_0_30px_rgba(34,197,94,0.4)]" : "text-[var(--danger)]"}`}>

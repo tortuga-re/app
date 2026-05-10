@@ -432,7 +432,7 @@ export function BuzzerStage() {
 
     const fetchState = async () => {
       try {
-        const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
+        const res = await fetch("/api/live-buzzer/state?t=" + Date.now(), { cache: "no-store" });
         if (res.ok && mounted) {
           const data = await res.json();
           const incomingId = Number(data.lastUpdateId) || 0;
