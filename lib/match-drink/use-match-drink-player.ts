@@ -18,6 +18,7 @@ export function useMatchDrinkPlayer() {
   const [myAnswers, setMyAnswers] = useState<MatchDrinkAnswer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastUpdatedAtRef = useRef<string>("");
   const [savedProfile, setSavedProfile] = useState<{
     nickname: string;
     tableNumber: string;
@@ -42,27 +43,20 @@ export function useMatchDrinkPlayer() {
 
   const refresh = useCallback(async () => {
     const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
-    const storedPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
+    const currentSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+    const currentPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
 
-    if (!storedSessionId || !storedPlayerId) {
-      // Prova a recuperare la sessione attiva se non siamo ancora loggati
-      try {
-        const res = await fetch("/api/match-drink/active-session");
-        if (res.ok) {
-          const activeSession = await res.json();
-          if (activeSession) {
-            setSession(activeSession);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching discovery session:", err);
+    if (!currentSessionId || !currentPlayerId) {
+      if (!currentSessionId) {
+        setSession(null);
+        setPlayer(null);
       }
       setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`/api/match-drink/session/${storedSessionId}/player/${storedPlayerId}`);
+      const res = await fetch(`/api/match-drink/session/${currentSessionId}/status/${currentPlayerId}`, { cache: "no-store" });
       if (!res.ok) {
         if (res.status === 404) {
           localStorage.removeItem(STORAGE_KEY_SESSION_ID);
@@ -75,10 +69,13 @@ export function useMatchDrinkPlayer() {
       }
 
       const data = await res.json();
-      setSession(data.session);
-      setPlayer(data.player);
-      setMyAnswers(data.answers);
-      setMyMatch(data.match);
+      if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
+        if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+        setSession(data.session);
+        setPlayer(data.player);
+        setMyAnswers(data.answers);
+        setMyMatch(data.match);
+      }
       setError(null);
     } catch (err) {
       console.error("Poll error:", err);
@@ -104,7 +101,7 @@ export function useMatchDrinkPlayer() {
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(() => {
         if (document.visibilityState === "visible") {
-          refresh();
+          void refresh();
         }
       }, 3000); // Paracadute a 3s
     };
@@ -118,9 +115,12 @@ export function useMatchDrinkPlayer() {
       if (currentSessionId) {
         channel = supabase
           .channel(`match-drink-${currentSessionId}`)
-          .on("broadcast", { event: "session_update" }, ({ payload }) => {
+          .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => {
             if (mounted && payload) {
-              setSession(prev => prev ? { ...prev, ...payload } : prev);
+              if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
+                if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
+                setSession(prev => prev ? { ...prev, ...payload } : prev);
+              }
             }
           })
           .on("broadcast", { event: "match_updated" }, () => {
