@@ -198,6 +198,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                 );
               })()}
             </div>
+          )}
           {session.stageMode === "message" && !activeMessage && (
              <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center space-y-4">
