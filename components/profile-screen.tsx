@@ -190,7 +190,7 @@ export function CiurmaScreen() {
       }
     };
     void fetchActiveGames();
-    const intervalId = window.setInterval(fetchActiveGames, 5000); // Poll every 5 seconds
+    const intervalId = window.setInterval(fetchActiveGames, 10000); // Poll ogni 10 secondi per stabilità
     return () => window.clearInterval(intervalId);
   }, []);
 
@@ -262,7 +262,7 @@ export function CiurmaScreen() {
     return () => {
       cancelled = true;
     };
-  }, [hasProfile, identityEmail, isEditingLookup, updateIdentity]);
+  }, [identityEmail, isEditingLookup, hasProfile, updateIdentity]);
 
   const applyProfileResponse = async (response: ProfileResponse) => {
     setData(response);

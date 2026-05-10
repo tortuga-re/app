@@ -8,34 +8,26 @@ export function MatchDrinkTeaser() {
 
   useEffect(() => {
     let cancelled = false;
-    let eventSource: EventSource | null = null;
 
-    const initStream = () => {
-      eventSource = new EventSource("/api/live-buzzer/stream");
-      eventSource.onmessage = (event) => {
-        try {
-          if (cancelled) return;
-          const data = JSON.parse(event.data);
-          setIsLive(!!data.matchDrinkLive);
-        } catch (err) {
-          console.error("SSE parse error in MatchDrink teaser", err);
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch("/api/game/active-status", { cache: "no-store" });
+        if (cancelled) return;
+        if (response.ok) {
+          const data = await response.json();
+          setIsLive(!!data.matchDrink);
         }
-      };
-
-      eventSource.onerror = () => {
-        if (eventSource) eventSource.close();
-        // Retry after 5s
-        setTimeout(() => {
-          if (!cancelled) initStream();
-        }, 5000);
-      };
+      } catch (err) {
+        console.error("Polling error in MatchDrink teaser", err);
+      }
     };
 
-    initStream();
+    void fetchStatus();
+    const intervalId = window.setInterval(fetchStatus, 10000); // Polling ogni 10 secondi
 
     return () => {
       cancelled = true;
-      if (eventSource) eventSource.close();
+      window.clearInterval(intervalId);
     };
   }, []);
 
