@@ -94,54 +94,40 @@ export function useMatchDrinkPlayer() {
 
   useEffect(() => {
     let mounted = true;
-    let eventSource: EventSource | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
     
+    const startPolling = () => {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        if (document.visibilityState === "visible") {
+          refresh();
+        }
+      }, 3500); // Poll ogni 3.5 secondi per non saturare il server
+    };
+
     const init = async () => {
-      if (!session) {
-        await refresh();
+      await refresh();
+      if (mounted) {
+        startPolling();
       }
-      
-      // Usa l'ID dallo stato (discovery) o da localStorage
-      const currentSessionId = session?.id || localStorage.getItem(STORAGE_KEY_SESSION_ID);
-      if (!currentSessionId || !mounted) return;
-
-      eventSource = new EventSource(`/api/match-drink/session/${currentSessionId}/stream`);
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.session) {
-             setSession(data.session);
-          } else if (data.type === "session_update") {
-            setSession(data.session);
-          } else if (data.type === "player_update") {
-            if (sessionRef.current?.stageMode === "reveal") {
-              refresh();
-            }
-          } else if (data.type === "match_found") {
-            setMyMatch(data.match);
-          }
-        } catch (err) {
-          console.error("SSE parse error:", err);
-        }
-      };
-
-      eventSource.onerror = () => {
-        if (mounted) {
-          eventSource?.close();
-          setTimeout(init, 3000); // Reconnect
-        }
-      };
     };
 
     init();
 
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       mounted = false;
-      if (eventSource) eventSource.close();
+      if (pollInterval) clearInterval(pollInterval);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [refresh, session?.id]);
+  }, [refresh]);
 
   const join = async (nickname: string, details: {
     tableNumber: string;
