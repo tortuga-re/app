@@ -59,9 +59,13 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
   }, [session?.stageMode, approvedMessages.length]);
 
 
-  const activeMessage = session?.stageMode === "message" 
-    ? (approvedMessages[messageIndex] || currentMessage)
-    : null;
+  const activeMessage = React.useMemo(() => {
+    if (session?.stageMode !== "message") return null;
+    // Se c'è un messaggio evidenziato dal capitano, ha priorità assoluta
+    if (currentMessage) return currentMessage;
+    // Altrimenti procediamo con la rotazione
+    return approvedMessages[messageIndex] || null;
+  }, [session?.stageMode, currentMessage, approvedMessages, messageIndex]);
 
   const router = useRouter();
   const admin = useMatchDrinkAdmin(sessionId);
@@ -129,7 +133,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
             </div>
           )}
 
-          {(session.stageMode === "intro" || (session.stageMode === "message" && !activeMessage)) && (
+          {session.stageMode === "intro" && (
             <div className="w-full max-w-[95%] mx-auto flex flex-col items-center justify-center animate-in fade-in zoom-in duration-1000 h-full text-center space-y-4 min-h-0">
               <div className="space-y-1 shrink-0">
                 <h1 className={`text-6xl md:text-8xl font-black uppercase tracking-tighter italic ${session.status === "lobby" ? "text-[var(--success)] drop-shadow-[0_0_30px_rgba(34,197,94,0.4)]" : "text-[var(--danger)]"}`}>
@@ -194,6 +198,13 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                 );
               })()}
             </div>
+          {session.stageMode === "message" && !activeMessage && (
+             <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <div className="w-20 h-20 border-4 border-[var(--accent-strong)] border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-2xl text-[var(--accent-strong)] font-black uppercase tracking-[0.3em]">Caricamento Messaggio...</p>
+                </div>
+             </div>
           )}
 
           {(session.stageMode === "question" || session.stageMode === "question_results") && (
