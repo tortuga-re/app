@@ -398,6 +398,7 @@ function LeaderboardList({ leaderboard, revealStep }: { leaderboard: Team[], rev
 export function BuzzerStage() {
   const [gameState, setGameState] = useState<StageState | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastUpdateIdRef = useRef<number | string>(0);
 
   useEffect(() => {
     let mounted = true;
@@ -411,8 +412,14 @@ export function BuzzerStage() {
         const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
         if (res.ok && mounted) {
           const data = await res.json();
-          setGameState(data);
-          setLoading(false);
+          const incomingId = typeof data.lastUpdateId === 'number' ? data.lastUpdateId : 0;
+          const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+          
+          if (incomingId >= currentId) {
+            lastUpdateIdRef.current = incomingId;
+            setGameState(data);
+            setLoading(false);
+          }
         }
       } catch (err) {
         console.error("Stage fetch error", err);
@@ -431,8 +438,13 @@ export function BuzzerStage() {
       .channel("live-buzzer")
       .on("broadcast", { event: "state_update" }, ({ payload }) => {
         if (mounted && payload) {
-          setGameState(payload);
-          setLoading(false);
+          const incomingId = typeof payload.lastUpdateId === 'number' ? payload.lastUpdateId : 0;
+          const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+          if (incomingId >= currentId) {
+            lastUpdateIdRef.current = incomingId;
+            setGameState(payload);
+            setLoading(false);
+          }
         }
       })
       .subscribe();

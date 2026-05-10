@@ -144,7 +144,7 @@ export const updateSessionStatus = async (
     .eq("id", id);
 
   if (error) throw error;
-  void broadcastMatchDrinkUpdate(id, "session_update", { status });
+  void broadcastMatchDrinkUpdate(id, "session_update", { status, updatedAt: new Date().toISOString() });
 };
 
 export const updateStageMode = async (
@@ -167,7 +167,11 @@ export const updateStageMode = async (
     .eq("id", id);
 
   if (error) throw error;
-  void broadcastMatchDrinkUpdate(id, "session_update", { stageMode: stage_mode, currentStageMessageId: current_stage_message_id });
+  void broadcastMatchDrinkUpdate(id, "session_update", { 
+    stageMode: stage_mode, 
+    currentStageMessageId: current_stage_message_id,
+    updatedAt: new Date().toISOString()
+  });
 };
 
 export const updateQuestionIndex = async (id: string, index: number) => {
@@ -178,7 +182,10 @@ export const updateQuestionIndex = async (id: string, index: number) => {
     .eq("id", id);
 
   if (error) throw error;
-  void broadcastMatchDrinkUpdate(id, "session_update", { currentQuestionIndex: index });
+  void broadcastMatchDrinkUpdate(id, "session_update", { 
+    currentQuestionIndex: index,
+    updatedAt: new Date().toISOString()
+  });
 };
 
 export const joinSession = async (

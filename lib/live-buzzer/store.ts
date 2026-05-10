@@ -35,7 +35,7 @@ const getInitialState = (): BuzzerState => ({
   lastScoredEntry: null,
 });
 
-const newUpdateId = () => Math.random().toString(36).substring(7);
+const newUpdateId = () => Date.now();
 
 // ─── Supabase Read / Write ────────────────────────────────────────────────────
 

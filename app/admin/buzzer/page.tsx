@@ -26,6 +26,7 @@ const getPointsForTime = (timeMs: number): number => {
 export default function AdminBuzzerPage() {
   const { identity, hasIdentity } = useCustomerIdentity();
   const canAccess = hasIdentity && isAdmin(identity.email);
+  const lastUpdateIdRef = useRef<number | string>(0);
   
   const [pin, setPin] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -156,11 +157,17 @@ export default function AdminBuzzerPage() {
         const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
         if (res.ok && mounted) {
           const data = await res.json();
-          setGameState(data);
-          if (data.entries) {
-            setEntries(data.entries);
+          const incomingId = typeof data.lastUpdateId === 'number' ? data.lastUpdateId : 0;
+          const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+          
+          if (incomingId >= currentId) {
+            lastUpdateIdRef.current = incomingId;
+            setGameState(data);
+            if (data.entries) {
+              setEntries(data.entries);
+            }
+            setLoading(false);
           }
-          setLoading(false);
         }
       } catch (err) {
         console.error("Admin fetch error", err);
@@ -183,11 +190,16 @@ export default function AdminBuzzerPage() {
         .channel("live-buzzer")
         .on("broadcast", { event: "state_update" }, ({ payload }) => {
           if (mounted && payload) {
-            setGameState(payload);
-            if (payload.entries) {
-              setEntries(payload.entries);
+            const incomingId = typeof payload.lastUpdateId === 'number' ? payload.lastUpdateId : 0;
+            const currentId = typeof lastUpdateIdRef.current === 'number' ? lastUpdateIdRef.current : 0;
+            if (incomingId >= currentId) {
+              lastUpdateIdRef.current = incomingId;
+              setGameState(payload);
+              if (payload.entries) {
+                setEntries(payload.entries);
+              }
+              setLoading(false);
             }
-            setLoading(false);
           }
         })
         .subscribe();
