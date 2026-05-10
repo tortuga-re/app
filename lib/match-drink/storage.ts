@@ -15,18 +15,18 @@ export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
 export const createSession = async (title: string, questionCount: number = 20): Promise<MatchDrinkSession> => {
   const admin = getSupabaseAdmin();
   const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  
+
   // Pesca domande casuali suddivise per categoria proporzionalmente
   const { data: qLight } = await admin.from("match_drink_questions").select("id").eq("category", "light");
   const { data: qIronic } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
   const { data: qSpicy } = await admin.from("match_drink_questions").select("id").eq("category", "spicy");
 
   const shuffle = <T>(array: T[]): T[] => array?.sort(() => Math.random() - 0.5) || [];
-  
+
   const countLight = Math.floor(questionCount * 0.30);
   const countIronic = Math.floor(questionCount * 0.35);
   const countSpicy = questionCount - countLight - countIronic;
-  
+
   const selectedIds = [
     ...shuffle(qLight || []).slice(0, countLight).map((q) => q.id),
     ...shuffle(qIronic || []).slice(0, countIronic).map((q) => q.id),
@@ -48,7 +48,7 @@ export const createSession = async (title: string, questionCount: number = 20): 
     .single();
 
   if (error) throw error;
-  
+
   // Create a hidden system player for technical reasons (messages/countdown)
   await admin.from("match_drink_players").insert({
     session_id: data.id,
@@ -66,7 +66,7 @@ export const createSession = async (title: string, questionCount: number = 20): 
 export const updateSession = async (id: string, updates: Partial<MatchDrinkSession>) => {
   const admin = getSupabaseAdmin();
   const dbUpdates: Record<string, string | number | boolean | string[] | null | undefined> = {};
-  
+
   if (updates.status !== undefined) dbUpdates.status = updates.status;
   if (updates.stageMode !== undefined) dbUpdates.stage_mode = updates.stageMode;
   if (updates.currentQuestionIndex !== undefined) dbUpdates.current_question_index = updates.currentQuestionIndex;
@@ -154,9 +154,9 @@ export const updateStageMode = async (
   current_stage_message_id?: string | null
 ) => {
   const admin = getSupabaseAdmin();
-  const updateData: Record<string, string | null | number> = { 
-    stage_mode, 
-    updated_at: new Date().toISOString() 
+  const updateData: Record<string, string | null | number> = {
+    stage_mode,
+    updated_at: new Date().toISOString()
   };
   if (current_stage_message_id !== undefined) {
     updateData.current_stage_message_id = current_stage_message_id;
@@ -168,8 +168,8 @@ export const updateStageMode = async (
     .eq("id", id);
 
   if (error) throw error;
-  void broadcastMatchDrinkUpdate(id, "session_update", { 
-    stageMode: stage_mode, 
+  void broadcastMatchDrinkUpdate(id, "session_update", {
+    stageMode: stage_mode,
     currentStageMessageId: current_stage_message_id,
     updatedAt: new Date().toISOString()
   });
@@ -183,7 +183,7 @@ export const updateQuestionIndex = async (id: string, index: number) => {
     .eq("id", id);
 
   if (error) throw error;
-  void broadcastMatchDrinkUpdate(id, "session_update", { 
+  void broadcastMatchDrinkUpdate(id, "session_update", {
     currentQuestionIndex: index,
     updatedAt: new Date().toISOString()
   });
@@ -339,7 +339,7 @@ export const moderateMessage = async (
     .eq("id", messageId);
 
   if (error) throw error;
-  
+
   const msg = await getBottleMessage(messageId);
   if (msg) {
     void broadcastMatchDrinkUpdate(msg.sessionId, "message_moderated", { messageId, status, approvedText });
@@ -401,7 +401,7 @@ export const acceptMatch = async (
 
   const isPlayerA = match.data.player_a_id === playerId;
   const updateData: Record<string, string | boolean | null> = {};
-  
+
   if (isPlayerA) {
     updateData.accepted_by_a = accepted;
     updateData.accepted_at_a = accepted ? new Date().toISOString() : null;
@@ -411,8 +411,8 @@ export const acceptMatch = async (
   }
 
   // Se entrambi hanno accettato, sblocca il drink
-  const bothAccepted = 
-    (isPlayerA ? accepted : match.data.accepted_by_a) && 
+  const bothAccepted =
+    (isPlayerA ? accepted : match.data.accepted_by_a) &&
     (!isPlayerA ? accepted : match.data.accepted_by_b);
 
   if (bothAccepted) {
@@ -445,13 +445,13 @@ export const redeemDrink = async (matchId: string) => {
 
 export const deleteSessionData = async (sessionId: string) => {
   const admin = getSupabaseAdmin();
-  
+
   // Eliminiamo tutto ciò che è collegato alla sessione in ordine logico per evitare errori di vincolo
   await admin.from("match_drink_matches").delete().eq("session_id", sessionId);
   await admin.from("match_drink_answers").delete().eq("session_id", sessionId);
   await admin.from("match_drink_bottle_messages").delete().eq("session_id", sessionId);
   await admin.from("match_drink_players").delete().eq("session_id", sessionId);
-  
+
   const { error } = await admin
     .from("match_drink_sessions")
     .delete()
@@ -477,7 +477,7 @@ export const storeMatches = async (matches: Omit<MatchDrinkMatch, "id" | "create
     })));
 
   if (error) throw error;
-  
+
   if (matches.length > 0) {
     void broadcastMatchDrinkUpdate(matches[0].sessionId, "matches_stored");
   }
@@ -565,7 +565,7 @@ export const getSessionQuestions = async (sessionId: string) => {
   const admin = getSupabaseAdmin();
   const { data: session } = await admin.from("match_drink_sessions").select("question_ids").eq("id", sessionId).single();
   if (!session?.question_ids) return [];
-  
+
   const { data: questions } = await admin.from("match_drink_questions").select("*").in("id", session.question_ids);
   if (!questions) return [];
 

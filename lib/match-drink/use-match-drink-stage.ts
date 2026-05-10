@@ -84,8 +84,15 @@ export function useMatchDrinkStage(sessionId: string) {
           }
         }
       })
-      .on("broadcast", { event: "message_moderated" }, () => {
-        void refresh(); // Quando un messaggio viene approvato
+      .on("broadcast", { event: "message_moderated" }, ({ payload }) => {
+        if (mounted && payload) {
+          setMessages(prev => prev.map(m => 
+            m.id === payload.messageId 
+              ? { ...m, status: payload.status, approvedText: payload.approvedText } 
+              : m
+          ));
+          void refresh(); // Quando un messaggio viene approvato
+        }
       })
       .subscribe();
 
