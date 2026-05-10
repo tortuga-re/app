@@ -342,7 +342,13 @@ export const moderateMessage = async (
 
   const msg = await getBottleMessage(messageId);
   if (msg) {
-    void broadcastMatchDrinkUpdate(msg.sessionId, "message_moderated", { messageId, status, approvedText });
+    void broadcastMatchDrinkUpdate(msg.sessionId, "message_moderated", {
+      messageId: msg.id,
+      status: msg.status,
+      approvedText: msg.approvedText,
+      moderatedAt: msg.moderatedAt,
+      message: msg,
+    });
   }
 };
 

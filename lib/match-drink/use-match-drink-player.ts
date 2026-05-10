@@ -78,9 +78,11 @@ export function useMatchDrinkPlayer() {
       }
 
       const data = await res.json();
-      if (data.session && (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current)) {
-        if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
-        setSession(data.session);
+      if (data.session) {
+        if (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current) {
+          if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+          setSession(data.session);
+        }
         setPlayer(data.player);
         setMyAnswers(data.answers);
         setMyMatch(data.match);
@@ -270,18 +272,17 @@ export function useMatchDrinkPlayer() {
   const respondToMatch = async (accepted: boolean) => {
     if (!player || !myMatch) return;
     try {
-      const res = await fetch(`/api/match-drink/session/${player.sessionId}/match/${myMatch.id}/accept`, {
+      const res = await fetch(`/api/match-drink/session/${player.sessionId}/accept-match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          matchId: myMatch.id,
           playerId: player.id,
           accepted,
         }),
       });
       if (!res.ok) throw new Error("Errore nell'accettazione");
-      
-      const data = await res.json();
-      setMyMatch(data);
+      await refresh();
     } catch (err) {
       console.error("Accept error:", err);
     }
