@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { startLeaderboardReveal, nextLeaderboardReveal, showLeaderboard } from "@/lib/live-buzzer/store";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import {
+  nextLeaderboardReveal,
+  showLeaderboard,
+  startLeaderboardReveal,
+} from "@/lib/live-buzzer/store";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
+    const unauthorizedResponse = requireAdminRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
+    }
+
+    const body = await request.json();
     const { action } = body;
 
     switch (action) {

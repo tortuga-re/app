@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setYoutubePlaylist, setYoutubeStatus, triggerYoutubeCommand } from "@/lib/live-buzzer/store";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import {
+  setYoutubePlaylist,
+  setYoutubeStatus,
+  triggerYoutubeCommand,
+} from "@/lib/live-buzzer/store";
 
 export async function POST(request: NextRequest) {
   try {
+    const unauthorizedResponse = requireAdminRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
+    }
+
     const body = await request.json();
     const { action, playlistId, playlistName, status, command, title } = body;
 
     if (action === "setPlaylist") {
       await setYoutubePlaylist(playlistId, playlistName);
     } else if (action === "setStatus") {
-      console.log("SERVER: Receiving setStatus", status, "with title:", title);
       await setYoutubeStatus(status, title);
     } else if (action === "triggerCommand") {
       await triggerYoutubeCommand(command);

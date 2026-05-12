@@ -392,11 +392,10 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
               <div className="panel-muted inline-block p-8 rounded-[2rem] border-white/20 bg-white/5 backdrop-blur-md mt-4">
                 <p className="text-3xl md:text-4xl text-white leading-tight uppercase font-black">
                   Se accettate entrambi l&apos;abbinamento,<br />
-                  sbloccate il <span className="gold-gradient">DRINK DEL MATCH</span>
+                  sbloccate i <span className="gold-gradient">DRINK OMAGGIO DEL MATCH</span>
                 </p>
-                <p className="text-5xl md:text-6xl font-black text-white uppercase mt-6 block tracking-tighter border-t border-white/10 pt-6">
-                  1 DRINK PER 2 PERSONE<br />
-                  <span className="text-[var(--accent-strong)]">AL PREZZO DI 1</span>
+                <p className="text-2xl md:text-3xl font-black text-[var(--accent-strong)] uppercase mt-6 block tracking-[0.2em] border-t border-white/10 pt-6">
+                  Controllate il telefono per i dettagli del match
                 </p>
               </div>
             </div>

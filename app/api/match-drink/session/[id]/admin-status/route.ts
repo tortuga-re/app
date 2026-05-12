@@ -9,6 +9,7 @@ import {
   validateAdminPin,
   getSessionQuestions
 } from "@/lib/match-drink/storage";
+import { assignMatchDrinkMeetingTables } from "@/lib/match-drink/meeting-tables";
 
 export async function GET(
   req: NextRequest,
@@ -38,11 +39,23 @@ export async function GET(
 
     session.questions = questions;
 
+    const meetingAssignments = assignMatchDrinkMeetingTables(matches, players);
+    const enrichedMatches = matches.map((match) => {
+      const meetingAssignment = meetingAssignments.get(match.id);
+
+      return {
+        ...match,
+        meetingTableNumber: meetingAssignment?.tableNumber,
+        meetingTableArea: meetingAssignment?.tableArea,
+        meetingTableLabel: meetingAssignment?.tableLabel,
+      };
+    });
+
     return NextResponse.json({
       session,
       players,
       answers,
-      matches,
+      matches: enrichedMatches,
       messages,
     });
   } catch (error) {

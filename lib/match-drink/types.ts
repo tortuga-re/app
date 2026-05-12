@@ -12,6 +12,12 @@ export type MatchDrinkTrait =
   | "investigatore"
   | "orgoglioso";
 
+export type MatchDrinkMainCategory =
+  | "romantico"
+  | "passionale"
+  | "piccante"
+  | "energico";
+
 export interface MatchDrinkQuestionOption {
   id: "A" | "B" | "C" | "D" | "E";
   text: string;
@@ -96,6 +102,21 @@ export interface MatchDrinkMatch {
   playerBTable?: string;
   playerAAvatar?: string;
   playerBAvatar?: string;
+  ownMainCategory?: MatchDrinkMainCategory;
+  ownMainCategoryLabel?: string;
+  matchedPlayerNickname?: string;
+  matchedPlayerTable?: string;
+  matchedPlayerMainCategory?: MatchDrinkMainCategory;
+  matchedPlayerMainCategoryLabel?: string;
+  matchedPlayerSecondaryTrait?: MatchDrinkTrait;
+  matchedPlayerSecondaryTraitLabel?: string;
+  matchedPlayerApproachAdvice?: string;
+  sharedMainCategory?: MatchDrinkMainCategory | null;
+  sharedMainCategoryLabel?: string | null;
+  rewardText?: string;
+  meetingTableNumber?: string;
+  meetingTableArea?: string;
+  meetingTableLabel?: string;
 }
 
 export interface MatchDrinkBottleMessage {
@@ -115,6 +136,10 @@ export interface MatchDrinkProfile {
   playerId: string;
   traits: Record<MatchDrinkTrait, number>;
   dominantTrait: MatchDrinkTrait;
+  mainCategory: MatchDrinkMainCategory;
+  mainCategoryLabel: string;
+  secondaryTrait: MatchDrinkTrait;
+  secondaryTraitLabel: string;
   profileLabel: string;
   profileDescription: string;
 }

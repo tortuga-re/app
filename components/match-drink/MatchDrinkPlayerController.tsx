@@ -273,6 +273,21 @@ export function MatchDrinkPlayerController() {
 
     const isPlayerA = myMatch.playerAId === player.id;
     const iAccepted = isPlayerA ? myMatch.acceptedByA : myMatch.acceptedByB;
+    const matchedNickname =
+      myMatch.matchedPlayerNickname ||
+      (isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname) ||
+      "il tuo match";
+    const meetingTableNumber = myMatch.meetingTableNumber || "?";
+    const meetingTableArea = myMatch.meetingTableArea || "";
+    const meetingTableLabel =
+      myMatch.meetingTableLabel ||
+      (meetingTableArea ? `${meetingTableNumber} in ${meetingTableArea}` : meetingTableNumber);
+    const matchedAvatar = isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar;
+    const categorySummary = myMatch.sharedMainCategoryLabel
+      ? `Siete entrambi ${myMatch.sharedMainCategoryLabel}.`
+      : myMatch.ownMainCategoryLabel && myMatch.matchedPlayerMainCategoryLabel
+        ? `Tu sei ${myMatch.ownMainCategoryLabel}, ${matchedNickname} è ${myMatch.matchedPlayerMainCategoryLabel}.`
+        : null;
 
     let mainReason = myMatch.reason;
     let spicyQ: string | null = null;
@@ -291,26 +306,106 @@ export function MatchDrinkPlayerController() {
     if (myMatch.drinkUnlocked) {
       return (
         <MatchDrinkShell>
+          <MatchDrinkCard variant="accent" className="overflow-hidden">
+            <div className="space-y-5">
+              <div className="space-y-2 text-center">
+                <p className="eyebrow">Match confermato.</p>
+                <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+                  Il Capitano ha aperto la rotta
+                </h2>
+              </div>
+
+              <div className="panel-muted rounded-[1.75rem] border border-[var(--accent-strong)]/25 bg-black/50 px-5 py-6 shadow-[0_0_40px_rgba(216,176,106,0.16)]">
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <div className="relative">
+                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-[var(--accent-strong)] bg-black/40 shadow-[0_0_30px_rgba(216,176,106,0.25)]">
+                      {matchedAvatar ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={matchedAvatar}
+                          alt="Avatar del match"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-5xl font-black uppercase italic gold-gradient">
+                          {matchedNickname[0] || "?"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-[var(--accent-strong)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-black">
+                      Tavolo {meetingTableNumber}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-4">
+                    <p className="text-lg font-bold leading-relaxed text-white">
+                      Il tuo match è {matchedNickname}.
+                    </p>
+                    <p className="text-sm font-bold uppercase tracking-wide text-white/85">
+                      Vi aspetta il tavolo {meetingTableLabel}.
+                    </p>
+                    {categorySummary ? (
+                      <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent-strong)]">
+                        {categorySummary}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
+                  <p className="eyebrow mb-2">Da sapere</p>
+                  <p className="text-sm leading-relaxed text-white">
+                    {matchedNickname} è un po&apos;{" "}
+                    {myMatch.matchedPlayerSecondaryTraitLabel || "misterioso"}.
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
+                  <p className="eyebrow mb-2">Consiglio del Capitano</p>
+                  <p className="text-sm leading-relaxed text-white/90">
+                    {myMatch.matchedPlayerApproachAdvice ||
+                      "Fai il primo passo con leggerezza e lascia che il brindisi faccia il resto."}
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/10 px-5 py-4">
+                  <p className="text-sm font-bold leading-relaxed text-[var(--accent-strong)]">
+                    {myMatch.rewardText ||
+                      `Accomodati al tavolo ${meetingTableLabel} e richiedi il tuo drink omaggio.`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </MatchDrinkCard>
+        </MatchDrinkShell>
+      );
+    }
+
+    if (false && myMatch?.drinkUnlocked) {
+      return (
+        <MatchDrinkShell>
           <MatchDrinkCard variant="accent" className="text-center">
             <h2 className="text-3xl font-bold text-white mb-6 uppercase tracking-tighter italic">DRINK DEL MATCH SBLOCCATO!</h2>
             
             <div className="panel-muted rounded-xl p-8 mb-6 border-2 border-[var(--accent-strong)] bg-black/60 shadow-[0_0_50px_rgba(216,176,106,0.2)] flex flex-col items-center">
               <p className="text-[10px] uppercase tracking-[0.4em] text-[var(--accent-strong)] mb-6 font-black opacity-80">
-                Incontro al Tavolo {isPlayerA ? (myMatch.playerBTable || "?") : (myMatch.playerATable || "?")}
+                Incontro al Tavolo {isPlayerA ? (myMatch?.playerBTable || "?") : (myMatch?.playerATable || "?")}
               </p>
               
               <div className="relative mb-6">
                 <div className="w-24 h-24 rounded-full border-2 border-[var(--accent-strong)] flex items-center justify-center shadow-[0_0_30px_rgba(216,176,106,0.3)] animate-in zoom-in duration-700 overflow-hidden bg-black/40">
-                   {(isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar) ? (
+                   {(isPlayerA ? myMatch?.playerBAvatar : myMatch?.playerAAvatar) ? (
                      /* eslint-disable-next-line @next/next/no-img-element */
                      <img 
-                       src={isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar} 
+                       src={isPlayerA ? myMatch?.playerBAvatar : myMatch?.playerAAvatar} 
                        alt="Partner avatar"
                        className="w-full h-full object-cover"
                      />
                    ) : (
                      <span className="text-5xl font-black gold-gradient italic uppercase">
-                       {(isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname)?.[0] || "?"}
+                       {(isPlayerA ? myMatch?.playerBNickname : myMatch?.playerANickname)?.[0] || "?"}
                      </span>
                    )}
                 </div>
@@ -320,12 +415,12 @@ export function MatchDrinkPlayerController() {
               </div>
 
               <p className="text-3xl md:text-4xl font-black tracking-tighter text-white uppercase italic mb-2">
-                {isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname}
+                {isPlayerA ? myMatch?.playerBNickname : myMatch?.playerANickname}
               </p>
               <div className="h-px w-12 bg-[var(--accent-strong)] opacity-50 mb-4" />
               <p className="text-[10px] text-[var(--text-muted)] uppercase font-black tracking-widest text-center leading-relaxed">
-                Compatibilit&agrave;: {myMatch.score}% <br />
-                <span className="text-white">{myMatch.commonCriterion}</span>
+                Compatibilit&agrave;: {myMatch?.score}% <br />
+                <span className="text-white">{myMatch?.commonCriterion}</span>
               </p>
               
               <div className="mt-4 pt-4 border-t border-white/10 w-full text-center space-y-2">
@@ -370,10 +465,10 @@ export function MatchDrinkPlayerController() {
     if (iAccepted === true) {
       return (
         <MatchDrinkShell>
-          <MatchDrinkCard className="text-center">
-            <h2 className="text-xl font-bold text-white uppercase tracking-tight">Tu hai accettato.</h2>
-            <p className="mt-4 text-[var(--text-muted)]">
-              Ora aspettiamo l&apos;altra met&agrave; del naufragio. Se accetta anche lei/lui, sbloccherete il Drink del Match.
+            <MatchDrinkCard className="text-center">
+              <h2 className="text-xl font-bold text-white uppercase tracking-tight">Tu hai accettato.</h2>
+              <p className="mt-4 text-[var(--text-muted)]">
+              Ora aspettiamo l&apos;altra met&agrave; del naufragio. Se accetta anche lei/lui, sbloccherete i drink omaggio del match.
             </p>
           </MatchDrinkCard>
         </MatchDrinkShell>
@@ -393,7 +488,7 @@ export function MatchDrinkPlayerController() {
                 <span className="font-bold text-[var(--accent-strong)]">{myMatch.score}%</span>
               </div>
               <div className="space-y-1">
-                <p className="text-[var(--text-muted)] uppercase font-bold">Siete entrambi:</p>
+                <p className="text-[var(--text-muted)] uppercase font-bold">Il verdetto del Capitano:</p>
                 <p className="font-bold text-white uppercase">{myMatch.commonCriterion}</p>
               </div>
               <div className="space-y-1">
@@ -423,7 +518,7 @@ export function MatchDrinkPlayerController() {
           </div>
           
           <p className="text-center text-[10px] text-[var(--text-muted)] px-4 uppercase font-bold tracking-widest leading-relaxed">
-            Se entrambi accettate, sbloccate il Drink del Match (2 al prezzo di 1).
+            Se entrambi accettate, sbloccate i drink omaggio del vostro match.
           </p>
         </div>
       </MatchDrinkShell>

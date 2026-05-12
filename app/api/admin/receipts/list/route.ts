@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getPendingReceiptRequests } from "@/lib/receipts/supabase";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // In a real app we should check the user session here.
-    // For now we check against ADMIN_EMAILS via the admin check on the client.
+    const unauthorizedResponse = requireAdminRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
+    }
 
     const requests = await getPendingReceiptRequests();
 

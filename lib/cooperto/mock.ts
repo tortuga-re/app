@@ -1,4 +1,5 @@
 import { coopertoConfig, tortugaRooms } from "@/lib/config";
+import { normalizeItalianPhone } from "@/lib/validation/phone";
 import { delay, todayIso } from "@/lib/utils";
 import type {
   BookingAvailabilityResponse,
@@ -85,7 +86,7 @@ const buildUpdatedMockContact = (input: ProfileUpdateInput): CoopertoContact => 
   Nome: input.firstName,
   Cognome: input.lastName,
   Email: input.email,
-  Telefono: input.phone,
+  Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? input.phone ?? "",
   DataDiNascita: input.birthDate ? `${input.birthDate}T00:00:00` : undefined,
   ConsensoMarketing: input.marketingConsent ? 1 : 0,
 });
@@ -179,7 +180,7 @@ export const mockBookingCreate = async (
     Nome: input.firstName,
     Cognome: input.lastName,
     Email: input.email,
-    Telefono: input.phone,
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? input.phone ?? "",
     Pax: input.pax,
     Note: input.note,
   };
@@ -200,7 +201,7 @@ export const mockWaitlistCreate = async (
     DataCoda: `${input.date}T19:00:00+02:00`,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: input.phone,
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? input.phone ?? "",
     Email: input.email,
     Pax: input.pax,
     Note: input.note,

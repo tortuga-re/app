@@ -37,6 +37,11 @@ import { isAdmin } from "@/lib/live-buzzer/admin";
 import { PwaPushCard } from "@/components/pwa-push-card";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 import { missions } from "@/lib/missions";
+import {
+  italianPhoneValidationError,
+  normalizeItalianPhone,
+  validateItalianPhone,
+} from "@/lib/validation/phone";
 
 type ContactFormState = {
   firstName: string;
@@ -71,7 +76,7 @@ const buildContactForm = (
 ): ContactFormState => ({
   firstName: contact?.Nome?.trim() ?? "",
   lastName: contact?.Cognome?.trim() ?? "",
-  phone: contact?.Telefono?.trim() ?? "",
+  phone: normalizeItalianPhone(contact?.Telefono?.trim() ?? "")?.normalizedE164 ?? "",
   email: normalizeCustomerEmail(contact?.Email),
   birthDate: toDateInputValue(contact?.DataDiNascita),
   marketingConsent: contact?.ConsensoMarketing === 1,
@@ -481,7 +486,13 @@ export function CiurmaScreen() {
     }
 
     if (!contactForm.phone.trim()) {
-      setContactError("Inserisci un numero di telefono valido.");
+      setContactError(italianPhoneValidationError);
+      return;
+    }
+
+    const normalizedPhone = validateItalianPhone(contactForm.phone);
+    if (!normalizedPhone.ok) {
+      setContactError(normalizedPhone.error);
       return;
     }
 
@@ -493,7 +504,7 @@ export function CiurmaScreen() {
       const profilePayload = {
         firstName: contactForm.firstName.trim(),
         lastName: contactForm.lastName.trim(),
-        phone: contactForm.phone.trim(),
+        phone: normalizedPhone.normalizedE164,
         email: normalizedEmail,
         birthDate: contactForm.birthDate || undefined,
         marketingConsent: contactForm.marketingConsent,

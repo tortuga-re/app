@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { isAdmin } from "@/lib/live-buzzer/admin";
+import { type NextRequest, NextResponse } from "next/server";
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getProfileData, createReservationMovement, createContactMovement, addPointsToContact, getContactReservations } from "@/lib/cooperto/service";
 import { updateReceiptStatus, isReceiptNumberUsed } from "@/lib/receipts/supabase";
 
@@ -12,15 +12,15 @@ const formatCoopertoDate = (date: Date) => {
   return date.toISOString().split('.')[0] + 'Z'; // Rimuove i millisecondi ma mantiene la Z
 };
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { id, status, receiptNumber, adminNote, adminEmail } = body;
-
-    // 1. Security Check
-    if (!isAdmin(adminEmail)) {
-      return NextResponse.json({ error: "Accesso negato." }, { status: 403 });
+    const unauthorizedResponse = requireAdminRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
     }
+
+    const body = await request.json();
+    const { id, status, receiptNumber, adminNote } = body;
 
     if (status === 'rejected') {
       await updateReceiptStatus(id, { status: 'rejected', admin_note: adminNote });

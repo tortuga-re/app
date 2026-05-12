@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 
 import { createBooking } from "@/lib/cooperto/service";
 import type { BookingCreateInput } from "@/lib/cooperto/types";
+import { isValidProfileEmail } from "@/lib/profile/validation";
+import {
+  isValidItalianPhone,
+  italianPhoneValidationError,
+} from "@/lib/validation/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +32,14 @@ const validatePayload = (payload: Partial<BookingCreateInput>) => {
 
   if (!payload.email?.trim() && !payload.phone?.trim()) {
     return "Inserisci almeno email o telefono.";
+  }
+
+  if (payload.email?.trim() && !isValidProfileEmail(payload.email)) {
+    return "Inserisci un indirizzo email valido.";
+  }
+
+  if (payload.phone?.trim() && !isValidItalianPhone(payload.phone)) {
+    return italianPhoneValidationError;
   }
 
   if (!payload.privacyAccepted) {

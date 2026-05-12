@@ -51,7 +51,7 @@ import type {
   CoopertoCreateReservationMovementRequest,
 } from "@/lib/cooperto/types";
 import { buildCoopertoDateTime, buildCoopertoNowDateTime } from "@/lib/utils";
-import { normalizePhoneNumber } from "@/lib/profile/validation";
+import { normalizeItalianPhone } from "@/lib/validation/phone";
 
 const withQuery = (path: string, query: Record<string, string | number | undefined>) => {
   const url = new URL(path, coopertoConfig.apiBaseUrl);
@@ -460,7 +460,7 @@ export const createBooking = async (
     Pax: input.pax,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: normalizePhoneNumber(input.phone),
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
     Email: input.email,
     Note: buildBookingNote(input),
     ConsensoPrivacy: input.privacyAccepted,
@@ -504,7 +504,7 @@ export const createWaitlist = async (
     CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: normalizePhoneNumber(input.phone),
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
     Email: input.email,
     Pax: input.pax,
     Note: buildWaitlistNote(input),
@@ -641,7 +641,7 @@ export const updateProfileContact = async (
     Nome: input.firstName,
     Cognome: input.lastName,
     Email: input.email,
-    Telefono: input.phone,
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
     DataDiNascita: buildBirthDateDateTime(input.birthDate),
     ConsensoMarketing: input.marketingConsent,
     SovrascriviDati: true,
