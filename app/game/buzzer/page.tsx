@@ -22,6 +22,7 @@ export default function BuzzerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [dismissWinnerOverlay, setDismissWinnerOverlay] = useState(false);
 
   // Feedback State
   const [feedback, setFeedback] = useState<{ message: string; type: "result" | "position" | null }>({ message: "", type: null });
@@ -176,6 +177,14 @@ export default function BuzzerPage() {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [hasIdentity, syncSession, fetchState, identity.email, triggerFeedbackSequence]);
+
+  // Reset winner overlay dismissal when a new round starts or game status changes
+  useEffect(() => {
+    if (gameState?.status === "open" || gameState?.status === "idle") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDismissWinnerOverlay(false);
+    }
+  }, [gameState?.status]);
 
   // Haptic Detection for Turn and Round End
   useEffect(() => {
@@ -333,7 +342,7 @@ export default function BuzzerPage() {
 
   const isCurrentResponder = gameState?.userEntry?.id === gameState?.currentResponderEntryId;
   const userRank = gameState ? gameState.leaderboard.findIndex(t => t.email === identity.email) + 1 : 0;
-  const isWinner = gameState?.roundEnded && userRank === 1 && gameState?.leaderboardRevealFinished;
+  const isWinner = gameState?.roundEnded && userRank === 1 && gameState?.leaderboardRevealFinished && !dismissWinnerOverlay;
 
   const getStatusMessage = () => {
     if (gameState?.roundEnded) {
@@ -373,7 +382,43 @@ export default function BuzzerPage() {
               <p className="text-3xl font-black text-white uppercase italic">{gameState?.leaderboard[0]?.nickname}</p>
             </div>
             <button
-              onClick={() => { /* maybe close overlay or just let it be */ }}
+              onClick={async () => {
+                const shareText = "Ho vinto il Tortuga Music Quiz! 🏴‍☠️ @tortuga.re";
+                const shareTitle = "Vittoria al Tortuga Music Quiz!";
+                
+                try {
+                  // Try to share the image if possible
+                  const response = await fetch("/images/music-quiz-victory.png").catch(() => null);
+                  if (response && response.ok && navigator.share) {
+                    const blob = await response.blob();
+                    const file = new File([blob], "vittoria.png", { type: "image/png" });
+                    
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                      await navigator.share({
+                        files: [file],
+                        title: shareTitle,
+                        text: shareText,
+                      });
+                    } else {
+                      await navigator.share({
+                        title: shareTitle,
+                        text: shareText,
+                        url: window.location.origin
+                      });
+                    }
+                  } else {
+                    // Fallback for browsers without share or if image fails
+                    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}&quote=${encodeURIComponent(shareText)}`;
+                    window.open(fbUrl, "_blank");
+                  }
+                } catch (err) {
+                  console.error("Share error:", err);
+                } finally {
+                  // Always dismiss after attempt
+                  setDismissWinnerOverlay(true);
+                  triggerHaptic();
+                }
+              }}
               className="button-primary px-10 min-h-14 uppercase font-black italic tracking-widest"
             >
               Onore alla Ciurma
@@ -394,7 +439,7 @@ export default function BuzzerPage() {
         </div>
       )}
 
-      <div className={`panel rounded-3xl p-6 text-center space-y-4 shrink-0 transition-all duration-500 flex flex-col justify-center items-center ${isCurrentResponder ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : ""}`}>
+      <div className={`panel rounded-3xl p-6 text-center space-y-4 flex-1 flex flex-col justify-center items-center transition-all duration-500 ${isCurrentResponder ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : ""}`}>
         <div className="space-y-1">
           <p className="eyebrow text-xs">Round {gameState?.currentRound}</p>
           <h2 className={`text-lg font-bold uppercase transition-all duration-300 ${isCurrentResponder ? "text-[var(--accent-strong)] scale-110" : "text-white"}`}>
@@ -423,52 +468,8 @@ export default function BuzzerPage() {
             )}
           </button>
         </div>
-
-        {gameState?.roundEnded && (
-          <p className="text-xs text-[var(--text-muted)] italic">Classifica finale!</p>
-        )}
       </div>
 
-      <div className="panel rounded-3xl p-4 flex-1 min-h-0 flex flex-col gap-3">
-        <div className="flex items-center justify-between shrink-0">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider italic">Classifica</h3>
-          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">{gameState?.leaderboardVisible ? "Live" : "Nascosta"}</span>
-        </div>
-        <div className="flex-1 overflow-y-auto flex flex-col gap-2 scrollbar-hidden pr-1">
-          {(() => {
-            if (!gameState?.leaderboard?.length) return <p className="text-center py-4 text-sm text-[var(--text-muted)]">Ancora nessuna risposta data.</p>;
-
-            const lb = gameState.leaderboard;
-
-            return lb.map((team, index) => (
-              <div
-                key={team.email}
-                className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 shrink-0 ${team.email === identity.email
-                  ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/20"
-                  : "border-white/5 bg-white/5"
-                  }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-center w-8">
-                    <span className="font-black text-[var(--accent-strong)] text-lg">{index + 1}</span>
-                  </div>
-                  <div>
-                    <p className={`font-bold text-sm leading-tight truncate max-w-[200px] ${team.email === identity.email ? "text-white" : "text-white/80"}`}>
-                      {team.nickname}
-                    </p>
-                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-black">Tavolo {team.tableNumber}</p>
-                  </div>
-                </div>
-                {team.email === identity.email && (
-                  <div className="bg-[var(--accent-strong)] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">
-                    TU
-                  </div>
-                )}
-              </div>
-            ));
-          })()}
-        </div>
-      </div>
     </div>
   );
 }

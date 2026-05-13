@@ -386,8 +386,8 @@ function LeaderboardList({
 
   return (
     <div
-      className="relative mx-auto mt-8 flex w-full max-w-[1500px] flex-col items-center px-8 transition-all duration-500"
-      style={{ height: `${Math.max(totalHeight, 520)}px` }}
+      className="relative mx-auto mt-8 flex w-full max-w-[1500px] flex-col items-center px-8 transition-all duration-500 overflow-hidden"
+      style={{ height: `${Math.min(totalHeight, 700)}px`, maxHeight: "65vh" }}
     >
       {leaderboard.map((team, index) => {
         if (revealStep !== null && index < thresholdIndex) return null;
@@ -423,7 +423,7 @@ function LeaderboardList({
                 >
                   {team.nickname}
                 </p>
-                <p className="text-sm font-black uppercase tracking-[0.35em] text-[var(--text-muted)] md:text-lg">
+                <p className="text-lg font-black uppercase tracking-[0.35em] text-[var(--text-muted)] md:text-2xl">
                   Tavolo {team.tableNumber}
                 </p>
               </div>
@@ -455,6 +455,7 @@ function LeaderboardList({
 export function BuzzerStage() {
   const [gameState, setGameState] = useState<StageState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hideResultScreen, setHideResultScreen] = useState(false);
   const lastUpdateIdRef = useRef<number | string>(0);
 
   useEffect(() => {
@@ -516,6 +517,20 @@ export function BuzzerStage() {
     };
   }, []);
 
+  // Timer to auto-hide result screen after 10 seconds
+  useEffect(() => {
+    const isResult = gameState?.status === "result_screen";
+    if (isResult) {
+      const timer = setTimeout(() => {
+        setHideResultScreen(true);
+      }, 10000);
+      return () => clearTimeout(timer);
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHideResultScreen(false);
+    }
+  }, [gameState?.status, gameState?.lastScoredEntry?.id]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -535,7 +550,7 @@ export function BuzzerStage() {
   const isFinalLeaderboardView = Boolean(gameState?.roundEnded || gameState?.leaderboardRevealStep !== null);
 
   return (
-    <main className="relative flex h-screen flex-col overflow-hidden bg-black text-white select-none">
+    <main className="relative flex h-screen flex-col overflow-hidden bg-black text-white select-none p-[3vh] box-border">
       {gameState?.youtubePlaylistId && (
         <div className={`absolute inset-0 transition-opacity duration-1000 ${isPlaying ? "opacity-100" : "opacity-40"}`}>
           <YouTubePlayer
@@ -548,12 +563,12 @@ export function BuzzerStage() {
         </div>
       )}
 
-      <div className="relative z-20 flex items-center justify-between p-8 md:p-12">
+      <div className="relative z-20 flex items-center justify-between px-8 py-4 md:px-12">
         <div className="flex flex-col">
           <h1 className="text-5xl font-black italic tracking-tighter gold-gradient md:text-7xl">
             TORTUGA MUSIC QUIZ
           </h1>
-          <p className="text-sm font-bold uppercase tracking-[0.4em] text-[var(--accent)] md:text-base">
+          <p className="text-xl font-bold uppercase tracking-[0.4em] text-[var(--accent)] md:text-3xl">
             Buzzer Live Edition
           </p>
         </div>
@@ -591,10 +606,11 @@ export function BuzzerStage() {
 
       <div
         className={`relative z-10 flex h-full w-full flex-1 flex-col items-center justify-center transition-all duration-700 ${
-          gameState?.youtubeStatus === "playing" &&
+          (gameState?.youtubeStatus === "playing" &&
           !isResultScreen &&
           !gameState?.leaderboardVisible &&
-          !gameState?.roundEnded
+          !gameState?.roundEnded) ||
+          (isResultScreen && hideResultScreen)
             ? "invisible opacity-0 pointer-events-none"
             : "visible opacity-100"
         }`}
@@ -623,8 +639,8 @@ export function BuzzerStage() {
             <p className="relative z-10 mt-8 max-w-5xl text-3xl font-black uppercase tracking-[0.18em] text-[var(--accent-strong)] md:text-5xl">
               Capitano, avvia lo svelamento della classifica finale.
             </p>
-            <p className="relative z-10 mt-6 max-w-4xl text-xl font-bold text-white/75 md:text-3xl">
-              La classifica comparira una squadra alla volta, partendo dall&apos;ultima posizione.
+            <p className="relative z-10 mt-6 max-w-5xl text-2xl font-bold text-white/75 md:text-4xl">
+              La classifica comparirà una squadra alla volta, partendo dall&apos;ultima posizione.
             </p>
           </div>
         ) : isResultScreen && gameState?.lastScoredEntry ? (
@@ -641,7 +657,7 @@ export function BuzzerStage() {
                 </div>
 
                 <div className="shrink-0">
-                  <p className="mb-1 text-xl font-bold uppercase tracking-[0.4em] text-[var(--accent-strong)] md:text-2xl">
+                  <p className="mb-1 text-2xl font-bold uppercase tracking-[0.4em] text-[var(--accent-strong)] md:text-4xl">
                     La squadra
                   </p>
                   <h1 className="truncate px-4 text-[7vw] font-black uppercase leading-none tracking-tighter text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.2)] italic md:text-[8vw]">
@@ -651,7 +667,7 @@ export function BuzzerStage() {
 
                 {gameState.youtubeVideoTitle && (
                   <div className="mx-auto inline-block max-w-[90%] shrink-0 rounded-[2rem] border-2 border-green-500/30 bg-black/60 px-6 py-4 shadow-2xl backdrop-blur-xl transition-transform hover:scale-105 md:px-10 md:py-6">
-                    <p className="mb-1 text-sm font-black uppercase tracking-widest text-green-400 md:text-lg">Il brano era</p>
+                    <p className="mb-1 text-xl font-black uppercase tracking-widest text-green-400 md:text-3xl">Il brano era</p>
                     <p className="truncate text-2xl font-black uppercase leading-tight text-white italic md:text-4xl lg:text-5xl">
                       {gameState.youtubeVideoTitle}
                     </p>
@@ -702,7 +718,7 @@ export function BuzzerStage() {
               <p className="font-mono text-6xl font-black gold-gradient drop-shadow-[0_0_30px_rgba(216,176,106,0.4)] md:text-8xl">
                 {(currentResponder.relativeTimeMs / 1000).toFixed(2)}s
               </p>
-              <p className="mt-2 text-xl font-bold uppercase tracking-[0.3em] text-[var(--accent)] md:text-2xl">
+              <p className="mt-2 text-2xl font-bold uppercase tracking-[0.3em] text-[var(--accent)] md:text-4xl">
                 Tempo di Reazione
               </p>
             </div>

@@ -209,7 +209,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
           )}
 
           {(session.stageMode === "question" || session.stageMode === "question_results") && (
-            <div className="w-full max-w-[95%] mx-auto flex flex-col h-full space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500 py-4 overflow-hidden">
+            <div className="w-full max-w-[96%] mx-auto flex flex-col h-full space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500 py-6 px-4 overflow-hidden box-border">
               {(() => {
                 const questions = session.questions || [];
                 const q = questions[session.currentQuestionIndex];
@@ -221,14 +221,14 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                 
                 return (
                   <>
-                    <div className="space-y-1 text-center shrink-0">
-                      <p className="text-2xl text-[var(--accent-strong)] font-black uppercase tracking-[0.5em]">
+                    <div className="space-y-1 text-center shrink-0 max-h-[25vh] overflow-hidden">
+                      <p className="text-3xl text-[var(--accent-strong)] font-black uppercase tracking-[0.5em] md:text-5xl">
                         {isResult ? `Risultati Domanda ${session.currentQuestionIndex + 1}` : `Domanda ${session.currentQuestionIndex + 1}`}
                       </p>
-                      <h2 className="text-4xl md:text-6xl font-black leading-tight uppercase tracking-tight text-white">{q.text}</h2>
+                      <h2 className="text-4xl md:text-6xl font-black leading-tight uppercase tracking-tight text-white line-clamp-3">{q.text}</h2>
                     </div>
 
-                    <div className="flex-1 flex flex-col gap-4 w-full max-w-6xl mx-auto px-4 min-h-0">
+                    <div className="flex-1 flex flex-col gap-4 w-full max-w-[98%] mx-auto px-4 min-h-0">
                       {q.options.map((opt, idx) => {
                         const count = qAnswers.filter(a => a.selectedOptionId === opt.id).length;
                         const percent = Math.round((count / totalAnswers) * 100);
@@ -240,7 +240,7 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                             style={{ animationDelay: `${idx * 100}ms` }}
                           >
                             {/* Option Bar */}
-                            <div className="w-full bg-white/5 border-l-[1rem] border-[var(--accent-strong)] rounded-r-[2rem] flex items-center px-10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative overflow-hidden backdrop-blur-md border border-white/10">
+                            <div className="w-full bg-white/5 border-l-[1.5rem] border-[var(--accent-strong)] rounded-r-[3rem] flex items-center px-10 shadow-[0_15px_60px_rgba(0,0,0,0.9)] relative overflow-hidden backdrop-blur-md border border-white/10">
                               
                               {/* Progress Bar Background (Only in Results Mode) */}
                               <div 
@@ -252,13 +252,13 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                               
                               <div className="relative z-10 w-full flex items-center">
                                 {/* Number Circle */}
-                                <div className="flex items-center justify-center w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-white text-black shrink-0 shadow-2xl border-4 border-[var(--accent-strong)] transform -rotate-2 group-hover:rotate-0 transition-transform">
-                                  <span className="text-4xl md:text-6xl font-black leading-none">{opt.id}</span>
+                                <div className="flex items-center justify-center w-20 h-20 md:w-32 md:h-32 rounded-3xl bg-white text-black shrink-0 shadow-2xl border-[6px] border-[var(--accent-strong)] transform -rotate-2 group-hover:rotate-0 transition-transform">
+                                  <span className="text-5xl md:text-8xl font-black leading-none">{opt.id}</span>
                                 </div>
     
                                 {/* Text */}
                                 <div className="flex-1 ml-10 md:ml-16 overflow-hidden">
-                                  <span className="text-3xl md:text-5xl lg:text-6xl font-black uppercase text-white tracking-tighter block leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                                  <span className="text-4xl md:text-[5.5vh] lg:text-[6.5vh] font-black uppercase text-white tracking-tighter block leading-none drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)] truncate">
                                     {opt.text}
                                   </span>
                                 </div>
@@ -266,10 +266,10 @@ export function MatchDrinkStage({ sessionId }: { sessionId: string }) {
                                 {/* Result Overlay (Only in Results Mode) */}
                                 {isResult && (
                                   <div className="ml-6 flex flex-col items-end shrink-0 animate-in zoom-in slide-in-from-right duration-700">
-                                    <span className="text-4xl md:text-7xl font-black text-white tabular-nums drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] gold-gradient italic">
+                                    <span className="text-5xl md:text-[8vh] font-black text-white tabular-nums drop-shadow-[0_0_40px_rgba(255,255,255,0.5)] gold-gradient italic">
                                       {percent}%
                                     </span>
-                                    <span className="text-xs md:text-sm font-black text-[var(--accent-strong)] uppercase tracking-[0.3em]">{count} VOTI</span>
+                                    <span className="text-xl md:text-3xl font-black text-[var(--accent-strong)] uppercase tracking-[0.3em]">{count} VOTI</span>
                                   </div>
                                 )}
                               </div>
