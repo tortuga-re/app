@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const response = NextResponse.json(
-      startCaptainChallenge(session.playerId),
+      await startCaptainChallenge(session.playerId),
     );
     return attachCaptainChallengePlayerCookie(
       response,

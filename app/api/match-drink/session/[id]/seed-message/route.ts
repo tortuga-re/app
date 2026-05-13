@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { createBottleMessage, validateAdminPin } from "@/lib/match-drink/storage";
+import { createBottleMessage } from "@/lib/match-drink/storage";
 
 const SEED_MESSAGES = [
   "Qualcuno ha del rum extra? Chiedo per un amico al tavolo 5.",
@@ -26,9 +28,9 @@ export async function POST(
 ) {
   try {
     const { id: sessionId } = await params;
-    const { pin } = await req.json();
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
     const message = SEED_MESSAGES[Math.floor(Math.random() * SEED_MESSAGES.length)];
@@ -49,7 +51,7 @@ export async function POST(
 
     if (!targetPlayerId) {
       // Create or get system player
-      const { data: sysPlayer, error: sysError } = await supabase
+      const { data: sysPlayer } = await supabase
         .from("match_drink_players")
         .select("id")
         .eq("session_id", sessionId)

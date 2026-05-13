@@ -8,7 +8,13 @@ export type AppAnalyticsEventName =
   | "start_booking"
   | "booking_request_submit"
   | "view_fidelity_qr"
-  | "app_page_view";
+  | "app_page_view"
+  | "admin_console_view"
+  | "admin_console_navigate"
+  | "admin_push_sent"
+  | "home_context_view"
+  | "profile_loot_view"
+  | "live_mode_view";
 
 export type AppAnalyticsPayload = Record<
   string,

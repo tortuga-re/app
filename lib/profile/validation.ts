@@ -1,4 +1,9 @@
 import type { ProfileUpdateInput } from "@/lib/cooperto/types";
+import {
+  italianPhoneValidationError,
+  isValidItalianPhone,
+  normalizeItalianPhone,
+} from "@/lib/validation/phone";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -14,16 +19,14 @@ export const normalizeProfileEmail = (value?: string) =>
 export const isValidProfileEmail = (value?: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeProfileEmail(value));
 
-export const normalizePhoneNumber = (value?: string) => {
-  const cleaned = value?.trim().replace(/\s+/g, "") ?? "";
-  if (!cleaned) return "";
-  
-  if (cleaned.startsWith("+")) return cleaned;
-  if (cleaned.startsWith("00")) return "+" + cleaned.slice(2);
-  
-  // Default prefix for Italy if no international prefix is found
-  return "+39" + cleaned;
-};
+export const isValidItalianMobileNumber = (value?: string) =>
+  isValidItalianPhone(value ?? "");
+
+export const normalizePhoneNumber = (value?: string) =>
+  normalizeItalianPhone(value ?? "")?.normalizedE164 ?? "";
+
+export const normalizeItalianMobileForCooperto = (value?: string) =>
+  normalizeItalianPhone(value ?? "")?.nationalNumber ?? "";
 
 export const normalizeProfileUpdateInput = (
   payload: unknown,
@@ -52,8 +55,8 @@ export const validateProfileUpdateInput = (
     return "Inserisci un indirizzo email valido.";
   }
 
-  if (!payload.phone.trim()) {
-    return "Inserisci un numero di telefono valido.";
+  if (!isValidItalianMobileNumber(payload.phone)) {
+    return italianPhoneValidationError;
   }
 
   if (payload.birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(payload.birthDate)) {

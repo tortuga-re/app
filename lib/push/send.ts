@@ -2,11 +2,20 @@ import "server-only";
 
 import webpush from "web-push";
 
+import type { ProfileResponse } from "@/lib/cooperto/types";
+import {
+  getBirthdayInsight,
+  getCustomerRecencyInsight,
+  getProfilePoints,
+} from "@/lib/customer-profile";
+import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
+import { getProfileData } from "@/lib/cooperto/service";
 import {
   deletePushSubscription,
   listPushSubscriptions,
 } from "@/lib/push/subscription-store";
 import type {
+  PushAudienceSegment,
   PushSendPayload,
   PushSendResponse,
   StoredPushSubscription,
@@ -37,6 +46,74 @@ const toWebPushSubscription = (record: StoredPushSubscription) => ({
 });
 
 const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
+
+const shouldLoadProfilesForSegment = (segment?: PushAudienceSegment) =>
+  segment === "recent_visitors_30d" ||
+  segment === "birthday_soon_14d" ||
+  segment === "vip_inactive_60d" ||
+  segment === "identified_customers";
+
+const loadProfileCache = async (emails: string[]) => {
+  const uniqueEmails = [...new Set(emails.map(normalizeEmail).filter(Boolean))];
+  const entries = await Promise.all(
+    uniqueEmails.map(async (email) => {
+      try {
+        const profile = await getProfileData("email", email);
+        return [email, profile] as const;
+      } catch {
+        return [email, null] as const;
+      }
+    }),
+  );
+
+  return new Map<string, ProfileResponse | null>(entries);
+};
+
+const matchesSegment = ({
+  record,
+  payload,
+  now,
+  profile,
+}: {
+  record: StoredPushSubscription;
+  payload: PushSendPayload;
+  now: number;
+  profile?: ProfileResponse | null;
+}) => {
+  const segment = payload.segment ?? "all";
+
+  if (payload.onlyVenuePresent || segment === "venue_present") {
+    return Boolean(
+      record.venueAccessExpiresAt && record.venueAccessExpiresAt > now,
+    );
+  }
+
+  if (segment === "installed_app") {
+    return Boolean(record.installed);
+  }
+
+  if (segment === "identified_customers") {
+    return Boolean(profile?.contact?.CodiceContatto || record.email);
+  }
+
+  if (segment === "recent_visitors_30d") {
+    const rewardProgress = getFidelityRewardProgress(getProfilePoints(profile ?? null));
+    const recency = getCustomerRecencyInsight(profile?.contact, rewardProgress);
+    return recency?.status === "recent";
+  }
+
+  if (segment === "birthday_soon_14d") {
+    return Boolean(getBirthdayInsight(profile?.contact?.DataDiNascita, 14));
+  }
+
+  if (segment === "vip_inactive_60d") {
+    const rewardProgress = getFidelityRewardProgress(getProfilePoints(profile ?? null));
+    const recency = getCustomerRecencyInsight(profile?.contact, rewardProgress);
+    return recency?.status === "vip-inactive";
+  }
+
+  return true;
+};
 
 const buildPayload = (payload: PushSendPayload) =>
   JSON.stringify({
@@ -85,17 +162,30 @@ export const sendPushNotification = async (
 
   const email = normalizeEmail(payload.email);
   const now = Date.now();
-  const subscriptions = (await listPushSubscriptions()).filter((record) => {
-    const emailMatch = email ? normalizeEmail(record.email) === email : true;
+  const allSubscriptions = await listPushSubscriptions();
+  const profileCache = shouldLoadProfilesForSegment(payload.segment)
+    ? await loadProfileCache(
+        allSubscriptions
+          .map((record) => record.email)
+          .filter((value): value is string => Boolean(value)),
+      )
+    : new Map<string, ProfileResponse | null>();
+
+  const subscriptions = allSubscriptions.filter((record) => {
+    const normalizedRecordEmail = normalizeEmail(record.email);
+    const emailMatch = email ? normalizedRecordEmail === email : true;
     if (!emailMatch) return false;
 
-    if (payload.onlyVenuePresent) {
-      return Boolean(
-        record.venueAccessExpiresAt && record.venueAccessExpiresAt > now,
-      );
-    }
+    const profile = normalizedRecordEmail
+      ? profileCache.get(normalizedRecordEmail)
+      : null;
 
-    return true;
+    return matchesSegment({
+      record,
+      payload,
+      now,
+      profile,
+    });
   });
   const notificationPayload = buildPayload(payload);
 

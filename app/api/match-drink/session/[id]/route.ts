@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-import { deleteSessionData, getSession, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { deleteSessionData, getSession } from "@/lib/match-drink/storage";
 
 export async function GET(
   req: NextRequest,
@@ -8,6 +10,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
+    }
     const session = await getSession(id);
 
     if (!session) {
@@ -27,10 +33,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const { pin } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req, "captain");
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
     await deleteSessionData(id);

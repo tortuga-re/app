@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { validateAdminPin } from "@/lib/match-drink/storage";
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const pin = searchParams.get("pin");
-
-    if (!validateAdminPin(pin || "")) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
     const admin = getSupabaseAdmin();

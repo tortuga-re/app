@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const session = getCaptainChallengePlayerSession(request);
-  const player = ensurePlayer(session.playerId);
+  const player = await ensurePlayer(session.playerId);
   const response = NextResponse.json({
     lives: player.lives,
     referralCode: player.referralCode ?? null,

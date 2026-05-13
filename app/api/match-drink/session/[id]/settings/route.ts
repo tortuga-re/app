@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateSession, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { updateSession } from "@/lib/match-drink/storage";
+import { expectBoolean, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(
   req: NextRequest,
@@ -7,11 +10,15 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { pin, bottleMessagesEnabled } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
+    const payload = await readJsonBody<{ bottleMessagesEnabled?: boolean }>(req);
+    const bottleMessagesEnabled = expectBoolean(
+      payload.bottleMessagesEnabled,
+      "Stato messaggi in bottiglia",
+    );
 
     await updateSession(id, { bottleMessagesEnabled });
 

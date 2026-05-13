@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useCustomerIdentity } from "@/lib/customer-identity";
 import { requestJson } from "@/lib/client";
 import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
-import { isAdmin } from "@/lib/live-buzzer/admin";
 import { getSupabase } from "@/lib/match-drink/supabase";
 import { ChevronLeft } from "lucide-react";
 import type { BuzzerState, BuzzerEntry, BuzzerResult } from "@/lib/live-buzzer/types";
@@ -24,17 +22,11 @@ const getPointsForTime = (timeMs: number): number => {
 };
 
 export default function AdminBuzzerPage() {
-  const { identity, hasIdentity } = useCustomerIdentity();
-  const canAccess = hasIdentity && isAdmin(identity.email);
   const lastUpdateIdRef = useRef<number | string>(0);
-  
-  const [pin, setPin] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("match-drink.adminPin") || "";
-    }
-    return "";
-  });
-  const [isPinAuthorized, setIsPinAuthorized] = useState(false);
+  const canAccess = true;
+  const identity = { email: "" };
+  const [pin, setPin] = useState("");
+  const [isPinAuthorized, setIsPinAuthorized] = useState(true);
   const [pinLoading, setPinLoading] = useState(false);
   const [pinError, setPinError] = useState("");
 
@@ -383,8 +375,8 @@ export default function AdminBuzzerPage() {
                       ? "Questo azzererà TUTTO: squadre, punti e round. Non si torna indietro!" 
                       : "Stai per cancellare l'intera partita. Conferma per procedere.")
                   : (confirmStep === 1
-                      ? "Stai per terminare la partita e mostrare la classifica finale a tutti."
-                      : "Tutte le squadre vedranno il loro piazzamento. Confermi la fine della gara?")
+                      ? "Stai per terminare la partita. Sullo stage comparira prima il messaggio finale, poi potrai svelare la classifica dal fondo."
+                      : "Chiudiamo la gara e prepariamo lo svelamento progressivo della classifica finale?")
                 }
               </p>
             </div>
@@ -442,7 +434,7 @@ export default function AdminBuzzerPage() {
                     onClick={() => handleRevealAction("start")}
                     disabled={actionLoading}
                   >
-                    Svela a mano a mano
+                    Svela dal fondo
                   </button>
                   <button 
                     className="button-secondary min-h-12 text-[10px] uppercase font-black" 
@@ -461,7 +453,7 @@ export default function AdminBuzzerPage() {
                   >
                     {gameState.leaderboard.length - gameState.leaderboardRevealStep <= 2 
                       ? "🏆 SVELA I VINCITORI 🏆" 
-                      : "Avanti (Svela Prossimo)"}
+                      : "Avanti (Svela prossima squadra)"}
                   </button>
                   <button 
                     className="button-secondary col-span-2 min-h-10 text-[10px] uppercase font-black opacity-70" 

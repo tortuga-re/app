@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 import { NEW_QUESTION_BANK } from "@/lib/match-drink/new-question-bank";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const pin = searchParams.get("pin");
-  const expectedPin = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
-
-  if (pin !== expectedPin) {
-    return NextResponse.json({ error: "PIN non autorizzato" }, { status: 401 });
+  const adminRequest = requireAdminRequest(req, "captain");
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   try {

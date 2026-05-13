@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { redeemDrink, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { redeemDrink } from "@/lib/match-drink/storage";
+import { expectString, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(
   req: NextRequest,
@@ -7,15 +10,12 @@ export async function POST(
 ) {
   try {
     await params;
-    const { pin, matchId } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
-
-    if (!matchId) {
-      return NextResponse.json({ error: "Match ID mancante" }, { status: 400 });
-    }
+    const payload = await readJsonBody<{ matchId?: string }>(req);
+    const matchId = expectString(payload.matchId, "Match ID");
 
     await redeemDrink(matchId);
 

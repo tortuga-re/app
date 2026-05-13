@@ -1,11 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { assignScore } from "@/lib/live-buzzer/store";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  if (false) {
-    return NextResponse.json({ error: "Non autorizzato" }, { status: 403 });
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   try {

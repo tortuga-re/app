@@ -2,35 +2,31 @@ import { randomBytes } from "node:crypto";
 
 import { captainChallengeConfig } from "@/lib/game/config";
 import type { CaptainChallengeRound } from "@/lib/game/types";
+import { createPersistentJsonStore } from "@/lib/server/persistent-json-store";
 
-type RoundStore = Map<string, CaptainChallengeRound>;
+type RoundStore = Record<string, CaptainChallengeRound>;
 
-const globalStore = globalThis as typeof globalThis & {
-  __tortugaCaptainChallengeRounds?: RoundStore;
-};
+const roundStateStore = createPersistentJsonStore<RoundStore>({
+  key: "tortuga:captain-challenge:rounds",
+  localFile: ".data/captain-challenge-rounds.json",
+  initialState: () => ({}),
+  requireRedisInProduction: true,
+});
 
-const getRoundStore = () => {
-  if (!globalStore.__tortugaCaptainChallengeRounds) {
-    globalStore.__tortugaCaptainChallengeRounds = new Map();
-  }
+const cleanupExpiredRounds = (store: RoundStore, now = Date.now()) => {
+  const nextStore = { ...store };
 
-  return globalStore.__tortugaCaptainChallengeRounds;
-};
-
-const cleanupExpiredRounds = (now = Date.now()) => {
-  const store = getRoundStore();
-
-  for (const [gameId, round] of store.entries()) {
+  for (const [gameId, round] of Object.entries(nextStore)) {
     const referenceTime = round.closedAt ?? round.startedAt;
     if (now - referenceTime > captainChallengeConfig.roundTtlMs) {
-      store.delete(gameId);
+      delete nextStore[gameId];
     }
   }
+
+  return nextStore;
 };
 
-export const createRound = (playerId: string, explosionDelayMs: number) => {
-  cleanupExpiredRounds();
-
+export const createRound = async (playerId: string, explosionDelayMs: number) => {
   const round: CaptainChallengeRound = {
     gameId: randomBytes(24).toString("base64url"),
     playerId,
@@ -39,31 +35,45 @@ export const createRound = (playerId: string, explosionDelayMs: number) => {
     status: "open",
   };
 
-  getRoundStore().set(round.gameId, round);
+  await roundStateStore.update((store) => {
+    const prunedStore = cleanupExpiredRounds(store ?? {});
+    prunedStore[round.gameId] = round;
+    return prunedStore;
+  });
+
   return round;
 };
 
-export const getRound = (gameId: string) => {
-  cleanupExpiredRounds();
-  return getRoundStore().get(gameId) ?? null;
+export const getRound = async (gameId: string) => {
+  const nextStore = await roundStateStore.update((store) => cleanupExpiredRounds(store ?? {}));
+  return nextStore[gameId] ?? null;
 };
 
-export const closeRound = (gameId: string, closedAt: number) => {
-  const round = getRoundStore().get(gameId);
+export const closeRound = async (gameId: string, closedAt: number) => {
+  let closedRound: CaptainChallengeRound | null = null;
 
-  if (!round) {
-    return null;
-  }
+  await roundStateStore.update((store) => {
+    const prunedStore = cleanupExpiredRounds(store ?? {});
+    const round = prunedStore[gameId];
 
-  const closedRound: CaptainChallengeRound = {
-    ...round,
-    status: "closed",
-    closedAt,
-  };
+    if (!round) {
+      return prunedStore;
+    }
 
-  getRoundStore().set(gameId, closedRound);
+    closedRound = {
+      ...round,
+      status: "closed",
+      closedAt,
+    };
+    prunedStore[gameId] = closedRound;
+    return prunedStore;
+  });
+
   return closedRound;
 };
 
-// TODO production-ready: replace this in-memory store with Redis or a database
-// that supports TTL and atomic one-use updates across serverless instances.
+export const acquireRoundResolutionLock = async (gameId: string) =>
+  roundStateStore.setIfNotExists(
+    `tortuga:captain-challenge:round-lock:${gameId}`,
+    Math.ceil(captainChallengeConfig.roundTtlMs / 1000),
+  );

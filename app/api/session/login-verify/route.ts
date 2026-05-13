@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loginOtpStore } from "@/lib/session/login-otp";
 import { OtpError } from "@/lib/otp/store";
 import { getProfileData } from "@/lib/cooperto/service";
+import { measureServerOperation } from "@/lib/observability";
 import {
   attachCustomerSessionCookie,
   normalizeCustomerSessionIdentity,
@@ -28,11 +29,29 @@ export async function POST(request: Request) {
     );
   }
 
+  const requestId = payload.requestId;
+  const code = payload.code;
+
   try {
-    const record = await loginOtpStore.verify(payload.requestId, payload.code);
+    const record = await measureServerOperation(
+      "login_otp_verify",
+      async () => loginOtpStore.verify(requestId, code),
+      { requestId },
+    );
     const email = record.payload.email;
 
-    const profileData = await getProfileData("email", email);
+    if (!email) {
+      return NextResponse.json(
+        { error: "Email sessione non disponibile." },
+        { status: 500 },
+      );
+    }
+
+    const profileData = await measureServerOperation(
+      "login_profile_lookup",
+      async () => getProfileData("email", email),
+      { email },
+    );
     
     // Default values if profile not found in Cooperto, just to let them in with email
     const sessionIdentity = normalizeCustomerSessionIdentity({

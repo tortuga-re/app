@@ -174,10 +174,15 @@ export const endRound = () =>
       ...s, ...extra,
       status: "ended" as const,
       roundEnded: true,
-      leaderboardVisible: true,
+      leaderboardVisible: false,
       frozenLeaderboard: null,
       leaderboardRevealStep: null,
       leaderboardRevealFinished: false,
+      currentResponderEntryId: null,
+      lastScoredEntry: null,
+      countdownStart: null,
+      youtubeStatus: "paused" as const,
+      youtubeCommandType: null,
     };
   });
 
@@ -285,7 +290,9 @@ export const setYoutubePlaylist = (id: string, name?: string) =>
     youtubePlaylistId: id,
     youtubePlaylistName: name,
     youtubeStatus: "stopped" as const,
-    youtubeCommandId: s.youtubeCommandId + 1,
+    youtubeCurrentIndex: 0,
+    youtubeVideoTitle: undefined,
+    youtubeCommandType: null,
   }));
 
 export const setYoutubeStatus = (status: "playing" | "paused" | "stopped", title?: string) =>

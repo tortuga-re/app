@@ -50,8 +50,9 @@ import type {
   CoopertoCreateContactMovementRequest,
   CoopertoCreateReservationMovementRequest,
 } from "@/lib/cooperto/types";
+import { logServerEvent, measureServerOperation } from "@/lib/observability";
 import { buildCoopertoDateTime, buildCoopertoNowDateTime } from "@/lib/utils";
-import { normalizePhoneNumber } from "@/lib/profile/validation";
+import { normalizeItalianPhone } from "@/lib/validation/phone";
 
 const withQuery = (path: string, query: Record<string, string | number | undefined>) => {
   const url = new URL(path, coopertoConfig.apiBaseUrl);
@@ -74,20 +75,31 @@ const coopertoFetch = async <T>(
   }
 
   const url = withQuery(path, init?.query ?? {});
-  
-  if (init?.body) {
-    console.debug(`[Cooperto Request] ${init.method || "GET"} ${path}`, init.body);
-  }
 
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${coopertoConfig.apiKey}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
+  logServerEvent("info", "cooperto_request_prepared", {
+    path,
+    method: init?.method || "GET",
+    hasBody: Boolean(init?.body),
+    queryKeys: Object.keys(init?.query ?? {}).length,
   });
+
+  const response = await measureServerOperation(
+    "cooperto_request",
+    async () =>
+      fetch(url, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${coopertoConfig.apiKey}`,
+          ...(init?.body ? { "Content-Type": "application/json" } : {}),
+          ...init?.headers,
+        },
+        cache: "no-store",
+      }),
+    {
+      path,
+      method: init?.method || "GET",
+    },
+  );
 
   if (!response.ok) {
     const body = await response.text();
@@ -460,7 +472,7 @@ export const createBooking = async (
     Pax: input.pax,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: normalizePhoneNumber(input.phone),
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
     Email: input.email,
     Note: buildBookingNote(input),
     ConsensoPrivacy: input.privacyAccepted,
@@ -504,7 +516,7 @@ export const createWaitlist = async (
     CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: normalizePhoneNumber(input.phone),
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
     Email: input.email,
     Pax: input.pax,
     Note: buildWaitlistNote(input),
@@ -641,7 +653,7 @@ export const updateProfileContact = async (
     Nome: input.firstName,
     Cognome: input.lastName,
     Email: input.email,
-    Telefono: input.phone,
+    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
     DataDiNascita: buildBirthDateDateTime(input.birthDate),
     ConsensoMarketing: input.marketingConsent,
     SovrascriviDati: true,

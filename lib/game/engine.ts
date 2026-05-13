@@ -44,10 +44,10 @@ const buildOffer = (
   return null;
 };
 
-export const startCaptainChallenge = (
+export const startCaptainChallenge = async (
   playerId: string,
-): CaptainChallengeStartResponse => {
-  const lives = getPlayerLives(playerId);
+): Promise<CaptainChallengeStartResponse> => {
+  const lives = await getPlayerLives(playerId);
 
   if (lives <= 0) {
     throw new CaptainChallengeError(
@@ -60,7 +60,7 @@ export const startCaptainChallenge = (
     captainChallengeConfig.minDelayMs,
     captainChallengeConfig.maxDelayMs + 1,
   );
-  const round = createRound(playerId, explosionDelayMs);
+  const round = await createRound(playerId, explosionDelayMs);
 
   return {
     gameId: round.gameId,
@@ -69,16 +69,16 @@ export const startCaptainChallenge = (
   };
 };
 
-export const resolveCaptainChallengeTap = (
+export const resolveCaptainChallengeTap = async (
   rawGameId: string | undefined,
-): CaptainChallengeTapResponse => {
+): Promise<CaptainChallengeTapResponse> => {
   const gameId = rawGameId?.trim();
 
   if (!gameId) {
     throw new CaptainChallengeError("Round non valido.", 400);
   }
 
-  const round = getRound(gameId);
+  const round = await getRound(gameId);
 
   if (!round) {
     throw new CaptainChallengeError("Round inesistente o scaduto.", 404);
@@ -106,8 +106,10 @@ export const resolveCaptainChallengeTap = (
     outcome = "Il Capitano ha vinto la battaglia.";
   }
 
-  const lifeConsumed = consumePlayerLife(round.playerId);
-  closeRound(gameId, tapReceivedAt);
+  const [lifeConsumed] = await Promise.all([
+    consumePlayerLife(round.playerId),
+    closeRound(gameId, tapReceivedAt),
+  ]);
 
   if (!lifeConsumed) {
     throw new CaptainChallengeError(
@@ -124,6 +126,6 @@ export const resolveCaptainChallengeTap = (
     reactionTimeMs,
     offer,
     offerDurationSeconds: offer?.durationSeconds ?? 0,
-    livesRemaining: getPlayerLives(round.playerId),
+    livesRemaining: await getPlayerLives(round.playerId),
   };
 };

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { kickTeam } from "@/lib/live-buzzer/store";
 
 export async function POST(request: NextRequest) {
-  if (false) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   try {
@@ -11,6 +14,7 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json({ error: "Missing email" }, { status: 400 });
     }
+
     await kickTeam(email);
     return NextResponse.json({ success: true });
   } catch {

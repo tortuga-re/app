@@ -14,7 +14,7 @@ const BuzzerTeaser = dynamic(() => import("@/components/buzzer-teaser").then(mod
 const MatchDrinkTeaser = dynamic(() => import("@/components/match-drink-teaser").then(mod => mod.MatchDrinkTeaser), { ssr: false });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), {
+const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => ({ default: () => null } as any)), {
   loading: () => <div className="h-32 w-full animate-pulse rounded-[2rem] bg-white/5" />,
   ssr: false
 });
@@ -33,6 +33,7 @@ import {
   useCustomerIdentity,
 } from "@/lib/customer-identity";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
+import { useActiveGamesStatus } from "@/lib/game/use-active-games";
 import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
@@ -221,6 +222,107 @@ function ReservationCard({
   );
 }
 
+function SmartHeroCard({
+  hasMenuAccess,
+  reservation,
+  activeCouponsCount,
+  activeGames,
+}: {
+  hasMenuAccess: boolean;
+  reservation: UpcomingReservation | null;
+  activeCouponsCount: number;
+  activeGames: { buzzer: boolean; matchDrink: boolean };
+}) {
+  const isTonight = reservation
+    ? new Date(reservation.dateTime).toDateString() === new Date().toDateString()
+    : false;
+
+  const title = hasMenuAccess
+    ? "Sei a bordo."
+    : isTonight
+      ? "Hai una prenotazione stasera."
+      : activeCouponsCount > 0
+        ? `Hai ${activeCouponsCount} coupon pronti.`
+        : activeGames.buzzer || activeGames.matchDrink
+          ? "La serata è in movimento."
+          : "Pronti a salpare di nuovo?";
+
+  const description = hasMenuAccess
+    ? "Modalita locale attiva: menu, giochi e promo sono a un tap dalla tua mano."
+    : isTonight
+      ? "Controlla la tua rotta, arriva al tavolo giusto e tieniti pronto per i giochi live."
+      : activeCouponsCount > 0
+        ? "Hai già bottino da spendere: tieni d'occhio la prossima serata utile."
+        : activeGames.buzzer || activeGames.matchDrink
+          ? "Tra quiz e matchmaking, questa è una di quelle sere in cui conviene esserci."
+          : "Prenotazioni, coupon e giochi live compariranno qui nel momento giusto.";
+
+  return (
+    <div className="panel rounded-[2rem] border-[var(--accent-strong)]/25 bg-[var(--accent-soft)]/6 p-5">
+      <div className="space-y-2">
+        <p className="eyebrow">Rotta del momento</p>
+        <h2 className="text-2xl font-semibold leading-tight text-white">{title}</h2>
+        <p className="text-sm leading-6 text-[var(--text-muted)]">{description}</p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        {hasMenuAccess ? (
+          <>
+            <Link
+              href="/ciurma#sfide"
+              className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+              onClick={() => triggerHaptic()}
+            >
+              Apri modalita locale
+            </Link>
+            <Link
+              href="/sedi"
+              className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+              onClick={() => triggerHaptic()}
+            >
+              Info tavoli e spazi
+            </Link>
+          </>
+        ) : isTonight ? (
+          <>
+            <Link
+              href="#prossima-prenotazione"
+              className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+              onClick={() => triggerHaptic()}
+            >
+              Vedi prenotazione
+            </Link>
+            <Link
+              href="/sedi"
+              className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+              onClick={() => triggerHaptic()}
+            >
+              Come arrivare
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link
+              href="/prenota#booking-form"
+              className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+              onClick={() => triggerHaptic()}
+            >
+              Prenota adesso
+            </Link>
+            <Link
+              href={activeCouponsCount > 0 ? "#coupon" : "/ciurma#riconoscimento"}
+              className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+              onClick={() => triggerHaptic()}
+            >
+              {activeCouponsCount > 0 ? "Vedi coupon" : "Apri ciurma"}
+            </Link>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CoopertoMenuCard({ onClick }: { onClick?: () => void }) {
   return (
     <div className="panel parchment-texture rounded-[2rem] p-5">
@@ -294,6 +396,7 @@ export function HomeScreen() {
   const identityEmail = normalizeCustomerEmail(identity.email);
   const viewedReservationsKeyRef = useRef("");
   const { hasAccess: hasMenuAccess } = useOnPremiseAccess();
+  const activeGames = useActiveGamesStatus();
   const [profileState, setProfileState] = useState<{
     email: string;
     profile: ProfileResponse | null;
@@ -396,6 +499,38 @@ export function HomeScreen() {
     upcomingReservations.length,
   ]);
 
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const context =
+      hasMenuAccess
+        ? "on_premise"
+        : primaryReservation
+          ? "reservation"
+          : activeCoupons.length > 0
+            ? "coupon"
+            : activeGames.buzzer || activeGames.matchDrink
+              ? "live_games"
+              : "default";
+
+    trackAppEvent("home_context_view", {
+      app_section: "home",
+      home_context: context,
+      has_menu_access: hasMenuAccess,
+      has_live_buzzer: activeGames.buzzer,
+      has_live_match_drink: activeGames.matchDrink,
+    });
+  }, [
+    activeCoupons.length,
+    activeGames.buzzer,
+    activeGames.matchDrink,
+    hasMenuAccess,
+    loading,
+    primaryReservation,
+  ]);
+
   return (
     <section className="space-y-5">
       {loading ? (
@@ -416,6 +551,12 @@ export function HomeScreen() {
 
       {!loading ? (
         <>
+          <SmartHeroCard
+            hasMenuAccess={hasMenuAccess}
+            reservation={primaryReservation}
+            activeCouponsCount={activeCoupons.length}
+            activeGames={activeGames}
+          />
           <SurveyTeaserCard />
           <KantaquizTeaser />
           <BuzzerTeaser />

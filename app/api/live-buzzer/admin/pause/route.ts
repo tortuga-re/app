@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { pauseBuzzer } from "@/lib/live-buzzer/store";
 
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { pauseBuzzer } from "@/lib/live-buzzer/store";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(_request: NextRequest) {
-  // Auth rimosso per facilità d'uso su localhost
-  if (false) {
-    return NextResponse.json({ error: "Non autorizzato" }, { status: 403 });
+export async function POST(request: NextRequest) {
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   await pauseBuzzer();

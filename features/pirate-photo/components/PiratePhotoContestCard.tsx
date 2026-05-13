@@ -11,6 +11,11 @@ import {
 import { triggerHaptic } from "@/lib/haptics";
 import { piratePhotoPublicConfig } from "@/lib/pirate-photo/config";
 import type { PiratePhotoUploadResponse } from "@/lib/pirate-photo/types";
+import {
+  italianPhoneValidationError,
+  normalizeItalianPhone,
+  validateItalianPhone,
+} from "@/lib/validation/phone";
 
 type PiratePhotoContestCardProps = {
   contact: ProfileResponse["contact"] | null;
@@ -32,7 +37,8 @@ const buildInitialForm = (
   firstName: contact?.Nome?.trim() || identity.firstName,
   lastName: contact?.Cognome?.trim() || identity.lastName,
   email: normalizeCustomerEmail(contact?.Email || identity.email),
-  phone: contact?.Telefono?.trim() || identity.phone,
+  phone:
+    normalizeItalianPhone(contact?.Telefono?.trim() || identity.phone)?.normalizedE164 ?? "",
 });
 
 const allowedMonthPhotoMimeTypes = new Set([
@@ -149,7 +155,12 @@ export function PiratePhotoContestCard({
     }
 
     if (!form.phone.trim()) {
-      return "Inserisci un numero di telefono valido.";
+      return italianPhoneValidationError;
+    }
+
+    const normalizedPhone = validateItalianPhone(form.phone);
+    if (!normalizedPhone.ok) {
+      return normalizedPhone.error;
     }
 
     return "";
@@ -174,7 +185,12 @@ export function PiratePhotoContestCard({
     formData.set("firstName", contact?.Nome?.trim() || form.firstName.trim());
     formData.set("lastName", contact?.Cognome?.trim() || form.lastName.trim());
     formData.set("email", normalizeCustomerEmail(contact?.Email || form.email));
-    formData.set("phone", contact?.Telefono?.trim() || form.phone.trim());
+    formData.set(
+      "phone",
+      contact?.Telefono?.trim() ||
+        normalizeItalianPhone(form.phone)?.normalizedE164 ||
+        form.phone.trim(),
+    );
 
     setSubmitting(true);
     setError("");

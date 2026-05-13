@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const payload = (await request.json().catch(() => null)) as
     | Partial<CaptainChallengeReferralClaimInput>
     | null;
-  const result = claimReferralCode(payload?.referralCode, session.playerId);
+  const result = await claimReferralCode(payload?.referralCode, session.playerId);
   const status = result.reason === "not_found" ? 404 : 200;
   const response = NextResponse.json(result, { status });
 

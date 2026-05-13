@@ -36,6 +36,11 @@ import {
 import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn, formatDateTime, formatLongDate, safeNumber, todayIso } from "@/lib/utils";
+import {
+  italianPhoneValidationError,
+  normalizeItalianPhone,
+  validateItalianPhone,
+} from "@/lib/validation/phone";
 
 type BookingDraft = {
   date: string;
@@ -86,7 +91,7 @@ const buildDraftFallback = (
   firstName: firstName?.trim() ?? "",
   lastName: lastName?.trim() ?? "",
   email: normalizeCustomerEmail(email),
-  phone: phone?.trim() ?? "",
+  phone: normalizeItalianPhone(phone ?? "")?.normalizedE164 ?? "",
   marketingAccepted: marketingConsent === true ? true : baseDraft.marketingAccepted,
 });
 
@@ -175,7 +180,7 @@ const parseStoredDraft = (
     })(),
     phone:
       typeof parsed.phone === "string" && parsed.phone.trim()
-        ? parsed.phone
+        ? normalizeItalianPhone(parsed.phone)?.normalizedE164 ?? fallbackDraft.phone
         : fallbackDraft.phone,
     note: typeof parsed.note === "string" ? parsed.note : "",
     privacyAccepted:
@@ -488,7 +493,13 @@ export function BookingFlow() {
     }
 
     if (!draft.phone.trim()) {
-      setError("Inserisci il telefono del cliente.");
+      setError("Inserisci un numero di cellulare italiano.");
+      return;
+    }
+
+    const normalizedPhone = validateItalianPhone(draft.phone);
+    if (!normalizedPhone.ok) {
+      setError(normalizedPhone.error);
       return;
     }
 
@@ -509,7 +520,7 @@ export function BookingFlow() {
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
       email: draft.email.trim() || undefined,
-      phone: draft.phone.trim() || undefined,
+      phone: normalizedPhone.normalizedE164,
       note: composedCustomerNote,
       privacyAccepted: draft.privacyAccepted,
       marketingAccepted: draft.marketingAccepted,
@@ -584,7 +595,13 @@ export function BookingFlow() {
     }
 
     if (!draft.phone.trim()) {
-      setWaitlistError("Inserisci un numero di telefono valido.");
+      setWaitlistError(italianPhoneValidationError);
+      return;
+    }
+
+    const normalizedPhone = validateItalianPhone(draft.phone);
+    if (!normalizedPhone.ok) {
+      setWaitlistError(normalizedPhone.error);
       return;
     }
 
@@ -602,7 +619,7 @@ export function BookingFlow() {
       roomCode: activeRoomCode || undefined,
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
-      phone: draft.phone.trim(),
+      phone: normalizedPhone.normalizedE164,
       email: draft.email.trim() || undefined,
       note: composedCustomerNote,
       privacyAccepted: draft.privacyAccepted,

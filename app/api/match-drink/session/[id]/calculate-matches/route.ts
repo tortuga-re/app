@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { calculateMatches } from "@/lib/match-drink/scoring";
 import { 
   getAnswers, 
@@ -7,7 +9,6 @@ import {
   storeMatches, 
   updateSessionStatus, 
   updateStageMode, 
-  validateAdminPin,
   getSessionQuestions 
 } from "@/lib/match-drink/storage";
 
@@ -17,10 +18,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { pin } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req, "captain");
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
     const [session, players, answers, questions] = await Promise.all([
