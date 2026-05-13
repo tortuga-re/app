@@ -122,9 +122,7 @@ const parseStoredCustomerIdentity = (raw: string): CustomerIdentity | null => {
     firstName: typeof parsed.firstName === "string" ? cleanText(parsed.firstName) : "",
     lastName: typeof parsed.lastName === "string" ? cleanText(parsed.lastName) : "",
     phone:
-      typeof parsed.phone === "string"
-        ? normalizeItalianPhone(parsed.phone)?.normalizedE164 ?? ""
-        : "",
+      typeof parsed.phone === "string" ? parsed.phone : "",
     marketingConsent:
       typeof parsed.marketingConsent === "boolean"
         ? parsed.marketingConsent
@@ -147,9 +145,7 @@ const mergeCustomerIdentity = (
   lastName:
     updates.lastName !== undefined ? cleanText(updates.lastName) : current.lastName,
   phone:
-    updates.phone !== undefined
-      ? normalizeItalianPhone(updates.phone)?.normalizedE164 ?? ""
-      : current.phone,
+    updates.phone !== undefined ? updates.phone : current.phone,
   marketingConsent:
     updates.marketingConsent !== undefined
       ? updates.marketingConsent

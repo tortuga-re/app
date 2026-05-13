@@ -16,6 +16,7 @@ type FidelityStatusCardProps = {
   isVip: boolean;
   activeCardCode: string;
   qrLabel: string;
+  tierImage?: string;
   className?: string;
 };
 
@@ -41,6 +42,7 @@ export function FidelityStatusCard({
   isVip,
   activeCardCode,
   qrLabel,
+  tierImage,
   className,
 }: FidelityStatusCardProps) {
   const hasCard = Boolean(activeCardCode);
@@ -71,15 +73,23 @@ export function FidelityStatusCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" className={cn("h-5 w-5", isVip ? "text-[#e6c27a]" : "text-[var(--accent-strong)]")} fill="currentColor">
-              <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5z" opacity="0.4" />
-              <circle cx="12" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M10 12l2-2 2 2M12 7v3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
-            <p className={cn("eyebrow", isVip && "text-[#e6c27a]")}>{title}</p>
+          <div className="flex items-center gap-3">
+            {tierImage ? (
+              <div className="relative h-12 w-12 flex-shrink-0 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)] transition-transform duration-300 hover:scale-110">
+                <img src={tierImage} alt={tierLabel} className="h-full w-full object-contain" />
+              </div>
+            ) : (
+              <svg viewBox="0 0 24 24" className={cn("h-5 w-5", isVip ? "text-[#e6c27a]" : "text-[var(--accent-strong)]")} fill="currentColor">
+                <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5z" opacity="0.4" />
+                <circle cx="12" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M10 12l2-2 2 2M12 7v3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            )}
+            <div className="space-y-0.5">
+              <p className={cn("eyebrow leading-tight", isVip && "text-[#e6c27a]")}>{title}</p>
+              <h2 className="text-2xl font-bold tracking-tight text-white">{tierLabel}</h2>
+            </div>
           </div>
-          <h2 className="text-2xl font-semibold text-white">{tierLabel}</h2>
           <p
             className={cn(
               "max-w-[18rem] text-sm leading-6 text-[var(--text-muted)]",
