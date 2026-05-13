@@ -124,6 +124,16 @@ export function CiurmaScreen() {
   const [resendingLogin, setResendingLogin] = useState(false);
   const longPressRef = useRef<number | null>(null);
   const autoLoadedKeyRef = useRef("");
+  const handlePhoneBlur = () => {
+    if (!contactForm.phone.trim()) return;
+    const normalized = normalizeItalianPhone(contactForm.phone);
+    if (normalized) {
+      setContactForm((current) => ({
+        ...current,
+        phone: normalized.normalizedE164,
+      }));
+    }
+  };
 
   const identityEmail = normalizeCustomerEmail(identity.email);
   const { registerVisit } = useVisitRegistration();
@@ -977,6 +987,7 @@ export function CiurmaScreen() {
                         phone: "+39" + event.target.value.replace(/\D/g, ""),
                       }))
                     }
+                    onBlur={handlePhoneBlur}
                   />
                 </div>
               </label>
@@ -1399,9 +1410,18 @@ export function CiurmaScreen() {
                   {profileName}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
-                    {loyaltyProgress.loyaltyTier.label}
-                  </span>
+                  <div className="flex items-center gap-1.5 rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 pl-1 pr-3 py-1">
+                    {loyaltyProgress.loyaltyTier.image ? (
+                      <img 
+                        src={loyaltyProgress.loyaltyTier.image} 
+                        alt={loyaltyProgress.loyaltyTier.label}
+                        className="h-5 w-5 object-contain"
+                      />
+                    ) : null}
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
+                      {loyaltyProgress.loyaltyTier.label}
+                    </span>
+                  </div>
                   <span className="text-xs leading-5 text-[var(--text-muted)]">
                     {loyaltyProgress.points} punti
                   </span>
@@ -1565,6 +1585,7 @@ export function CiurmaScreen() {
                               phone: "+39" + event.target.value.replace(/\D/g, ""),
                             }))
                           }
+                          onBlur={handlePhoneBlur}
                         />
                       </div>
                     </label>
@@ -1704,12 +1725,6 @@ export function CiurmaScreen() {
                             Email:{" "}
                             <span className={contactSnapshot.email ? "text-white" : "text-[var(--danger)] font-semibold"}>
                               {contactSnapshot.email || "Non disponibile"}
-                            </span>
-                          </p>
-                          <p>
-                            Telefono:{" "}
-                            <span className={contactSnapshot.phone ? "text-white" : "text-[var(--danger)] font-semibold"}>
-                              {contactSnapshot.phone || "Non disponibile"}
                             </span>
                           </p>
                         </div>

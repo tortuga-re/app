@@ -582,6 +582,7 @@ export function HomeScreen() {
                 points={rewardProgress.points}
                 progressPercent={rewardProgress.progressPercent}
                 tierLabel={rewardProgress.loyaltyTier.label}
+                tierImage={rewardProgress.loyaltyTier.image}
                 tierDescription={rewardProgress.loyaltyTier.description}
                 nextRewardLabel={rewardProgress.nextReward?.label}
                 isVip={rewardProgress.isVip}

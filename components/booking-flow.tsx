@@ -86,14 +86,19 @@ const buildDraftFallback = (
   email?: string,
   phone?: string,
   marketingConsent?: boolean,
-): BookingDraft => ({
-  ...baseDraft,
-  firstName: firstName?.trim() ?? "",
-  lastName: lastName?.trim() ?? "",
-  email: normalizeCustomerEmail(email),
-  phone: normalizeItalianPhone(phone ?? "")?.normalizedE164 ?? "",
-  marketingAccepted: marketingConsent === true ? true : baseDraft.marketingAccepted,
-});
+): BookingDraft => {
+  const rawPhone = (phone ?? "").replace(/\D/g, "");
+  const phoneWithPrefix = rawPhone ? (rawPhone.startsWith("39") ? `+${rawPhone}` : `+39${rawPhone}`) : "";
+
+  return {
+    ...baseDraft,
+    firstName: firstName?.trim() ?? "",
+    lastName: lastName?.trim() ?? "",
+    email: normalizeCustomerEmail(email),
+    phone: phoneWithPrefix,
+    marketingAccepted: marketingConsent === true ? true : baseDraft.marketingAccepted,
+  };
+};
 
 const cleanText = (value?: string) => {
   if (!value) {
@@ -179,8 +184,8 @@ const parseStoredDraft = (
       return normalizedEmail || fallbackDraft.email;
     })(),
     phone:
-      typeof parsed.phone === "string" && parsed.phone.trim()
-        ? normalizeItalianPhone(parsed.phone)?.normalizedE164 ?? fallbackDraft.phone
+      typeof parsed.phone === "string"
+        ? parsed.phone
         : fallbackDraft.phone,
     note: typeof parsed.note === "string" ? parsed.note : "",
     privacyAccepted:
@@ -232,6 +237,18 @@ export function BookingFlow() {
   const seededCustomerEmailRef = useRef("");
   const marketingFirstUntickBlockedRef = useRef(false);
   const trackedStartBookingRef = useRef(false);
+
+  const handlePhoneBlur = () => {
+    if (!draft.phone.trim()) return;
+    const normalized = normalizeItalianPhone(draft.phone);
+    if (normalized) {
+      const nextPhone = normalized.normalizedE164;
+      setDraft((current) => ({ ...current, phone: nextPhone }));
+      if (draft.email && isValidCustomerEmail(draft.email)) {
+        updateIdentity({ phone: nextPhone });
+      }
+    }
+  };
 
   useEffect(() => {
     if (trackedStartBookingRef.current) {
@@ -762,6 +779,7 @@ export function BookingFlow() {
                               phone: "+39" + event.target.value.replace(/\D/g, ""),
                             }))
                           }
+                          onBlur={handlePhoneBlur}
                         />
                       </div>
                     </label>
@@ -1276,6 +1294,7 @@ export function BookingFlow() {
                               updateIdentity({ phone: nextPhone });
                             }
                           }}
+                          onBlur={handlePhoneBlur}
                         />
                       </div>
                     </label>
