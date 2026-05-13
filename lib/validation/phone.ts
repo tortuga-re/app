@@ -10,36 +10,45 @@ const stripCommonPhoneSeparators = (input: string) =>
   input.trim().replace(/[\s().-]+/g, "");
 
 const extractItalianMobileNationalNumber = (input: string) => {
-  const compact = stripCommonPhoneSeparators(input);
+  let compact = stripCommonPhoneSeparators(input);
 
   if (!compact) {
     return "";
   }
 
-  if (/[^+\d]/.test(compact)) {
-    return "";
-  }
-
+  // Basic cleanup: remove leading + or 00
   if (compact.startsWith("+")) {
-    if (!/^\+\d+$/.test(compact)) {
-      return "";
+    compact = compact.slice(1);
+  } else if (compact.startsWith("00")) {
+    compact = compact.slice(2);
+  }
+
+  // Iteratively strip leading "39" as long as it's followed by something 
+  // that looks like a 10-digit number starting with 3.
+  // This handles multiple prefixes (e.g., users typing 39 inside a field 
+  // that already has +39 prepended).
+  let current = compact;
+  
+  // We check for length > 10 because Italian mobile numbers are 10 digits starting with 3.
+  // If current is "393...", stripping "39" might reveal a valid 10-digit number.
+  while (current.length > 10 && current.startsWith("39")) {
+    const candidate = current.slice(2);
+    // If the remainder is exactly 10 digits and starts with 3, we found it.
+    if (candidate.length === 10 && candidate.startsWith("3")) {
+      return candidate;
     }
-  } else if (!/^\d+$/.test(compact)) {
-    return "";
+    // If it's still too long, keep stripping 39 if it starts with another 39
+    if (candidate.length > 10 && candidate.startsWith("39")) {
+      current = candidate;
+      continue;
+    }
+    // Otherwise, stop stripping
+    break;
   }
 
-  const digitsOnly = compact.startsWith("+") ? compact.slice(1) : compact;
-
-  if (/^00393\d{9}$/.test(digitsOnly)) {
-    return digitsOnly.slice(4);
-  }
-
-  if (/^393\d{9}$/.test(digitsOnly)) {
-    return digitsOnly.slice(2);
-  }
-
-  if (/^3\d{9}$/.test(digitsOnly)) {
-    return digitsOnly;
+  // If we ended up with exactly 10 digits starting with 3, great.
+  if (current.length === 10 && current.startsWith("3")) {
+    return current;
   }
 
   return "";
