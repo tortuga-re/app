@@ -1,16 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
+import {
+  attachAdminSessionCookie,
+  createAdminSessionFromPin,
+} from "@/lib/admin/auth";
+import {
+  expectString,
+  readJsonBody,
+  RequestValidationError,
+} from "@/lib/validation/request";
+
+export async function POST(request: Request) {
   try {
-    const { pin } = await req.json();
-    const serverPin = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
+    const payload = await readJsonBody<{ pin?: string }>(request);
+    const pin = expectString(payload.pin, "PIN admin", { minLength: 4, maxLength: 32 });
+    const session = createAdminSessionFromPin(pin);
+    const response = NextResponse.json({
+      success: true,
+      session: {
+        role: session.role,
+        label: session.label,
+      },
+    });
 
-    if (pin === serverPin) {
-      return NextResponse.json({ success: true });
-    } else {
-      return NextResponse.json({ success: false }, { status: 401 });
-    }
-  } catch {
-    return NextResponse.json({ success: false }, { status: 500 });
+    return attachAdminSessionCookie(response, session);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof RequestValidationError
+            ? error.message
+            : "Verifica PIN non riuscita.",
+      },
+      { status: error instanceof RequestValidationError ? error.status : 500 },
+    );
   }
 }

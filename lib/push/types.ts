@@ -47,6 +47,16 @@ export interface DeletePushSubscriptionResponse {
   deleted: boolean;
 }
 
+export type PushAudienceSegment =
+  | "all"
+  | "venue_present"
+  | "installed_app"
+  | "identified_customers"
+  | "recent_visitors_30d"
+  | "birthday_soon_14d"
+  | "vip_inactive_60d"
+  | "specific_email";
+
 export interface PushSendPayload {
   title: string;
   body: string;
@@ -57,6 +67,7 @@ export interface PushSendPayload {
   badge?: string;
   renotify?: boolean;
   onlyVenuePresent?: boolean;
+  segment?: PushAudienceSegment;
 }
 
 export interface PushSendResponse {

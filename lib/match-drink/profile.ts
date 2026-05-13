@@ -252,8 +252,11 @@ export const getProfileDescription = (
 
 export const getApproachAdviceForTrait = (
   trait: MatchDrinkTrait,
-  _targetGender?: MatchDrinkGender,
-) => MATCH_DRINK_APPROACH_ADVICE[trait];
+  targetGender?: MatchDrinkGender,
+) => {
+  void targetGender;
+  return MATCH_DRINK_APPROACH_ADVICE[trait];
+};
 
 export const getSharedMainCategory = (
   profileA: Pick<MatchDrinkProfile, "mainCategory">,

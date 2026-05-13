@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { createBottleMessage, updateStageMode, validateAdminPin } from "@/lib/match-drink/storage";
+import { createBottleMessage, updateStageMode } from "@/lib/match-drink/storage";
+import { expectString, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(
   req: NextRequest,
@@ -8,14 +11,16 @@ export async function POST(
 ) {
   try {
     const { id: sessionId } = await params;
-    const { pin, message } = await req.json();
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
+    const payload = await readJsonBody<{ message?: string }>(req);
+    const message = expectString(payload.message, "Messaggio Capitano", {
+      minLength: 1,
+      maxLength: 500,
+    });
 
-    if (!message) {
-      return NextResponse.json({ error: "Messaggio vuoto" }, { status: 400 });
-    }
 
     const supabase = getSupabaseAdmin();
 

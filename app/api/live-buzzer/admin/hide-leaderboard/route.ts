@@ -6,9 +6,9 @@ import { hideLeaderboard } from "@/lib/live-buzzer/store";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const unauthorizedResponse = requireAdminRequest(request);
-  if (unauthorizedResponse) {
-    return unauthorizedResponse;
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   await hideLeaderboard();

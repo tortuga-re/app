@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminRequest } from "@/lib/admin/server-auth";
 
 export async function GET(request: NextRequest) {
-  const unauthorizedResponse = requireAdminRequest(request);
-  if (unauthorizedResponse) {
-    return unauthorizedResponse;
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   const url = request.nextUrl.searchParams.get("url");

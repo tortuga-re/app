@@ -8,13 +8,13 @@ import { StatusBlock } from "@/components/status-block";
 import dynamic from "next/dynamic";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const FidelityActivationPanel = dynamic<any>(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
+const FidelityActivationPanel = dynamic<any>(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel).catch(() => ({ default: () => null } as any)), { ssr: false });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
+const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => ({ default: () => null } as any)), { ssr: false });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const PiratePhotoContestCard = dynamic<any>(() => import("@/features/pirate-photo/components/PiratePhotoContestCard").then(mod => mod.PiratePhotoContestCard).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
+const PiratePhotoContestCard = dynamic<any>(() => import("@/features/pirate-photo/components/PiratePhotoContestCard").then(mod => mod.PiratePhotoContestCard).catch(() => ({ default: () => null } as any)), { ssr: false });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), { ssr: false });
+const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => ({ default: () => null } as any)), { ssr: false });
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import {
@@ -268,6 +268,20 @@ export function CiurmaScreen() {
       cancelled = true;
     };
   }, [identityEmail, isEditingLookup, hasProfile, updateIdentity]);
+
+  useEffect(() => {
+    if (!data?.contact) {
+      return;
+    }
+
+    trackAppEvent("profile_loot_view", {
+      app_section: "ciurma",
+      visits_count: data.contact.NumeroVisite ?? 0,
+      coupons_active: data.coupons.filter((coupon) => !coupon.Utilizzato).length,
+      missions_unlocked: missions.filter((mission) => mission.isUnlocked(data)).length,
+      loyalty_points: loyaltyProgress.points,
+    });
+  }, [data, loyaltyProgress.points]);
 
   const applyProfileResponse = async (response: ProfileResponse) => {
     setData(response);
@@ -1082,6 +1096,59 @@ export function CiurmaScreen() {
         <>
           <div className="mb-5">
             <PwaPushCard />
+          </div>
+          <div className="panel mb-5 rounded-[2rem] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="eyebrow">Diario di bordo</p>
+                <h2 className="text-xl font-semibold text-white">
+                  La tua ciurma prende forma
+                </h2>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
+                  Visite, bottino e progressi fedelta raccolti in un colpo solo.
+                </p>
+              </div>
+              {hasOnPremiseAccess ? (
+                <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                  Sei nel locale
+                </span>
+              ) : null}
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                  Visite registrate
+                </p>
+                <p className="mt-2 text-2xl font-black text-white">
+                  {data.contact.NumeroVisite ?? 0}
+                </p>
+              </div>
+              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                  Coupon attivi
+                </p>
+                <p className="mt-2 text-2xl font-black text-white">
+                  {data.coupons.filter((coupon) => !coupon.Utilizzato).length}
+                </p>
+              </div>
+              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                  Prossima ricompensa
+                </p>
+                <p className="mt-2 text-sm font-bold text-white">
+                  {loyaltyProgress.nextReward?.label || "Rotta VIP"}
+                </p>
+              </div>
+              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                  Imprese sbloccate
+                </p>
+                <p className="mt-2 text-2xl font-black text-white">
+                  {missions.filter((mission) => mission.isUnlocked(data)).length}
+                </p>
+              </div>
+            </div>
           </div>
           <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
             <PiratePhotoContestCard

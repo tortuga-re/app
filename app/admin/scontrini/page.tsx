@@ -3,15 +3,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useCustomerIdentity } from "@/lib/customer-identity";
-import { isAdmin } from "@/lib/live-buzzer/admin";
 import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
 import { ChevronLeft, Check, X, Eye, Receipt, User, Calendar, ExternalLink } from "lucide-react";
 import type { ReceiptRequest } from "@/lib/receipts/supabase";
 
 export default function AdminReceiptsPage() {
-  const { identity } = useCustomerIdentity();
   const [requests, setRequests] = useState<ReceiptRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -64,7 +61,6 @@ export default function AdminReceiptsPage() {
           receiptNumber: status === 'approved' ? receiptNumber : undefined,
           amount: status === 'approved' ? parseFloat(editableAmount) : undefined,
           adminNote,
-          adminEmail: identity.email
         })
       });
 
@@ -102,7 +98,6 @@ export default function AdminReceiptsPage() {
           id,
           status: 'rejected',
           adminNote: "Rimosso manualmente dalla lista",
-          adminEmail: identity.email
         })
       });
 
@@ -118,16 +113,6 @@ export default function AdminReceiptsPage() {
       setProcessingId(null);
     }
   };
-
-  if (!isAdmin(identity.email)) {
-    return (
-      <div className="p-10 text-center">
-        <h1 className="text-2xl font-bold text-red-500">Accesso Negato</h1>
-        <p className="mt-4 text-gray-400">Solo i capitani possono accedere a questa plancia.</p>
-        <Link href="/" className="mt-6 inline-block button-secondary px-6 py-2">Torna alla Home</Link>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-8 pb-32">

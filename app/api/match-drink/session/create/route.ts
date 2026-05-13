@@ -1,20 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-import { createSession, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { createSession } from "@/lib/match-drink/storage";
+import { expectNumber, expectString, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, pin, questionCount } = await req.json();
-
-    if (!title || !pin) {
-      return NextResponse.json({ error: "Titolo e PIN richiesti" }, { status: 400 });
+    const adminRequest = requireAdminRequest(req, "captain");
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
-    }
-
-    const parsedQuestionCount = questionCount ? parseInt(questionCount, 10) : 20;
+    const payload = await readJsonBody<{ title?: string; questionCount?: number | string }>(req);
+    const title = expectString(payload.title, "Titolo sessione", {
+      minLength: 3,
+      maxLength: 80,
+    });
+    const parsedQuestionCount =
+      payload.questionCount === undefined
+        ? 20
+        : expectNumber(payload.questionCount, "Numero domande", {
+            integer: true,
+            min: 5,
+            max: 40,
+          });
 
     const session = await createSession(title, parsedQuestionCount);
     

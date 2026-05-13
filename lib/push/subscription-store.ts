@@ -1,21 +1,22 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import "server-only";
+
 import path from "node:path";
 
 import { pwaConfig } from "@/lib/config";
+import { createPersistentJsonStore } from "@/lib/server/persistent-json-store";
 import type {
   SavePushSubscriptionInput,
   StoredPushSubscription,
 } from "@/lib/push/types";
 
-const redisRestUrl = process.env.UPSTASH_REDIS_REST_URL?.trim() ?? "";
-const redisRestToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim() ?? "";
-const redisSubscriptionsKey = "tortuga:push-subscriptions";
-const isRedisConfigured = Boolean(redisRestUrl && redisRestToken);
-
 const DEFAULT_SUBSCRIPTIONS_PATH = path.join(
-  /* turbopackIgnore: true */ process.cwd(),
   ".data",
   "push-subscriptions.json",
+);
+
+const DEFAULT_VISITS_PATH = path.join(
+  ".data",
+  "visit-storage.json",
 );
 
 const resolveSubscriptionsFile = () => {
@@ -23,95 +24,32 @@ const resolveSubscriptionsFile = () => {
     return DEFAULT_SUBSCRIPTIONS_PATH;
   }
 
-  return path.isAbsolute(pwaConfig.pushSubscriptionsFile)
-    ? pwaConfig.pushSubscriptionsFile
-    : path.join(
-        /* turbopackIgnore: true */ process.cwd(),
-        pwaConfig.pushSubscriptionsFile,
-      );
+  return pwaConfig.pushSubscriptionsFile;
 };
 
-const ensureSubscriptionsFile = async () => {
-  const filePath = resolveSubscriptionsFile();
-  await mkdir(path.dirname(filePath), { recursive: true });
+const subscriptionsStore = createPersistentJsonStore<StoredPushSubscription[]>({
+  key: "tortuga:push-subscriptions",
+  localFile: resolveSubscriptionsFile(),
+  initialState: () => [],
+  requireRedisInProduction: true,
+});
 
-  try {
-    await readFile(filePath, "utf8");
-  } catch {
-    await writeFile(filePath, "[]", "utf8");
-  }
+const visitStore = createPersistentJsonStore<Record<string, StoredVisit[]>>({
+  key: "tortuga:visits:index",
+  localFile: DEFAULT_VISITS_PATH,
+  initialState: () => ({}),
+  requireRedisInProduction: true,
+});
 
-  return filePath;
-};
+const normalizeSubscriptionRecords = (records?: StoredPushSubscription[]) =>
+  Array.isArray(records) ? records : [];
 
-const redisCommand = async <T>(command: Array<string | number>) => {
-  const response = await fetch(redisRestUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${redisRestToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(command),
-    cache: "no-store",
-  });
-
-  const body = (await response.json().catch(() => null)) as
-    | { result?: T; error?: string }
-    | null;
-
-  if (!response.ok || body?.error) {
-    throw new Error(body?.error || "Storage push non disponibile.");
-  }
-
-  return body?.result ?? null;
-};
-
-export const listPushSubscriptions = async (): Promise<StoredPushSubscription[]> => {
-  if (isRedisConfigured) {
-    const raw = await redisCommand<string>(["GET", redisSubscriptionsKey]);
-
-    if (!raw) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as StoredPushSubscription[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      await redisCommand<string>(["SET", redisSubscriptionsKey, "[]"]);
-      return [];
-    }
-  }
-
-  const filePath = await ensureSubscriptionsFile();
-
-  try {
-    const raw = await readFile(filePath, "utf8");
-    const parsed = JSON.parse(raw) as StoredPushSubscription[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const writePushSubscriptions = async (records: StoredPushSubscription[]) => {
-  if (isRedisConfigured) {
-    await redisCommand<string>([
-      "SET",
-      redisSubscriptionsKey,
-      JSON.stringify(records),
-    ]);
-    return;
-  }
-
-  const filePath = await ensureSubscriptionsFile();
-  await writeFile(filePath, JSON.stringify(records, null, 2), "utf8");
-};
+export const listPushSubscriptions = async (): Promise<StoredPushSubscription[]> =>
+  normalizeSubscriptionRecords(await subscriptionsStore.read());
 
 export const savePushSubscription = async (
   input: SavePushSubscriptionInput,
 ): Promise<{ record: StoredPushSubscription; isNew: boolean }> => {
-  const records = await listPushSubscriptions();
   const now = new Date().toISOString();
 
   const nextRecord: StoredPushSubscription = {
@@ -130,31 +68,38 @@ export const savePushSubscription = async (
     updatedAt: now,
   };
 
-  const existingIndex = records.findIndex(
-    (record) => record.endpoint === nextRecord.endpoint,
-  );
+  let savedRecord = nextRecord;
+  let isNew = false;
 
-  const isNew = existingIndex < 0;
+  await subscriptionsStore.update((currentRecords) => {
+    const records = normalizeSubscriptionRecords(currentRecords);
+    const existingIndex = records.findIndex(
+      (record) => record.endpoint === nextRecord.endpoint,
+    );
 
-  if (existingIndex >= 0) {
-    const existingRecord = records[existingIndex];
-    records[existingIndex] = {
-      ...existingRecord,
-      ...nextRecord,
-      createdAt: existingRecord.createdAt,
-      updatedAt: now,
-    };
-  } else {
+    isNew = existingIndex < 0;
+
+    if (existingIndex >= 0) {
+      const existingRecord = records[existingIndex];
+      const mergedRecord = {
+        ...existingRecord,
+        ...nextRecord,
+        createdAt: existingRecord.createdAt,
+        updatedAt: now,
+      };
+      records[existingIndex] = mergedRecord;
+      savedRecord = mergedRecord;
+      return records;
+    }
+
     records.push(nextRecord);
-  }
+    savedRecord = nextRecord;
+    return records;
+  });
 
-  await writePushSubscriptions(records);
-
-  return { 
-    record: isNew ? nextRecord : records[existingIndex], 
-    isNew 
-  };
+  return { record: savedRecord, isNew };
 };
+
 export const deletePushSubscription = async (endpoint: string) => {
   const normalizedEndpoint = endpoint.trim();
 
@@ -162,22 +107,19 @@ export const deletePushSubscription = async (endpoint: string) => {
     return false;
   }
 
-  const records = await listPushSubscriptions();
-  const nextRecords = records.filter(
-    (record) => record.endpoint !== normalizedEndpoint,
-  );
+  let removed = false;
 
-  if (nextRecords.length === records.length) {
-    return false;
-  }
+  await subscriptionsStore.update((currentRecords) => {
+    const records = normalizeSubscriptionRecords(currentRecords);
+    const nextRecords = records.filter(
+      (record) => record.endpoint !== normalizedEndpoint,
+    );
+    removed = nextRecords.length !== records.length;
+    return nextRecords;
+  });
 
-  await writePushSubscriptions(nextRecords);
-  return true;
+  return removed;
 };
-
-// --- Gestione Visite per Cron Sondaggio ---
-
-const redisVisitsKey = (dateIso: string) => `tortuga:visits:${dateIso}`;
 
 export interface StoredVisit {
   contactCode: string;
@@ -186,59 +128,62 @@ export interface StoredVisit {
   surveySent: boolean;
 }
 
-export const saveVisitToStorage = async (contactCode: string, email?: string) => {
-  if (!isRedisConfigured) return;
+const normalizeVisitStore = (store?: Record<string, StoredVisit[]>) => store ?? {};
 
+export const saveVisitToStorage = async (contactCode: string, email?: string) => {
   const today = new Date().toISOString().split("T")[0];
-  const key = redisVisitsKey(today);
 
   try {
-    const raw = await redisCommand<string>(["GET", key]);
-    const visits: StoredVisit[] = raw ? (JSON.parse(raw) as StoredVisit[]) : [];
+    await visitStore.update((rawStore) => {
+      const store = normalizeVisitStore(rawStore);
+      const visits = [...(store[today] ?? [])];
 
-    if (!visits.find((v) => v.contactCode === contactCode)) {
-      visits.push({
-        contactCode,
-        email: email?.trim().toLowerCase(),
-        timestamp: new Date().toISOString(),
-        surveySent: false,
-      });
-      await redisCommand<string>(["SET", key, JSON.stringify(visits)]);
-      // Scadenza dopo 7 giorni per pulizia
-      await redisCommand<string>(["EXPIRE", key, 60 * 60 * 24 * 7]);
-    }
-  } catch (err) {
-    console.error("[Visit Storage] Errore salvataggio visita:", err);
+      if (!visits.find((visit) => visit.contactCode === contactCode)) {
+        visits.push({
+          contactCode,
+          email: email?.trim().toLowerCase(),
+          timestamp: new Date().toISOString(),
+          surveySent: false,
+        });
+      }
+
+      store[today] = visits;
+      return store;
+    });
+  } catch (error) {
+    console.error("[Visit Storage] Errore salvataggio visita:", error);
   }
 };
 
 export const listVisitsForDate = async (dateIso: string): Promise<StoredVisit[]> => {
-  if (!isRedisConfigured) return [];
-  try {
-    const raw = await redisCommand<string>(["GET", redisVisitsKey(dateIso)]);
-    return raw ? (JSON.parse(raw) as StoredVisit[]) : [];
-  } catch {
-    return [];
-  }
+  const store = normalizeVisitStore(await visitStore.read());
+  return store[dateIso] ?? [];
 };
 
 export const updateVisitSurveyStatus = async (
   dateIso: string,
   contactCode: string,
 ) => {
-  if (!isRedisConfigured) return;
-  const key = redisVisitsKey(dateIso);
   try {
-    const raw = await redisCommand<string>(["GET", key]);
-    if (!raw) return;
+    await visitStore.update((rawStore) => {
+      const store = normalizeVisitStore(rawStore);
+      const visits = [...(store[dateIso] ?? [])];
+      const index = visits.findIndex((visit) => visit.contactCode === contactCode);
 
-    const visits: StoredVisit[] = JSON.parse(raw) as StoredVisit[];
-    const index = visits.findIndex((v) => v.contactCode === contactCode);
-    if (index >= 0) {
-      visits[index].surveySent = true;
-      await redisCommand<string>(["SET", key, JSON.stringify(visits)]);
-    }
-  } catch (err) {
-    console.error("[Visit Storage] Errore update status:", err);
+      if (index >= 0) {
+        visits[index] = {
+          ...visits[index],
+          surveySent: true,
+        };
+        store[dateIso] = visits;
+      }
+
+      return store;
+    });
+  } catch (error) {
+    console.error("[Visit Storage] Errore update status:", error);
   }
 };
+
+export const isPushSubscriptionRedisConfigured = () =>
+  subscriptionsStore.isRedisConfigured;

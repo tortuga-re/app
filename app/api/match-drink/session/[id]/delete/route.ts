@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { validateAdminPin, deleteSessionData } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { deleteSessionData } from "@/lib/match-drink/storage";
 
 export async function POST(
   req: NextRequest,
@@ -8,13 +9,10 @@ export async function POST(
 ) {
   try {
     const { id: sessionId } = await params;
-    const { pin } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req, "captain");
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
-
-    const supabase = getSupabaseAdmin();
 
     // Delete session and all related data using centralized logic
     await deleteSessionData(sessionId);

@@ -1,37 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { triggerHaptic } from "@/lib/haptics";
-import { StatusBlock } from "@/components/status-block";
-import { useCustomerIdentity } from "@/lib/customer-identity";
-import { isAdmin } from "@/lib/live-buzzer/admin";
-import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { ChevronLeft } from "lucide-react";
+
+import { StatusBlock } from "@/components/status-block";
+import { trackAppEvent } from "@/lib/analytics";
+import { triggerHaptic } from "@/lib/haptics";
+import type { PushAudienceSegment } from "@/lib/push/types";
 
 export default function AdminPushPage() {
-  const { identity } = useCustomerIdentity();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [url, setUrl] = useState("/ciurma");
-  const [onlyVenuePresent, setOnlyVenuePresent] = useState(false);
-  const [pin, setPin] = useState("");
+  const [segment, setSegment] = useState<PushAudienceSegment>("all");
+  const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success?: boolean; error?: string } | null>(null);
 
-  if (!isAdmin(identity.email)) {
-    return (
-      <div className="p-10 text-center">
-        <h1 className="text-2xl font-bold text-red-500">Accesso Negato</h1>
-        <p className="mt-4 text-gray-400">Solo i capitani possono accedere a questa plancia.</p>
-        <Link href="/" className="mt-6 inline-block button-secondary px-6 py-2">Torna alla Home</Link>
-      </div>
-    );
-  }
+  const handleSend = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !body || !pin) {
-      setResult({ error: "Compila tutti i campi obbligatori e inserisci il PIN." });
+    if (!title.trim() || !body.trim()) {
+      setResult({ error: "Compila titolo e messaggio prima di inviare la push." });
+      return;
+    }
+
+    if (segment === "specific_email" && !email.trim()) {
+      setResult({ error: "Inserisci l'email del destinatario per l'invio mirato." });
       return;
     }
 
@@ -40,29 +36,39 @@ export default function AdminPushPage() {
     setResult(null);
 
     try {
-      const res = await fetch("/api/push/send", {
+      const response = await fetch("/api/push/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-push-admin-token": pin, // Using pin as the admin token for simplicity in this dashboard
         },
         body: JSON.stringify({
           title,
           body,
           url,
-          onlyVenuePresent,
+          segment,
+          email: segment === "specific_email" ? email.trim().toLowerCase() : undefined,
         }),
       });
 
-      const data = await res.json();
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; sent?: number; total?: number }
+        | null;
 
-      if (res.ok) {
-        setResult({ success: true });
-        setTitle("");
-        setBody("");
-      } else {
-        setResult({ error: data.error || "Errore durante l'invio." });
+      if (!response.ok) {
+        setResult({ error: payload?.error || "Errore durante l'invio." });
+        return;
       }
+
+      setResult({ success: true });
+      trackAppEvent("admin_push_sent", {
+        app_section: "admin",
+        push_segment: segment,
+        push_sent: payload?.sent ?? 0,
+        push_total: payload?.total ?? 0,
+      });
+      setTitle("");
+      setBody("");
+      setEmail("");
     } catch {
       setResult({ error: "Errore di connessione al server." });
     } finally {
@@ -71,101 +77,122 @@ export default function AdminPushPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md p-6 space-y-8">
+    <div className="mx-auto max-w-2xl space-y-8">
       <header className="space-y-2">
-        <Link 
-          href="/ciurma" 
-          className="flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline mb-4"
+        <Link
+          href="/ciurma"
+          className="mb-4 flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline"
         >
-          <ChevronLeft className="w-3 h-3" /> Torna alla Ciurma
+          <ChevronLeft className="h-3 w-3" /> Torna alla Ciurma
         </Link>
-        <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">Plancia Push Capitano</h1>
-        <p className="text-sm text-[var(--text-muted)]">Invia messaggi istantanei a tutta la ciurma o solo ai presenti.</p>
+        <h1 className="text-3xl font-black uppercase italic tracking-tighter text-white">
+          Push marketing
+        </h1>
+        <p className="text-sm text-[var(--text-muted)]">
+          Invia notifiche istantanee a tutta la ciurma o a segmenti mirati della serata.
+        </p>
       </header>
 
       <form onSubmit={handleSend} className="space-y-6">
-        <div className="space-y-4 panel rounded-[2rem] p-6 border-white/5">
+        <div className="panel space-y-4 rounded-[2rem] p-6 border-white/5">
           <label className="block space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">Titolo Notifica</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+              Titolo notifica
+            </span>
             <input
               className="field"
               placeholder="Es: Il Kantaquiz inizia ora!"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(event) => setTitle(event.target.value)}
               required
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">Testo del Messaggio</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+              Testo del messaggio
+            </span>
             <textarea
               className="field min-h-24 resize-none"
               placeholder="Scrivi qui il contenuto della push..."
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(event) => setBody(event.target.value)}
               required
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">URL di Destinazione</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+              URL di destinazione
+            </span>
             <input
               className="field"
               placeholder="/ciurma"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(event) => setUrl(event.target.value)}
             />
           </label>
 
-          <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-            <input
-              type="checkbox"
-              className="w-5 h-5 accent-[var(--accent-strong)]"
-              checked={onlyVenuePresent}
-              onChange={(e) => setOnlyVenuePresent(e.target.checked)}
-            />
-            <span className="text-sm font-semibold text-white">Invia solo a chi è nel locale</span>
-          </label>
-        </div>
-
-        <div className="space-y-4 panel rounded-[2rem] p-6 border-[var(--accent-strong)]/20 bg-[var(--accent-soft)]/5">
           <label className="block space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)] text-center block">Autorizzazione Capitano (PIN)</span>
-            <input
-              type="password"
-              className="field text-center text-xl tracking-[0.5em]"
-              placeholder="••••"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              required
-            />
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+              Segmento
+            </span>
+            <select
+              className="field"
+              value={segment}
+              onChange={(event) => setSegment(event.target.value as PushAudienceSegment)}
+            >
+              <option value="all">Tutta la ciurma</option>
+              <option value="venue_present">Solo presenti nel locale</option>
+              <option value="installed_app">Solo chi ha installato la web app</option>
+              <option value="identified_customers">Solo clienti riconosciuti</option>
+              <option value="recent_visitors_30d">Visitatori ultimo mese</option>
+              <option value="birthday_soon_14d">Compleanni in arrivo</option>
+              <option value="vip_inactive_60d">VIP da riattivare</option>
+              <option value="specific_email">Cliente specifico</option>
+            </select>
           </label>
 
-          <button
-            type="submit"
-            disabled={sending}
-            className="button-primary w-full py-4 text-sm font-black uppercase tracking-[0.2em]"
-          >
-            {sending ? "Invio in corso..." : "Lancia la Push 🏴‍☠️"}
-          </button>
+          {segment === "specific_email" ? (
+            <label className="block space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+                Email destinatario
+              </span>
+              <input
+                className="field"
+                type="email"
+                placeholder="ciurma@tortuga.it"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </label>
+          ) : null}
         </div>
+
+        <button
+          type="submit"
+          disabled={sending}
+          className="button-primary w-full py-4 text-sm font-black uppercase tracking-[0.2em]"
+        >
+          {sending ? "Invio in corso..." : "Lancia la push"}
+        </button>
       </form>
 
-      {result?.success && (
+      {result?.success ? (
         <StatusBlock
           variant="info"
-          title="Bottino consegnato!"
-          description="La notifica è stata inviata correttamente a tutti i destinatari selezionati."
+          title="Bottino consegnato"
+          description="La notifica è stata inviata correttamente al segmento selezionato."
         />
-      )}
+      ) : null}
 
-      {result?.error && (
+      {result?.error ? (
         <StatusBlock
           variant="error"
           title="Assalto fallito"
           description={result.error}
         />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loginOtpStore, sendLoginOtpEmail } from "@/lib/session/login-otp";
+import { measureServerOperation } from "@/lib/observability";
 import { normalizeProfileEmail as normalizeCustomerEmail, isValidProfileEmail as isValidCustomerEmail } from "@/lib/profile/validation";
 import { OtpError } from "@/lib/otp/store";
 
@@ -27,11 +28,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { record, code } = await loginOtpStore.create({
-      email: normalizedEmail,
-    });
+    const { record, code } = await measureServerOperation(
+      "login_otp_request",
+      async () => loginOtpStore.create({
+        email: normalizedEmail,
+      }),
+      { email: normalizedEmail },
+    );
 
-    await sendLoginOtpEmail(normalizedEmail, code);
+    await measureServerOperation(
+      "login_otp_email_send",
+      async () => sendLoginOtpEmail(normalizedEmail, code),
+      { email: normalizedEmail },
+    );
 
     return NextResponse.json({
       requestId: record.requestId,

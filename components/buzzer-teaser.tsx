@@ -1,35 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useActiveGamesStatus } from "@/lib/game/use-active-games";
 
 export function BuzzerTeaser() {
-  const [isLive, setIsLive] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchStatus = async () => {
-      try {
-        const response = await fetch("/api/game/active-status", { cache: "no-store" });
-        if (cancelled) return;
-        if (response.ok) {
-          const data = await response.json();
-          setIsLive(!!data.buzzer);
-        }
-      } catch (err) {
-        console.error("Polling error in Buzzer teaser", err);
-      }
-    };
-
-    void fetchStatus();
-    const intervalId = window.setInterval(fetchStatus, 10000); // Polling ogni 10 secondi
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, []);
+  const { buzzer: isLive } = useActiveGamesStatus();
 
   if (!isLive) return null;
 

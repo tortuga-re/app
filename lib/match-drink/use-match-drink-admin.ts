@@ -14,15 +14,7 @@ import {
   type MatchDrinkMessageModeratedPayload
 } from "./message-state";
 
-const STORAGE_KEY_ADMIN_PIN = "match-drink.adminPin";
-
 export function useMatchDrinkAdmin(sessionId?: string) {
-  const [pin, setPin] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY_ADMIN_PIN) || "";
-    }
-    return "";
-  });
   const [session, setSession] = useState<MatchDrinkSession | null>(null);
   const [players, setPlayers] = useState<MatchDrinkPlayer[]>([]);
   const [messages, setMessages] = useState<MatchDrinkBottleMessage[]>([]);
@@ -33,19 +25,13 @@ export function useMatchDrinkAdmin(sessionId?: string) {
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const savePin = (newPin: string) => {
-    setPin(newPin);
-    localStorage.setItem(STORAGE_KEY_ADMIN_PIN, newPin);
-  };
-
   const lastUpdatedAtRef = useRef<string>("");
   const refresh = useCallback(async () => {
     if (!sessionId) return;
     try {
-      // Consolidated status for admin too? Yes, let's create it.
-      const res = await fetch(`/api/match-drink/session/${sessionId}/admin-status?pin=${pin}&t=${Date.now()}`);
+      const res = await fetch(`/api/match-drink/session/${sessionId}/admin-status?t=${Date.now()}`);
       if (!res.ok) {
-        if (res.status === 401) setError("PIN non valido");
+        if (res.status === 401) setError("Sessione admin scaduta");
         return;
       }
       const data = await res.json();
@@ -64,14 +50,14 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     } catch (err) {
       console.error("Admin poll error:", err);
     }
-  }, [sessionId, pin]);
+  }, [sessionId]);
 
   useEffect(() => {
     let mounted = true;
     const supabase = getSupabase();
 
     const initialRefresh = async () => {
-      if (sessionId && pin) {
+      if (sessionId) {
         await refresh();
         if (mounted) {
           pollingRef.current = setInterval(refresh, 3000); // 3s backup
@@ -120,14 +106,14 @@ export function useMatchDrinkAdmin(sessionId?: string) {
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [sessionId, pin, refresh]);
+  }, [sessionId, refresh]);
 
   const apiCall = async (endpoint: string, body: Record<string, unknown> = {}) => {
     try {
       const res = await fetch(`/api/match-drink/session/${sessionId}/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, ...body }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -144,8 +130,6 @@ export function useMatchDrinkAdmin(sessionId?: string) {
   };
 
   return {
-    pin,
-    savePin,
     session,
     players,
     messages,

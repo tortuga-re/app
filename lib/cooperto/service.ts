@@ -50,6 +50,7 @@ import type {
   CoopertoCreateContactMovementRequest,
   CoopertoCreateReservationMovementRequest,
 } from "@/lib/cooperto/types";
+import { logServerEvent, measureServerOperation } from "@/lib/observability";
 import { buildCoopertoDateTime, buildCoopertoNowDateTime } from "@/lib/utils";
 import { normalizeItalianPhone } from "@/lib/validation/phone";
 
@@ -74,20 +75,31 @@ const coopertoFetch = async <T>(
   }
 
   const url = withQuery(path, init?.query ?? {});
-  
-  if (init?.body) {
-    console.debug(`[Cooperto Request] ${init.method || "GET"} ${path}`, init.body);
-  }
 
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${coopertoConfig.apiKey}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
+  logServerEvent("info", "cooperto_request_prepared", {
+    path,
+    method: init?.method || "GET",
+    hasBody: Boolean(init?.body),
+    queryKeys: Object.keys(init?.query ?? {}).length,
   });
+
+  const response = await measureServerOperation(
+    "cooperto_request",
+    async () =>
+      fetch(url, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${coopertoConfig.apiKey}`,
+          ...(init?.body ? { "Content-Type": "application/json" } : {}),
+          ...init?.headers,
+        },
+        cache: "no-store",
+      }),
+    {
+      path,
+      method: init?.method || "GET",
+    },
+  );
 
   if (!response.ok) {
     const body = await response.text();

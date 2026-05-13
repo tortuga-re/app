@@ -1,37 +1,43 @@
 import { randomBytes } from "node:crypto";
 
+import { createPersistentJsonStore } from "@/lib/server/persistent-json-store";
+
 type PlayerRecord = {
   playerId: string;
   lives: number;
   referralCode?: string;
-  claimedReferralCodes: Set<string>;
+  claimedReferralCodes: string[];
   createdAt: number;
   updatedAt: number;
 };
 
 type PlayerStore = {
-  players: Map<string, PlayerRecord>;
-  referralOwners: Map<string, string>;
+  players: Record<string, PlayerRecord>;
+  referralOwners: Record<string, string>;
 };
 
-const globalStore = globalThis as typeof globalThis & {
-  __tortugaCaptainChallengePlayers?: PlayerStore;
-};
+const playerStateStore = createPersistentJsonStore<PlayerStore>({
+  key: "tortuga:captain-challenge:players",
+  localFile: ".data/captain-challenge-players.json",
+  initialState: () => ({
+    players: {},
+    referralOwners: {},
+  }),
+  requireRedisInProduction: true,
+});
 
-const getPlayerStore = () => {
-  if (!globalStore.__tortugaCaptainChallengePlayers) {
-    globalStore.__tortugaCaptainChallengePlayers = {
-      players: new Map(),
-      referralOwners: new Map(),
-    };
-  }
+const createEmptyPlayerStore = (): PlayerStore => ({
+  players: {},
+  referralOwners: {},
+});
 
-  return globalStore.__tortugaCaptainChallengePlayers;
-};
+const normalizeStore = (store?: PlayerStore): PlayerStore => ({
+  players: store?.players ?? {},
+  referralOwners: store?.referralOwners ?? {},
+});
 
-export const ensurePlayer = (playerId: string) => {
-  const store = getPlayerStore();
-  const existing = store.players.get(playerId);
+const ensurePlayerInStore = (store: PlayerStore, playerId: string) => {
+  const existing = store.players[playerId];
 
   if (existing) {
     return existing;
@@ -41,111 +47,167 @@ export const ensurePlayer = (playerId: string) => {
   const created: PlayerRecord = {
     playerId,
     lives: 1,
-    claimedReferralCodes: new Set(),
+    claimedReferralCodes: [],
     createdAt: now,
     updatedAt: now,
   };
 
-  store.players.set(playerId, created);
+  store.players[playerId] = created;
   return created;
 };
 
-export const getPlayerLives = (playerId: string) => ensurePlayer(playerId).lives;
+export const ensurePlayer = async (playerId: string) => {
+  const nextStore = await playerStateStore.update((rawStore) => {
+    const store = normalizeStore(rawStore);
+    ensurePlayerInStore(store, playerId);
+    return store;
+  });
 
-export const consumePlayerLife = (playerId: string) => {
-  const player = ensurePlayer(playerId);
-
-  if (player.lives <= 0) {
-    return false;
-  }
-
-  player.lives -= 1;
-  player.updatedAt = Date.now();
-  return true;
+  return normalizeStore(nextStore).players[playerId];
 };
 
-export const addPlayerLife = (playerId: string) => {
-  const player = ensurePlayer(playerId);
-  player.lives += 1;
-  player.updatedAt = Date.now();
+export const getPlayerLives = async (playerId: string) => {
+  const player = await ensurePlayer(playerId);
   return player.lives;
+};
+
+export const consumePlayerLife = async (playerId: string) => {
+  let consumed = false;
+
+  await playerStateStore.update((rawStore) => {
+    const store = normalizeStore(rawStore);
+    const player = ensurePlayerInStore(store, playerId);
+
+    if (player.lives <= 0) {
+      return store;
+    }
+
+    player.lives -= 1;
+    player.updatedAt = Date.now();
+    consumed = true;
+    return store;
+  });
+
+  return consumed;
+};
+
+export const addPlayerLife = async (playerId: string) => {
+  const nextStore = await playerStateStore.update((rawStore) => {
+    const store = normalizeStore(rawStore);
+    const player = ensurePlayerInStore(store, playerId);
+    player.lives += 1;
+    player.updatedAt = Date.now();
+    return store;
+  });
+
+  return normalizeStore(nextStore).players[playerId].lives;
 };
 
 const createReferralCode = () => randomBytes(12).toString("base64url");
 
-export const getOrCreateReferralCode = (playerId: string) => {
-  const store = getPlayerStore();
-  const player = ensurePlayer(playerId);
+export const getOrCreateReferralCode = async (playerId: string) => {
+  const nextStore = await playerStateStore.update((rawStore) => {
+    const store = normalizeStore(rawStore);
+    const player = ensurePlayerInStore(store, playerId);
 
-  if (player.referralCode) {
-    return player.referralCode;
-  }
+    if (player.referralCode) {
+      return store;
+    }
 
-  let referralCode = createReferralCode();
-  while (store.referralOwners.has(referralCode)) {
-    referralCode = createReferralCode();
-  }
+    let referralCode = createReferralCode();
+    while (store.referralOwners[referralCode]) {
+      referralCode = createReferralCode();
+    }
 
-  player.referralCode = referralCode;
-  player.updatedAt = Date.now();
-  store.referralOwners.set(referralCode, playerId);
+    player.referralCode = referralCode;
+    player.updatedAt = Date.now();
+    store.referralOwners[referralCode] = playerId;
 
-  return referralCode;
+    return store;
+  });
+
+  return normalizeStore(nextStore).players[playerId].referralCode ?? "";
 };
 
-export const claimReferralCode = (
+export const claimReferralCode = async (
   rawReferralCode: string | undefined,
   claimerPlayerId: string,
 ) => {
   const referralCode = rawReferralCode?.trim();
-  const claimer = ensurePlayer(claimerPlayerId);
+  let result:
+    | {
+        claimed: boolean;
+        reason: "missing_code" | "not_found" | "self_referral" | "already_claimed" | "claimed";
+        lives: number;
+      }
+    | null = null;
 
-  if (!referralCode) {
-    return {
-      claimed: false,
-      reason: "missing_code" as const,
+  const nextStore = await playerStateStore.update((rawStore) => {
+    const store = normalizeStore(rawStore);
+    const claimer = ensurePlayerInStore(store, claimerPlayerId);
+
+    if (!referralCode) {
+      result = {
+        claimed: false,
+        reason: "missing_code",
+        lives: claimer.lives,
+      };
+      return store;
+    }
+
+    const referrerPlayerId = store.referralOwners[referralCode];
+
+    if (!referrerPlayerId) {
+      result = {
+        claimed: false,
+        reason: "not_found",
+        lives: claimer.lives,
+      };
+      return store;
+    }
+
+    if (referrerPlayerId === claimerPlayerId) {
+      result = {
+        claimed: false,
+        reason: "self_referral",
+        lives: claimer.lives,
+      };
+      return store;
+    }
+
+    if (claimer.claimedReferralCodes.includes(referralCode)) {
+      result = {
+        claimed: false,
+        reason: "already_claimed",
+        lives: claimer.lives,
+      };
+      return store;
+    }
+
+    claimer.claimedReferralCodes.push(referralCode);
+    claimer.updatedAt = Date.now();
+
+    const referrer = ensurePlayerInStore(store, referrerPlayerId);
+    referrer.lives += 1;
+    referrer.updatedAt = Date.now();
+
+    result = {
+      claimed: true,
+      reason: "claimed",
       lives: claimer.lives,
     };
+
+    return store;
+  });
+
+  if (result) {
+    return result;
   }
 
-  const store = getPlayerStore();
-  const referrerPlayerId = store.referralOwners.get(referralCode);
-
-  if (!referrerPlayerId) {
-    return {
-      claimed: false,
-      reason: "not_found" as const,
-      lives: claimer.lives,
-    };
-  }
-
-  if (referrerPlayerId === claimerPlayerId) {
-    return {
-      claimed: false,
-      reason: "self_referral" as const,
-      lives: claimer.lives,
-    };
-  }
-
-  if (claimer.claimedReferralCodes.has(referralCode)) {
-    return {
-      claimed: false,
-      reason: "already_claimed" as const,
-      lives: claimer.lives,
-    };
-  }
-
-  claimer.claimedReferralCodes.add(referralCode);
-  claimer.updatedAt = Date.now();
-  addPlayerLife(referrerPlayerId);
-
+  const finalStore = normalizeStore(nextStore ?? createEmptyPlayerStore());
   return {
-    claimed: true,
-    reason: "claimed" as const,
-    lives: claimer.lives,
+    claimed: false,
+    reason: "not_found" as const,
+    lives: finalStore.players[claimerPlayerId]?.lives ?? 1,
   };
 };
-
-// TODO production-ready: persist players, lives, referral codes and claims in
-// Redis or a database keyed to authenticated Cooperto/email identities. The MVP
-// uses cookies plus in-memory state and cannot enforce cross-device abuse limits.

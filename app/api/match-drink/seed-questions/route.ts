@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { seedQuestions, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { seedQuestions } from "@/lib/match-drink/storage";
 import { NEW_QUESTION_BANK } from "@/lib/match-drink/new-question-bank";
 import { MatchDrinkQuestion } from "@/lib/match-drink/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { pin } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req, "captain");
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
     await seedQuestions(NEW_QUESTION_BANK as MatchDrinkQuestion[]);

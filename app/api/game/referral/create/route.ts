@@ -46,8 +46,10 @@ const getReferralBaseUrl = (request: NextRequest) => {
 
 export async function POST(request: NextRequest) {
   const session = getCaptainChallengePlayerSession(request);
-  const player = ensurePlayer(session.playerId);
-  const referralCode = getOrCreateReferralCode(session.playerId);
+  const [player, referralCode] = await Promise.all([
+    ensurePlayer(session.playerId),
+    getOrCreateReferralCode(session.playerId),
+  ]);
   const referralUrl = new URL("/game/sfida-capitano", getReferralBaseUrl(request));
   referralUrl.searchParams.set("ref", referralCode);
 

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateQuestionIndex, updateStageMode, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { updateQuestionIndex, updateStageMode } from "@/lib/match-drink/storage";
+import { expectNumber, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(
   req: NextRequest,
@@ -7,11 +10,16 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { pin, index } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
+    const payload = await readJsonBody<{ index?: number | string }>(req);
+    const index = expectNumber(payload.index, "Indice domanda", {
+      integer: true,
+      min: 0,
+      max: 200,
+    });
 
     await updateQuestionIndex(id, index);
     await updateStageMode(id, "question");

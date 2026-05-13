@@ -6,9 +6,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const unauthorizedResponse = requireAdminRequest(request);
-    if (unauthorizedResponse) {
-      return unauthorizedResponse;
+    const adminRequest = requireAdminRequest(request);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
     const requests = await getPendingReceiptRequests();
