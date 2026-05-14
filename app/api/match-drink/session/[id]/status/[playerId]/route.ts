@@ -58,7 +58,11 @@ export async function GET(
       const profileB = pB ? calculatePlayerProfile(pB, answersB, questions) : null;
       const ownProfile = currentPlayerIsA ? profileA : profileB;
       const matchedProfile = currentPlayerIsA ? profileB : profileA;
-      const meetingAssignment = assignMatchDrinkMeetingTables(matches, players).get(match.id);
+      const meetingAssignment = assignMatchDrinkMeetingTables(
+        matches,
+        players,
+        session.excludedMeetingTables ?? [],
+      ).get(match.id);
       const sharedMainCategory =
         ownProfile && matchedProfile
           ? getSharedMainCategory(ownProfile, matchedProfile)

@@ -19,6 +19,8 @@ export default function MatchDrinkSessionAdminPage() {
     messages,
     matches,
     answers,
+    forecast,
+    meetingTableOptions,
     loading,
     start,
     nextQuestion,
@@ -31,6 +33,7 @@ export default function MatchDrinkSessionAdminPage() {
     deleteSession,
     updateStatus,
     toggleMessages,
+    updateExcludedMeetingTables,
   } = useMatchDrinkAdmin(id);
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -43,6 +46,20 @@ export default function MatchDrinkSessionAdminPage() {
   const currentQuestion = questions[session.currentQuestionIndex];
   const totalAnswers = answers.filter(a => a.questionId === currentQuestion?.id).length;
   const confirmedMatches = matches.filter(m => m.drinkUnlocked);
+  const redeemedDrinks = confirmedMatches.filter((match) => match.drinkRedeemed).length;
+  const excludedMeetingTables = session.excludedMeetingTables || [];
+  const realPlayers = players.filter((player) => player.nickname !== "_SYSTEM_");
+  const peopleWaiting = Math.max(realPlayers.length - confirmedMatches.length * 2, 0);
+  const revealReady = session.status === "matching" && matches.length > 0;
+  const analytics = session.analytics;
+
+  const handleToggleExcludedTable = async (tableKey: string) => {
+    const nextExcluded = excludedMeetingTables.includes(tableKey)
+      ? excludedMeetingTables.filter((key) => key !== tableKey)
+      : [...excludedMeetingTables, tableKey];
+
+    await updateExcludedMeetingTables(nextExcluded);
+  };
 
   const handleDelete = async () => {
     if (confirm("Sei sicuro? Questa operazione cancella definitivamente tutti i dati della serata.")) {
@@ -143,6 +160,107 @@ export default function MatchDrinkSessionAdminPage() {
                    })()}
                 </div>
               )}
+            </MatchDrinkCard>
+
+            <MatchDrinkCard>
+              <h2 className="eyebrow mb-4">Quadro Operativo</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className={`panel-muted rounded-xl p-4 ${revealReady ? "border border-[var(--accent-strong)] bg-[var(--accent-soft)]/10" : ""}`}>
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Reveal pronto</p>
+                  <p className="mt-2 text-2xl font-black text-white">{revealReady ? "SI" : "NO"}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    {matches.length} match calcolati
+                  </p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Match confermati</p>
+                  <p className="mt-2 text-2xl font-black text-white">{analytics?.acceptedMatches ?? confirmedMatches.length}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Drink sbloccati: {analytics?.drinksUnlocked ?? confirmedMatches.length}
+                  </p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Drink serviti</p>
+                  <p className="mt-2 text-2xl font-black text-white">{analytics?.drinksRedeemed ?? redeemedDrinks}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Iscrizioni: {analytics?.signups ?? realPlayers.length}
+                  </p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Persone in attesa</p>
+                  <p className="mt-2 text-2xl font-black text-white">{peopleWaiting}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    In attesa di conferma o senza drink servito
+                  </p>
+                </div>
+              </div>
+            </MatchDrinkCard>
+
+            <MatchDrinkCard>
+              <h2 className="eyebrow mb-4">Previsione Match e Tavoli</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Coppie Romance previste</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.romancePairs ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Capienza attuale: {forecast?.romanceCapacity ?? 0}</p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Coppie Friendship previste</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.friendshipPairs ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Capienza attuale: {forecast?.friendshipCapacity ?? 0}</p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Persone senza match</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.unmatchedPlayers ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Stima sui tavoli e compatibilita attuali</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--accent-strong)]">Tavoli Romance disponibili</p>
+                  <div className="mt-3 space-y-2">
+                    {meetingTableOptions.filter((table) => table.zone === "romance").map((table) => {
+                      const checked = !excludedMeetingTables.includes(table.key);
+                      return (
+                        <label key={table.key} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2 text-xs text-white">
+                          <span>
+                            {table.label} · {table.seats} posti · {table.slots} match
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => void handleToggleExcludedTable(table.key)}
+                            className="h-4 w-4 accent-[var(--accent-strong)]"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--accent-strong)]">Tavoli Friendship disponibili</p>
+                  <div className="mt-3 space-y-2">
+                    {meetingTableOptions.filter((table) => table.zone === "friendship").map((table) => {
+                      const checked = !excludedMeetingTables.includes(table.key);
+                      return (
+                        <label key={table.key} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2 text-xs text-white">
+                          <span>
+                            {table.label} · {table.seats} posti · {table.slots} match
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => void handleToggleExcludedTable(table.key)}
+                            className="h-4 w-4 accent-[var(--accent-strong)]"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </MatchDrinkCard>
 
             {/* Registration & Countdown Management */}
@@ -250,9 +368,9 @@ export default function MatchDrinkSessionAdminPage() {
           <div className="space-y-6">
              {/* Player List */}
              <MatchDrinkCard variant="muted">
-              <h2 className="eyebrow mb-4">Ciurma ({players.filter(p => p.nickname !== "_SYSTEM_").length})</h2>
+              <h2 className="eyebrow mb-4">Ciurma ({realPlayers.length})</h2>
               <div className="max-h-60 overflow-y-auto space-y-2 scrollbar-hidden">
-                {players.filter(p => p.nickname !== "_SYSTEM_").map(p => (
+                {realPlayers.map(p => (
                   <div key={p.id} className="flex items-center justify-between text-xs py-1 border-b border-[var(--border)] last:border-0">
                     <span className="text-white font-medium">{p.nickname}</span>
                     <span className="text-[var(--text-muted)]">Tavolo {p.tableNumber}</span>

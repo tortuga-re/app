@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BuzzerStage } from "@/components/live-buzzer/BuzzerStage";
 import { MatchDrinkStage } from "@/components/match-drink/MatchDrinkStage";
+import { TORTUGA_LIVE_LOGO_URL } from "@/lib/live-tv/default-playlists";
 import type { LiveTvItem, LiveTvOverlay, LiveTvState, StageMode } from "@/lib/live-tv/types";
 import { getSupabase } from "@/lib/match-drink/supabase";
 
@@ -142,11 +143,17 @@ function LogoScreen({ overlay }: { overlay?: LiveTvOverlay | null }) {
   return (
     <StageShell
       eyebrow="Tortuga Live"
-      title="TORTUGA"
+      title="Tortuga Live"
       subtitle="EAT.DRINK.TORTUGA.REPEAT"
       overlay={overlay}
     >
-      <div className="text-center">
+      <div className="flex flex-col items-center gap-10 text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={TORTUGA_LIVE_LOGO_URL}
+          alt="Logo Tortuga"
+          className="h-auto w-full max-w-[900px] object-contain drop-shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+        />
         <p className="text-4xl font-black uppercase tracking-[0.35em] text-white/60 md:text-6xl">
           La serata e in onda
         </p>
@@ -294,6 +301,31 @@ function RenderLiveTvItem({
     );
   }
 
+  if (item.type === "logo") {
+    return (
+      <StageShell
+        eyebrow="Tortuga Live"
+        title={item.title || "Tortuga Live"}
+        subtitle={item.subtitle || "EAT.DRINK.TORTUGA.REPEAT"}
+        overlay={overlay}
+      >
+        <div className="flex w-full max-w-[1500px] flex-col items-center gap-10 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.mediaUrl || TORTUGA_LIVE_LOGO_URL}
+            alt={item.title || "Logo Tortuga"}
+            className="h-auto w-full max-w-[920px] object-contain drop-shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+          />
+          {item.body ? (
+            <p className="max-w-6xl text-4xl font-black uppercase leading-[1.15] text-white md:text-6xl">
+              {item.body}
+            </p>
+          ) : null}
+        </div>
+      </StageShell>
+    );
+  }
+
   const eyebrow =
     item.type === "event"
       ? "Prossima rotta"
@@ -301,9 +333,7 @@ function RenderLiveTvItem({
         ? "Promo in onda"
         : item.type === "message"
           ? "Messaggio dal Capitano"
-          : item.type === "logo"
-            ? "Tortuga Live"
-            : "Tortuga Live";
+          : "Tortuga Live";
 
   return (
     <StageShell

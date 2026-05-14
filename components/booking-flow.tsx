@@ -316,6 +316,14 @@ export function BookingFlow() {
   const selectedSlot = canLoadAvailability
     ? enabledSlots.find((slot) => slot.time === selectedTime) ?? null
     : null;
+  const successDateLabel = success?.reservation.DataPrenotazione
+    ? formatLongDate(success.reservation.DataPrenotazione)
+    : selectedSlot
+      ? formatLongDate(selectedSlot.date)
+      : "-";
+  const successTimeLabel = success?.reservation.DataPrenotazione
+    ? formatDateTime(success.reservation.DataPrenotazione).split(" alle ")[1]
+    : selectedSlot?.time || "-";
   const availabilityKey = canLoadAvailability
     ? `${draft.date}|${draft.pax}|${activeRoomCode}`
     : "";
@@ -632,6 +640,9 @@ export function BookingFlow() {
 
     const payload: WaitlistCreateInput = {
       date: draft.date,
+      requestedTime: draft.isAfterDinner
+        ? "Dopo cena"
+        : selectedTime || undefined,
       pax: draft.pax,
       roomCode: activeRoomCode || undefined,
       firstName: draft.firstName.trim(),
@@ -985,13 +996,13 @@ export function BookingFlow() {
                 <div className="panel-muted rounded-[1.45rem] px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Data</p>
                   <p className="mt-1 text-sm font-bold text-white">
-                    {success.reservation.DataPrenotazione ? formatLongDate(success.reservation.DataPrenotazione) : "-"}
+                    {successDateLabel}
                   </p>
                 </div>
                 <div className="panel-muted rounded-[1.45rem] px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Ora</p>
                   <p className="mt-1 text-sm font-bold text-white">
-                    {success.reservation.DataPrenotazione ? formatDateTime(success.reservation.DataPrenotazione).split(" alle ")[1] : "-"}
+                    {successTimeLabel}
                   </p>
                 </div>
                 <div className="panel-muted rounded-[1.45rem] px-4 py-3">

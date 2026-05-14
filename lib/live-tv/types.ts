@@ -76,6 +76,30 @@ export type LiveTvOverlay = {
   expiresAt?: string | null;
 };
 
+export type LiveTvMediaAsset = {
+  id: string;
+  kind: "image" | "video";
+  title: string;
+  originalName: string;
+  fileName: string;
+  mediaUrl: string;
+  mimeType: string;
+  sizeBytes: number;
+  storageMode: "external" | "public";
+  createdAt: string;
+};
+
+export type LiveTvScheduleEntry = {
+  id: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  daysOfWeek: number[];
+  stageMode: StageMode;
+  presetId?: LiveTvPresetId | null;
+  enabled: boolean;
+};
+
 export type LiveTvState = {
   stageMode: StageMode;
   activePresetId?: LiveTvPresetId | null;
@@ -88,6 +112,9 @@ export type LiveTvState = {
   isBlackout?: boolean;
   autoReturnAfterBuzzer?: boolean;
   autoReturnAfterMatchDrink?: boolean;
+  autoScheduleEnabled?: boolean;
+  activeScheduleId?: string | null;
+  schedule?: LiveTvScheduleEntry[];
   lastUpdateId: number | string;
   updatedAt: string;
 };

@@ -64,6 +64,7 @@ export async function POST(request: Request) {
   try {
     const data = await createWaitlist({
       date: payload.date ?? "",
+      requestedTime: payload.requestedTime?.trim() || undefined,
       pax: payload.pax ?? 1,
       roomCode: payload.roomCode?.trim() || undefined,
       firstName: payload.firstName?.trim() ?? "",

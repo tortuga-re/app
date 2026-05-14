@@ -76,3 +76,24 @@ export interface PushSendResponse {
   removed: number;
   total: number;
 }
+
+export interface SavedPushSegment {
+  id: string;
+  name: string;
+  segment: PushAudienceSegment;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedPushCampaign {
+  id: string;
+  name: string;
+  title: string;
+  body: string;
+  url: string;
+  segment: PushAudienceSegment;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
+}

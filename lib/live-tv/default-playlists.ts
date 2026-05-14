@@ -44,6 +44,8 @@ const APP_URL = siteConfig.productionUrl;
 const MENU_URL = tortugaInfoConfig.menuUrl;
 const PROGRAM_URL = tortugaInfoConfig.programmazioneUrl;
 const REVIEW = tortugaInfoConfig.reviews[0];
+export const TORTUGA_LIVE_LOGO_URL =
+  "https://tortugabay.it/wp-content/uploads/2026/05/LOGO-TORTUGA-2.png";
 const createId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `live-tv-${Math.random().toString(36).slice(2, 10)}`;
@@ -76,6 +78,7 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
     title: "Tortuga Live",
     subtitle: "EAT.DRINK.TORTUGA.REPEAT",
     body: "La serata e in onda. Resta a bordo e preparati alla prossima rotta.",
+    mediaUrl: TORTUGA_LIVE_LOGO_URL,
     durationSeconds: 12,
     enabled: true,
     styleVariant: "gold",

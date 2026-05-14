@@ -29,6 +29,15 @@ const MAIN_CATEGORY_ORDER: MatchDrinkMainCategory[] = [
   "energico",
 ];
 
+// Normalizers derived from the current seeded question bank so each macro-category
+// has a comparable chance to emerge even if the raw trait totals are not identical.
+const MAIN_CATEGORY_SCORE_NORMALIZER: Record<MatchDrinkMainCategory, number> = {
+  romantico: 411,
+  passionale: 419,
+  piccante: 415,
+  energico: 428,
+};
+
 const TRAIT_MAIN_CATEGORY_MAP: Record<MatchDrinkTrait, MatchDrinkMainCategory> = {
   romantico: "romantico",
   fedele: "romantico",
@@ -220,9 +229,39 @@ export const getMainCategoryFromTraits = (
     totals[getTraitMainCategory(trait)] += getTraitScore(traits, trait);
   });
 
-  return MAIN_CATEGORY_ORDER.reduce<MatchDrinkMainCategory>((bestCategory, category) => {
-    return totals[category] > totals[bestCategory] ? category : bestCategory;
-  }, MAIN_CATEGORY_ORDER[0]);
+  const normalizedTotals = MAIN_CATEGORY_ORDER.reduce<Record<MatchDrinkMainCategory, number>>(
+    (accumulator, category) => ({
+      ...accumulator,
+      [category]: totals[category] / MAIN_CATEGORY_SCORE_NORMALIZER[category],
+    }),
+    {
+      romantico: 0,
+      passionale: 0,
+      piccante: 0,
+      energico: 0,
+    },
+  );
+
+  const bestScore = Math.max(...Object.values(normalizedTotals));
+  const tiedCategories = MAIN_CATEGORY_ORDER.filter(
+    (category) => normalizedTotals[category] === bestScore,
+  );
+
+  if (tiedCategories.length === 1) {
+    return tiedCategories[0];
+  }
+
+  const dominantTraitCategory = getTraitMainCategory(getDominantTraitFromTraits(traits));
+  if (tiedCategories.includes(dominantTraitCategory)) {
+    return dominantTraitCategory;
+  }
+
+  const deterministicSignature = MATCH_DRINK_TRAIT_ORDER.reduce(
+    (total, trait, index) => total + getTraitScore(traits, trait) * (index + 3),
+    0,
+  );
+
+  return tiedCategories[deterministicSignature % tiedCategories.length];
 };
 
 export const getSecondaryTraitFromTraits = (

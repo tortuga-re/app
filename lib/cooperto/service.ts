@@ -240,6 +240,12 @@ const fallbackSource = <T extends { source: DataSource }>(data: T): T => ({
 });
 
 const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
+
+const getCoopertoNationalPhone = (value?: string) =>
+  normalizeItalianPhone(value ?? "")?.nationalNumber ?? "";
+
+const getCoopertoInternationalPhone = (value?: string) =>
+  normalizeItalianPhone(value ?? "")?.normalizedE164 ?? "";
 const normalizeContactCode = (value?: string) => value?.trim() ?? "";
 
 const buildWaitlistNote = (input: WaitlistCreateInput) => {
@@ -247,6 +253,8 @@ const buildWaitlistNote = (input: WaitlistCreateInput) => {
   const contextLines = [
     "Richiesta lista d'attesa da web app Tortuga.",
     `Data desiderata: ${input.date}.`,
+    `Orario desiderato: ${input.requestedTime?.trim() || "Prima disponibilita utile"}.`,
+    `Persone richieste: ${input.pax}.`,
     roomName ? `Sala desiderata: ${roomName}.` : "",
   ].filter(Boolean);
 
@@ -472,7 +480,7 @@ export const createBooking = async (
     Pax: input.pax,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
+    Telefono: getCoopertoNationalPhone(input.phone),
     Email: input.email,
     Note: buildBookingNote(input),
     ConsensoPrivacy: input.privacyAccepted,
@@ -516,7 +524,7 @@ export const createWaitlist = async (
     CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
     Nome: input.firstName,
     Cognome: input.lastName,
-    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
+    Telefono: getCoopertoNationalPhone(input.phone),
     Email: input.email,
     Pax: input.pax,
     Note: buildWaitlistNote(input),
@@ -653,7 +661,7 @@ export const updateProfileContact = async (
     Nome: input.firstName,
     Cognome: input.lastName,
     Email: input.email,
-    Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? "",
+    Telefono: getCoopertoInternationalPhone(input.phone),
     DataDiNascita: buildBirthDateDateTime(input.birthDate),
     ConsensoMarketing: input.marketingConsent,
     SovrascriviDati: true,

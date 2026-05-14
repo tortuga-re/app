@@ -14,7 +14,11 @@ export type AppAnalyticsEventName =
   | "admin_push_sent"
   | "home_context_view"
   | "profile_loot_view"
-  | "live_mode_view";
+  | "live_mode_view"
+  | "match_drink_signup"
+  | "match_drink_matches_calculated"
+  | "match_drink_match_confirmed"
+  | "match_drink_drink_redeemed";
 
 export type AppAnalyticsPayload = Record<
   string,
