@@ -18,7 +18,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const customerStatus = useCustomerStatus(identity.email);
 
   const pathname = usePathname();
-  const isStageOrAdmin = pathname.startsWith("/stage") || pathname.startsWith("/admin/");
+  const isStageOrAdmin = pathname.startsWith("/stage") || pathname.startsWith("/live") || pathname.startsWith("/admin/");
 
   // Global handler for ChunkLoadErrors (classic PWA issue after deploy)
   useEffect(() => {

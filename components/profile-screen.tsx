@@ -4,15 +4,16 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { ScratchAndWinCard } from "@/components/scratch-and-win-card";
 import { StatusBlock } from "@/components/status-block";
 import dynamic from "next/dynamic";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FidelityActivationPanel = dynamic<any>(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel).catch(() => ({ default: () => null } as any)), { ssr: false });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => ({ default: () => null } as any)), { ssr: false });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const PiratePhotoContestCard = dynamic<any>(() => import("@/features/pirate-photo/components/PiratePhotoContestCard").then(mod => mod.PiratePhotoContestCard).catch(() => ({ default: () => null } as any)), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => ({ default: () => null } as any)), { ssr: false });
 import { trackAppEvent } from "@/lib/analytics";
@@ -1097,12 +1098,18 @@ export function CiurmaScreen() {
       ) : null}
 
       {!data?.contact ? (
-        <div id="contest" className="hash-scroll-target rounded-[2rem]">
+        <div id="contest" className="hash-scroll-target space-y-4 rounded-[2rem]">
           <PiratePhotoContestCard
             contact={data?.contact ?? null}
             onProfileResolved={applyProfileResponse}
             onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
           />
+          {hasOnPremiseAccess ? (
+            <LiveTvContributionCard
+              contact={data?.contact ?? null}
+              onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+            />
+          ) : null}
         </div>
       ) : null}
 
@@ -1283,9 +1290,13 @@ export function CiurmaScreen() {
                   )}
                   {hasOnPremiseAccess && (
                     <>
-                      <CaptainChallengeTeaser
+                      <ScratchAndWinCard
                         className="mt-4"
                         onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+                      />
+                      <LiveTvContributionCard
+                        contact={data.contact}
+                        onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
                       />
                     </>
                   )}

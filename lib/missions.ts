@@ -19,7 +19,9 @@ export const missions: Mission[] = [
     icon: "⚓",
     image: "/badges/primo-approdo.png",
     category: "navigazione",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("primo-approdo") || (p.contact?.NumeroVisite ?? 0) >= 1,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("primo-approdo") ||
+      (p.contact?.NumeroVisite ?? 0) >= 1,
   },
   {
     id: "mozzo-di-bordo",
@@ -28,7 +30,9 @@ export const missions: Mission[] = [
     icon: "🧹",
     image: "/badges/mozzo-di-bordo.png",
     category: "navigazione",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("mozzo-di-bordo") || (p.contact?.NumeroVisite ?? 0) >= 2,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("mozzo-di-bordo") ||
+      (p.contact?.NumeroVisite ?? 0) >= 2,
   },
   {
     id: "membro-ciurma",
@@ -37,7 +41,9 @@ export const missions: Mission[] = [
     icon: "☠️",
     image: "/badges/membro-ciurma.png",
     category: "navigazione",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("membro-ciurma") || (p.contact?.NumeroVisite ?? 0) >= 3,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("membro-ciurma") ||
+      (p.contact?.NumeroVisite ?? 0) >= 3,
   },
   {
     id: "pirati-fiducia",
@@ -46,7 +52,9 @@ export const missions: Mission[] = [
     icon: "⚔️",
     image: "/badges/pirati-fiducia.png",
     category: "navigazione",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("pirati-fiducia") || (p.contact?.NumeroVisite ?? 0) >= 5,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("pirati-fiducia") ||
+      (p.contact?.NumeroVisite ?? 0) >= 5,
   },
   {
     id: "leggenda-tortuga",
@@ -55,7 +63,9 @@ export const missions: Mission[] = [
     icon: "🏴‍☠️",
     image: "/badges/leggenda-tortuga.png",
     category: "navigazione",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("leggenda-tortuga") || (p.contact?.NumeroVisite ?? 0) >= 10,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("leggenda-tortuga") ||
+      (p.contact?.NumeroVisite ?? 0) >= 10,
   },
   {
     id: "fantasma-bancone",
@@ -64,7 +74,9 @@ export const missions: Mission[] = [
     icon: "👻",
     image: "/badges/fantasma-bancone.png",
     category: "navigazione",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("fantasma-bancone") || (p.contact?.NumeroVisite ?? 0) >= 15,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("fantasma-bancone") ||
+      (p.contact?.NumeroVisite ?? 0) >= 15,
   },
 
   // Eventi
@@ -95,15 +107,6 @@ export const missions: Mission[] = [
     },
   },
   {
-    id: "sfida-capitano",
-    label: "Sfida il Capitano",
-    description: "Partecipa alla sfida digitale contro il Capitano in app.",
-    icon: "⚓",
-    image: "/badges/sfida-capitano.png",
-    category: "eventi",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("sfida-capitano") ?? false,
-  },
-  {
     id: "assalto-buzzer",
     label: "Tortuga Music Quiz",
     description: "Partecipa a un round live del Tortuga Music Quiz.",
@@ -128,7 +131,8 @@ export const missions: Mission[] = [
     icon: "🍸",
     image: "/badges/match-drink-complete.png",
     category: "eventi",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("match-drink-complete") ?? false,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("match-drink-complete") ?? false,
   },
   {
     id: "message-bottle",
@@ -148,8 +152,15 @@ export const missions: Mission[] = [
     category: "eventi",
     isUnlocked: (p) => {
       if (p.unlockedAchievementIds?.includes("mai-normale")) return true;
-      const eventIds = ["kantaquiz", "cervellone", "sfida-capitano", "assalto-buzzer", "match-drink-complete"];
-      const unlockedCount = eventIds.filter(id => p.unlockedAchievementIds?.includes(id)).length;
+      const eventIds = [
+        "kantaquiz",
+        "cervellone",
+        "assalto-buzzer",
+        "match-drink-complete",
+      ];
+      const unlockedCount = eventIds.filter((id) =>
+        p.unlockedAchievementIds?.includes(id),
+      ).length;
       return unlockedCount >= 3;
     },
   },
@@ -162,7 +173,9 @@ export const missions: Mission[] = [
     icon: "💰",
     image: "/badges/cacciatore-bottino.png",
     category: "bottino",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("cacciatore-bottino") || p.coupons.some((c) => c.Utilizzato),
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("cacciatore-bottino") ||
+      p.coupons.some((c) => c.Utilizzato),
   },
   {
     id: "chiave-oro",
@@ -171,7 +184,9 @@ export const missions: Mission[] = [
     icon: "🔑",
     image: "/badges/chiave-oro.png",
     category: "bottino",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("chiave-oro") || p.coupons.filter((c) => c.Utilizzato).length >= 3,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("chiave-oro") ||
+      p.coupons.filter((c) => c.Utilizzato).length >= 3,
   },
   {
     id: "assaggiatore-ufficiale",
@@ -180,7 +195,8 @@ export const missions: Mission[] = [
     icon: "🧾",
     image: "/badges/assaggiatore-ufficiale.png",
     category: "bottino",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("assaggiatore-ufficiale") ?? false,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("assaggiatore-ufficiale") ?? false,
   },
 
   // Ciurma
@@ -191,7 +207,9 @@ export const missions: Mission[] = [
     icon: "👥",
     image: "/badges/capitano-tavolata.png",
     category: "ciurma",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("capitano-tavolata") || p.upcomingReservations.some((r) => (r.pax ?? 0) >= 6),
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("capitano-tavolata") ||
+      p.upcomingReservations.some((r) => (r.pax ?? 0) >= 6),
   },
   {
     id: "grande-ammutinamento",
@@ -200,7 +218,9 @@ export const missions: Mission[] = [
     icon: "📢",
     image: "/badges/grande-ammutinamento.png",
     category: "ciurma",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("grande-ammutinamento") || p.upcomingReservations.some((r) => (r.pax ?? 0) >= 10),
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("grande-ammutinamento") ||
+      p.upcomingReservations.some((r) => (r.pax ?? 0) >= 10),
   },
   {
     id: "fotografo-ciurma",
@@ -218,7 +238,8 @@ export const missions: Mission[] = [
     icon: "🖼️",
     image: "/badges/scatto-ricercato.png",
     category: "ciurma",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("scatto-ricercato") || Boolean(p.avatarUrl),
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("scatto-ricercato") || Boolean(p.avatarUrl),
   },
   {
     id: "rotta-infrasettimanale",
@@ -227,7 +248,11 @@ export const missions: Mission[] = [
     icon: "⚓",
     image: "/badges/rotta-infrasettimanale.png",
     category: "ciurma",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("rotta-infrasettimanale") || p.upcomingReservations.some(r => [3, 4].includes(new Date(r.dateTime).getDay())),
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("rotta-infrasettimanale") ||
+      p.upcomingReservations.some((r) =>
+        [3, 4].includes(new Date(r.dateTime).getDay()),
+      ),
   },
   {
     id: "ritorno-naufragio",
@@ -262,6 +287,7 @@ export const missions: Mission[] = [
     icon: "🌪️",
     image: "/badges/naufragio-perfetto.png",
     category: "ciurma",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("naufragio-perfetto") ?? false,
+    isUnlocked: (p) =>
+      p.unlockedAchievementIds?.includes("naufragio-perfetto") ?? false,
   },
 ];

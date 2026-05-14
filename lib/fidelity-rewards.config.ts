@@ -11,14 +11,12 @@ export type FidelityLoyaltyTier = {
 };
 
 export const fidelityRewardTiers: FidelityRewardTier[] = [
-  { threshold: 15, label: "Zainetto Tortuga" },
-  { threshold: 20, label: "T-shirt Tortuga" },
-  { threshold: 30, label: "Boccale Tortuga" },
-  { threshold: 40, label: "Felpa Tortuga" },
-  { threshold: 60, label: "Telo Mare Tortuga" },
-  { threshold: 100, label: "Cashback 50% VIP" },
-  { threshold: 110, label: "Set Pirata Tortuga" },
-  { threshold: 120, label: "Cena GRATIS con Jack Sparrow" },
+  { threshold: 15, label: "Gnocco o Tigelle" },
+  { threshold: 20, label: "Appetizer a scelta" },
+  { threshold: 30, label: "Tagliere di salumi" },
+  { threshold: 40, label: "Tagliere della ciurma x2" },
+  { threshold: 60, label: "Perla Nera + Bibita Media" },
+  { threshold: 100, label: "GOLD Fidelity Club" },
 ];
 
 export const fidelityVipThreshold = 150;

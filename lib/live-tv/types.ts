@@ -89,6 +89,34 @@ export type LiveTvMediaAsset = {
   createdAt: string;
 };
 
+export type LiveTvCustomerSubmissionStatus = "pending" | "approved" | "rejected";
+
+export type LiveTvCustomerSubmissionResolution =
+  | "library"
+  | "playlist"
+  | "rejected"
+  | null;
+
+export type LiveTvCustomerSubmission = {
+  id: string;
+  kind: "image" | "video";
+  title: string;
+  originalName: string;
+  fileName: string;
+  mediaUrl: string;
+  mimeType: string;
+  sizeBytes: number;
+  storageMode: "external" | "public";
+  uploaderName?: string | null;
+  uploaderEmail?: string | null;
+  contactCode?: string | null;
+  createdAt: string;
+  status: LiveTvCustomerSubmissionStatus;
+  resolvedAt?: string | null;
+  resolution?: LiveTvCustomerSubmissionResolution;
+  linkedAssetId?: string | null;
+};
+
 export type LiveTvScheduleEntry = {
   id: string;
   label: string;

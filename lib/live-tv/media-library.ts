@@ -11,6 +11,11 @@ const sortAssets = (assets: LiveTvMediaAsset[]) =>
 export const listLiveTvMediaAssets = async (): Promise<LiveTvMediaAsset[]> =>
   sortAssets(await getAppStateJson<LiveTvMediaAsset[]>(LIVE_TV_MEDIA_LIBRARY_KEY, []));
 
+export const getLiveTvMediaAssetById = async (assetId: string) => {
+  const currentAssets = await listLiveTvMediaAssets();
+  return currentAssets.find((asset) => asset.id === assetId) ?? null;
+};
+
 export const saveLiveTvMediaAsset = async (asset: LiveTvMediaAsset) => {
   const currentAssets = await listLiveTvMediaAssets();
   const nextAssets = sortAssets([
@@ -20,4 +25,21 @@ export const saveLiveTvMediaAsset = async (asset: LiveTvMediaAsset) => {
 
   await setAppStateJson(LIVE_TV_MEDIA_LIBRARY_KEY, nextAssets);
   return nextAssets;
+};
+
+export const removeLiveTvMediaAsset = async (assetId: string) => {
+  const currentAssets = await listLiveTvMediaAssets();
+  const assetToRemove =
+    currentAssets.find((existingAsset) => existingAsset.id === assetId) ?? null;
+
+  if (!assetToRemove) {
+    return null;
+  }
+
+  const nextAssets = currentAssets.filter(
+    (existingAsset) => existingAsset.id !== assetId,
+  );
+
+  await setAppStateJson(LIVE_TV_MEDIA_LIBRARY_KEY, nextAssets);
+  return assetToRemove;
 };

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import dynamic from "next/dynamic";
+import { ScratchAndWinCard } from "@/components/scratch-and-win-card";
 import { StatusBlock } from "@/components/status-block";
 
 const ActiveCouponsCard = dynamic(() => import("@/components/active-coupons-card").then(mod => mod.ActiveCouponsCard), { ssr: false });
@@ -12,12 +13,8 @@ const SurveyTeaserCard = dynamic(() => import("@/components/survey-teaser-card")
 const KantaquizTeaser = dynamic(() => import("@/components/kantaquiz-teaser").then(mod => mod.KantaquizTeaser), { ssr: false });
 const BuzzerTeaser = dynamic(() => import("@/components/buzzer-teaser").then(mod => mod.BuzzerTeaser), { ssr: false });
 const MatchDrinkTeaser = dynamic(() => import("@/components/match-drink-teaser").then(mod => mod.MatchDrinkTeaser), { ssr: false });
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CaptainChallengeTeaser = dynamic<any>(() => import("@/features/game/components/CaptainChallengeTeaser").then(mod => mod.CaptainChallengeTeaser).catch(() => ({ default: () => null } as any)), {
-  loading: () => <div className="h-32 w-full animate-pulse rounded-[2rem] bg-white/5" />,
-  ssr: false
-});
+const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";
@@ -39,6 +36,7 @@ import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { PwaInstallCard } from "@/components/pwa-install-card";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
+import { QRScanner } from "@/components/QRScanner";
 
 type RouteFallback = {
   title: string;
@@ -316,13 +314,6 @@ function SmartHeroCard({
             >
               Prenota adesso
             </Link>
-            <Link
-              href={activeCouponsCount > 0 ? "#coupon" : "/ciurma#riconoscimento"}
-              className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-              onClick={() => triggerHaptic()}
-            >
-              {activeCouponsCount > 0 ? "Vedi coupon" : "Apri ciurma"}
-            </Link>
           </>
         )}
       </div>
@@ -425,13 +416,6 @@ function VenueModeCard({
           Apri Match & Drink
         </Link>
         <Link
-          href="/game/sfida-capitano"
-          className="button-secondary flex min-h-16 items-center justify-center px-5 text-sm"
-          onClick={() => triggerHaptic()}
-        >
-          Sfida il Capitano
-        </Link>
-        <Link
           href="/ciurma#fidelity"
           className="button-secondary flex min-h-16 items-center justify-center px-5 text-sm"
           onClick={() => triggerHaptic()}
@@ -482,6 +466,59 @@ function ReviewsCard() {
             </p>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function VenueScannerCard({
+  onScanSuccess,
+}: {
+  onScanSuccess?: () => void;
+}) {
+  const [showScanner, setShowScanner] = useState(false);
+
+  return (
+    <div className="panel parchment-texture rounded-[2.15rem] border border-[rgba(216,176,106,0.28)] bg-[radial-gradient(circle_at_top,rgba(255,216,156,0.16),rgba(19,14,10,0.98)_42%,rgba(10,8,7,1)_100%)] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.35)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="eyebrow text-[var(--accent-strong)]">Sei al Tortuga?</p>
+          <h2 className="text-2xl font-semibold leading-tight text-white">
+            Scannerizza il QR del tavolo per sbloccare il menu ed i giochi live!
+          </h2>
+          <p className="text-sm leading-6 text-[var(--text-muted)]">
+            Abiliti menu, giochi, promo e tutte le funzioni on premise della app in un solo passaggio.
+          </p>
+        </div>
+
+        <span className="rounded-full border border-[rgba(255,216,156,0.24)] bg-[rgba(255,255,255,0.05)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+          Live access
+        </span>
+      </div>
+
+      <div className="mt-5 rounded-[1.6rem] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] p-3">
+        {showScanner ? (
+          <div className="rounded-[1.35rem] border border-white/10 bg-black/20 p-4">
+            <QRScanner
+              onSuccess={() => {
+                setShowScanner(false);
+                onScanSuccess?.();
+              }}
+              onCancel={() => setShowScanner(false)}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="button-primary cta-glow inline-flex min-h-12 w-full items-center justify-center px-5 text-sm"
+            onClick={() => {
+              triggerHaptic();
+              setShowScanner(true);
+            }}
+          >
+            Scannerizza QR
+          </button>
+        )}
       </div>
     </div>
   );
@@ -650,7 +687,7 @@ export function HomeScreen() {
   ]);
 
   const showHeroCard = !hasMenuAccess && !primaryReservation;
-  const showReservationCard = !hasMenuAccess;
+  const showReservationCard = !hasMenuAccess && Boolean(primaryReservation);
   const showCouponCard = hasMenuAccess || !primaryReservation;
 
   return (
@@ -674,18 +711,36 @@ export function HomeScreen() {
       {!loading ? (
         <>
           {hasMenuAccess ? (
-            <VenueModeCard
-              activeGames={activeGames}
-              activeCouponsCount={activeCoupons.length}
-              reservation={primaryReservation}
-              onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)}
-            />
+            <>
+              <div id="contributi-live" className="hash-scroll-target rounded-[2rem]">
+                <LiveTvContributionCard
+                  contact={profile?.contact ?? null}
+                  onVisitTrigger={() => void registerVisit(profile?.contact?.CodiceContatto)}
+                />
+              </div>
+              <VenueModeCard
+                activeGames={activeGames}
+                activeCouponsCount={activeCoupons.length}
+                reservation={primaryReservation}
+                onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)}
+              />
+              <div id="gratta-e-vinci" className="hash-scroll-target rounded-[2rem]">
+                <ScratchAndWinCard
+                  onClick={() => void registerVisit(profile?.contact?.CodiceContatto)}
+                />
+              </div>
+            </>
           ) : showHeroCard ? (
             <SmartHeroCard
               hasMenuAccess={false}
               reservation={primaryReservation}
               activeCouponsCount={activeCoupons.length}
               activeGames={activeGames}
+            />
+          ) : null}
+          {!hasMenuAccess ? (
+            <VenueScannerCard
+              onScanSuccess={() => void registerVisit(profile?.contact?.CodiceContatto)}
             />
           ) : null}
           <SurveyTeaserCard />
@@ -701,10 +756,6 @@ export function HomeScreen() {
               <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
             </div>
           ) : null}
-
-          <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-            <CaptainChallengeTeaser />
-          </div>
 
           <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
             <PwaInstallCard />

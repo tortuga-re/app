@@ -15,14 +15,18 @@ interface QRScannerProps {
 
 export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
   const qrRef = useRef<Html5Qrcode | null>(null);
+  const stopRequestedRef = useRef(false);
   const containerId = "qr-reader-container";
 
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(true);
 
   const handleSuccess = useCallback((scannedUrl: string) => {
+    stopRequestedRef.current = true;
     if (qrRef.current) {
-      qrRef.current.stop().catch(console.error);
+      qrRef.current.stop().catch(() => {
+        // The scanner may already have been stopped by a concurrent cleanup.
+      });
     }
     setScanning(false);
 
@@ -45,6 +49,7 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
   useEffect(() => {
     const html5QrCode = new Html5Qrcode(containerId);
     qrRef.current = html5QrCode;
+    stopRequestedRef.current = false;
 
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
@@ -63,8 +68,11 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
     });
 
     return () => {
+      stopRequestedRef.current = true;
       if (qrRef.current) {
-        qrRef.current.stop().catch(() => { /* already stopped or failed */ });
+        qrRef.current.stop().catch(() => {
+          // React dev mode can unmount twice or stop after success; ignore.
+        });
       }
     };
   }, [handleSuccess]);

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
@@ -285,53 +285,90 @@ function VenuesScreenContent() {
         />
       ) : null}
 
-      <div id="programmazione" className="panel hash-scroll-target rounded-[2rem] p-5">
+            <div id="programmazione" className="panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Programmazione serale</p>
         </div>
 
-        <div className="mt-4 grid gap-3">
-          {tortugaInfoConfig.eveningProgram.map((event) => (
-            <div
-              key={`${event.day}-${event.title}`}
-              className="panel-muted rounded-[1.45rem] px-4 pt-4 pb-3"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                {event.day}
-              </p>
-              <h3 className="mt-2 text-lg font-semibold text-white">
-                {event.title}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                {event.description}
-              </p>
+        <div className="mt-4 grid gap-4">
+          {tortugaInfoConfig.eveningProgram.map((event, index) => {
+            const imageUrl =
+              event.day === "MERCOLEDÌ"
+                ? "https://tortugabay.it/wp-content/uploads/2026/04/PIRATES-NIGHT-MERCOLEDI-AL-TORTUGA-REGGIO-EMILIA.jpg"
+                : event.day === "GIOVEDÌ"
+                  ? "https://tortugabay.it/wp-content/uploads/2026/05/GIOVEDI-MATCH-DRINK-TORTUGA-REGGIO-EMILIA.jpg"
+                  : event.day === "VENERDÌ"
+                    ? "https://tortugabay.it/wp-content/uploads/2026/04/VENERDI.jpg"
+                    : event.day === "SABATO"
+                      ? "https://tortugabay.it/wp-content/uploads/2026/04/NOTTE-DEL-CAPITANO-SABATO-AL-TORTUGA-REGGIO-EMILIA.jpg"
+                      : "https://tortugabay.it/wp-content/uploads/2026/04/CERVOLLONE-DAY-DOMENICA-AL-TORTUGA-REGGIO-EMILIA.jpg";
 
-              {hasAccess && (
-                <>
-                  {event.day === "MERCOLEDÌ" && currentDay === 3 && (
-                    <div className="mt-4">
-                      <Link
-                        href="/game/buzzer"
-                        className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
-                      >
-                        Accedi al gioco
-                      </Link>
+            const isReversed = index % 2 === 1;
+
+            return (
+              <article
+                key={`${event.day}-${event.title}`}
+                className="overflow-hidden rounded-[1.8rem] border border-[rgba(255,216,156,0.14)] bg-[linear-gradient(180deg,rgba(20,15,11,0.98),rgba(10,8,7,0.97))] shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
+              >
+                <div
+                  className={`grid md:min-h-[280px] md:grid-cols-2 ${
+                    isReversed
+                      ? "md:[&>*:first-child]:order-2 md:[&>*:last-child]:order-1"
+                      : ""
+                  }`}
+                >
+                  <div className="relative min-h-[220px] md:min-h-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt={event.title}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.18)_40%,rgba(0,0,0,0.72)_100%)]" />
+                    <div className="absolute left-4 top-4 rounded-full border border-[rgba(255,216,156,0.25)] bg-[rgba(12,9,7,0.72)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)] backdrop-blur-sm">
+                      {event.day}
                     </div>
-                  )}
-                  {event.day === "GIOVEDÌ" && currentDay === 4 && (
-                    <div className="mt-4">
-                      <Link
-                        href="/game/match-drink"
-                        className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
-                      >
-                        Accedi al gioco
-                      </Link>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
+                  </div>
+
+                  <div className="flex h-full flex-col justify-center p-5 md:p-7">
+                    <p className="eyebrow text-[var(--accent-strong)]">{event.day}</p>
+                    <h3 className="mt-2 text-2xl font-semibold text-white">
+                      {event.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                      {event.description}
+                    </p>
+
+                    {hasAccess ? (
+                      <>
+                        {event.day === "MERCOLEDÌ" && currentDay === 3 ? (
+                          <div className="mt-4">
+                            <Link
+                              href="/game/buzzer"
+                              className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
+                            >
+                              Accedi al gioco
+                            </Link>
+                          </div>
+                        ) : null}
+                        {event.day === "GIOVEDÌ" && currentDay === 4 ? (
+                          <div className="mt-4">
+                            <Link
+                              href="/game/match-drink"
+                              className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
+                            >
+                              Accedi al gioco
+                            </Link>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
 
@@ -497,3 +534,7 @@ function VenuesScreenContent() {
     </section>
   );
 }
+
+
+
+

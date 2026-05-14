@@ -1082,6 +1082,10 @@ export function BookingFlow() {
                     <div className="grid grid-cols-2 gap-2">
                       {bootstrap.rooms.map((room) => {
                         const isSelected = activeRoomCode === room.code;
+                        const roomLabel =
+                          (room.publicName || room.name).trim().toUpperCase() === "CABINA DI POPPA"
+                            ? "GALEONE"
+                            : room.publicName || room.name;
 
                         return (
                           <button
@@ -1116,7 +1120,7 @@ export function BookingFlow() {
                               }, 100);
                             }}
                           >
-                            <span className="text-xs font-bold uppercase tracking-[0.15em] text-center">{room.publicName || room.name}</span>
+                            <span className="text-xs font-bold uppercase tracking-[0.15em] text-center">{roomLabel}</span>
                           </button>
                         );
                       })}

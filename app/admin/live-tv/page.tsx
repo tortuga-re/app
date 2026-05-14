@@ -7,6 +7,7 @@ import { StatusBlock } from "@/components/status-block";
 import { LIVE_TV_PRESETS } from "@/lib/live-tv/default-playlists";
 import {
   LIVE_TV_ITEM_TYPES,
+  type LiveTvCustomerSubmission,
   LIVE_TV_OVERLAY_VARIANTS,
   LIVE_TV_STYLE_VARIANTS,
   STAGE_MODE_VALUES,
@@ -43,6 +44,11 @@ type AdminDashboardResponse = {
     drinksRedeemed?: number;
   } | null;
 };
+
+type CustomerSubmissionsResponse = {
+  submissions?: LiveTvCustomerSubmission[];
+  error?: string;
+} | null;
 
 const WEEKDAY_OPTIONS = [
   { value: 1, label: "Lun" },
@@ -394,6 +400,7 @@ export default function AdminLiveTvPage() {
   const [state, setState] = useState<LiveTvPageState | null>(null);
   const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
   const [mediaLibrary, setMediaLibrary] = useState<LiveTvMediaAsset[]>([]);
+  const [customerSubmissions, setCustomerSubmissions] = useState<LiveTvCustomerSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -418,6 +425,19 @@ export default function AdminLiveTvPage() {
   const enabledItems = useMemo(
     () => orderedItems.filter((item) => item.enabled),
     [orderedItems],
+  );
+
+  const pendingCustomerSubmissions = useMemo(
+    () => customerSubmissions.filter((submission) => submission.status === "pending"),
+    [customerSubmissions],
+  );
+
+  const reviewedCustomerSubmissions = useMemo(
+    () =>
+      customerSubmissions
+        .filter((submission) => submission.status !== "pending")
+        .slice(0, 6),
+    [customerSubmissions],
   );
 
   const currentItem = useMemo(() => {
@@ -469,9 +489,10 @@ export default function AdminLiveTvPage() {
   }, []);
 
   const loadSupportData = useCallback(async () => {
-    const [mediaResponse, dashboardResponse] = await Promise.all([
+    const [mediaResponse, dashboardResponse, submissionsResponse] = await Promise.all([
       fetch("/api/live-tv/admin/media-library", { cache: "no-store" }),
       fetch("/api/admin/dashboard", { cache: "no-store" }),
+      fetch("/api/live-tv/admin/customer-submissions", { cache: "no-store" }),
     ]);
 
     const mediaBody = (await mediaResponse.json().catch(() => null)) as
@@ -481,6 +502,7 @@ export default function AdminLiveTvPage() {
       | AdminDashboardResponse
       | { error?: string }
       | null;
+    const submissionsBody = (await submissionsResponse.json().catch(() => null)) as CustomerSubmissionsResponse;
 
     if (mediaResponse.ok) {
       setMediaLibrary(mediaBody?.assets ?? []);
@@ -488,6 +510,10 @@ export default function AdminLiveTvPage() {
 
     if (dashboardResponse.ok) {
       setDashboard(dashboardBody as AdminDashboardResponse);
+    }
+
+    if (submissionsResponse.ok) {
+      setCustomerSubmissions(submissionsBody?.submissions ?? []);
     }
   }, []);
 
@@ -585,6 +611,107 @@ export default function AdminLiveTvPage() {
       setBusy(false);
     }
   }, [loadState, loadSupportData]);
+
+  const deleteMediaAsset = useCallback(
+    async (asset: LiveTvMediaAsset) => {
+      if (
+        typeof window !== "undefined" &&
+        !window.confirm(`Eliminare definitivamente "${asset.title}" dalla libreria media?`)
+      ) {
+        return;
+      }
+
+      setBusy(true);
+      try {
+        const response = await fetch("/api/live-tv/admin/delete-media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: asset.id }),
+        });
+
+        const body = (await response.json().catch(() => null)) as
+          | { success?: boolean; error?: string }
+          | null;
+
+        if (!response.ok || !body?.success) {
+          throw new Error(body?.error || "Cancellazione file non riuscita.");
+        }
+
+        setMediaLibrary((current) =>
+          current.filter((existingAsset) => existingAsset.id !== asset.id),
+        );
+        await loadSupportData();
+        setError("");
+      } catch (actionError) {
+        setError(
+          actionError instanceof Error
+            ? actionError.message
+            : "Cancellazione file non riuscita.",
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [loadSupportData],
+  );
+
+  const moderateCustomerSubmission = useCallback(
+    async (
+      submission: LiveTvCustomerSubmission,
+      action: "library" | "playlist" | "reject",
+    ) => {
+      const actionLabel =
+        action === "library"
+          ? "approvare il contributo e aggiungerlo alla libreria"
+          : action === "playlist"
+            ? "approvare il contributo e aggiungerlo alla scaletta"
+            : "rifiutare il contributo";
+
+      if (
+        typeof window !== "undefined" &&
+        !window.confirm(
+          `Confermi di voler ${actionLabel} "${submission.title}"?`,
+        )
+      ) {
+        return;
+      }
+
+      setBusy(true);
+      try {
+        const response = await fetch("/api/live-tv/admin/moderate-submission", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: submission.id, action }),
+        });
+
+        const body = (await response.json().catch(() => null)) as
+          | { success?: boolean; error?: string; state?: LiveTvPageState }
+          | null;
+
+        if (!response.ok || !body?.success) {
+          throw new Error(body?.error || "Moderazione contributo non riuscita.");
+        }
+
+        if (body.state) {
+          setState(body.state);
+          setAutoScheduleEnabled(Boolean(body.state.autoScheduleEnabled));
+          setScheduleDraft(body.state.schedule ?? []);
+        }
+
+        await loadSupportData();
+        setError("");
+      } catch (actionError) {
+        setError(
+          actionError instanceof Error
+            ? actionError.message
+            : "Moderazione contributo non riuscita.",
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [loadSupportData],
+  );
 
   const moveItem = async (itemId: string, direction: -1 | 1) => {
     const index = orderedItems.findIndex((item) => item.id === itemId);
@@ -1046,38 +1173,190 @@ export default function AdminLiveTvPage() {
           </div>
 
           <div className="panel rounded-[1.8rem] p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="eyebrow">Contributi clienti</p>
+                <h3 className="text-lg font-black text-white">Inbox moderazione Live TV</h3>
+              </div>
+              <span className="rounded-full border border-[var(--accent-strong)]/30 bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                {pendingCustomerSubmissions.length} pending
+              </span>
+            </div>
+
+            {pendingCustomerSubmissions.length ? (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {pendingCustomerSubmissions.map((submission) => (
+                  <div
+                    key={submission.id}
+                    className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
+                  >
+                    <div className="aspect-video overflow-hidden rounded-[1rem] bg-black/40">
+                      {submission.kind === "image" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={submission.mediaUrl}
+                          alt={submission.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <video
+                          src={submission.mediaUrl}
+                          className="h-full w-full object-cover"
+                          muted
+                        />
+                      )}
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <p className="text-base font-black text-white">{submission.title}</p>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                        {submission.kind === "video" ? "Video cliente" : "Foto cliente"}
+                      </p>
+                      <p className="text-xs text-[var(--text-muted)]">
+                        {submission.uploaderName || "Cliente Tortuga"}
+                        {submission.uploaderEmail ? ` · ${submission.uploaderEmail}` : ""}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        {new Date(submission.createdAt).toLocaleString("it-IT")}
+                      </p>
+                    </div>
+                    <div className="mt-4 grid gap-2">
+                      <button
+                        type="button"
+                        className="button-primary text-[11px]"
+                        onClick={() => void moderateCustomerSubmission(submission, "library")}
+                        disabled={busy}
+                      >
+                        Approva in libreria
+                      </button>
+                      <button
+                        type="button"
+                        className="button-secondary text-[11px]"
+                        onClick={() => void moderateCustomerSubmission(submission, "playlist")}
+                        disabled={busy}
+                      >
+                        Approva e aggiungi in scaletta
+                      </button>
+                      <button
+                        type="button"
+                        className="button-secondary border-[var(--danger-soft)] text-[11px] text-[var(--danger)]"
+                        onClick={() => void moderateCustomerSubmission(submission, "reject")}
+                        disabled={busy}
+                      >
+                        Rifiuta
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--text-muted)]">
+                Nessun contributo cliente in attesa. Quando un cliente invia foto o video
+                della serata, lo vedrai qui prima di mandarlo in libreria o in scaletta.
+              </p>
+            )}
+
+            {reviewedCustomerSubmissions.length ? (
+              <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-white">
+                  Ultimi moderati
+                </p>
+                <div className="mt-3 space-y-2">
+                  {reviewedCustomerSubmissions.map((submission) => (
+                    <div
+                      key={`${submission.id}-${submission.status}`}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-white/10 bg-white/5 px-3 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-white">{submission.title}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">
+                          {submission.uploaderName || "Cliente Tortuga"} ·{" "}
+                          {submission.resolvedAt
+                            ? new Date(submission.resolvedAt).toLocaleString("it-IT")
+                            : new Date(submission.createdAt).toLocaleString("it-IT")}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+                          submission.status === "approved"
+                            ? "bg-green-500/20 text-green-300"
+                            : "bg-[var(--danger-soft)] text-[var(--danger)]"
+                        }`}
+                      >
+                        {submission.status === "approved"
+                          ? submission.resolution === "playlist"
+                            ? "In scaletta"
+                            : "In libreria"
+                          : "Rifiutato"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="panel rounded-[1.8rem] p-5 space-y-4">
             <div>
               <p className="eyebrow">Libreria media</p>
               <h3 className="text-lg font-black text-white">File gia caricati</h3>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {mediaLibrary.map((asset) => (
-                <button
+                <div
                   key={asset.id}
-                  type="button"
-                  className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition hover:border-[var(--accent-strong)]/40"
-                  onClick={() =>
-                    setAddDraft((current) => ({
-                      ...current,
-                      type: asset.kind,
-                      mediaUrl: asset.mediaUrl,
-                      title: current.title || asset.title,
-                    }))
-                  }
+                  className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 transition hover:border-[var(--accent-strong)]/40"
                 >
-                  <div className="aspect-video overflow-hidden rounded-[1rem] bg-black/40">
-                    {asset.kind === "image" ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={asset.mediaUrl} alt={asset.title} className="h-full w-full object-cover" />
-                    ) : (
-                      <video src={asset.mediaUrl} className="h-full w-full object-cover" muted />
-                    )}
+                  <button
+                    type="button"
+                    className="block w-full text-left"
+                    onClick={() =>
+                      setAddDraft((current) => ({
+                        ...current,
+                        type: asset.kind,
+                        mediaUrl: asset.mediaUrl,
+                        title: current.title || asset.title,
+                      }))
+                    }
+                  >
+                    <div className="aspect-video overflow-hidden rounded-[1rem] bg-black/40">
+                      {asset.kind === "image" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={asset.mediaUrl} alt={asset.title} className="h-full w-full object-cover" />
+                      ) : (
+                        <video src={asset.mediaUrl} className="h-full w-full object-cover" muted />
+                      )}
+                    </div>
+                    <p className="mt-3 text-sm font-black text-white">{asset.title}</p>
+                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                      {asset.storageMode === "external" ? "Storage esterno" : "Storage locale fallback"}
+                    </p>
+                  </button>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      className="button-secondary text-[11px]"
+                      onClick={() =>
+                        setAddDraft((current) => ({
+                          ...current,
+                          type: asset.kind,
+                          mediaUrl: asset.mediaUrl,
+                          title: current.title || asset.title,
+                        }))
+                      }
+                      disabled={busy}
+                    >
+                      Usa nel draft
+                    </button>
+                    <button
+                      type="button"
+                      className="button-secondary border-[var(--danger-soft)] text-[11px] text-[var(--danger)]"
+                      onClick={() => void deleteMediaAsset(asset)}
+                      disabled={busy}
+                    >
+                      Elimina file
+                    </button>
                   </div>
-                  <p className="mt-3 text-sm font-black text-white">{asset.title}</p>
-                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                    {asset.storageMode === "external" ? "Storage esterno" : "Storage locale fallback"}
-                  </p>
-                </button>
+                </div>
               ))}
             </div>
             {!mediaLibrary.length ? (

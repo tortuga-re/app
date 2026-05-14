@@ -1,5 +1,5 @@
-import { LiveTvStageController } from "@/components/live-tv/LiveTvStage";
+import { redirect } from "next/navigation";
 
 export default function SmartStagePage() {
-  return <LiveTvStageController />;
+  redirect("/live");
 }
