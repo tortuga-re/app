@@ -1,9 +1,10 @@
-import Link from "next/link";
+"use client";
 
 import { triggerHaptic } from "@/lib/haptics";
+import { scratchAndWinConfig } from "@/lib/scratch-and-win";
 import { cn } from "@/lib/utils";
 
-export function CaptainChallengeTeaser({
+export function ScratchAndWinCard({
   className,
   compact = false,
   framed = true,
@@ -18,37 +19,39 @@ export function CaptainChallengeTeaser({
     <>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="eyebrow">Sfida il Capitano</p>
+          <p className="eyebrow">{scratchAndWinConfig.eyebrow}</p>
           <h2
             className={cn(
               "mt-3 font-semibold leading-tight text-white",
               compact ? "text-[1.75rem]" : "text-2xl",
             )}
           >
-            Vinci i premi in palio, una sfida di velocita contro il Capitano.
+            {scratchAndWinConfig.title}
           </h2>
           <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-            Ferma il cannone prima che spari!
+            {scratchAndWinConfig.description}
           </p>
         </div>
 
         {!compact ? (
-          <span className="rounded-full border border-[rgba(240,139,117,0.22)] bg-[rgba(240,139,117,0.08)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--danger)]">
-            Live
+          <span className="rounded-full border border-[rgba(216,176,106,0.28)] bg-[rgba(216,176,106,0.08)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+            {scratchAndWinConfig.badgeLabel}
           </span>
         ) : null}
       </div>
 
-      <Link
-        href="/game/sfida-capitano"
+      <a
+        href={scratchAndWinConfig.url}
+        target="_blank"
+        rel="noreferrer"
         className="button-primary cta-glow mt-5 flex w-full min-h-12 items-center justify-center px-5 text-sm"
         onClick={() => {
           triggerHaptic();
           onClick?.();
         }}
       >
-        Gioca ora
-      </Link>
+        {scratchAndWinConfig.buttonLabel}
+      </a>
     </>
   );
 

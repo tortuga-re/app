@@ -1,8 +1,10 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+
+import type { LiveTvMediaAsset } from "@/lib/live-tv/types";
 
 export type LiveTvStoredMedia = {
   mediaUrl: string;
@@ -44,6 +46,21 @@ const getTargetConfig = (mediaKind: "image" | "video") => {
   };
 };
 
+const getTargetDir = (
+  mediaKind: "image" | "video",
+  storageMode: "external" | "public",
+) => {
+  if (storageMode === "external") {
+    if (!EXTERNAL_MEDIA_DIR) {
+      throw new Error("Storage esterno Live TV non configurato.");
+    }
+
+    return path.join(EXTERNAL_MEDIA_DIR, mediaKind);
+  }
+
+  return path.join(process.cwd(), "public", "live-tv-media", mediaKind);
+};
+
 export const saveLiveTvMediaFile = async (
   file: File,
   mediaKind: "image" | "video",
@@ -69,4 +86,13 @@ export const saveLiveTvMediaFile = async (
     fileName,
     storageMode: config.storageMode,
   };
+};
+
+export const deleteLiveTvMediaFile = async (
+  asset: Pick<LiveTvMediaAsset, "kind" | "fileName" | "storageMode">,
+) => {
+  const targetDir = getTargetDir(asset.kind, asset.storageMode);
+  const targetPath = path.join(targetDir, asset.fileName);
+
+  await rm(targetPath, { force: true });
 };

@@ -16,6 +16,7 @@ import type {
   LocalExperienceClaimStatus,
 } from "@/lib/local-experience/types";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
+import { scratchAndWinConfig } from "@/lib/scratch-and-win";
 
 type ClaimPhase = "idle" | "claiming" | "ready";
 type ScannerPhase = "idle" | "requesting" | "scanning" | "unsupported";
@@ -173,12 +174,14 @@ function PromoCard({
       </p>
 
       <div className="mt-5 grid gap-3">
-        <Link
-          href="/game/sfida-capitano"
+        <a
+          href={scratchAndWinConfig.url}
+          target="_blank"
+          rel="noreferrer"
           className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
         >
-          Apri Sfida il Capitano
-        </Link>
+          {scratchAndWinConfig.buttonLabel}
+        </a>
         <Link
           href="/ciurma#esperienze-locale"
           className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"

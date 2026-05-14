@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useMatchDrinkPlayer } from "@/lib/match-drink/use-match-drink-player";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
@@ -10,9 +10,13 @@ import { MatchDrinkButton } from "./MatchDrinkButton";
 import { MatchDrinkPlayer } from "@/lib/match-drink/types";
 import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
 import { QRScanner } from "@/components/QRScanner";
+import { useCustomerIdentity, normalizeCustomerEmail } from "@/lib/customer-identity";
 
 export function MatchDrinkPlayerController() {
+  const { identity } = useCustomerIdentity();
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState("");
+  const [profileFullName, setProfileFullName] = useState("");
   const {
     session,
     player,
@@ -28,6 +32,73 @@ export function MatchDrinkPlayerController() {
     setSavedProfile,
   } = useMatchDrinkPlayer();
   const { hasAccess: isPresent } = useOnPremiseAccess();
+
+  useEffect(() => {
+    const email = normalizeCustomerEmail(identity.email);
+
+    if (!email || (profileAvatarUrl && profileFullName)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAvatar = async () => {
+      try {
+        const response = await fetch(`/api/profile?mode=email&query=${encodeURIComponent(email)}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        const avatarUrl = typeof data?.avatarUrl === "string" ? data.avatarUrl.trim() : "";
+        const firstName = typeof data?.contact?.Nome === "string" ? data.contact.Nome.trim() : "";
+        const lastName = typeof data?.contact?.Cognome === "string" ? data.contact.Cognome.trim() : "";
+        const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+        if (!cancelled && (avatarUrl || fullName)) {
+          if (avatarUrl) {
+            setProfileAvatarUrl(avatarUrl);
+          }
+          if (fullName) {
+            setProfileFullName(fullName);
+          }
+          setSavedProfile((current) => {
+            const currentNickname = current?.nickname?.trim() || "";
+            const nextNickname = currentNickname || fullName;
+
+            if (current) {
+              return {
+                ...current,
+                nickname: nextNickname || current.nickname,
+                avatarUrl: avatarUrl || current.avatarUrl,
+              };
+            }
+
+            return {
+              nickname: nextNickname || "",
+              tableNumber: "",
+              ageRange: "25-34",
+              gender: "donna",
+              relationshipStatus: "single",
+              lookingFor: "entrambi",
+              avatarUrl: avatarUrl || undefined,
+            };
+          });
+        }
+      } catch (error) {
+        console.error("Error loading Match & Drink avatar", error);
+      }
+    };
+
+    void loadAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [identity.email, profileAvatarUrl, profileFullName, setSavedProfile]);
 
   if (loading) {
     return (
@@ -137,7 +208,14 @@ export function MatchDrinkPlayerController() {
         </MatchDrinkShell>
       );
     }
-    return <JoinForm onJoin={join} error={error} savedProfile={savedProfile} />;
+    return (
+      <JoinForm
+        key={`${savedProfile?.nickname ?? ""}:${savedProfile?.avatarUrl ?? ""}:${savedProfile?.tableNumber ?? ""}`}
+        onJoin={join}
+        error={error}
+        savedProfile={savedProfile}
+      />
+    );
   }
 
   // Lobby
@@ -595,9 +673,15 @@ function JoinForm({
           <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">Il gioco live più pericolosamente social</p>
         </div>
 
-        <MatchDrinkCard className="max-w-md w-full">
-          <div className="flex flex-col items-center mb-8">
-            <LocalPirateAvatar customerKey={nickname || "ospite"} label={nickname || "Nuovo Pirata"} onUpload={setAvatarUrl} />
+            <MatchDrinkCard className="max-w-md w-full">
+              <div className="flex flex-col items-center mb-8">
+            <LocalPirateAvatar
+              customerKey={nickname || savedProfile?.nickname || "ospite"}
+              label={nickname || "Nuovo Pirata"}
+              onUpload={(url) => {
+                setAvatarUrl(url);
+              }}
+            />
             <p className="text-xs uppercase tracking-widest text-[var(--accent-strong)] mt-3 font-black">Scatta la tua foto</p>
           </div>
 

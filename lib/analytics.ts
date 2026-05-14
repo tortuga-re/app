@@ -68,10 +68,6 @@ export const getAppSection = (pathname?: string) => {
     return "info";
   }
 
-  if (path.startsWith("/game/sfida-capitano")) {
-    return "sfida_capitano";
-  }
-
   if (path.startsWith("/esperienze-locale")) {
     return "esperienze_locale";
   }
