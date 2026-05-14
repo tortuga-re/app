@@ -2,7 +2,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { 
   MatchDrinkAnswer, 
   MatchDrinkBottleMessage, 
+  MatchDrinkForecastSummary,
   MatchDrinkMatch, 
+  MatchDrinkMeetingTableOption,
   MatchDrinkPlayer, 
   MatchDrinkSession 
 } from "./types";
@@ -20,6 +22,8 @@ export function useMatchDrinkAdmin(sessionId?: string) {
   const [messages, setMessages] = useState<MatchDrinkBottleMessage[]>([]);
   const [matches, setMatches] = useState<MatchDrinkMatch[]>([]);
   const [answers, setAnswers] = useState<MatchDrinkAnswer[]>([]);
+  const [forecast, setForecast] = useState<MatchDrinkForecastSummary | null>(null);
+  const [meetingTableOptions, setMeetingTableOptions] = useState<MatchDrinkMeetingTableOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +48,8 @@ export function useMatchDrinkAdmin(sessionId?: string) {
         setMessages(prev => mergeMessages(prev, data.messages || []));
         setMatches(data.matches);
         setAnswers(data.answers);
+        setForecast(data.forecast ?? null);
+        setMeetingTableOptions(data.meetingTableOptions ?? []);
         setLoading(false);
         setError(null);
       }
@@ -135,6 +141,8 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     messages,
     matches,
     answers,
+    forecast,
+    meetingTableOptions,
     loading,
     error,
     refresh,
@@ -149,5 +157,7 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     deleteSession: () => apiCall("delete"),
     updateStatus: (status: string) => apiCall("status", { status }),
     toggleMessages: (enabled: boolean) => apiCall("settings", { bottleMessagesEnabled: enabled }),
+    updateExcludedMeetingTables: (excludedMeetingTables: string[]) =>
+      apiCall("settings", { excludedMeetingTables }),
   };
 }

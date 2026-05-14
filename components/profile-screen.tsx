@@ -136,6 +136,9 @@ export function CiurmaScreen() {
   };
 
   const identityEmail = normalizeCustomerEmail(identity.email);
+  const isLoggedAdmin = isAdmin(identity.email);
+  const showUnifiedCommandDeck =
+    identityEmail === "kinderland.re@gmail.com";
   const { registerVisit } = useVisitRegistration();
   const hasProfile = Boolean(data?.contact);
   const profileName =
@@ -1160,6 +1163,58 @@ export function CiurmaScreen() {
                 </p>
               </div>
             </div>
+
+            <div className="mt-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                  Le tue Imprese
+                </p>
+                <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                  {missions.filter(m => m.isUnlocked(data)).length} / {missions.length} Sbloccate
+                </span>
+              </div>
+              
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden mask-fade-right">
+                {missions.map((mission) => {
+                  const isUnlocked = mission.isUnlocked(data);
+                  return (
+                    <button 
+                      key={mission.id} 
+                      onClick={() => {
+                        triggerHaptic();
+                        setSelectedMission(mission);
+                      }}
+                      className="group relative flex flex-col items-center gap-2 flex-shrink-0 outline-none"
+                    >
+                      <div 
+                        className={cn(
+                          "flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-500 overflow-hidden",
+                          isUnlocked 
+                            ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_15px_rgba(216,176,106,0.3)]" 
+                            : "border-white/5 bg-white/5 grayscale opacity-30"
+                        )}
+                      >
+                        {mission.image ? (
+                          <img 
+                            src={mission.image} 
+                            alt={mission.label} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-3xl">{mission.icon}</span>
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[9px] font-bold text-center uppercase tracking-tight leading-tight w-20 break-words",
+                        isUnlocked ? "text-white" : "text-[var(--text-muted)]"
+                      )}>
+                        {mission.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
           <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
             <PiratePhotoContestCard
@@ -1255,8 +1310,33 @@ export function CiurmaScreen() {
                 </>
               )}
 
+              {showUnifiedCommandDeck && (
+                <a
+                  href="https://app.tortugabay.it/admin/live-tv"
+                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)] bg-[var(--accent-soft)]/5"
+                  onClick={() => {
+                    triggerHaptic();
+                    if (data?.contact?.CodiceContatto) {
+                      void registerVisit(data.contact.CodiceContatto);
+                    }
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-white uppercase italic">Plancia di Comando</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Un unico accesso alla plancia operativa Tortuga.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                      ADMIN
+                    </span>
+                  </div>
+                </a>
+              )}
+
               {/* Buzzer Card - Admin (Captain only) */}
-              {isAdmin(identity.email) && (
+              {isLoggedAdmin && !showUnifiedCommandDeck && (
                 <a
                   href="/admin/buzzer"
                   className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-purple-500 bg-purple-500/5"
@@ -1282,7 +1362,7 @@ export function CiurmaScreen() {
               )}
 
               {/* Match & Drink Admin */}
-              {isAdmin(identity.email) && (
+              {isLoggedAdmin && !showUnifiedCommandDeck && (
                 <Link
                   href="/admin/match-drink"
                   className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
@@ -1301,7 +1381,7 @@ export function CiurmaScreen() {
                 </Link>
               )}
               {/* Kantaquiz Admin */}
-              {isAdmin(identity.email) && (
+              {isLoggedAdmin && !showUnifiedCommandDeck && (
                 <button
                   onClick={async () => {
                     const pin = prompt("Inserisci PIN Capitano:");
@@ -1339,7 +1419,7 @@ export function CiurmaScreen() {
               )}
 
               {/* Push Admin */}
-              {isAdmin(identity.email) && (
+              {isLoggedAdmin && !showUnifiedCommandDeck && (
                 <Link
                   href="/admin/push"
                   className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-purple-500 bg-purple-500/5 mt-4"
@@ -1359,7 +1439,7 @@ export function CiurmaScreen() {
               )}
 
               {/* Receipts Admin */}
-              {isAdmin(identity.email) && (
+              {isLoggedAdmin && !showUnifiedCommandDeck && (
                 <Link
                   href="/admin/scontrini"
                   className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-emerald-500 bg-emerald-500/5 mt-4"
@@ -1426,59 +1506,6 @@ export function CiurmaScreen() {
                     {loyaltyProgress.points} punti
                   </span>
                 </div>
-              </div>
-            </div>
-
-            {/* Missioni (Badges) - Passaporto del Pirata */}
-            <div className="mt-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                  Le tue Imprese
-                </p>
-                <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                  {missions.filter(m => m.isUnlocked(data)).length} / {missions.length} Sbloccate
-                </span>
-              </div>
-              
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden mask-fade-right">
-                {missions.map((mission) => {
-                  const isUnlocked = mission.isUnlocked(data);
-                  return (
-                    <button 
-                      key={mission.id} 
-                      onClick={() => {
-                        triggerHaptic();
-                        setSelectedMission(mission);
-                      }}
-                      className="group relative flex flex-col items-center gap-2 flex-shrink-0 outline-none"
-                    >
-                      <div 
-                        className={cn(
-                          "flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-500 overflow-hidden",
-                          isUnlocked 
-                            ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_15px_rgba(216,176,106,0.3)]" 
-                            : "border-white/5 bg-white/5 grayscale opacity-30"
-                        )}
-                      >
-                        {mission.image ? (
-                          <img 
-                            src={mission.image} 
-                            alt={mission.label} 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-3xl">{mission.icon}</span>
-                        )}
-                      </div>
-                      <span className={cn(
-                        "text-[9px] font-bold text-center uppercase tracking-tight leading-tight w-20 break-words",
-                        isUnlocked ? "text-white" : "text-[var(--text-muted)]"
-                      )}>
-                        {mission.label}
-                      </span>
-                    </button>
-                  );
-                })}
               </div>
             </div>
 

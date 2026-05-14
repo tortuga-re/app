@@ -4,7 +4,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   // --- LIGHT (Ghiaccio Sottile) ---
   {
     category: "light",
-    text: "IL TUO DRINK IDEALE PER INIZIARE LA SERATA È...",
+    text: "PER ROMPERE IL GHIACCIO TU PARTI CON...",
     options: [
       { id: "A", text: "Analcolico (faccio l'autista)", traits: { timido: 3, fedele: 3 } },
       { id: "B", text: "Bollicine (per sentirmi importante)", traits: { orgoglioso: 4, romantico: 2 } },
@@ -14,7 +14,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   },
   {
     category: "light",
-    text: "COSA NOTI PER PRIMO IN UNA PERSONA AL PRIMO SGUARDO?",
+    text: "QUALE DETTAGLIO TI ACCENDE SUBITO LA CURIOSITA?",
     options: [
       { id: "A", text: "Il sorriso contagioso", traits: { romantico: 5, timido: 1 } },
       { id: "B", text: "Lo sguardo profondo", traits: { investigatore: 5, fedele: 2 } },
@@ -146,7 +146,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "light",
     text: "IL TUO GIOCO DA TAVOLO PREFERITO È...",
     options: [
-      { id: "A", text: "Strategia pura (voglio vincere)", traits: { orgoglioso: 5, investigatore: 5 } },
+      { id: "A", text: "Strategia pura (voglio vincere)", traits: { orgoglioso: 4, investigatore: 5 } },
       { id: "B", text: "Party game caciarone", traits: { festaiolo: 5, caotico: 4 } },
       { id: "C", text: "Classico intramontabile", traits: { fedele: 5, romantico: 2 } },
       { id: "D", text: "Odio i giochi da tavolo", traits: { diretto: 4, libero: 3 } }
@@ -156,10 +156,10 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   // --- IRONIC (Pungenti e Sfacciate) ---
   {
     category: "ironic",
-    text: "L'EX TI SCRIVE 'MI MANCHI' ALLE 3 DI NOTTE. COSA FAI?",
+    text: "L'EX RIAPPARE ALLE 3 DI NOTTE. CHE SPETTACOLO OFFRI?",
     options: [
       { id: "A", text: "Blocco immediato", traits: { diretto: 5, orgoglioso: 3 } },
-      { id: "B", text: "Rispondo 'Chi sei?'", traits: { ironico: 6, orgoglioso: 4 } },
+      { id: "B", text: "Rispondo 'Chi sei?'", traits: { ironico: 6, orgoglioso: 3 } },
       { id: "C", text: "Ci casco e vado sotto casa", traits: { romantico: 5, caotico: 3 } },
       { id: "D", text: "Screenshot e invio al gruppo", traits: { investigatore: 6, geloso: 5 } }
     ]
@@ -186,11 +186,11 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   },
   {
     category: "ironic",
-    text: "LA TUA MISSIONE PRINCIPALE DI STASERA È...",
+    text: "STASERA VUOI LASCIARE IL SEGNO COME?",
     options: [
       { id: "A", text: "Finire tutto il bar", traits: { festaiolo: 5, caotico: 3 } },
       { id: "B", text: "Trovare la preda perfetta", traits: { pericoloso: 5, diretto: 4 } },
-      { id: "C", text: "Fare invidia agli ex", traits: { orgoglioso: 5, geloso: 6 } },
+      { id: "C", text: "Fare invidia agli ex", traits: { orgoglioso: 4, geloso: 7 } },
       { id: "D", text: "Non cadere dai tacchi", traits: { timido: 3, ironico: 4 } }
     ]
   },
@@ -199,7 +199,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     text: "IL TUO PEGGIOR DIFETTO SECONDO GLI AMICI?",
     options: [
       { id: "A", text: "Ritardatario cronico", traits: { libero: 5, caotico: 3 } },
-      { id: "B", text: "Troppo testardo", traits: { orgoglioso: 5, diretto: 4 } },
+      { id: "B", text: "Troppo testardo", traits: { orgoglioso: 4, diretto: 4 } },
       { id: "C", text: "Parlo decisamente troppo", traits: { ironico: 5, festaiolo: 3 } },
       { id: "D", text: "Non rispondo mai ai messaggi", traits: { libero: 5, timido: 2 } }
     ]
@@ -231,7 +231,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
       { id: "A", text: "Nessuna, sono puro/a", traits: { fedele: 5, timido: 4 } },
       { id: "B", text: "Solo l'ex del mio ex", traits: { geloso: 6, investigatore: 5 } },
       { id: "C", text: "Tutti quelli in questo locale", traits: { investigatore: 6, pericoloso: 3 } },
-      { id: "D", text: "L'FBI dovrebbe assumermi", traits: { investigatore: 6, ironico: 5 } }
+      { id: "D", text: "L'FBI dovrebbe assumermi", traits: { investigatore: 7, ironico: 5 } }
     ]
   },
   {
@@ -249,7 +249,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     text: "IL TUO SPIRITO GUIDA QUANDO SEI AL BANCONE?",
     options: [
       { id: "A", text: "Avvoltoio (aspetto l'offerta)", traits: { ironico: 5, libero: 3 } },
-      { id: "B", text: "Leone (ordino con forza)", traits: { diretto: 5, orgoglioso: 4 } },
+      { id: "B", text: "Leone (ordino con forza)", traits: { diretto: 4, orgoglioso: 4 } },
       { id: "C", text: "Bradipo (non so cosa scegliere)", traits: { timido: 4, caotico: 2 } },
       { id: "D", text: "Pavone (faccio il figo col barista)", traits: { orgoglioso: 5, festaiolo: 3 } }
     ]
@@ -268,7 +268,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "ironic",
     text: "REAZIONE A UN COMPLIMENTO INASPETTATO?",
     options: [
-      { id: "A", text: "Lo accetto con arroganza", traits: { orgoglioso: 5, diretto: 3 } },
+      { id: "A", text: "Lo accetto con arroganza", traits: { orgoglioso: 4, diretto: 3 } },
       { id: "B", text: "Arrossisco e balbetto", traits: { timido: 5, romantico: 3 } },
       { id: "C", text: "Dico che non è vero per niente", traits: { investigatore: 5, timido: 4 } },
       { id: "D", text: "Ne ricambio uno finto subito", traits: { ironico: 6, pericoloso: 2 } }
@@ -308,11 +308,11 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   // --- SPICY (Vento in Poppa) ---
   {
     category: "spicy",
-    text: "UNA NOTTE NELLA STIVA CON CHI TI PIACE: COSA SUCCEDE?",
+    text: "SE SCATTA LA CHIMICA, CHE TIPO DI NOTTE IMMAGINI?",
     options: [
       { id: "A", text: "Chiacchiere e sguardi intensi", traits: { timido: 4, romantico: 5 } },
       { id: "B", text: "Un bacio rubato che toglie il fiato", traits: { romantico: 5, diretto: 4 } },
-      { id: "C", text: "Quello che succede resta segreto", traits: { pericoloso: 5, investigatore: 5 } },
+      { id: "C", text: "Quello che succede resta segreto", traits: { pericoloso: 4, investigatore: 6 } },
       { id: "D", text: "Finiremmo il rum prima di iniziare", traits: { festaiolo: 5, caotico: 4 } }
     ]
   },
@@ -320,7 +320,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "spicy",
     text: "IL TUO SEGNALE SEGRETO PER FAR CAPIRE CHE TI PIACE QUALCUNO?",
     options: [
-      { id: "A", text: "Sguardo fisso finché non cede", traits: { diretto: 5, pericoloso: 4 } },
+      { id: "A", text: "Sguardo fisso finché non cede", traits: { diretto: 4, pericoloso: 4 } },
       { id: "B", text: "Offrire un drink misterioso", traits: { ironico: 6, romantico: 3 } },
       { id: "C", text: "Contatto fisico 'casuale' in pista", traits: { festaiolo: 5, diretto: 4 } },
       { id: "D", text: "Messaggio in bottiglia via App", traits: { timido: 5, romantico: 4 } }
@@ -348,7 +348,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
   },
   {
     category: "spicy",
-    text: "LA TUA ARMA DI SEDUZIONE INFALLIBILE È...",
+    text: "QUAL E LA TUA MOSSA PIU PERICOLOSA QUANDO FLIRTI?",
     options: [
       { id: "A", text: "Il tocco 'accidentale' sulle spalle", traits: { diretto: 4, festaiolo: 3 } },
       { id: "B", text: "Messaggi ambigui e maliziosi", traits: { ironico: 6, investigatore: 6 } },
@@ -370,8 +370,8 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "spicy",
     text: "UNA RED FLAG CHE PERÒ TI ATTRAE TANTISSIMO?",
     options: [
-      { id: "A", text: "L'eccessiva sicurezza di sé", traits: { orgoglioso: 5, diretto: 4 } },
-      { id: "B", text: "Un pizzico di gelosia tossica", traits: { geloso: 6, fedele: 3 } },
+      { id: "A", text: "L'eccessiva sicurezza di sé", traits: { orgoglioso: 4, diretto: 4 } },
+      { id: "B", text: "Un pizzico di gelosia tossica", traits: { geloso: 7, fedele: 3 } },
       { id: "C", text: "L'aria da cattivo ragazzo/ragazza", traits: { pericoloso: 5, investigatore: 5 } },
       { id: "D", text: "L'imprevedibilità totale", traits: { caotico: 5, libero: 4 } }
     ]
@@ -420,7 +420,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "spicy",
     text: "QUANTO CONTA L'ATTRAZIONE FISICA DA 1 A 10?",
     options: [
-      { id: "A", text: "11 (è tutto)", traits: { orgoglioso: 5, diretto: 5 } },
+      { id: "A", text: "11 (è tutto)", traits: { orgoglioso: 4, diretto: 4 } },
       { id: "B", text: "8 (molto importante)", traits: { festaiolo: 4, ironico: 4 } },
       { id: "C", text: "5 (basta che ci sia)", traits: { fedele: 4, timido: 3 } },
       { id: "D", text: "1 (sono un'anima platonica)", traits: { romantico: 5, timido: 5 } }
@@ -430,7 +430,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "spicy",
     text: "COSA TI FA SCATTARE LA SCINTILLA SOTTO LE LENZUOLA?",
     options: [
-      { id: "A", text: "Prendere il controllo totale", traits: { diretto: 5, orgoglioso: 5 } },
+      { id: "A", text: "Prendere il controllo totale", traits: { diretto: 4, orgoglioso: 4 } },
       { id: "B", text: "Lasciarsi dominare completamente", traits: { timido: 5, fedele: 4 } },
       { id: "C", text: "Sperimentare sempre cose nuove", traits: { caotico: 5, libero: 5 } },
       { id: "D", text: "L'intensità del contatto visivo", traits: { romantico: 5, investigatore: 5 } }
@@ -443,7 +443,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
       { id: "A", text: "Paziente e dottore", traits: { geloso: 5, pericoloso: 4 } },
       { id: "B", text: "Professore e alunno ribelle", traits: { orgoglioso: 5, diretto: 4 } },
       { id: "C", text: "Due estranei in un bar", traits: { ironico: 6, romantico: 4 } },
-      { id: "D", text: "L'interrogatorio della polizia", traits: { investigatore: 6, diretto: 5 } }
+      { id: "D", text: "L'interrogatorio della polizia", traits: { investigatore: 7, diretto: 4 } }
     ]
   },
   {
@@ -460,9 +460,9 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "spicy",
     text: "COSA CERCHI IN UN PARTNER PER UNA NOTTE?",
     options: [
-      { id: "A", text: "Pura chimica fisica", traits: { diretto: 5, pericoloso: 5 } },
+      { id: "A", text: "Pura chimica fisica", traits: { diretto: 4, pericoloso: 5 } },
       { id: "B", text: "Qualcuno che mi faccia ridere", traits: { ironico: 6, romantico: 4 } },
-      { id: "C", text: "Esperienza e sicurezza", traits: { orgoglioso: 5, investigatore: 5 } },
+      { id: "C", text: "Esperienza e sicurezza", traits: { orgoglioso: 4, investigatore: 6 } },
       { id: "D", text: "Qualcuno di totalmente opposto a me", traits: { caotico: 4, libero: 4 } }
     ]
   },
@@ -470,7 +470,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     category: "spicy",
     text: "TI PIACE ESSERE DOMINATO O PRENDERE IL CONTROLLO?",
     options: [
-      { id: "A", text: "Mi piace comandare io", traits: { diretto: 5, orgoglioso: 5 } },
+      { id: "A", text: "Mi piace comandare io", traits: { diretto: 4, orgoglioso: 4 } },
       { id: "B", text: "Voglio che l'altro decida tutto", traits: { timido: 5, fedele: 4 } },
       { id: "C", text: "Dipende dal mood della serata", traits: { caotico: 5, ironico: 5 } },
       { id: "D", text: "Amo la parità assoluta", traits: { fedele: 5, romantico: 5 } }
@@ -492,7 +492,7 @@ export const NEW_QUESTION_BANK: Partial<MatchDrinkQuestion>[] = [
     options: [
       { id: "A", text: "Accetto subito se le persone meritano", traits: { libero: 5, pericoloso: 5 } },
       { id: "B", text: "Ci penso seriamente", traits: { investigatore: 5, caotico: 3 } },
-      { id: "C", text: "Troppo affollato, sono geloso/a", traits: { geloso: 7, fedele: 4 } },
+      { id: "C", text: "Troppo affollato, sono geloso/a", traits: { geloso: 8, fedele: 4 } },
       { id: "D", text: "Solo se sono io il centro di tutto", traits: { orgoglioso: 5, festaiolo: 3 } }
     ]
   },

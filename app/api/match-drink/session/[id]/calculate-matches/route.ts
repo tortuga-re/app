@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { recordMatchDrinkMatchesCalculated } from "@/lib/match-drink/analytics";
 import { calculateMatches } from "@/lib/match-drink/scoring";
 import { 
   getAnswers, 
@@ -34,6 +35,9 @@ export async function POST(
 
     const matches = calculateMatches(session, players, answers, questions);
     await storeMatches(matches);
+    if (matches.length === 0) {
+      await recordMatchDrinkMatchesCalculated(id, 0);
+    }
 
     await updateSessionStatus(id, "matching");
     await updateStageMode(id, "matching");

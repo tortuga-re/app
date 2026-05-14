@@ -86,7 +86,7 @@ const buildUpdatedMockContact = (input: ProfileUpdateInput): CoopertoContact => 
   Nome: input.firstName,
   Cognome: input.lastName,
   Email: input.email,
-  Telefono: normalizeItalianPhone(input.phone ?? "")?.nationalNumber ?? input.phone ?? "",
+  Telefono: normalizeItalianPhone(input.phone ?? "")?.normalizedE164 ?? input.phone ?? "",
   DataDiNascita: input.birthDate ? `${input.birthDate}T00:00:00` : undefined,
   ConsensoMarketing: input.marketingConsent ? 1 : 0,
 });

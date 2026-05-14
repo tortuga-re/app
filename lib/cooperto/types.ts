@@ -339,6 +339,7 @@ export interface BookingCreateResponse {
 
 export interface WaitlistCreateInput {
   date: string;
+  requestedTime?: string;
   pax: number;
   roomCode?: string;
   firstName: string;

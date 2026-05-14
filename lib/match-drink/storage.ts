@@ -1,5 +1,11 @@
 import { getSupabaseAdmin } from "./supabase";
 import {
+  getMatchDrinkAnalytics,
+  recordMatchDrinkMatchesCalculated,
+  recordMatchDrinkSignup,
+  syncMatchDrinkOutcomeMetrics,
+} from "./analytics";
+import {
   MatchDrinkAnswer,
   MatchDrinkBottleMessage,
   MatchDrinkMatch,
@@ -11,6 +17,8 @@ import {
 const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
 
 export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
+const getSessionExcludedTablesKey = (sessionId: string) =>
+  `match_drink_excluded_tables:${sessionId}`;
 
 export const createSession = async (title: string, questionCount: number = 20): Promise<MatchDrinkSession> => {
   const admin = getSupabaseAdmin();
@@ -60,7 +68,9 @@ export const createSession = async (title: string, questionCount: number = 20): 
     public_consent: false,
   });
 
-  return mapSession(data);
+  const session = mapSession(data);
+  session.analytics = await getMatchDrinkAnalytics(session.id);
+  return session;
 };
 
 export const updateSession = async (id: string, updates: Partial<MatchDrinkSession>) => {
@@ -73,12 +83,29 @@ export const updateSession = async (id: string, updates: Partial<MatchDrinkSessi
   if (updates.currentStageMessageId !== undefined) dbUpdates.current_stage_message_id = updates.currentStageMessageId;
   if (updates.bottleMessagesEnabled !== undefined) dbUpdates.bottle_messages_enabled = updates.bottleMessagesEnabled;
 
-  const { error } = await admin
-    .from("match_drink_sessions")
-    .update(dbUpdates)
-    .eq("id", id);
+  if (updates.excludedMeetingTables !== undefined) {
+    const { error: settingsError } = await admin
+      .from("app_state")
+      .upsert(
+        {
+          key: getSessionExcludedTablesKey(id),
+          value: JSON.stringify(updates.excludedMeetingTables),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
 
-  if (error) throw error;
+    if (settingsError) throw settingsError;
+  }
+
+  if (Object.keys(dbUpdates).length > 0) {
+    const { error } = await admin
+      .from("match_drink_sessions")
+      .update(dbUpdates)
+      .eq("id", id);
+
+    if (error) throw error;
+  }
   void broadcastMatchDrinkUpdate(id, "session_update", { ...updates, updatedAt: new Date().toISOString() });
 };
 
@@ -91,7 +118,10 @@ export const getSession = async (id: string): Promise<MatchDrinkSession | null> 
     .single();
 
   if (error || !data) return null;
-  return mapSession(data);
+  const session = mapSession(data);
+  session.excludedMeetingTables = await getSessionExcludedMeetingTables(id);
+  session.analytics = await getMatchDrinkAnalytics(id);
+  return session;
 };
 
 export const getSessionByJoinCode = async (code: string): Promise<MatchDrinkSession | null> => {
@@ -117,7 +147,9 @@ export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapSession(data);
+  const session = mapSession(data);
+  session.analytics = await getMatchDrinkAnalytics(session.id);
+  return session;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -211,6 +243,9 @@ export const joinSession = async (
 
   if (error) throw error;
   const result = mapPlayer(data);
+  if (result.nickname !== "_SYSTEM_") {
+    await recordMatchDrinkSignup(player.sessionId);
+  }
   void broadcastMatchDrinkUpdate(player.sessionId, "player_joined", result);
   return result;
 };
@@ -433,11 +468,35 @@ export const acceptMatch = async (
 
   if (error) throw error;
 
+  const { data: sessionMetricsRows } = await admin
+    .from("match_drink_matches")
+    .select("id, drink_unlocked, drink_redeemed, accepted_by_a, accepted_by_b")
+    .eq("session_id", match.data.session_id);
+
+  if (Array.isArray(sessionMetricsRows)) {
+    const acceptedMatches = sessionMetricsRows.filter(
+      (row) => row.accepted_by_a && row.accepted_by_b,
+    ).length;
+    const drinksUnlocked = sessionMetricsRows.filter((row) => row.drink_unlocked).length;
+    const drinksRedeemed = sessionMetricsRows.filter((row) => row.drink_redeemed).length;
+
+    await syncMatchDrinkOutcomeMetrics(match.data.session_id, {
+      acceptedMatches,
+      drinksUnlocked,
+      drinksRedeemed,
+    });
+  }
+
   void broadcastMatchDrinkUpdate(match.data.session_id, "match_updated", { matchId, playerId, drinkUnlocked: !!updateData.drink_unlocked });
 };
 
 export const redeemDrink = async (matchId: string) => {
   const admin = getSupabaseAdmin();
+  const { data: matchRow } = await admin
+    .from("match_drink_matches")
+    .select("session_id")
+    .eq("id", matchId)
+    .maybeSingle();
   const { error } = await admin
     .from("match_drink_matches")
     .update({
@@ -447,6 +506,27 @@ export const redeemDrink = async (matchId: string) => {
     .eq("id", matchId);
 
   if (error) throw error;
+
+  if (matchRow?.session_id) {
+    const { data: sessionMetricsRows } = await admin
+      .from("match_drink_matches")
+      .select("drink_unlocked, drink_redeemed, accepted_by_a, accepted_by_b")
+      .eq("session_id", matchRow.session_id);
+
+    if (Array.isArray(sessionMetricsRows)) {
+      const acceptedMatches = sessionMetricsRows.filter(
+        (row) => row.accepted_by_a && row.accepted_by_b,
+      ).length;
+      const drinksUnlocked = sessionMetricsRows.filter((row) => row.drink_unlocked).length;
+      const drinksRedeemed = sessionMetricsRows.filter((row) => row.drink_redeemed).length;
+
+      await syncMatchDrinkOutcomeMetrics(matchRow.session_id, {
+        acceptedMatches,
+        drinksUnlocked,
+        drinksRedeemed,
+      });
+    }
+  }
 };
 
 export const deleteSessionData = async (sessionId: string) => {
@@ -485,6 +565,7 @@ export const storeMatches = async (matches: Omit<MatchDrinkMatch, "id" | "create
   if (error) throw error;
 
   if (matches.length > 0) {
+    await recordMatchDrinkMatchesCalculated(matches[0].sessionId, matches.length);
     void broadcastMatchDrinkUpdate(matches[0].sessionId, "matches_stored");
   }
 };
@@ -503,6 +584,26 @@ const mapSession = (row: Record<string, unknown>): MatchDrinkSession => ({
   createdAt: row.created_at as string,
   updatedAt: row.updated_at as string,
 });
+
+export const getSessionExcludedMeetingTables = async (sessionId: string): Promise<string[]> => {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("app_state")
+    .select("value")
+    .eq("key", getSessionExcludedTablesKey(sessionId))
+    .maybeSingle();
+
+  if (error || !data?.value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(data.value) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+};
 
 const mapPlayer = (row: Record<string, unknown>): MatchDrinkPlayer => ({
   id: row.id as string,

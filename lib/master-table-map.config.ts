@@ -29,7 +29,7 @@ export const TORTUGA_MASTER_TABLE_MAP = {
     },
     {
       roomCode: "32986b6b-4f7f-4924-a9de-c76445e1031e",
-      publicName: "Cabina di Poppa",
+      publicName: "Galeone",
       polygon:
         "150,834 680,834 680,1083 150,1083",
       badgeX: 418,

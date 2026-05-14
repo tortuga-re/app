@@ -142,7 +142,7 @@ export const pwaConfig = {
 export const tortugaRooms: Record<string, string> = {
   "da1d57f0-e0d5-4d7e-86be-9f8300f388b8": "Sala Centrale",
   "b7f34310-195e-4c03-ac05-a660e79dc1ce": "Soppalco",
-  "32986b6b-4f7f-4924-a9de-c76445e1031e": "Cabina di Poppa",
+  "32986b6b-4f7f-4924-a9de-c76445e1031e": "Galeone",
   "2a2cda28-9466-4a9d-b2d0-5a0294b2fd0c": "Area Family",
 };
 

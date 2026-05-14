@@ -9,6 +9,7 @@ import { buildPresetPlaylist } from "./default-playlists";
 import type {
   LiveTvItem,
   LiveTvOverlay,
+  LiveTvScheduleEntry,
   LiveTvPresetId,
   LiveTvState,
   LiveTvUpsertItemInput,
@@ -26,6 +27,89 @@ const LIVE_TV_CHANNEL = "live-tv";
 
 const nowIso = () => new Date().toISOString();
 
+const normalizeScheduleEntry = (entry: LiveTvScheduleEntry): LiveTvScheduleEntry => ({
+  ...entry,
+  presetId: entry.presetId ?? null,
+  enabled: entry.enabled !== false,
+  daysOfWeek: Array.isArray(entry.daysOfWeek)
+    ? entry.daysOfWeek
+        .map((day) => Number(day))
+        .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+    : [],
+});
+
+const matchesScheduleEntry = (entry: LiveTvScheduleEntry, now: Date) => {
+  if (!entry.enabled || entry.daysOfWeek.length === 0) {
+    return false;
+  }
+
+  const currentDay = now.getDay();
+  if (!entry.daysOfWeek.includes(currentDay)) {
+    return false;
+  }
+
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
+    now.getMinutes(),
+  ).padStart(2, "0")}`;
+
+  return entry.startTime <= currentTime && currentTime < entry.endTime;
+};
+
+const applyScheduledStageState = (state: LiveTvState, timestamp = nowIso()) => {
+  const schedule = (state.schedule ?? []).map(normalizeScheduleEntry);
+
+  if (!state.autoScheduleEnabled || schedule.length === 0) {
+    return {
+      ...state,
+      schedule,
+      activeScheduleId: null,
+    };
+  }
+
+  const now = new Date(timestamp);
+  const matchingEntry = schedule.find((entry) => matchesScheduleEntry(entry, now)) ?? null;
+
+  if (!matchingEntry) {
+    return {
+      ...state,
+      schedule,
+      activeScheduleId: null,
+    };
+  }
+
+  if (state.activeScheduleId === matchingEntry.id) {
+    return {
+      ...state,
+      schedule,
+      activeScheduleId: matchingEntry.id,
+    };
+  }
+
+  const shouldSwitchPreset =
+    matchingEntry.stageMode === "live_tv" &&
+    matchingEntry.presetId &&
+    matchingEntry.presetId !== state.activePresetId;
+
+  return normalizeState(
+    {
+      ...state,
+      stageMode: matchingEntry.stageMode,
+      isBlackout: matchingEntry.stageMode === "blackout",
+      activeScheduleId: matchingEntry.id,
+      activePresetId:
+        matchingEntry.stageMode === "live_tv"
+          ? matchingEntry.presetId ?? state.activePresetId ?? null
+          : state.activePresetId ?? null,
+      playlist: shouldSwitchPreset
+        ? buildPresetPlaylist(matchingEntry.presetId!)
+        : state.playlist,
+      currentItemIndex: shouldSwitchPreset ? 0 : state.currentItemIndex,
+      currentItemStartedAt: timestamp,
+    },
+    timestamp,
+  );
+};
+
 const createInitialState = (): LiveTvState => {
   const timestamp = nowIso();
 
@@ -41,6 +125,9 @@ const createInitialState = (): LiveTvState => {
     isBlackout: false,
     autoReturnAfterBuzzer: false,
     autoReturnAfterMatchDrink: false,
+    autoScheduleEnabled: false,
+    activeScheduleId: null,
+    schedule: [],
     lastUpdateId: "init",
     updatedAt: timestamp,
   };
@@ -91,6 +178,9 @@ const normalizeState = (state: LiveTvState, timestamp = nowIso()) => {
     currentItemStartedAt: state.currentItemStartedAt || timestamp,
     updatedAt: state.updatedAt || timestamp,
     isBlackout: state.stageMode === "blackout",
+    autoScheduleEnabled: Boolean(state.autoScheduleEnabled),
+    activeScheduleId: state.activeScheduleId ?? null,
+    schedule: (state.schedule ?? []).map(normalizeScheduleEntry),
   };
 
   if (nextState.overlay && isExpiredAt(nextState.overlay.expiresAt)) {
@@ -241,7 +331,7 @@ const writeSupabaseState = async (state: LiveTvState) => {
 
 export const getLiveTvState = async (): Promise<LiveTvState> => {
   const storedState = (await readSupabaseState()) ?? (await LIVE_TV_STORAGE.read());
-  const normalized = normalizeState(storedState);
+  const normalized = applyScheduledStageState(normalizeState(storedState));
 
   if (JSON.stringify(normalized) !== JSON.stringify(storedState)) {
     await LIVE_TV_STORAGE.write(normalized);
@@ -277,6 +367,7 @@ export const setStageMode = async (stageMode: StageMode) =>
       ...state,
       stageMode,
       isBlackout: stageMode === "blackout",
+      activeScheduleId: null,
       currentItemStartedAt:
         leavingLiveTv || enteringLiveTv ? timestamp : state.currentItemStartedAt,
     };
@@ -294,10 +385,26 @@ export const setActivePreset = async (presetId: LiveTvPresetId) =>
         currentItemStartedAt: timestamp,
         nowPlayingOverride: null,
         nowPlayingStartedAt: null,
+        activeScheduleId: null,
       },
       timestamp,
     );
   });
+
+export const setLiveTvSchedule = async (payload: {
+  autoScheduleEnabled: boolean;
+  schedule: LiveTvScheduleEntry[];
+}) =>
+  updateLiveTvState((state) =>
+    applyScheduledStageState(
+      {
+        ...state,
+        autoScheduleEnabled: payload.autoScheduleEnabled,
+        schedule: payload.schedule.map(normalizeScheduleEntry),
+      },
+      nowIso(),
+    ),
+  );
 
 export const replacePlaylist = async (items: LiveTvUpsertItemInput[]) =>
   updateLiveTvState((state) => {

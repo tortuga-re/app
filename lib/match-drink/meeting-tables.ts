@@ -1,4 +1,9 @@
-import type { MatchDrinkMatch, MatchDrinkPlayer } from "./types";
+import type {
+  MatchDrinkForecastSummary,
+  MatchDrinkMatch,
+  MatchDrinkMeetingTableOption,
+  MatchDrinkPlayer,
+} from "./types";
 
 type MatchDrinkMeetingZone = "romance" | "friendship";
 
@@ -53,6 +58,8 @@ const FRIENDSHIP_TABLES: MatchDrinkTableDefinition[] = [
   { area: "Galeone", number: "17", seats: 6 },
 ];
 
+const getTableKey = (table: MatchDrinkTableDefinition) => `${table.area}::${table.number}`;
+
 const expandTableSlots = (tables: MatchDrinkTableDefinition[]) =>
   tables.flatMap((table) =>
     Array.from({ length: Math.max(1, Math.floor(table.seats / 2)) }, (_, index) => ({
@@ -63,6 +70,14 @@ const expandTableSlots = (tables: MatchDrinkTableDefinition[]) =>
 
 const ROMANCE_SLOTS = expandTableSlots(ROMANCE_TABLES);
 const FRIENDSHIP_SLOTS = expandTableSlots(FRIENDSHIP_TABLES);
+
+const getFilteredSlots = (
+  slots: MatchDrinkTableSlot[],
+  excludedTableKeys: string[],
+) => {
+  const excluded = new Set(excludedTableKeys);
+  return slots.filter((slot) => !excluded.has(getTableKey(slot)));
+};
 
 const buildAssignment = (
   zone: MatchDrinkMeetingZone,
@@ -95,6 +110,7 @@ const compareMatches = (left: MatchDrinkMatch, right: MatchDrinkMatch) => {
 export const assignMatchDrinkMeetingTables = (
   matches: MatchDrinkMatch[],
   players: MatchDrinkPlayer[],
+  excludedTableKeys: string[] = [],
 ) => {
   const playersById = new Map(players.map((player) => [player.id, player]));
   const sortedMatches = [...matches].sort(compareMatches);
@@ -115,8 +131,11 @@ export const assignMatchDrinkMeetingTables = (
 
   const assignments = new Map<string, MatchDrinkMeetingAssignment>();
 
+  const romanceSlots = getFilteredSlots(ROMANCE_SLOTS, excludedTableKeys);
+  const friendshipSlots = getFilteredSlots(FRIENDSHIP_SLOTS, excludedTableKeys);
+
   romanceMatches.forEach((match, index) => {
-    const slot = ROMANCE_SLOTS[index] ?? ROMANCE_SLOTS[ROMANCE_SLOTS.length - 1];
+    const slot = romanceSlots[index] ?? romanceSlots[romanceSlots.length - 1];
     if (slot) {
       assignments.set(match.id, buildAssignment("romance", slot));
     }
@@ -124,11 +143,109 @@ export const assignMatchDrinkMeetingTables = (
 
   friendshipMatches.forEach((match, index) => {
     const slot =
-      FRIENDSHIP_SLOTS[index] ?? FRIENDSHIP_SLOTS[FRIENDSHIP_SLOTS.length - 1];
+      friendshipSlots[index] ?? friendshipSlots[friendshipSlots.length - 1];
     if (slot) {
       assignments.set(match.id, buildAssignment("friendship", slot));
     }
   });
 
   return assignments;
+};
+
+const isGenderCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer): boolean => {
+  const checkCompatibility = (sourcePlayer: MatchDrinkPlayer, targetPlayer: MatchDrinkPlayer) => {
+    if (sourcePlayer.lookingFor === "amicizie") {
+      return targetPlayer.lookingFor === "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "uomo") {
+      return targetPlayer.gender === "uomo" && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "donna") {
+      return targetPlayer.gender === "donna" && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "entrambi") {
+      return ["uomo", "donna"].includes(targetPlayer.gender) && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    return false;
+  };
+
+  return checkCompatibility(playerA, playerB) && checkCompatibility(playerB, playerA);
+};
+
+export const getMatchDrinkMeetingTableOptions = (): MatchDrinkMeetingTableOption[] => {
+  const toOption = (
+    zone: "romance" | "friendship",
+    table: MatchDrinkTableDefinition,
+  ): MatchDrinkMeetingTableOption => ({
+    key: getTableKey(table),
+    area: table.area,
+    number: table.number,
+    seats: table.seats,
+    zone,
+    slots: Math.max(1, Math.floor(table.seats / 2)),
+    label: `${table.number} in ${table.area}`,
+  });
+
+  return [
+    ...ROMANCE_TABLES.map((table) => toOption("romance", table)),
+    ...FRIENDSHIP_TABLES.map((table) => toOption("friendship", table)),
+  ];
+};
+
+export const getMatchDrinkCapacitySummary = (excludedTableKeys: string[] = []) => {
+  const excluded = new Set(excludedTableKeys);
+  const countSlots = (tables: MatchDrinkTableDefinition[]) =>
+    tables
+      .filter((table) => !excluded.has(getTableKey(table)))
+      .reduce((total, table) => total + Math.max(1, Math.floor(table.seats / 2)), 0);
+
+  return {
+    romanceCapacity: countSlots(ROMANCE_TABLES),
+    friendshipCapacity: countSlots(FRIENDSHIP_TABLES),
+  };
+};
+
+export const forecastMatchDrinkPairs = (
+  players: MatchDrinkPlayer[],
+  excludedTableKeys: string[] = [],
+): MatchDrinkForecastSummary => {
+  const eligiblePlayers = players.filter((player) => player.relationshipStatus !== "solo_per_ridere");
+  const matchedIds = new Set<string>();
+  let friendshipPairs = 0;
+  let romancePairs = 0;
+
+  for (let i = 0; i < eligiblePlayers.length; i += 1) {
+    const playerA = eligiblePlayers[i];
+    if (matchedIds.has(playerA.id)) continue;
+
+    for (let j = i + 1; j < eligiblePlayers.length; j += 1) {
+      const playerB = eligiblePlayers[j];
+      if (matchedIds.has(playerB.id)) continue;
+      if (!isGenderCompatible(playerA, playerB)) continue;
+
+      if (isFriendshipMatch(playerA, playerB)) {
+        friendshipPairs += 1;
+      } else {
+        romancePairs += 1;
+      }
+
+      matchedIds.add(playerA.id);
+      matchedIds.add(playerB.id);
+      break;
+    }
+  }
+
+  const capacities = getMatchDrinkCapacitySummary(excludedTableKeys);
+
+  return {
+    romancePairs,
+    friendshipPairs,
+    unmatchedPlayers: eligiblePlayers.length - matchedIds.size,
+    romanceCapacity: capacities.romanceCapacity,
+    friendshipCapacity: capacities.friendshipCapacity,
+  };
 };

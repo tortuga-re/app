@@ -43,7 +43,37 @@ export interface MatchDrinkSession {
   questionIds?: string[] | null;
   questions?: MatchDrinkQuestion[];
   bottleMessagesEnabled?: boolean;
+  excludedMeetingTables?: string[];
+  analytics?: MatchDrinkSessionAnalytics;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface MatchDrinkMeetingTableOption {
+  key: string;
+  area: string;
+  number: string;
+  seats: number;
+  zone: "romance" | "friendship";
+  slots: number;
+  label: string;
+}
+
+export interface MatchDrinkForecastSummary {
+  romancePairs: number;
+  friendshipPairs: number;
+  unmatchedPlayers: number;
+  romanceCapacity: number;
+  friendshipCapacity: number;
+}
+
+export interface MatchDrinkSessionAnalytics {
+  signups: number;
+  matchesCalculated: number;
+  acceptedMatches: number;
+  drinksUnlocked: number;
+  drinksRedeemed: number;
+  lastCalculatedAt?: string | null;
   updatedAt: string;
 }
 

@@ -233,14 +233,17 @@ function SmartHeroCard({
   activeCouponsCount: number;
   activeGames: { buzzer: boolean; matchDrink: boolean };
 }) {
+  const hasFutureReservation = Boolean(reservation);
   const isTonight = reservation
     ? new Date(reservation.dateTime).toDateString() === new Date().toDateString()
     : false;
 
   const title = hasMenuAccess
     ? "Sei a bordo."
-    : isTonight
-      ? "Hai una prenotazione stasera."
+    : hasFutureReservation
+      ? isTonight
+        ? "Hai una prenotazione stasera."
+        : "Hai una rotta gia fissata."
       : activeCouponsCount > 0
         ? `Hai ${activeCouponsCount} coupon pronti.`
         : activeGames.buzzer || activeGames.matchDrink
@@ -249,8 +252,10 @@ function SmartHeroCard({
 
   const description = hasMenuAccess
     ? "Modalita locale attiva: menu, giochi e promo sono a un tap dalla tua mano."
-    : isTonight
-      ? "Controlla la tua rotta, arriva al tavolo giusto e tieniti pronto per i giochi live."
+    : hasFutureReservation
+      ? isTonight
+        ? "Controlla la tua rotta, arriva al tavolo giusto e tieniti pronto per i giochi live."
+        : "Hai gia una prenotazione futura: qui sotto trovi tutti i dettagli della tua prossima rotta."
       : activeCouponsCount > 0
         ? "Hai già bottino da spendere: tieni d'occhio la prossima serata utile."
         : activeGames.buzzer || activeGames.matchDrink
@@ -283,7 +288,7 @@ function SmartHeroCard({
               Info tavoli e spazi
             </Link>
           </>
-        ) : isTonight ? (
+        ) : hasFutureReservation ? (
           <>
             <Link
               href="#prossima-prenotazione"
@@ -292,13 +297,15 @@ function SmartHeroCard({
             >
               Vedi prenotazione
             </Link>
-            <Link
-              href="/sedi"
-              className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-              onClick={() => triggerHaptic()}
-            >
-              Come arrivare
-            </Link>
+            {isTonight ? (
+              <Link
+                href="/sedi"
+                className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
+                onClick={() => triggerHaptic()}
+              >
+                Come arrivare
+              </Link>
+            ) : null}
           </>
         ) : (
           <>
@@ -323,25 +330,115 @@ function SmartHeroCard({
   );
 }
 
-function CoopertoMenuCard({ onClick }: { onClick?: () => void }) {
+function VenueModeCard({
+  activeGames,
+  activeCouponsCount,
+  reservation,
+  onOpenMenu,
+}: {
+  activeGames: { buzzer: boolean; matchDrink: boolean };
+  activeCouponsCount: number;
+  reservation: UpcomingReservation | null;
+  onOpenMenu?: () => void;
+}) {
+  const liveStatus = activeGames.buzzer && activeGames.matchDrink
+    ? "Quiz e Match & Drink sono live."
+    : activeGames.buzzer
+      ? "Il Tortuga Music Quiz e attivo."
+      : activeGames.matchDrink
+        ? "Match & Drink e attivo."
+        : "La serata e pronta a muoversi.";
+
   return (
-    <div className="panel parchment-texture rounded-[2rem] p-5">
-      <div className="space-y-2">
-        <p className="eyebrow">PIATTI DELLA CAMBUSA</p>
+    <div className="panel rounded-[2rem] border-[var(--accent-strong)]/30 bg-[var(--accent-soft)]/8 p-5">
+      <div className="space-y-3">
+        <p className="eyebrow">Modalita nel locale</p>
+        <h2 className="text-3xl font-black uppercase tracking-tight text-white">
+          Sei al Tortuga adesso.
+        </h2>
+        <p className="text-sm leading-6 text-[var(--text-muted)]">
+          Accessi rapidi grandi, promo attive e stato serata in un unico ponte di comando.
+        </p>
       </div>
 
-      <a
-        href={tortugaInfoConfig.menuUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="button-primary mt-5 flex min-h-14 w-full items-center justify-center px-5 text-sm"
-        onClick={() => {
-          triggerHaptic();
-          onClick?.();
-        }}
-      >
-        PIATTI DELLA CAMBUSA
-      </a>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="panel-muted rounded-[1.35rem] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+            Stato serata
+          </p>
+          <p className="mt-2 text-sm font-semibold text-white">{liveStatus}</p>
+        </div>
+        <div className="panel-muted rounded-[1.35rem] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+            Promo attive
+          </p>
+          <p className="mt-2 text-sm font-semibold text-white">
+            {activeCouponsCount > 0
+              ? `${activeCouponsCount} coupon pronti`
+              : "Nessun coupon attivo al momento"}
+          </p>
+        </div>
+        <div className="panel-muted rounded-[1.35rem] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+            Tua rotta
+          </p>
+          <p className="mt-2 text-sm font-semibold text-white">
+            {reservation
+              ? `${formatRouteTime(reservation.dateTime)} · ${reservation.stateLabel}`
+              : "Nessuna prenotazione agganciata"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <a
+          href={tortugaInfoConfig.menuUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="button-primary flex min-h-16 items-center justify-center px-5 text-sm"
+          onClick={() => {
+            triggerHaptic();
+            onOpenMenu?.();
+          }}
+        >
+          Apri menu del locale
+        </a>
+        <Link
+          href="/ciurma#coupon"
+          className="button-secondary flex min-h-16 items-center justify-center px-5 text-sm"
+          onClick={() => triggerHaptic()}
+        >
+          Vedi promo e coupon
+        </Link>
+        <Link
+          href="/game/buzzer"
+          className="button-secondary flex min-h-16 items-center justify-center px-5 text-sm"
+          onClick={() => triggerHaptic()}
+        >
+          Tortuga Music Quiz
+        </Link>
+        <Link
+          href="/ciurma#match-drink"
+          className="button-secondary flex min-h-16 items-center justify-center px-5 text-sm"
+          onClick={() => triggerHaptic()}
+        >
+          Apri Match & Drink
+        </Link>
+        <Link
+          href="/game/sfida-capitano"
+          className="button-secondary flex min-h-16 items-center justify-center px-5 text-sm"
+          onClick={() => triggerHaptic()}
+        >
+          Sfida il Capitano
+        </Link>
+        <Link
+          href="/ciurma#fidelity"
+          className="button-secondary flex min-h-16 items-center justify-center px-5 text-sm"
+          onClick={() => triggerHaptic()}
+        >
+          Punti e fidelity
+        </Link>
+      </div>
     </div>
   );
 }
@@ -531,6 +628,31 @@ export function HomeScreen() {
     primaryReservation,
   ]);
 
+  useEffect(() => {
+    if (!hasMenuAccess || loading) {
+      return;
+    }
+
+    trackAppEvent("live_mode_view", {
+      app_section: "home",
+      has_live_buzzer: activeGames.buzzer,
+      has_live_match_drink: activeGames.matchDrink,
+      active_coupon_count: activeCoupons.length,
+      has_reservation: Boolean(primaryReservation),
+    });
+  }, [
+    activeCoupons.length,
+    activeGames.buzzer,
+    activeGames.matchDrink,
+    hasMenuAccess,
+    loading,
+    primaryReservation,
+  ]);
+
+  const showHeroCard = !hasMenuAccess && !primaryReservation;
+  const showReservationCard = !hasMenuAccess;
+  const showCouponCard = hasMenuAccess || !primaryReservation;
+
   return (
     <section className="space-y-5">
       {loading ? (
@@ -551,23 +673,34 @@ export function HomeScreen() {
 
       {!loading ? (
         <>
-          <SmartHeroCard
-            hasMenuAccess={hasMenuAccess}
-            reservation={primaryReservation}
-            activeCouponsCount={activeCoupons.length}
-            activeGames={activeGames}
-          />
+          {hasMenuAccess ? (
+            <VenueModeCard
+              activeGames={activeGames}
+              activeCouponsCount={activeCoupons.length}
+              reservation={primaryReservation}
+              onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)}
+            />
+          ) : showHeroCard ? (
+            <SmartHeroCard
+              hasMenuAccess={false}
+              reservation={primaryReservation}
+              activeCouponsCount={activeCoupons.length}
+              activeGames={activeGames}
+            />
+          ) : null}
           <SurveyTeaserCard />
           <KantaquizTeaser />
-          <BuzzerTeaser />
-          <MatchDrinkTeaser />
-          <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
-            {hasMenuAccess ? (
-              <CoopertoMenuCard onClick={() => void registerVisit(profile?.contact?.CodiceContatto)} />
-            ) : (
+          {!hasMenuAccess ? (
+            <>
+              <BuzzerTeaser />
+              <MatchDrinkTeaser />
+            </>
+          ) : null}
+          {showReservationCard ? (
+            <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
               <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
-            )}
-          </div>
+            </div>
+          ) : null}
 
           <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
             <CaptainChallengeTeaser />
@@ -592,13 +725,15 @@ export function HomeScreen() {
             </div>
           </div>
 
-          <div id="coupon" className="hash-scroll-target rounded-[2rem]">
-            <ActiveCouponsCard
-              coupons={activeCoupons}
-              description=""
-              emptyMessage="Nessun coupon attivo da spendere per ora."
-            />
-          </div>
+          {showCouponCard ? (
+            <div id="coupon" className="hash-scroll-target rounded-[2rem]">
+              <ActiveCouponsCard
+                coupons={activeCoupons}
+                description=""
+                emptyMessage="Nessun coupon attivo da spendere per ora."
+              />
+            </div>
+          ) : null}
         </>
       ) : null}
 
