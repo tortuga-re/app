@@ -156,11 +156,7 @@ export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
 export const broadcastMatchDrinkUpdate = async (sessionId: string, event: string, payload: any = {}) => {
   try {
     const admin = getSupabaseAdmin();
-    await admin.channel(`match-drink-${sessionId}`).send({
-      type: "broadcast",
-      event,
-      payload,
-    });
+    await admin.channel(`match-drink-${sessionId}`).httpSend(event, payload);
   } catch (e) {
     console.error("MatchDrink Broadcast error:", e);
   }
