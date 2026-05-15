@@ -285,11 +285,7 @@ const createLiveTvItem = (
 const broadcastState = async (state: LiveTvState) => {
   try {
     const admin = getSupabaseAdmin();
-    await admin.channel(LIVE_TV_CHANNEL).send({
-      type: "broadcast",
-      event: "state_update",
-      payload: state,
-    });
+    await admin.channel(LIVE_TV_CHANNEL).httpSend("state_update", state);
   } catch (error) {
     console.error("Live TV broadcast error:", error);
   }

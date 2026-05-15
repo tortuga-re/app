@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { saveLiveTvCustomerSubmission } from "@/lib/live-tv/customer-submissions";
 import { saveLiveTvMediaFile } from "@/lib/live-tv/media-storage";
 import type { LiveTvCustomerSubmission } from "@/lib/live-tv/types";
-import { normalizeCustomerEmail } from "@/lib/customer-identity";
+import {
+  isValidProfileEmail as isValidCustomerEmail,
+  normalizeProfileEmail as normalizeCustomerEmail,
+} from "@/lib/profile/validation";
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (uploaderEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(uploaderEmail)) {
+    if (uploaderEmail && !isValidCustomerEmail(uploaderEmail)) {
       return NextResponse.json(
         { error: "Email non valida." },
         { status: 400 },

@@ -89,6 +89,24 @@ function OverlayBanner({ overlay }: { overlay: LiveTvOverlay }) {
   );
 }
 
+function StageBackdrop() {
+  return (
+    <>
+      <div className="absolute inset-0 bg-[#0a0a0a]" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/nautical-map.png"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover opacity-50 mix-blend-screen"
+      />
+      <div className="absolute inset-x-0 top-20 h-32 bg-[linear-gradient(180deg,rgba(216,176,106,0.06),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(181,138,77,0.18),transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_100%,rgba(181,138,77,0.08),transparent_48%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.65))]" />
+    </>
+  );
+}
+
 function StageShell({
   children,
   title,
@@ -103,9 +121,7 @@ function StageShell({
   return (
     <main className="relative flex h-screen flex-col overflow-hidden bg-black text-white select-none">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(181,138,77,0.18),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_100%,rgba(181,138,77,0.08),transparent_48%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.65))]" />
+        <StageBackdrop />
       </div>
 
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden px-8 py-10 md:px-16 md:py-12">
@@ -216,9 +232,7 @@ function LogoScreen({ overlay, scale = 1 }: { overlay?: LiveTvOverlay | null; sc
   return (
     <main className="relative flex h-screen flex-col overflow-hidden bg-black text-white select-none">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(181,138,77,0.18),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_100%,rgba(181,138,77,0.08),transparent_48%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.65))]" />
+        <StageBackdrop />
       </div>
       <div
         className="relative z-10 flex h-full items-center justify-center px-8 py-10 md:px-16 md:py-12"

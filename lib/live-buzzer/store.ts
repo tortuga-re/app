@@ -65,11 +65,7 @@ async function writeState(state: BuzzerState): Promise<void> {
       .upsert({ id: 1, state, updated_at: new Date().toISOString() });
 
     // 2. Broadcast Realtime per reattività istantanea
-    await admin.channel("live-buzzer").send({
-      type: "broadcast",
-      event: "state_update",
-      payload: state,
-    });
+    await admin.channel("live-buzzer").httpSend("state_update", state);
   } catch (e) {
     console.error("BuzzerStore write error:", e);
   }
