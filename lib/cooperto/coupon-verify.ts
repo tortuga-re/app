@@ -2,32 +2,47 @@ import "server-only";
 
 import { coopertoConfig } from "@/lib/config";
 
-const coopertoFetchRaw = async <T>(
+const coopertoGet = async <T>(
   path: string,
-  init?: RequestInit & { query?: Record<string, string | number | undefined> },
-): Promise<T> => {
+  query: Record<string, string>,
+): Promise<T | null> => {
   const url = new URL(path, coopertoConfig.apiBaseUrl);
-  if (init?.query) {
-    for (const [key, value] of Object.entries(init.query)) {
-      if (value !== undefined && value !== "") {
-        url.searchParams.set(key, String(value));
-      }
-    }
+  for (const [k, v] of Object.entries(query)) {
+    if (v) url.searchParams.set(k, v);
   }
 
   const response = await fetch(url.toString(), {
-    ...init,
+    headers: { Authorization: `Bearer ${coopertoConfig.apiKey}` },
+    cache: "no-store",
+  });
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(body || `Cooperto ${response.status} su ${path}`);
+  }
+
+  const text = await response.text();
+  return text ? (JSON.parse(text) as T) : null;
+};
+
+const coopertoPost = async <T>(path: string, body: unknown): Promise<T> => {
+  const url = new URL(path, coopertoConfig.apiBaseUrl);
+
+  const response = await fetch(url.toString(), {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${coopertoConfig.apiKey}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify(body),
     cache: "no-store",
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(body || `Cooperto ${response.status}`);
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Cooperto ${response.status} su ${path}`);
   }
 
   const text = await response.text();
@@ -35,10 +50,10 @@ const coopertoFetchRaw = async <T>(
 };
 
 export type CouponVerifyResult =
-  | { status: "valid"; coupon: CoopertoRawCoupon; contactName: string | null }
-  | { status: "already_used"; usedAt: string | null }
-  | { status: "expired"; expiredAt: string | null }
-  | { status: "not_found" }
+  | { status: "valid"; couponName: string | null; contactName: string | null; couponCode: string }
+  | { status: "already_used"; usedAt: string | null; couponCode: string }
+  | { status: "expired"; expiredAt: string | null; couponCode: string }
+  | { status: "not_found"; couponCode: string }
   | { status: "error"; message: string };
 
 export interface CoopertoRawCoupon {
@@ -53,52 +68,91 @@ export interface CoopertoRawCoupon {
   CognomeContatto?: string;
   NomeCoupon?: string;
   DescrizioneCoupon?: string;
+  Descrizione?: string;
+  Nome?: string;
 }
 
 /**
- * Verifica un coupon tramite il suo CodiceCouponContatto (dal QR) e lo marca come utilizzato.
+ * Estrae il CodiceCouponContatto dal testo scansionato.
+ * Gestisce sia codici puri che URL contenenti il codice come query param o path segment.
+ */
+const extractCouponCode = (scanned: string): string => {
+  const trimmed = scanned.trim();
+
+  // Prova a interpretarlo come URL
+  try {
+    const url = new URL(trimmed);
+    // Cerca nei query params: ?codiceCouponContatto=... o ?codice=... o ?code=...
+    for (const key of ["codiceCouponContatto", "codice", "code", "coupon", "c"]) {
+      const val = url.searchParams.get(key);
+      if (val?.trim()) return val.trim();
+    }
+    // Ultimo segmento del path
+    const segments = url.pathname.split("/").filter(Boolean);
+    const last = segments[segments.length - 1];
+    if (last && last.length > 4) return last;
+  } catch {
+    // Non è un URL, usa il testo as-is
+  }
+
+  return trimmed;
+};
+
+/**
+ * Verifica un coupon e lo marca come utilizzato se valido.
  */
 export const verifyAndUseCoupon = async (
-  codiceCouponContatto: string,
+  rawCode: string,
 ): Promise<CouponVerifyResult> => {
+  const code = extractCouponCode(rawCode);
+
+  if (!code) {
+    return { status: "not_found", couponCode: rawCode };
+  }
+
   try {
-    // Recupera il dettaglio del coupon
-    const coupon = await coopertoFetchRaw<CoopertoRawCoupon>(
+    // Recupera dettaglio coupon
+    const coupon = await coopertoGet<CoopertoRawCoupon>(
       "/api/Contatti/DettaglioCouponContatto",
-      { query: { codiceCouponContatto } },
-    ).catch(() => null);
+      { codiceCouponContatto: code },
+    );
 
     if (!coupon) {
-      return { status: "not_found" };
+      return { status: "not_found", couponCode: code };
     }
 
     // Già utilizzato
     if (coupon.Utilizzato || coupon.DataUtilizzo) {
-      return { status: "already_used", usedAt: coupon.DataUtilizzo ?? null };
+      return { status: "already_used", usedAt: coupon.DataUtilizzo ?? null, couponCode: code };
     }
 
     // Scaduto
     if (coupon.DataScadenza) {
       const exp = Date.parse(coupon.DataScadenza);
       if (!Number.isNaN(exp) && exp < Date.now()) {
-        return { status: "expired", expiredAt: coupon.DataScadenza };
+        return { status: "expired", expiredAt: coupon.DataScadenza, couponCode: code };
       }
     }
 
     // Marca come utilizzato
-    await coopertoFetchRaw<unknown>("/api/Contatti/UsaCoupon", {
-      method: "POST",
-      body: JSON.stringify({ codiceCouponContatto }),
+    await coopertoPost<unknown>("/api/Contatti/UsaCoupon", {
+      codiceCouponContatto: code,
     });
 
-    const contactName =
-      [coupon.NomeContatto, coupon.CognomeContatto].filter(Boolean).join(" ") || null;
+    const couponName =
+      coupon.NomeCoupon ??
+      coupon.DescrizioneCoupon ??
+      coupon.Descrizione ??
+      coupon.Nome ??
+      null;
 
-    return { status: "valid", coupon, contactName };
+    const contactName =
+      [coupon.NomeContatto, coupon.CognomeContatto].filter(Boolean).join(" ").trim() || null;
+
+    return { status: "valid", coupon: coupon as CoopertoRawCoupon, contactName, couponCode: code } as CouponVerifyResult & { coupon: CoopertoRawCoupon };
   } catch (error) {
-    return {
-      status: "error",
-      message: error instanceof Error ? error.message : "Errore verifica coupon.",
-    };
+    const message = error instanceof Error ? error.message : "Errore verifica coupon.";
+    console.error("[verifyAndUseCoupon] Errore:", { code, message });
+    return { status: "error", message };
   }
 };
