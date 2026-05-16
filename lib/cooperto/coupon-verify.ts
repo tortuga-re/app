@@ -83,7 +83,7 @@ const extractCouponCode = (scanned: string): string => {
   try {
     const url = new URL(trimmed);
     // Cerca nei query params: ?codiceCouponContatto=... o ?codice=... o ?code=...
-    for (const key of ["codiceCouponContatto", "codice", "code", "coupon", "c"]) {
+    for (const key of ["codiceCouponContatto", "codice", "code", "coupon", "c", "g"]) {
       const val = url.searchParams.get(key);
       if (val?.trim()) return val.trim();
     }
