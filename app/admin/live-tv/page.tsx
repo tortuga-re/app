@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
@@ -8,12 +7,10 @@ import { LIVE_TV_PRESETS } from "@/lib/live-tv/default-playlists";
 import {
   LIVE_TV_ITEM_TYPES,
   type LiveTvCustomerSubmission,
-  LIVE_TV_OVERLAY_VARIANTS,
   LIVE_TV_STYLE_VARIANTS,
   STAGE_MODE_VALUES,
   type LiveTvItem,
   type LiveTvMediaAsset,
-  type LiveTvOverlayVariant,
   type LiveTvPresetId,
   type LiveTvScheduleEntry,
   type LiveTvState,
@@ -93,7 +90,6 @@ const itemTypeLabels: Record<(typeof LIVE_TV_ITEM_TYPES)[number], string> = {
 const createEmptyDraft = (): LiveTvUpsertItemInput => ({
   type: "message",
   title: "",
-  subtitle: "",
   body: "",
   mediaUrl: "",
   qrUrl: "",
@@ -195,16 +191,6 @@ function ItemFields({
         />
       </label>
 
-      <label className="space-y-2 md:col-span-2">
-        <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-          Sottotitolo
-        </span>
-        <input
-          value={value.subtitle || ""}
-          onChange={(event) => onChange({ ...value, subtitle: event.target.value })}
-          className="field"
-        />
-      </label>
 
       <label className="space-y-2 md:col-span-2">
         <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
@@ -333,7 +319,6 @@ function PlaylistItemEditor({
   const [draft, setDraft] = useState<LiveTvUpsertItemInput>({
     type: item.type,
     title: item.title,
-    subtitle: item.subtitle,
     body: item.body,
     mediaUrl: item.mediaUrl,
     qrUrl: item.qrUrl,
@@ -343,55 +328,84 @@ function PlaylistItemEditor({
     order: item.order,
     styleVariant: item.styleVariant || "default",
   });
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="panel space-y-4 rounded-[1.8rem] p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="eyebrow">
-            #{item.order + 1} • {itemTypeLabels[item.type]}
-          </p>
-          <h3 className="text-lg font-black text-white">
-            {item.title || "Elemento senza titolo"}
-          </h3>
+    <div className="panel rounded-[1.8rem] p-0 overflow-hidden">
+      {/* Header — always visible, clickable to expand/collapse */}
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 p-5 text-left"
+        onClick={() => setExpanded((prev) => !prev)}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${
+              item.enabled
+                ? "bg-green-500/20 text-green-300"
+                : "bg-white/10 text-[var(--text-muted)]"
+            }`}
+          >
+            {item.enabled ? "Attivo" : "Disattivo"}
+          </span>
+          <div className="min-w-0">
+            <p className="eyebrow text-left">
+              #{item.order + 1} &bull; {itemTypeLabels[item.type]}
+            </p>
+            <h3 className="truncate text-base font-black text-white text-left">
+              {item.title || "Elemento senza titolo"}
+            </h3>
+          </div>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${
-            item.enabled
-              ? "bg-green-500/20 text-green-300"
-              : "bg-white/10 text-[var(--text-muted)]"
-          }`}
-        >
-          {item.enabled ? "Attivo" : "Disattivo"}
-        </span>
-      </div>
-
-      <ItemFields value={draft} onChange={setDraft} busy={busy} />
-
-      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-        <button className="button-primary text-xs" onClick={() => void onSave(item.id, draft)} disabled={busy}>
-          Salva
-        </button>
-        <button className="button-secondary text-xs" onClick={() => void onToggle(item)} disabled={busy}>
-          {item.enabled ? "Disattiva" : "Attiva"}
-        </button>
-        <button className="button-secondary text-xs" onClick={() => void onMoveUp(item.id)} disabled={busy}>
-          Su
-        </button>
-        <button className="button-secondary text-xs" onClick={() => void onMoveDown(item.id)} disabled={busy}>
-          Giu
-        </button>
-        <button className="button-secondary text-xs" onClick={() => void onSendNow(item)} disabled={busy}>
-          In onda ora
-        </button>
-        <button className="button-secondary text-xs" onClick={() => void onDuplicate(item)} disabled={busy}>
-          Duplica
-        </button>
-      </div>
-
-      <button className="button-secondary w-full border-[var(--danger-soft)] text-[var(--danger)] text-xs" onClick={() => void onDelete(item.id)} disabled={busy}>
-        Elimina elemento
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            className="button-secondary text-xs px-3 py-1"
+            onClick={(e) => { e.stopPropagation(); void onToggle(item); }}
+            disabled={busy}
+          >
+            {item.enabled ? "Disattiva" : "Attiva"}
+          </button>
+          <button
+            type="button"
+            className="button-secondary text-xs px-3 py-1"
+            onClick={(e) => { e.stopPropagation(); void onMoveUp(item.id); }}
+            disabled={busy}
+          >
+            &#8593;
+          </button>
+          <button
+            type="button"
+            className="button-secondary text-xs px-3 py-1"
+            onClick={(e) => { e.stopPropagation(); void onMoveDown(item.id); }}
+            disabled={busy}
+          >
+            &#8595;
+          </button>
+          <span className="text-[var(--text-muted)] text-sm">{expanded ? "▲" : "▼"}</span>
+        </div>
       </button>
+
+      {/* Expanded content */}
+      {expanded && (
+        <div className="space-y-4 border-t border-white/10 p-5 pt-4">
+          <ItemFields value={draft} onChange={setDraft} busy={busy} />
+          <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4">
+            <button className="button-primary text-xs" onClick={() => void onSave(item.id, draft)} disabled={busy}>
+              Salva
+            </button>
+            <button className="button-secondary text-xs" onClick={() => void onSendNow(item)} disabled={busy}>
+              In onda ora
+            </button>
+            <button className="button-secondary text-xs" onClick={() => void onDuplicate(item)} disabled={busy}>
+              Duplica
+            </button>
+            <button className="button-secondary w-full border-[var(--danger-soft)] text-[var(--danger)] text-xs" onClick={() => void onDelete(item.id)} disabled={busy}>
+              Elimina
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -404,7 +418,6 @@ export default function AdminLiveTvPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [addDraft, setAddDraft] = useState<LiveTvUpsertItemInput>(createEmptyDraft());
   const [sendNowDraft, setSendNowDraft] = useState<LiveTvUpsertItemInput>({
     ...createEmptyDraft(),
     type: "message",
@@ -412,10 +425,9 @@ export default function AdminLiveTvPage() {
     durationSeconds: 10,
   });
   const [sendNowAlsoAdd, setSendNowAlsoAdd] = useState(false);
-  const [overlayMessage, setOverlayMessage] = useState("");
-  const [overlayVariant, setOverlayVariant] = useState<LiveTvOverlayVariant>("captain");
   const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(false);
   const [scheduleDraft, setScheduleDraft] = useState<LiveTvScheduleEntry[]>([]);
+  const [presetActionId, setPresetActionId] = useState<LiveTvPresetId | null>(null);
 
   const orderedItems = useMemo(
     () => [...(state?.playlist || [])].sort((a, b) => a.order - b.order),
@@ -469,8 +481,6 @@ export default function AdminLiveTvPage() {
     setState(nextState);
     setAutoScheduleEnabled(Boolean(nextState.autoScheduleEnabled));
     setScheduleDraft(nextState.schedule ?? []);
-    setOverlayMessage(nextState.overlay?.message || "");
-    setOverlayVariant((nextState.overlay?.variant as LiveTvOverlayVariant) || "captain");
     setError("");
   }, []);
 
@@ -528,8 +538,6 @@ export default function AdminLiveTvPage() {
           setState(nextState);
           setAutoScheduleEnabled(Boolean(nextState.autoScheduleEnabled));
           setScheduleDraft(nextState.schedule ?? []);
-          setOverlayMessage(nextState.overlay?.message || "");
-          setOverlayVariant((nextState.overlay?.variant as LiveTvOverlayVariant) || "captain");
           setError("");
           setLoading(false);
         });
@@ -836,28 +844,8 @@ export default function AdminLiveTvPage() {
                 </div>
               </div>
             </div>
-
-            <div className="panel rounded-[1.8rem] p-5">
-              <p className="eyebrow">Accessi rapidi</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <Link href="/admin/buzzer" className="button-secondary text-center text-xs">
-                  Apri Buzzer
-                </Link>
-                <Link href="/admin/match-drink" className="button-secondary text-center text-xs">
-                  Apri Match & Drink
-                </Link>
-                <Link href="/admin/scontrini" className="button-secondary text-center text-xs">
-                  Apri Scontrini
-                </Link>
-                <Link href="/admin/push" className="button-secondary text-center text-xs">
-                  Apri Push
-                </Link>
-              </div>
-              <div className="mt-4 rounded-[1.35rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-[var(--text-muted)]">
-                La plancia Live TV ora funge anche da cabina di regia della serata: stato palco, media, palinsesto e collegamenti rapidi alle altre console.
-              </div>
-            </div>
           </div>
+
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="panel rounded-[1.8rem] p-5">
@@ -1055,122 +1043,83 @@ export default function AdminLiveTvPage() {
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {LIVE_TV_PRESETS.map((preset) => (
-                <button
+                <div
                   key={preset.id}
-                  className={preset.id === state.activePresetId ? "panel rounded-[1.4rem] border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 p-4 text-left" : "panel rounded-[1.4rem] p-4 text-left"}
-                  onClick={() => void runAction("/api/live-tv/admin/set-active-preset", { presetId: preset.id })}
-                  disabled={busy}
+                  className={preset.id === state.activePresetId ? "panel rounded-[1.4rem] border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 p-4" : "panel rounded-[1.4rem] p-4"}
                 >
                   <p className="text-sm font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
                     {preset.label}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                  <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
                     {preset.description}
                   </p>
-                </button>
+                  {presetActionId === preset.id ? (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <button
+                        className="button-primary text-xs"
+                        onClick={() => { void runAction("/api/live-tv/admin/set-active-preset", { presetId: preset.id }); setPresetActionId(null); }}
+                        disabled={busy}
+                      >
+                        Carica preset
+                      </button>
+                      <button
+                        className="button-secondary text-xs"
+                        onClick={() => { void runAction("/api/live-tv/admin/save-preset", { presetId: preset.id }); setPresetActionId(null); }}
+                        disabled={busy || !orderedItems.length}
+                        title={!orderedItems.length ? "Scaletta vuota" : "Salva scaletta corrente in questo preset"}
+                      >
+                        Salva scaletta
+                      </button>
+                      <button
+                        className="button-secondary col-span-2 text-xs text-[var(--text-muted)]"
+                        onClick={() => setPresetActionId(null)}
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="button-secondary mt-3 w-full text-xs"
+                      onClick={() => setPresetActionId(preset.id)}
+                      disabled={busy}
+                    >
+                      Seleziona
+                    </button>
+                  )}
+                </div>
               ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="panel rounded-[1.8rem] p-5 space-y-4">
-              <div>
-                <p className="eyebrow">Manda in onda ora</p>
-                <h3 className="text-lg font-black text-white">Override immediato</h3>
-              </div>
-              <ItemFields value={sendNowDraft} onChange={setSendNowDraft} busy={busy} />
-              <label className="flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-                <input type="checkbox" checked={sendNowAlsoAdd} onChange={(event) => setSendNowAlsoAdd(event.target.checked)} />
-                <span className="text-sm font-bold text-white">Aggiungi anche alla scaletta</span>
-              </label>
-              <div className="grid gap-2 md:grid-cols-2">
-                <button
-                  className="button-primary text-xs"
-                  onClick={() =>
-                    void runAction("/api/live-tv/admin/send-now", {
-                      ...sendNowDraft,
-                      addToPlaylist: sendNowAlsoAdd,
-                    })
-                  }
-                  disabled={busy}
-                >
-                  Manda in onda ora
-                </button>
-                <button className="button-secondary text-xs" onClick={() => void runAction("/api/live-tv/admin/clear-now")} disabled={busy}>
-                  Riprendi rotazione
-                </button>
-              </div>
-            </div>
-
-            <div className="panel rounded-[1.8rem] p-5 space-y-4">
-              <div>
-                <p className="eyebrow">Overlay live</p>
-                <h3 className="text-lg font-black text-white">Messaggio sopra la TV</h3>
-              </div>
-              <label className="space-y-2 block">
-                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                  Messaggio
-                </span>
-                <textarea
-                  value={overlayMessage}
-                  onChange={(event) => setOverlayMessage(event.target.value)}
-                  rows={4}
-                  className="field min-h-28"
-                />
-              </label>
-              <label className="space-y-2 block">
-                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                  Variante
-                </span>
-                <select
-                  value={overlayVariant}
-                  onChange={(event) => setOverlayVariant(event.target.value as LiveTvOverlayVariant)}
-                  className="field"
-                >
-                  {LIVE_TV_OVERLAY_VARIANTS.map((variant) => (
-                    <option key={variant} value={variant}>
-                      {variant}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="grid gap-2 md:grid-cols-2">
-                <button
-                  className="button-primary text-xs"
-                  onClick={() =>
-                    void runAction("/api/live-tv/admin/set-overlay", {
-                      message: overlayMessage,
-                      variant: overlayVariant,
-                    })
-                  }
-                  disabled={busy || !overlayMessage.trim()}
-                >
-                  Mostra overlay
-                </button>
-                <button className="button-secondary text-xs" onClick={() => void runAction("/api/live-tv/admin/clear-overlay")} disabled={busy}>
-                  Rimuovi overlay
-                </button>
-              </div>
             </div>
           </div>
 
           <div className="panel rounded-[1.8rem] p-5 space-y-4">
             <div>
-              <p className="eyebrow">Aggiungi item</p>
-              <h3 className="text-lg font-black text-white">Nuovo blocco Live TV</h3>
+              <p className="eyebrow">Manda in onda ora</p>
+              <h3 className="text-lg font-black text-white">Override immediato</h3>
             </div>
-            <ItemFields value={addDraft} onChange={setAddDraft} busy={busy} />
-            <button
-              className="button-primary text-xs"
-              onClick={async () => {
-                await runAction("/api/live-tv/admin/add-item", addDraft);
-                setAddDraft(createEmptyDraft());
-              }}
-              disabled={busy}
-            >
-              Aggiungi alla scaletta
-            </button>
+            <ItemFields value={sendNowDraft} onChange={setSendNowDraft} busy={busy} />
+            <label className="flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              <input type="checkbox" checked={sendNowAlsoAdd} onChange={(event) => setSendNowAlsoAdd(event.target.checked)} />
+              <span className="text-sm font-bold text-white">Aggiungi anche alla scaletta</span>
+            </label>
+            <div className="grid gap-2 md:grid-cols-2">
+              <button
+                className="button-primary text-xs"
+                onClick={() =>
+                  void runAction("/api/live-tv/admin/send-now", {
+                    ...sendNowDraft,
+                    addToPlaylist: sendNowAlsoAdd,
+                  })
+                }
+                disabled={busy}
+              >
+                Manda in onda ora
+              </button>
+              <button className="button-secondary text-xs" onClick={() => void runAction("/api/live-tv/admin/clear-now")} disabled={busy}>
+                Riprendi rotazione
+              </button>
+            </div>
           </div>
+
 
           <div className="panel rounded-[1.8rem] p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1310,7 +1259,7 @@ export default function AdminLiveTvPage() {
                     type="button"
                     className="block w-full text-left"
                     onClick={() =>
-                      setAddDraft((current) => ({
+                      setSendNowDraft((current) => ({
                         ...current,
                         type: asset.kind,
                         mediaUrl: asset.mediaUrl,
@@ -1336,7 +1285,7 @@ export default function AdminLiveTvPage() {
                       type="button"
                       className="button-secondary text-[11px]"
                       onClick={() =>
-                        setAddDraft((current) => ({
+                        setSendNowDraft((current) => ({
                           ...current,
                           type: asset.kind,
                           mediaUrl: asset.mediaUrl,
@@ -1345,7 +1294,7 @@ export default function AdminLiveTvPage() {
                       }
                       disabled={busy}
                     >
-                      Usa nel draft
+                      Usa in Manda in onda
                     </button>
                     <button
                       type="button"
@@ -1386,7 +1335,6 @@ export default function AdminLiveTvPage() {
                   runAction("/api/live-tv/admin/send-now", {
                     type: current.type,
                     title: current.title,
-                    subtitle: current.subtitle,
                     body: current.body,
                     mediaUrl: current.mediaUrl,
                     qrUrl: current.qrUrl,
@@ -1401,7 +1349,6 @@ export default function AdminLiveTvPage() {
                   runAction("/api/live-tv/admin/add-item", {
                     type: current.type,
                     title: current.title,
-                    subtitle: current.subtitle,
                     body: current.body,
                     mediaUrl: current.mediaUrl,
                     qrUrl: current.qrUrl,
