@@ -119,7 +119,7 @@ function StageShell({
   scale?: number;
 }) {
   return (
-    <main className="relative flex h-screen flex-col overflow-hidden bg-black text-white select-none">
+    <main className="relative flex h-[100dvh] flex-col overflow-hidden bg-black text-white select-none">
       <div className="absolute inset-0 overflow-hidden">
         <StageBackdrop />
       </div>
@@ -230,7 +230,7 @@ function RotateOverlay() {
 
 function LogoScreen({ overlay, scale = 1 }: { overlay?: LiveTvOverlay | null; scale?: number }) {
   return (
-    <main className="relative flex h-screen flex-col overflow-hidden bg-black text-white select-none">
+    <main className="relative flex h-[100dvh] flex-col overflow-hidden bg-black text-white select-none">
       <div className="absolute inset-0 overflow-hidden">
         <StageBackdrop />
       </div>
@@ -254,7 +254,7 @@ function LogoScreen({ overlay, scale = 1 }: { overlay?: LiveTvOverlay | null; sc
 }
 
 function BlackoutScreen() {
-  return <main className="h-screen w-screen bg-black" />;
+  return <main className="h-[100dvh] w-screen bg-black" />;
 }
 
 function MediaStageItem({
@@ -496,7 +496,7 @@ export function LiveTvStageController() {
 
       const widthScale = window.innerWidth / 1600;
       const heightScale = window.innerHeight / 900;
-      const nextScale = Math.min(1, Math.max(0.72, Math.min(widthScale, heightScale)));
+      const nextScale = Math.min(1, Math.min(widthScale, heightScale));
       setScale(nextScale);
       setIsPortraitMobile(
         window.matchMedia("(max-width: 767px) and (orientation: portrait)").matches,

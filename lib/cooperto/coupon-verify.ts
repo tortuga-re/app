@@ -113,7 +113,7 @@ export const verifyAndUseCoupon = async (
   try {
     // Recupera dettaglio coupon
     const coupon = await coopertoGet<CoopertoRawCoupon>(
-      "/api/Contatti/DettaglioCouponContatto",
+      "/api/Contatti/VerificaCouponContatto",
       { codiceCouponContatto: code },
     );
 
@@ -135,8 +135,9 @@ export const verifyAndUseCoupon = async (
     }
 
     // Marca come utilizzato
-    await coopertoPost<unknown>("/api/Contatti/UsaCoupon", {
-      codiceCouponContatto: code,
+    await coopertoPost<unknown>("/api/Contatti/UtilizzaCouponContatto", {
+      CodiceCouponContatto: code,
+      CodiceSede: coopertoConfig.sedeCode,
     });
 
     const couponName =
