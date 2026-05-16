@@ -496,7 +496,7 @@ export function LiveTvStageController() {
 
       const widthScale = window.innerWidth / 1600;
       const heightScale = window.innerHeight / 900;
-      const nextScale = Math.min(1, Math.max(0.72, Math.min(widthScale, heightScale)));
+      const nextScale = Math.min(1, Math.min(widthScale, heightScale));
       setScale(nextScale);
       setIsPortraitMobile(
         window.matchMedia("(max-width: 767px) and (orientation: portrait)").matches,
