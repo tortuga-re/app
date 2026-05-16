@@ -56,7 +56,6 @@ export type LiveTvItem = {
   id: string;
   type: LiveTvItemType;
   title?: string;
-  subtitle?: string;
   body?: string;
   mediaUrl?: string;
   qrUrl?: string;
@@ -156,7 +155,6 @@ export type LiveTvPresetDefinition = {
 export type LiveTvUpsertItemInput = {
   type: LiveTvItemType;
   title?: string;
-  subtitle?: string;
   body?: string;
   mediaUrl?: string;
   qrUrl?: string;

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 
@@ -400,11 +400,6 @@ function RenderLiveTvItem({
           <p className="max-w-[88vw] text-[clamp(1.8rem,3.2vw,4.6rem)] font-black uppercase leading-[1.02] text-white italic">
             “{item.body || "Serata potente, tavolo caldo, ciurma soddisfatta."}”
           </p>
-          {item.subtitle ? (
-            <p className="text-[clamp(1.1rem,1.7vw,2rem)] font-black uppercase tracking-[0.22em] text-white/65">
-              {item.subtitle}
-            </p>
-          ) : null}
         </div>
       </StageShell>
     );

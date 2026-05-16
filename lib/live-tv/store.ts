@@ -269,7 +269,6 @@ const createLiveTvItem = (
   id: randomUUID(),
   type: input.type,
   title: input.title,
-  subtitle: input.subtitle,
   body: input.body,
   mediaUrl: input.mediaUrl,
   qrUrl: input.qrUrl,
@@ -369,14 +368,55 @@ export const setStageMode = async (stageMode: StageMode) =>
     };
   });
 
+export const savePresetOverride = async (presetId: LiveTvPresetId) => {
+  const state = await getLiveTvState();
+  const items = state.playlist;
+
+  try {
+    const admin = getSupabaseAdmin();
+    await admin
+      .from("live_tv_preset_overrides")
+      .upsert({ preset_id: presetId, items: JSON.stringify(items), updated_at: nowIso() });
+  } catch (error) {
+    console.error("Live TV preset override save error:", error);
+    throw new Error("Impossibile salvare l'override del preset.");
+  }
+};
+
+const getPresetOverride = async (presetId: LiveTvPresetId): Promise<LiveTvItem[] | null> => {
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = (await admin
+      .from("live_tv_preset_overrides")
+      .select("items")
+      .eq("preset_id", presetId)
+      .single()) as {
+      data: { items?: string | LiveTvItem[] } | null;
+      error: { message?: string } | null;
+    };
+
+    if (error || !data?.items) {
+      return null;
+    }
+
+    const raw = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
+    return Array.isArray(raw) ? (raw as LiveTvItem[]) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const setActivePreset = async (presetId: LiveTvPresetId) =>
-  updateLiveTvState((state) => {
+  updateLiveTvState(async (state) => {
     const timestamp = nowIso();
+    const override = await getPresetOverride(presetId);
+    const playlist = override ?? buildPresetPlaylist(presetId);
+
     return normalizeState(
       {
         ...state,
         activePresetId: presetId,
-        playlist: buildPresetPlaylist(presetId),
+        playlist,
         currentItemIndex: 0,
         currentItemStartedAt: timestamp,
         nowPlayingOverride: null,

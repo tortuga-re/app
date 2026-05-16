@@ -52,7 +52,6 @@ export const parseItemInput = (
       : expectEnum(payload.styleVariant, "Stile", LIVE_TV_STYLE_VARIANTS);
 
   const title = expectOptionalString(payload.title, "Titolo", { maxLength: 120 });
-  const subtitle = expectOptionalString(payload.subtitle, "Sottotitolo", { maxLength: 140 });
   const body = expectOptionalString(payload.body, "Testo", { maxLength: 600 });
   const mediaUrl = expectOptionalString(payload.mediaUrl, "Media URL", { maxLength: 500 });
   const qrUrl = expectOptionalString(payload.qrUrl, "QR URL", { maxLength: 500 });
@@ -69,7 +68,6 @@ export const parseItemInput = (
   return {
     type,
     title,
-    subtitle,
     body,
     mediaUrl,
     qrUrl,

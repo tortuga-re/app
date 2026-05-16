@@ -198,7 +198,7 @@ export function LiveTvContributionCard({
         </h2>
         <p className="text-sm leading-6 text-[var(--text-muted)]">
           Aggiungi un titolo e carica il tuo contenuto: il migliore sara premiato con
-          <span className="font-bold text-[var(--accent-strong)]"> 25 EUR di sconto</span>.
+          <span className="font-bold text-[var(--accent-strong)]"> una bottiglia di vino omaggio</span>.
         </p>
       </div>
 

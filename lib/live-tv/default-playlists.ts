@@ -59,7 +59,6 @@ const createItem = (
   id,
   type: input.type,
   title: input.title,
-  subtitle: input.subtitle,
   body: input.body,
   mediaUrl: input.mediaUrl,
   qrUrl: input.qrUrl,
@@ -76,7 +75,6 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "logo",
     title: "Tortuga Live",
-    subtitle: "EAT.DRINK.TORTUGA.REPEAT",
     body: "La serata e in onda. Resta a bordo e preparati alla prossima rotta.",
     mediaUrl: TORTUGA_LIVE_LOGO_URL,
     durationSeconds: 12,
@@ -86,7 +84,6 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "qr",
     title: "Scansiona e sali a bordo",
-    subtitle: "Apri la Tortuga App",
     body: "Prenotazioni, ciurma, premi e giochi live in un solo QR.",
     qrUrl: APP_URL,
     qrLabel: "Apri Tortuga App",
@@ -97,7 +94,6 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "event",
     title: "Prossima rotta",
-    subtitle: "Programmazione settimanale",
     body: "Mercoledi Burger Night, Giovedi Match & Drink, Venerdi Kantaquiz, Sabato Notte del Capitano.",
     qrUrl: PROGRAM_URL,
     qrLabel: "Programmazione Tortuga",
@@ -108,7 +104,6 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "review",
     title: "La ciurma dice di noi",
-    subtitle: `${REVIEW.author} • ${REVIEW.source}`,
     body: REVIEW.text,
     durationSeconds: 12,
     enabled: true,
@@ -117,7 +112,6 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "promo",
     title: "Fidelity di bordo",
-    subtitle: "Punti, premi e colpi di fortuna",
     body: "Apri l'app, entra nella Ciurma e tieni pronti i tuoi vantaggi per la serata.",
     qrUrl: APP_URL,
     qrLabel: "Apri la Ciurma",
@@ -128,7 +122,6 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "message",
     title: "Messaggio dal Capitano",
-    subtitle: "La serata e in onda",
     body: "Niente scroll, niente distrazioni: goditi il locale e tieni d'occhio lo schermo.",
     durationSeconds: 10,
     enabled: true,
@@ -143,7 +136,6 @@ const presetVariants: Record<LiveTvPresetId, () => LiveTvUpsertItemInput[]> = {
     {
       type: "promo",
       title: "Mercoledi Burger Night",
-      subtitle: "Piatto + bevanda media",
       body: "Spezzare la settimana e piu facile quando la serata parte dal burger giusto.",
       qrUrl: MENU_URL,
       qrLabel: "Apri il menu",
@@ -159,7 +151,6 @@ const presetVariants: Record<LiveTvPresetId, () => LiveTvUpsertItemInput[]> = {
     {
       type: "promo",
       title: "Giovedi Match & Drink",
-      subtitle: "Ultima chiamata per salire a bordo",
       body: "Apri l'app, entra in Ciurma e preparati al gioco. Il match vero parte solo sullo stage dedicato.",
       qrUrl: `${APP_URL}/game/match-drink`,
       qrLabel: "Partecipa al Match & Drink",
@@ -176,7 +167,6 @@ const presetVariants: Record<LiveTvPresetId, () => LiveTvUpsertItemInput[]> = {
     {
       type: "promo",
       title: "Venerdi Kantaquiz",
-      subtitle: "Quiz, musica e tavoli pronti",
       body: "Scansiona, preparati e resta sintonizzato: il palco si accende quando il Capitano da il via.",
       qrUrl: `${APP_URL}/game/buzzer`,
       qrLabel: "Apri il Music Quiz",
@@ -194,7 +184,6 @@ const presetVariants: Record<LiveTvPresetId, () => LiveTvUpsertItemInput[]> = {
     {
       type: "message",
       title: "Notte del Capitano",
-      subtitle: "Atmosfera piena, timone saldo",
       body: "Musica, luci basse e tavoli caldi: se devi fare una mossa, questo e il momento.",
       durationSeconds: 12,
       enabled: true,
@@ -210,7 +199,6 @@ const presetVariants: Record<LiveTvPresetId, () => LiveTvUpsertItemInput[]> = {
     {
       type: "event",
       title: "Domenica Cervellone",
-      subtitle: "Famiglie, amici e tavoli pronti",
       body: "Una rotta piu rilassata, ma nessuno regala punti. Prenota il tavolo e porta la tua squadra.",
       qrUrl: `${APP_URL}/prenota`,
       qrLabel: "Prenota un tavolo",
