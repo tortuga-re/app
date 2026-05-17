@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveAnswer } from "@/lib/match-drink/storage";
+import { MatchDrinkAnswer } from "@/lib/match-drink/types";
+
+const VALID_OPTION_IDS = new Set(["A", "B", "C", "D"]);
 
 export async function POST(
   req: NextRequest,
@@ -13,11 +16,15 @@ export async function POST(
       return NextResponse.json({ error: "Dati mancanti" }, { status: 400 });
     }
 
+    if (!VALID_OPTION_IDS.has(selectedOptionId)) {
+      return NextResponse.json({ error: "Opzione non valida" }, { status: 400 });
+    }
+
     const answer = await saveAnswer({
       sessionId: id,
       playerId,
       questionId,
-      selectedOptionId,
+      selectedOptionId: selectedOptionId as MatchDrinkAnswer["selectedOptionId"],
     });
 
     return NextResponse.json(answer);

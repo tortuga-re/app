@@ -152,30 +152,6 @@ export const assignMatchDrinkMeetingTables = (
   return assignments;
 };
 
-const isGenderCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer): boolean => {
-  const checkCompatibility = (sourcePlayer: MatchDrinkPlayer, targetPlayer: MatchDrinkPlayer) => {
-    if (sourcePlayer.lookingFor === "amicizie") {
-      return targetPlayer.lookingFor === "amicizie";
-    }
-
-    if (sourcePlayer.lookingFor === "uomo") {
-      return targetPlayer.gender === "uomo" && targetPlayer.lookingFor !== "amicizie";
-    }
-
-    if (sourcePlayer.lookingFor === "donna") {
-      return targetPlayer.gender === "donna" && targetPlayer.lookingFor !== "amicizie";
-    }
-
-    if (sourcePlayer.lookingFor === "entrambi") {
-      return ["uomo", "donna"].includes(targetPlayer.gender) && targetPlayer.lookingFor !== "amicizie";
-    }
-
-    return false;
-  };
-
-  return checkCompatibility(playerA, playerB) && checkCompatibility(playerB, playerA);
-};
-
 export const getMatchDrinkMeetingTableOptions = (): MatchDrinkMeetingTableOption[] => {
   const toOption = (
     zone: "romance" | "friendship",
@@ -209,42 +185,146 @@ export const getMatchDrinkCapacitySummary = (excludedTableKeys: string[] = []) =
   };
 };
 
+const isGenderCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer): boolean => {
+  const checkCompatibility = (sourcePlayer: MatchDrinkPlayer, targetPlayer: MatchDrinkPlayer) => {
+    if (sourcePlayer.lookingFor === "amicizie") {
+      return targetPlayer.lookingFor === "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "uomo") {
+      return targetPlayer.gender === "uomo" && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "donna") {
+      return targetPlayer.gender === "donna" && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "entrambi") {
+      return ["uomo", "donna"].includes(targetPlayer.gender) && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    return false;
+  };
+
+  return checkCompatibility(playerA, playerB) && checkCompatibility(playerB, playerA);
+};
+
+type ForecastPair = {
+  aIdx: number;
+  bIdx: number;
+};
+
+type ForecastMatchingResult = {
+  pairCount: number;
+  pairs: ForecastPair[];
+};
+
+const FORECAST_BIGINT_ZERO = BigInt(0);
+const FORECAST_BIGINT_ONE = BigInt(1);
+
+const getForecastBit = (index: number) => FORECAST_BIGINT_ONE << BigInt(index);
+
+const getFirstForecastSetBitIndex = (mask: bigint, playerCount: number) => {
+  for (let index = 0; index < playerCount; index += 1) {
+    if ((mask & getForecastBit(index)) !== FORECAST_BIGINT_ZERO) {
+      return index;
+    }
+  }
+
+  return -1;
+};
+
+const getForecastPairKey = (aIdx: number, bIdx: number) =>
+  aIdx < bIdx ? `${aIdx}:${bIdx}` : `${bIdx}:${aIdx}`;
+
+const findMaximumCompatibleForecastPairs = (
+  playerCount: number,
+  pairs: ForecastPair[],
+) => {
+  if (playerCount < 2) {
+    return [];
+  }
+
+  const pairsByKey = new Map(
+    pairs.map((pair) => [getForecastPairKey(pair.aIdx, pair.bIdx), pair]),
+  );
+  const fullMask = (FORECAST_BIGINT_ONE << BigInt(playerCount)) - FORECAST_BIGINT_ONE;
+  const memo = new Map<string, ForecastMatchingResult>();
+
+  const solve = (mask: bigint): ForecastMatchingResult => {
+    if (mask === FORECAST_BIGINT_ZERO) {
+      return { pairCount: 0, pairs: [] };
+    }
+
+    const key = mask.toString();
+    const cached = memo.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const firstIdx = getFirstForecastSetBitIndex(mask, playerCount);
+    const maskWithoutFirst = mask & ~getForecastBit(firstIdx);
+    let best = solve(maskWithoutFirst);
+
+    for (let secondIdx = firstIdx + 1; secondIdx < playerCount; secondIdx += 1) {
+      const secondBit = getForecastBit(secondIdx);
+      if ((maskWithoutFirst & secondBit) === FORECAST_BIGINT_ZERO) {
+        continue;
+      }
+
+      const pair = pairsByKey.get(getForecastPairKey(firstIdx, secondIdx));
+      if (!pair) {
+        continue;
+      }
+
+      const rest = solve(maskWithoutFirst & ~secondBit);
+      const candidate = {
+        pairCount: rest.pairCount + 1,
+        pairs: [pair, ...rest.pairs],
+      };
+
+      if (candidate.pairCount > best.pairCount) {
+        best = candidate;
+      }
+    }
+
+    memo.set(key, best);
+    return best;
+  };
+
+  return solve(fullMask).pairs;
+};
+
 export const forecastMatchDrinkPairs = (
   players: MatchDrinkPlayer[],
   excludedTableKeys: string[] = [],
 ): MatchDrinkForecastSummary => {
-  const eligiblePlayers = players.filter((player) => player.relationshipStatus !== "solo_per_ridere");
-  const matchedIds = new Set<string>();
-  let friendshipPairs = 0;
-  let romancePairs = 0;
+  const eligiblePlayers = players.filter((player) => player.nickname !== "_SYSTEM_");
+  const compatiblePairs: ForecastPair[] = [];
 
   for (let i = 0; i < eligiblePlayers.length; i += 1) {
-    const playerA = eligiblePlayers[i];
-    if (matchedIds.has(playerA.id)) continue;
-
     for (let j = i + 1; j < eligiblePlayers.length; j += 1) {
-      const playerB = eligiblePlayers[j];
-      if (matchedIds.has(playerB.id)) continue;
-      if (!isGenderCompatible(playerA, playerB)) continue;
-
-      if (isFriendshipMatch(playerA, playerB)) {
-        friendshipPairs += 1;
-      } else {
-        romancePairs += 1;
+      if (isGenderCompatible(eligiblePlayers[i], eligiblePlayers[j])) {
+        compatiblePairs.push({ aIdx: i, bIdx: j });
       }
-
-      matchedIds.add(playerA.id);
-      matchedIds.add(playerB.id);
-      break;
     }
   }
+
+  const forecastPairs = findMaximumCompatibleForecastPairs(
+    eligiblePlayers.length,
+    compatiblePairs,
+  );
+  const friendshipPairs = forecastPairs.filter((pair) =>
+    isFriendshipMatch(eligiblePlayers[pair.aIdx], eligiblePlayers[pair.bIdx]),
+  ).length;
+  const romancePairs = forecastPairs.length - friendshipPairs;
 
   const capacities = getMatchDrinkCapacitySummary(excludedTableKeys);
 
   return {
     romancePairs,
     friendshipPairs,
-    unmatchedPlayers: eligiblePlayers.length - matchedIds.size,
+    unmatchedPlayers: eligiblePlayers.length - forecastPairs.length * 2,
     romanceCapacity: capacities.romanceCapacity,
     friendshipCapacity: capacities.friendshipCapacity,
   };

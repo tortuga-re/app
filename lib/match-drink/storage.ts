@@ -15,21 +15,64 @@ import {
 } from "./types";
 
 const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
+const ADULT_SPICY_QUESTIONS_PER_SESSION = 3;
+
+type QuestionPickRow = {
+  id: string;
+  spicy_intensity?: "standard" | "adult" | null;
+};
+const MATCH_DRINK_OPTION_IDS = new Set(["A", "B", "C", "D"]);
 
 export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
 const getSessionExcludedTablesKey = (sessionId: string) =>
   `match_drink_excluded_tables:${sessionId}`;
+
+const shuffle = <T>(items: T[] | null | undefined): T[] => {
+  const result = [...(items ?? [])];
+
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+
+  return result;
+};
+
+const pickSpicyQuestionIds = (questions: QuestionPickRow[], count: number) => {
+  const adultQuestions = shuffle(
+    questions.filter((question) => question.spicy_intensity === "adult"),
+  );
+  const standardQuestions = shuffle(
+    questions.filter((question) => question.spicy_intensity !== "adult"),
+  );
+  const requiredAdultCount = Math.min(
+    ADULT_SPICY_QUESTIONS_PER_SESSION,
+    count,
+    adultQuestions.length,
+  );
+  const selectedAdults = adultQuestions.slice(0, requiredAdultCount);
+  const selectedStandard = standardQuestions.slice(0, count - selectedAdults.length);
+  const selected = [...selectedAdults, ...selectedStandard];
+
+  if (selected.length < count) {
+    selected.push(...adultQuestions.slice(selectedAdults.length, count));
+  }
+
+  return shuffle(selected).slice(0, count).map((question) => question.id);
+};
 
 export const createSession = async (title: string, questionCount: number = 20): Promise<MatchDrinkSession> => {
   const admin = getSupabaseAdmin();
   const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   // Pesca domande casuali suddivise per categoria proporzionalmente
-  const { data: qLight } = await admin.from("match_drink_questions").select("id").eq("category", "light");
-  const { data: qIronic } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
-  const { data: qSpicy } = await admin.from("match_drink_questions").select("id").eq("category", "spicy");
+  const { data: qLight, error: qLightError } = await admin.from("match_drink_questions").select("id").eq("category", "light");
+  const { data: qIronic, error: qIronicError } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
+  const { data: qSpicy, error: qSpicyError } = await admin.from("match_drink_questions").select("id, spicy_intensity").eq("category", "spicy");
 
-  const shuffle = <T>(array: T[]): T[] => array?.sort(() => Math.random() - 0.5) || [];
+  if (qLightError) throw qLightError;
+  if (qIronicError) throw qIronicError;
+  if (qSpicyError) throw qSpicyError;
 
   const countLight = Math.floor(questionCount * 0.30);
   const countIronic = Math.floor(questionCount * 0.35);
@@ -38,7 +81,7 @@ export const createSession = async (title: string, questionCount: number = 20): 
   const selectedIds = [
     ...shuffle(qLight || []).slice(0, countLight).map((q) => q.id),
     ...shuffle(qIronic || []).slice(0, countIronic).map((q) => q.id),
-    ...shuffle(qSpicy || []).slice(0, countSpicy).map((q) => q.id)
+    ...pickSpicyQuestionIds((qSpicy ?? []) as QuestionPickRow[], countSpicy)
   ];
 
   const { data, error } = await admin
@@ -660,7 +703,13 @@ const mapMessage = (row: Record<string, unknown>): MatchDrinkBottleMessage => ({
 
 export const seedQuestions = async (questions: Partial<MatchDrinkQuestion>[]) => {
   const admin = getSupabaseAdmin();
-  const { error } = await admin.from("match_drink_questions").insert(questions);
+  const rows = questions.map((question) => ({
+    category: question.category,
+    text: question.text,
+    options: question.options,
+    spicy_intensity: question.spicyIntensity ?? "standard",
+  }));
+  const { error } = await admin.from("match_drink_questions").insert(rows);
   if (error) throw error;
 };
 
@@ -680,7 +729,10 @@ export const getSessionQuestions = async (sessionId: string) => {
       id: q.id,
       category: q.category,
       text: q.text,
-      options: q.options
+      options: (q.options ?? []).filter((option: MatchDrinkQuestion["options"][number]) =>
+        MATCH_DRINK_OPTION_IDS.has(option.id),
+      ),
+      spicyIntensity: q.spicy_intensity ?? "standard"
     };
   }).filter(Boolean);
 };

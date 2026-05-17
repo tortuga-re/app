@@ -19,7 +19,7 @@ export type MatchDrinkMainCategory =
   | "energico";
 
 export interface MatchDrinkQuestionOption {
-  id: "A" | "B" | "C" | "D" | "E";
+  id: "A" | "B" | "C" | "D";
   text: string;
   traits?: Partial<Record<MatchDrinkTrait, number>>;
   comment?: string;
@@ -29,6 +29,7 @@ export interface MatchDrinkQuestion {
   id: string;
   text: string;
   category: "light" | "ironic" | "spicy";
+  spicyIntensity?: "standard" | "adult";
   options: MatchDrinkQuestionOption[];
 }
 
@@ -96,7 +97,7 @@ export interface MatchDrinkAnswer {
   sessionId: string;
   playerId: string;
   questionId: string;
-  selectedOptionId: "A" | "B" | "C" | "D" | "E";
+  selectedOptionId: "A" | "B" | "C" | "D";
   createdAt: string;
 }
 

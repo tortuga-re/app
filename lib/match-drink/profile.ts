@@ -6,6 +6,7 @@ import type {
 } from "./types";
 
 type MatchDrinkGender = MatchDrinkPlayer["gender"] | undefined;
+export type MatchDrinkMainCategoryNormalizer = Record<MatchDrinkMainCategory, number>;
 
 export const MATCH_DRINK_TRAIT_ORDER: MatchDrinkTrait[] = [
   "romantico",
@@ -29,13 +30,11 @@ const MAIN_CATEGORY_ORDER: MatchDrinkMainCategory[] = [
   "energico",
 ];
 
-// Normalizers derived from the current seeded question bank so each macro-category
-// has a comparable chance to emerge even if the raw trait totals are not identical.
-const MAIN_CATEGORY_SCORE_NORMALIZER: Record<MatchDrinkMainCategory, number> = {
-  romantico: 411,
-  passionale: 419,
-  piccante: 415,
-  energico: 428,
+const DEFAULT_MAIN_CATEGORY_SCORE_NORMALIZER: MatchDrinkMainCategoryNormalizer = {
+  romantico: 1,
+  passionale: 1,
+  piccante: 1,
+  energico: 1,
 };
 
 const TRAIT_MAIN_CATEGORY_MAP: Record<MatchDrinkTrait, MatchDrinkMainCategory> = {
@@ -211,6 +210,7 @@ export const getDominantTraitFromTraits = (
 
 export const getMainCategoryFromTraits = (
   traits: Partial<Record<MatchDrinkTrait, number>>,
+  normalizer: MatchDrinkMainCategoryNormalizer = DEFAULT_MAIN_CATEGORY_SCORE_NORMALIZER,
 ): MatchDrinkMainCategory => {
   const totals = MAIN_CATEGORY_ORDER.reduce<Record<MatchDrinkMainCategory, number>>(
     (accumulator, category) => ({
@@ -232,7 +232,7 @@ export const getMainCategoryFromTraits = (
   const normalizedTotals = MAIN_CATEGORY_ORDER.reduce<Record<MatchDrinkMainCategory, number>>(
     (accumulator, category) => ({
       ...accumulator,
-      [category]: totals[category] / MAIN_CATEGORY_SCORE_NORMALIZER[category],
+      [category]: totals[category] / Math.max(normalizer[category] || 1, 1),
     }),
     {
       romantico: 0,

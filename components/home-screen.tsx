@@ -690,16 +690,16 @@ export function HomeScreen() {
         <>
           {hasMenuAccess ? (
             <>
+              <VenueModeCard
+                activeGames={activeGames}
+                onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)}
+              />
               <div id="contributi-live" className="hash-scroll-target rounded-[2rem]">
                 <LiveTvContributionCard
                   contact={profile?.contact ?? null}
                   onVisitTrigger={() => void registerVisit(profile?.contact?.CodiceContatto)}
                 />
               </div>
-              <VenueModeCard
-                activeGames={activeGames}
-                onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)}
-              />
             </>
           ) : showHeroCard ? (
             <SmartHeroCard
