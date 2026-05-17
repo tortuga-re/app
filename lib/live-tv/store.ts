@@ -2,7 +2,6 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { createPersistentJsonStore } from "@/lib/server/persistent-json-store";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 
 import { buildPresetPlaylist } from "./default-playlists";
@@ -16,11 +15,7 @@ import type {
   StageMode,
 } from "./types";
 
-const LIVE_TV_STORAGE = createPersistentJsonStore<LiveTvState>({
-  key: "live-tv:state",
-  localFile: ".codex/live-tv-state.json",
-  initialState: () => createInitialState(),
-});
+
 
 const LIVE_TV_TABLE = "live_tv_state";
 const LIVE_TV_CHANNEL = "live-tv";
@@ -325,11 +320,10 @@ const writeSupabaseState = async (state: LiveTvState) => {
 };
 
 export const getLiveTvState = async (): Promise<LiveTvState> => {
-  const storedState = (await readSupabaseState()) ?? (await LIVE_TV_STORAGE.read());
+  const storedState = (await readSupabaseState()) ?? createInitialState();
   const normalized = applyScheduledStageState(normalizeState(storedState));
 
   if (JSON.stringify(normalized) !== JSON.stringify(storedState)) {
-    await LIVE_TV_STORAGE.write(normalized);
     await writeSupabaseState(normalized);
   }
 
@@ -339,17 +333,16 @@ export const getLiveTvState = async (): Promise<LiveTvState> => {
 export const updateLiveTvState = async (
   updater: (state: LiveTvState) => LiveTvState | Promise<LiveTvState>,
 ) => {
-  return LIVE_TV_STORAGE.update(async (currentState) => {
-    const sourceState = normalizeState((await readSupabaseState()) ?? currentState);
-    const timestamp = nowIso();
-    const nextState = normalizeState(await updater(sourceState), timestamp);
-    const stamped = stampUpdate(nextState, timestamp);
+  const currentState = (await readSupabaseState()) ?? createInitialState();
+  const sourceState = normalizeState(currentState);
+  const timestamp = nowIso();
+  const nextState = normalizeState(await updater(sourceState), timestamp);
+  const stamped = stampUpdate(nextState, timestamp);
 
-    await writeSupabaseState(stamped);
-    await broadcastState(stamped);
+  await writeSupabaseState(stamped);
+  await broadcastState(stamped);
 
-    return stamped;
-  });
+  return stamped;
 };
 
 export const setStageMode = async (stageMode: StageMode) =>
