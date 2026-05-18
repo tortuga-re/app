@@ -1,6 +1,7 @@
 import {
   MatchDrinkAnswer,
   MatchDrinkMatch,
+  MatchDrinkMainCategory,
   MatchDrinkPlayer,
   MatchDrinkProfile,
   MatchDrinkQuestion,
@@ -19,6 +20,8 @@ import {
   getSharedMainCategory,
   getTraitLabel,
   getDominantTraitFromTraits,
+  getTraitMainCategory,
+  type MatchDrinkMainCategoryNormalizer,
 } from "./profile";
 
 const createEmptyTraitScores = (): Record<MatchDrinkTrait, number> => ({
@@ -90,6 +93,33 @@ const buildProfileLabel = (
   return `${mainCategoryLabel} ${secondaryTraitLabel}`;
 };
 
+const createEmptyMainCategoryScores = (): Record<MatchDrinkMainCategory, number> => ({
+  romantico: 0,
+  passionale: 0,
+  piccante: 0,
+  energico: 0,
+});
+
+const buildMainCategoryNormalizer = (
+  questionsBank: MatchDrinkQuestion[],
+): MatchDrinkMainCategoryNormalizer => {
+  const normalizer = createEmptyMainCategoryScores();
+
+  questionsBank.forEach((question) => {
+    question.options.forEach((option) => {
+      Object.entries(option.traits ?? {}).forEach(([trait, score]) => {
+        if (!MATCH_DRINK_TRAIT_ORDER.includes(trait as MatchDrinkTrait) || typeof score !== "number") {
+          return;
+        }
+
+        normalizer[getTraitMainCategory(trait as MatchDrinkTrait)] += score;
+      });
+    });
+  });
+
+  return normalizer;
+};
+
 type MatchReasonResult = {
   criterion: string;
   reason: string;
@@ -99,6 +129,7 @@ export const calculatePlayerProfile = (
   player: MatchDrinkPlayer,
   answers: MatchDrinkAnswer[],
   questionsBank: MatchDrinkQuestion[],
+  mainCategoryNormalizer: MatchDrinkMainCategoryNormalizer = buildMainCategoryNormalizer(questionsBank),
 ): MatchDrinkProfile => {
   const traitScores = buildTraitScores(answers, questionsBank);
 
@@ -107,7 +138,7 @@ export const calculatePlayerProfile = (
   }
 
   const dominantTrait = getDominantTraitFromTraits(traitScores);
-  const mainCategory = getMainCategoryFromTraits(traitScores);
+  const mainCategory = getMainCategoryFromTraits(traitScores, mainCategoryNormalizer);
   const secondaryTrait = getSecondaryTraitFromTraits(traitScores, mainCategory);
   const mainCategoryLabel = getMainCategoryLabel(mainCategory, player.gender);
   const secondaryTraitLabel = getTraitLabel(secondaryTrait, player.gender);
@@ -125,6 +156,100 @@ export const calculatePlayerProfile = (
   };
 };
 
+type ScoredPotentialPair = {
+  aIdx: number;
+  bIdx: number;
+  score: number;
+  info: { type: MatchDrinkMatch["matchType"]; criterion: string; reason: string };
+};
+
+type MatchingResult = {
+  pairCount: number;
+  score: number;
+  pairs: ScoredPotentialPair[];
+};
+
+const getPairKey = (aIdx: number, bIdx: number) =>
+  aIdx < bIdx ? `${aIdx}:${bIdx}` : `${bIdx}:${aIdx}`;
+
+const BIGINT_ZERO = BigInt(0);
+const BIGINT_ONE = BigInt(1);
+
+const getBit = (index: number) => BIGINT_ONE << BigInt(index);
+
+const getFirstSetBitIndex = (mask: bigint, playerCount: number) => {
+  for (let index = 0; index < playerCount; index += 1) {
+    if ((mask & getBit(index)) !== BIGINT_ZERO) {
+      return index;
+    }
+  }
+
+  return -1;
+};
+
+const findMaximumWeightMatching = (
+  playerCount: number,
+  pairs: ScoredPotentialPair[],
+): ScoredPotentialPair[] => {
+  if (playerCount < 2) {
+    return [];
+  }
+
+  const pairsByKey = new Map(
+    pairs.map((pair) => [getPairKey(pair.aIdx, pair.bIdx), pair]),
+  );
+  const fullMask = (BIGINT_ONE << BigInt(playerCount)) - BIGINT_ONE;
+  const memo = new Map<string, MatchingResult>();
+
+  const isBetter = (candidate: MatchingResult, current: MatchingResult) =>
+    candidate.pairCount > current.pairCount ||
+    (candidate.pairCount === current.pairCount && candidate.score > current.score);
+
+  const solve = (mask: bigint): MatchingResult => {
+    if (mask === BIGINT_ZERO) {
+      return { pairCount: 0, score: 0, pairs: [] };
+    }
+
+    const key = mask.toString();
+    const cached = memo.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const firstIdx = getFirstSetBitIndex(mask, playerCount);
+    const maskWithoutFirst = mask & ~getBit(firstIdx);
+    let best = solve(maskWithoutFirst);
+
+    for (let secondIdx = firstIdx + 1; secondIdx < playerCount; secondIdx += 1) {
+      const secondBit = getBit(secondIdx);
+      if ((maskWithoutFirst & secondBit) === BIGINT_ZERO) {
+        continue;
+      }
+
+      const pair = pairsByKey.get(getPairKey(firstIdx, secondIdx));
+      if (!pair) {
+        continue;
+      }
+
+      const rest = solve(maskWithoutFirst & ~secondBit);
+      const candidate = {
+        pairCount: rest.pairCount + 1,
+        score: pair.score + rest.score,
+        pairs: [pair, ...rest.pairs],
+      };
+
+      if (isBetter(candidate, best)) {
+        best = candidate;
+      }
+    }
+
+    memo.set(key, best);
+    return best;
+  };
+
+  return solve(fullMask).pairs;
+};
+
 export const calculateMatches = (
   session: MatchDrinkSession,
   players: MatchDrinkPlayer[],
@@ -132,9 +257,10 @@ export const calculateMatches = (
   questionsBank: MatchDrinkQuestion[],
 ): Omit<MatchDrinkMatch, "id" | "createdAt">[] => {
   const eligiblePlayers = players.filter(
-    (player) => player.relationshipStatus !== "solo_per_ridere",
+    (player) => player.nickname !== "_SYSTEM_",
   );
   const answersByPlayer = new Map<string, MatchDrinkAnswer[]>();
+  const mainCategoryNormalizer = buildMainCategoryNormalizer(questionsBank);
 
   answers.forEach((answer) => {
     const currentAnswers = answersByPlayer.get(answer.playerId) ?? [];
@@ -147,18 +273,16 @@ export const calculateMatches = (
   eligiblePlayers.forEach((player) => {
     profilesByPlayerId.set(
       player.id,
-      calculatePlayerProfile(player, answersByPlayer.get(player.id) ?? [], questionsBank),
+      calculatePlayerProfile(
+        player,
+        answersByPlayer.get(player.id) ?? [],
+        questionsBank,
+        mainCategoryNormalizer,
+      ),
     );
   });
 
-  const matches: Omit<MatchDrinkMatch, "id" | "createdAt">[] = [];
-  const matchedPlayerIds = new Set<string>();
-  const allPotentialPairs: Array<{
-    aIdx: number;
-    bIdx: number;
-    score: number;
-    info: { type: MatchDrinkMatch["matchType"]; criterion: string; reason: string };
-  }> = [];
+  const allPotentialPairs: ScoredPotentialPair[] = [];
 
   for (let i = 0; i < eligiblePlayers.length; i += 1) {
     for (let j = i + 1; j < eligiblePlayers.length; j += 1) {
@@ -183,22 +307,20 @@ export const calculateMatches = (
         aIdx: i,
         bIdx: j,
         score: scoreInfo.score,
-        info: scoreInfo,
+        info: {
+          criterion: scoreInfo.criterion,
+          reason: scoreInfo.reason,
+          type: scoreInfo.type,
+        },
       });
     }
   }
 
-  allPotentialPairs.sort((left, right) => right.score - left.score);
-
-  allPotentialPairs.forEach((pair) => {
+  return findMaximumWeightMatching(eligiblePlayers.length, allPotentialPairs).map((pair) => {
     const playerA = eligiblePlayers[pair.aIdx];
     const playerB = eligiblePlayers[pair.bIdx];
 
-    if (matchedPlayerIds.has(playerA.id) || matchedPlayerIds.has(playerB.id)) {
-      return;
-    }
-
-    matches.push({
+    return {
       sessionId: session.id,
       playerAId: playerA.id,
       playerBId: playerB.id,
@@ -208,46 +330,8 @@ export const calculateMatches = (
       commonCriterion: pair.info.criterion,
       reason: pair.info.reason,
       drinkUnlocked: false,
-    });
-    matchedPlayerIds.add(playerA.id);
-    matchedPlayerIds.add(playerB.id);
+    };
   });
-
-  const remainingPlayers = eligiblePlayers.filter(
-    (player) => !matchedPlayerIds.has(player.id),
-  );
-
-  while (remainingPlayers.length >= 2) {
-    const playerA = remainingPlayers.shift()!;
-    const playerB = remainingPlayers.shift()!;
-    const scoreInfo = calculateMatchScore(
-      playerA,
-      playerB,
-      profilesByPlayerId.get(playerA.id)!,
-      profilesByPlayerId.get(playerB.id)!,
-      answersByPlayer.get(playerA.id) ?? [],
-      answersByPlayer.get(playerB.id) ?? [],
-      questionsBank,
-    );
-
-    matches.push({
-      sessionId: session.id,
-      playerAId: playerA.id,
-      playerBId: playerB.id,
-      score: Math.max(scoreInfo.score, 30),
-      matchType: "una_birra_e_vediamo",
-      label: "Incontro del Destino",
-      commonCriterion: "Curiosita da verificare dal vivo",
-      reason:
-        "Il Capitano vi ha lasciati sulla stessa rotta: ora tocca a voi capire se vale il prossimo brindisi.",
-      drinkUnlocked: false,
-    });
-
-    matchedPlayerIds.add(playerA.id);
-    matchedPlayerIds.add(playerB.id);
-  }
-
-  return matches;
 };
 
 const isGenderCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer): boolean => {
@@ -276,6 +360,15 @@ const isGenderCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer
 
   return checkCompatibility(playerA, playerB) && checkCompatibility(playerB, playerA);
 };
+
+const getMatchTypeFromScore = (score: number): MatchDrinkMatch["matchType"] =>
+  score >= 90
+    ? "anime_gemelle"
+    : score >= 75
+      ? "compatibilita_sospetta"
+      : score >= 50
+        ? "una_birra_e_vediamo"
+        : "errore_consigliato";
 
 const calculateMatchScore = (
   playerA: MatchDrinkPlayer,
@@ -362,14 +455,7 @@ const calculateMatchScore = (
 
   score = Math.min(Math.max(score, 10), 100);
 
-  const type: MatchDrinkMatch["matchType"] =
-    score >= 90
-      ? "anime_gemelle"
-      : score >= 75
-        ? "compatibilita_sospetta"
-        : score >= 50
-          ? "una_birra_e_vediamo"
-          : "errore_consigliato";
+  const type = getMatchTypeFromScore(score);
 
   const matchReason = getMatchReason(
     playerA,

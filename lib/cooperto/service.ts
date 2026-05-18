@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+
 import {
   coopertoConfig,
   hasCoopertoLiveConfig,
@@ -390,78 +392,86 @@ const normalizeUpcomingReservations = (
     .sort((left, right) => Date.parse(left.dateTime) - Date.parse(right.dateTime));
 };
 
-export const getBookingBootstrap = async (): Promise<BookingBootstrapResponse> => {
-  if (!hasCoopertoLiveConfig) {
-    return mockBookingBootstrap();
-  }
-
-  try {
-    const response = await coopertoFetch<CoopertoListResponse<CoopertoBookingModule>>(
-      "/api/Prenotazioni/ElencoModuliPrenotazione",
-      {
-        query: {
-          codiceSede: coopertoConfig.sedeCode,
-          skip: 0,
-          pageSize: 100,
-        },
-      },
-    );
-
-    const selectedModule =
-      response.data.find(
-        (module) => module.CodiceModulo === coopertoConfig.bookingModuleCode,
-      ) ?? null;
-
-    const normalized = normalizeModule(selectedModule);
-
-    if (!normalized) {
-      throw new Error("Modulo prenotazione configurato non trovato.");
+export const getBookingBootstrap = unstable_cache(
+  async (): Promise<BookingBootstrapResponse> => {
+    if (!hasCoopertoLiveConfig) {
+      return mockBookingBootstrap();
     }
 
-    return {
-      source: "live",
-      module: normalized,
-      rooms: normalized.rooms,
-      defaultRoomCode: normalized.rooms[0]?.code,
-    };
-  } catch {
-    return fallbackSource(await mockBookingBootstrap());
-  }
-};
-
-export const getBookingAvailability = async (
-  date: string,
-  pax: number,
-  roomCode?: string,
-): Promise<BookingAvailabilityResponse> => {
-  if (!hasCoopertoLiveConfig) {
-    return mockBookingAvailability(date, pax, roomCode);
-  }
-
-  try {
-    const response = await coopertoFetch<CoopertoBookingDay[]>(
-      "/api/Prenotazioni/OrariModulo",
-      {
-        query: {
-          codiceModulo: coopertoConfig.bookingModuleCode,
-          data: date,
-          pax,
-          codiceSala: roomCode,
+    try {
+      const response = await coopertoFetch<CoopertoListResponse<CoopertoBookingModule>>(
+        "/api/Prenotazioni/ElencoModuliPrenotazione",
+        {
+          query: {
+            codiceSede: coopertoConfig.sedeCode,
+            skip: 0,
+            pageSize: 100,
+          },
         },
-      },
-    );
+      );
 
-    return {
-      source: "live",
-      date,
-      pax,
-      roomCode,
-      days: normalizeDays(response),
-    };
-  } catch {
-    return fallbackSource(await mockBookingAvailability(date, pax, roomCode));
-  }
-};
+      const selectedModule =
+        response.data.find(
+          (module) => module.CodiceModulo === coopertoConfig.bookingModuleCode,
+        ) ?? null;
+
+      const normalized = normalizeModule(selectedModule);
+
+      if (!normalized) {
+        throw new Error("Modulo prenotazione configurato non trovato.");
+      }
+
+      return {
+        source: "live",
+        module: normalized,
+        rooms: normalized.rooms,
+        defaultRoomCode: normalized.rooms[0]?.code,
+      };
+    } catch {
+      return fallbackSource(await mockBookingBootstrap());
+    }
+  },
+  ["cooperto-booking-bootstrap"],
+  { revalidate: 300 }
+);
+
+export const getBookingAvailability = unstable_cache(
+  async (
+    date: string,
+    pax: number,
+    roomCode?: string,
+  ): Promise<BookingAvailabilityResponse> => {
+    if (!hasCoopertoLiveConfig) {
+      return mockBookingAvailability(date, pax, roomCode);
+    }
+
+    try {
+      const response = await coopertoFetch<CoopertoBookingDay[]>(
+        "/api/Prenotazioni/OrariModulo",
+        {
+          query: {
+            codiceModulo: coopertoConfig.bookingModuleCode,
+            data: date,
+            pax,
+            codiceSala: roomCode,
+          },
+        },
+      );
+
+      return {
+        source: "live",
+        date,
+        pax,
+        roomCode,
+        days: normalizeDays(response),
+      };
+    } catch {
+      return fallbackSource(await mockBookingAvailability(date, pax, roomCode));
+    }
+  },
+  ["cooperto-booking-availability"],
+  { revalidate: 60 }
+);
 
 export const createBooking = async (
   input: BookingCreateInput,
@@ -703,20 +713,24 @@ export const updateProfileContact = async (
   }
 };
 
-export const getFidelityCards = async (): Promise<CoopertoFidelityCard[]> => {
-  if (!hasCoopertoLiveConfig) {
-    return mockFidelityCards();
-  }
+export const getFidelityCards = unstable_cache(
+  async (): Promise<CoopertoFidelityCard[]> => {
+    if (!hasCoopertoLiveConfig) {
+      return mockFidelityCards();
+    }
 
-  const response = await coopertoFetch<CoopertoListResponse<CoopertoFidelityCard>>(
-    "/api/FidelityCard/Elenco",
-    {
-      query: { skip: 0, pageSize: 100 },
-    },
-  );
+    const response = await coopertoFetch<CoopertoListResponse<CoopertoFidelityCard>>(
+      "/api/FidelityCard/Elenco",
+      {
+        query: { skip: 0, pageSize: 100 },
+      },
+    );
 
-  return response.data;
-};
+    return response.data;
+  },
+  ["cooperto-fidelity-cards"],
+  { revalidate: 300 }
+);
 
 const fidelityActivationError =
   "Non siamo riusciti ad attivare la card in automatico. Chiedi a un pirata.";

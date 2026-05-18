@@ -3,6 +3,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import { StatusBlock } from "@/components/status-block";
+import { getSupabase } from "@/lib/match-drink/supabase";
 import { LIVE_TV_PRESETS } from "@/lib/live-tv/default-playlists";
 import {
   LIVE_TV_ITEM_TYPES,
@@ -563,16 +564,44 @@ export default function AdminLiveTvPage() {
     }
 
     let cancelled = false;
-    const interval = setInterval(() => {
-      void readLiveTvState()
-        .then((nextState) => {
-          if (cancelled) return;
+    let pollInterval: NodeJS.Timeout | null = null;
+    const supabase = getSupabase();
+    let channel: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const startFallbackPolling = () => {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        void readLiveTvState()
+          .then((nextState) => {
+            if (cancelled) return;
+            startTransition(() => {
+              setState(nextState);
+            });
+          })
+          .catch(() => {});
+      }, 5000);
+    };
+
+    try {
+      channel = supabase
+        .channel("live-tv")
+        .on("broadcast", { event: "state_update" }, (payload) => {
+          if (cancelled || !payload || !payload.payload) return;
+          const nextState = payload.payload as LiveTvPageState;
           startTransition(() => {
             setState(nextState);
+            setAutoScheduleEnabled(Boolean(nextState.autoScheduleEnabled));
+            setScheduleDraft(nextState.schedule ?? []);
           });
         })
-        .catch(() => {});
-    }, 3000);
+        .subscribe((status) => {
+          if (status !== "SUBSCRIBED" && status !== "TIMED_OUT") {
+            startFallbackPolling();
+          }
+        });
+    } catch {
+      startFallbackPolling();
+    }
 
     const supportInterval = setInterval(() => {
       void loadSupportData().catch(() => undefined);
@@ -580,7 +609,8 @@ export default function AdminLiveTvPage() {
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (pollInterval) clearInterval(pollInterval);
+      if (channel) supabase.removeChannel(channel);
       clearInterval(supportInterval);
     };
   }, [loadSupportData, loading, readLiveTvState]);

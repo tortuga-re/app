@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
+import { missions } from "@/lib/missions";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -37,12 +38,18 @@ import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { isAdmin } from "@/lib/live-buzzer/admin";
 import { PwaPushCard } from "@/components/pwa-push-card";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
-import { missions } from "@/lib/missions";
 import {
   italianPhoneValidationError,
   normalizeItalianPhone,
   validateItalianPhone,
 } from "@/lib/validation/phone";
+import { ProfileLogin } from "@/features/profile/components/ProfileLogin";
+import { ProfileEditor } from "@/features/profile/components/ProfileEditor";
+import { ProfileDashboard } from "@/features/profile/components/ProfileDashboard";
+import { ProfileGamesAndAdmin } from "@/features/profile/components/ProfileGamesAndAdmin";
+import { ProfilePassport } from "@/features/profile/components/ProfilePassport";
+import { OfflinePassportScreen } from "@/features/profile/components/OfflinePassportScreen";
+import { saveOfflinePassport } from "@/lib/offline-passport";
 
 type ContactFormState = {
   firstName: string;
@@ -111,6 +118,7 @@ export function CiurmaScreen() {
   const [resendingEmailChange, setResendingEmailChange] = useState(false);
   const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
   const [activeGames, setActiveGames] = useState({ buzzer: false, matchDrink: false });
+  const [isOnline, setIsOnline] = useState(true);
   const [selectedMission, setSelectedMission] = useState<import("@/lib/missions").Mission | null>(null);
   const [loginMode, setLoginMode] = useState<"lookup" | "confirm" | "otp">("lookup");
   const [loginRequest, setLoginRequest] = useState<{
@@ -198,6 +206,18 @@ export function CiurmaScreen() {
 
     return () => window.clearInterval(intervalId);
   }, [emailChangeRequest, loginRequest]);
+
+  // ─── Rilevamento connessione di rete ─────────────────────────────────────
+  useEffect(() => {
+    const update = () => setIsOnline(navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchActiveGames = async () => {
@@ -295,7 +315,19 @@ export function CiurmaScreen() {
       missions_unlocked: missions.filter((mission) => mission.isUnlocked(data)).length,
       loyalty_points: loyaltyProgress.points,
     });
-  }, [data, loyaltyProgress.points]);
+
+
+    // ─── Salva passaporto offline ────────────────────────────────────────────
+    const offlineName = [data.contact.Nome, data.contact.Cognome].filter(Boolean).join(" ") || "Cliente Tortuga";
+    saveOfflinePassport({
+      profileName: offlineName,
+      email: data.contact.Email ?? identityEmail,
+      contactCode: data.contact.CodiceContatto?.trim() ?? "",
+      loyaltyLabel: loyaltyProgress.loyaltyTier.label,
+      loyaltyPoints: loyaltyProgress.points,
+      savedAt: new Date().toISOString(),
+    });
+  }, [data, loyaltyProgress.points, loyaltyProgress.loyaltyTier.label, identityEmail]);
 
   const applyProfileResponse = async (response: ProfileResponse) => {
     setData(response);
@@ -698,6 +730,8 @@ export function CiurmaScreen() {
     setEmailChangeCode("");
     setContactForm(contactSnapshot);
     setIsEditingProfile(true);
+    // eslint-disable-next-line react-hooks/immutability
+    window.location.hash = "#modifica";
   };
 
   const startRegistration = () => {
@@ -761,284 +795,47 @@ export function CiurmaScreen() {
   return (
     <section className="space-y-5 parchment-unroll-animation">
 
-      {showLookupPanel ? (
-        <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="eyebrow">Riconoscimento ciurma</p>
-              <h2 className="text-xl font-semibold text-white">Rientra a bordo con la tua email.</h2>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Recupera subito bottino, coupon e prenotazioni gia legate al tuo profilo.
-              </p>
-            </div>
+      {/* ─── Modalità Offline ─────────────────────────────────────────────────── */}
+      {!isOnline ? (
+        <OfflinePassportScreen />
+      ) : (<>
 
-            {loginMode === "lookup" ? (
-              <>
-                <input
-                  className="field"
-                  type="email"
-                  placeholder="cliente@email.it"
-                  value={lookupEmail}
-                  onChange={(event) => setLookupEmail(event.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleLookupSubmit();
-                  }}
-                />
-                <button
-                  type="button"
-                  className="button-primary flex min-h-12 w-full items-center justify-center px-4 select-none"
-                  onClick={() => {
-                    triggerHaptic();
-                    handleLookupSubmit();
-                  }}
-                  onTouchStart={startLongPress}
-                  onTouchEnd={cancelLongPress}
-                  onMouseDown={startLongPress}
-                  onMouseUp={cancelLongPress}
-                  onMouseLeave={cancelLongPress}
-                  disabled={loading}
-                >
-                  {loading ? "Recupero la ciurma..." : "Entra nella tua area"}
-                </button>
-                <button
-                  type="button"
-                  className="button-secondary flex min-h-12 w-full items-center justify-center px-4"
-                  onClick={() => {
-                    triggerHaptic();
-                    startRegistration();
-                  }}
-                >
-                  Registrati
-                </button>
-              </>
-            ) : loginMode === "confirm" ? (
-              <div className="space-y-4">
-                <div className="rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
-                  Ti invieremo un codice OTP all&apos;email <strong>{lookupEmail}</strong>, verifica la correttezza.
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    className="button-secondary flex min-h-12 w-full items-center justify-center px-4"
-                    onClick={() => {
-                      triggerHaptic();
-                      setLoginMode("lookup");
-                    }}
-                    disabled={loading}
-                  >
-                    Modifica
-                  </button>
-                  <button
-                    type="button"
-                    className="button-primary flex min-h-12 w-full items-center justify-center px-4"
-                    onClick={() => {
-                      triggerHaptic();
-                      void requestLoginOtp();
-                    }}
-                    disabled={loading}
-                  >
-                    {loading ? "Invio..." : "Conferma"}
-                  </button>
-                </div>
-              </div>
-            ) : loginMode === "otp" && loginRequest ? (
-              <div className="space-y-4">
-                <div className="rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
-                  <p>Abbiamo inviato un codice a <strong>{loginRequest.email}</strong>.</p>
-                  <p className="mt-1 text-xs">Scade alle {loginExpiresAtLabel}.</p>
-                </div>
-                <input
-                  className="field text-center text-lg font-semibold tracking-[0.35em]"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={loginCode}
-                  onChange={(event) =>
-                    setLoginCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    className="button-primary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                    onClick={() => {
-                      triggerHaptic();
-                      void verifyLoginCode();
-                    }}
-                    disabled={verifyingLogin || loginCode.trim().length !== 6}
-                  >
-                    {verifyingLogin ? "Verifico..." : "Entra"}
-                  </button>
-                  <button
-                    type="button"
-                    className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                    onClick={() => {
-                      triggerHaptic();
-                      void resendLoginCode();
-                    }}
-                    disabled={resendingLogin || !loginCanResend}
-                  >
-                    {resendingLogin
-                      ? "Invio..."
-                      : loginCanResend
-                        ? "Reinvia codice"
-                        : `Reinvia tra ${loginResendSeconds}s`}
-                  </button>
-                </div>
-                <p className="text-xs text-center leading-5 text-[var(--text-muted)]">
-                  Tentativi rimasti: {loginRequest.attemptsRemaining}.
-                </p>
-                <button
-                  type="button"
-                  className="text-xs text-center w-full mt-2 underline text-[var(--text-muted)] hover:text-white"
-                  onClick={() => {
-                    setLoginMode("lookup");
-                    setLoginRequest(null);
-                  }}
-                >
-                  Cambia email
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
+      {showLookupPanel ? (
+        <ProfileLogin
+          loginMode={loginMode}
+          setLoginMode={setLoginMode}
+          lookupEmail={lookupEmail}
+          setLookupEmail={setLookupEmail}
+          handleLookupSubmit={handleLookupSubmit}
+          loading={loading}
+          startLongPress={startLongPress}
+          cancelLongPress={cancelLongPress}
+          startRegistration={startRegistration}
+          requestLoginOtp={requestLoginOtp}
+          loginRequest={loginRequest}
+          loginExpiresAtLabel={loginExpiresAtLabel}
+          loginCode={loginCode}
+          setLoginCode={setLoginCode}
+          verifyLoginCode={verifyLoginCode}
+          verifyingLogin={verifyingLogin}
+          resendLoginCode={resendLoginCode}
+          resendingLogin={resendingLogin}
+          loginCanResend={loginCanResend}
+          loginResendSeconds={loginResendSeconds}
+        />
       ) : null}
 
-      {isRegistering ? (
-        <div id="registrazione" className="panel hash-scroll-target rounded-[2rem] p-5">
-          <div className="space-y-2">
-            <p className="eyebrow">Registrazione ciurma</p>
-            <h2 className="text-xl font-semibold text-white">
-              Crea il tuo profilo Tortuga.
-            </h2>
-            <p className="text-sm leading-6 text-[var(--text-muted)]">
-              Inserisci i dati principali: useremo la tua email per riconoscerti
-              quando torni a bordo.
-            </p>
-          </div>
-
-          {contactError ? (
-            <div className="mt-4 rounded-[1.4rem] border border-[rgba(240,139,117,0.22)] bg-[rgba(240,139,117,0.08)] px-4 py-3 text-sm leading-6 text-[var(--danger)]">
-              {contactError}
-            </div>
-          ) : null}
-
-          {contactMessage ? (
-            <div className="mt-4 rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
-              {contactMessage}
-            </div>
-          ) : null}
-
-          <div className="mt-4 grid gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Nome</span>
-                <input
-                  className="field"
-                  value={contactForm.firstName}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      firstName: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Cognome</span>
-                <input
-                  className="field"
-                  value={contactForm.lastName}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      lastName: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Email</span>
-                <input
-                  className="field"
-                  type="email"
-                  value={contactForm.email}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      email: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Telefono</span>
-                <div className="relative flex items-center">
-                  <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
-                    +39
-                  </span>
-                  <input
-                    className="field pl-14"
-                    type="tel"
-                    value={contactForm.phone.replace(/^\+39/, "")}
-                    onChange={(event) =>
-                      setContactForm((current) => ({
-                        ...current,
-                        phone: "+39" + event.target.value.replace(/\D/g, ""),
-                      }))
-                    }
-                    onBlur={handlePhoneBlur}
-                  />
-                </div>
-              </label>
-            </div>
-
-            <label className="space-y-2 text-sm text-[var(--text-muted)]">
-              <span>Data di nascita</span>
-              <input
-                className="field"
-                type="date"
-                value={contactForm.birthDate}
-                onChange={(event) =>
-                  setContactForm((current) => ({
-                    ...current,
-                    birthDate: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="flex items-start gap-3 rounded-[1.4rem] border border-[rgba(171,128,63,0.16)] bg-white/4 px-4 py-3 text-sm text-[var(--text-muted)]">
-              <input
-                type="checkbox"
-                checked={contactForm.marketingConsent}
-                onChange={(event) =>
-                  setContactForm((current) => ({
-                    ...current,
-                    marketingConsent: event.target.checked,
-                  }))
-                }
-              />
-              <span>Accetto comunicazioni marketing future di Tortuga.</span>
-            </label>
-
-            <button
-              type="button"
-              className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-              onClick={() => {
-                triggerHaptic();
-                void saveContact();
-              }}
-              disabled={savingContact}
-            >
-              {savingContact ? "Registro la ciurma..." : "Completa registrazione"}
-            </button>
-          </div>
-        </div>
+      {isRegistering || isEditingProfile ? (
+        <ProfileEditor
+          isRegistering={isRegistering}
+          contactError={contactError}
+          contactMessage={contactMessage}
+          contactForm={contactForm}
+          setContactForm={setContactForm}
+          handlePhoneBlur={handlePhoneBlur}
+          saveContact={saveContact}
+          savingContact={savingContact}
+        />
       ) : null}
 
       {loading && !hasProfile ? (
@@ -1118,111 +915,14 @@ export function CiurmaScreen() {
           <div className="mb-5">
             <PwaPushCard />
           </div>
-          <div className="panel mb-5 rounded-[2rem] p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <p className="eyebrow">Diario di bordo</p>
-                <h2 className="text-xl font-semibold text-white">
-                  La tua ciurma prende forma
-                </h2>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Visite, bottino e progressi fedelta raccolti in un colpo solo.
-                </p>
-              </div>
-              {hasOnPremiseAccess ? (
-                <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  Sei nel locale
-                </span>
-              ) : null}
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  Visite registrate
-                </p>
-                <p className="mt-2 text-2xl font-black text-white">
-                  {data.contact.NumeroVisite ?? 0}
-                </p>
-              </div>
-              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  Coupon attivi
-                </p>
-                <p className="mt-2 text-2xl font-black text-white">
-                  {data.coupons.filter((coupon) => !coupon.Utilizzato).length}
-                </p>
-              </div>
-              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  Prossima ricompensa
-                </p>
-                <p className="mt-2 text-sm font-bold text-white">
-                  {loyaltyProgress.nextReward?.label || "Rotta VIP"}
-                </p>
-              </div>
-              <div className="panel-muted rounded-[1.4rem] px-4 py-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  Imprese sbloccate
-                </p>
-                <p className="mt-2 text-2xl font-black text-white">
-                  {missions.filter((mission) => mission.isUnlocked(data)).length}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                  Le tue Imprese
-                </p>
-                <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                  {missions.filter(m => m.isUnlocked(data)).length} / {missions.length} Sbloccate
-                </span>
-              </div>
-              
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden mask-fade-right">
-                {missions.map((mission) => {
-                  const isUnlocked = mission.isUnlocked(data);
-                  return (
-                    <button 
-                      key={mission.id} 
-                      onClick={() => {
-                        triggerHaptic();
-                        setSelectedMission(mission);
-                      }}
-                      className="group relative flex flex-col items-center gap-2 flex-shrink-0 outline-none"
-                    >
-                      <div 
-                        className={cn(
-                          "flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-500 overflow-hidden",
-                          isUnlocked 
-                            ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_15px_rgba(216,176,106,0.3)]" 
-                            : "border-white/5 bg-white/5 grayscale opacity-30"
-                        )}
-                      >
-                        {mission.image ? (
-                          <img 
-                            src={mission.image} 
-                            alt={mission.label} 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-3xl">{mission.icon}</span>
-                        )}
-                      </div>
-                      <span className={cn(
-                        "text-[9px] font-bold text-center uppercase tracking-tight leading-tight w-20 break-words",
-                        isUnlocked ? "text-white" : "text-[var(--text-muted)]"
-                      )}>
-                        {mission.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <ProfileDashboard
+            data={data}
+            loyaltyProgress={loyaltyProgress}
+            missions={missions}
+            setSelectedMission={setSelectedMission}
+            triggerHaptic={triggerHaptic}
+            hasOnPremiseAccess={hasOnPremiseAccess}
+          />
           <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
             <PiratePhotoContestCard
               key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
@@ -1232,604 +932,39 @@ export function CiurmaScreen() {
             />
           </div>
 
-          <div id="sfide" className="panel hash-scroll-target rounded-[2rem] p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <p className="eyebrow">Sfide e contenuti</p>
-              </div>
+          <ProfileGamesAndAdmin
+            data={data}
+            identityEmail={identityEmail}
+            isLoggedAdmin={isLoggedAdmin}
+            showUnifiedCommandDeck={showUnifiedCommandDeck}
+            hasOnPremiseAccess={hasOnPremiseAccess}
+            activeGames={activeGames}
+            registerVisit={registerVisit}
+            triggerHaptic={triggerHaptic}
+          />
 
-              <span className="rounded-full border border-[rgba(171,128,63,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                Esclusive
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              {/* Client-facing cards (Hidden for Admins) */}
-              {!isAdmin(identity.email) && (
-                <>
-                  {/* Match & Drink - GIOVEDÌ */}
-                  {activeGames.matchDrink && (
-                    <Link
-                      href="/game/match-drink"
-                      onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                      className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink - GIOVEDÌ</p>
-                          <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                            Nuove amicizie o anima gemella? Incontra persone che condividono i tuoi stessi interessi!
-                          </p>
-                        </div>
-                        <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
-                          GIOCA ORA
-                        </span>
-                      </div>
-                    </Link>
-                  )}
-
-                  {/* Buzzer Card - Client */}
-                  {activeGames.buzzer && (
-                    <a
-                      href="/game/buzzer"
-                      onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                      className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-base font-semibold text-white uppercase italic">🎵 Tortuga Music Quiz</p>
-                          <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                            La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
-                          </p>
-                        </div>
-                        <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                          GIOCA ORA
-                        </span>
-                      </div>
-                    </a>
-                  )}
-                  {hasOnPremiseAccess && (
-                    <>
-                      <ScratchAndWinCard
-                        className="mt-4"
-                        onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                      />
-                      <LiveTvContributionCard
-                        contact={data.contact}
-                        onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                      />
-                    </>
-                  )}
-
-                  {/* Receipt Upload Card - Client */}
-                  <Link
-                    href="/ciurma/carica-scontrino"
-                    className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)] bg-[var(--accent-soft)]/5 mt-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-base font-semibold text-white uppercase italic">💰 Carica Scontrino</p>
-                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                          Hai cenato al Tortuga? Carica la foto dello scontrino per accumulare punti sulla tua card!
-                        </p>
-                      </div>
-                      <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-strong)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                        CARICA
-                      </span>
-                    </div>
-                  </Link>
-                </>
-              )}
-
-              {showUnifiedCommandDeck && (
-                <a
-                  href="https://app.tortugabay.it/admin/live-tv"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)] bg-[var(--accent-soft)]/5"
-                  onClick={() => {
-                    triggerHaptic();
-                    if (data?.contact?.CodiceContatto) {
-                      void registerVisit(data.contact.CodiceContatto);
-                    }
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">Plancia di Comando</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Un unico accesso alla plancia operativa Tortuga.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      ADMIN
-                    </span>
-                  </div>
-                </a>
-              )}
-
-              {/* Buzzer Card - Admin (Captain only) */}
-              {isLoggedAdmin && !showUnifiedCommandDeck && (
-                <a
-                  href="/admin/buzzer"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-purple-500 bg-purple-500/5"
-                  onClick={() => {
-                    triggerHaptic();
-                    if (data?.contact?.CodiceContatto) {
-                      void registerVisit(data.contact.CodiceContatto);
-                    }
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">⚓ Plancia Tortuga Music Quiz</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Gestisci le prenotazioni e assegna il bottino.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
-                      ADMIN
-                    </span>
-                  </div>
-                </a>
-              )}
-
-              {/* Match & Drink Admin */}
-              {isLoggedAdmin && !showUnifiedCommandDeck && (
-                <Link
-                  href="/admin/match-drink"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">🍸 Plancia Match & Drink</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Avvia sessioni, gestisci domande e sblocca i drink del match.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
-                      ADMIN
-                    </span>
-                  </div>
-                </Link>
-              )}
-              {/* Kantaquiz Admin */}
-              {isLoggedAdmin && !showUnifiedCommandDeck && (
-                <button
-                  onClick={async () => {
-                    const pin = prompt("Inserisci PIN Capitano:");
-                    if (!pin) return;
-                    try {
-                      const res = await fetch("/api/game/kantaquiz", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ pin }),
-                      });
-                      if (res.ok) {
-                        alert("Kantaquiz avviato! La guida Dr. Why sarà visibile per 3 ore.");
-                      } else {
-                        const errData = await res.json();
-                        alert("Errore: " + errData.error);
-                      }
-                    } catch {
-                      alert("Errore di connessione.");
-                    }
-                  }}
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block w-full text-left transition-all hover:scale-[1.02] active:scale-95 border-orange-500 bg-orange-500/5 mt-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">🎤 Avvia Kantaquiz</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Attiva la guida Dr. Why nella tab Info per i clienti.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-orange-500 bg-orange-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-orange-400">
-                      ADMIN
-                    </span>
-                  </div>
-                </button>
-              )}
-
-              {/* Push Admin */}
-              {isLoggedAdmin && !showUnifiedCommandDeck && (
-                <Link
-                  href="/admin/push"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-purple-500 bg-purple-500/5 mt-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">📣 Plancia Push</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Invia notifiche personalizzate a tutta la ciurma o solo ai presenti.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-purple-500 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
-                      ADMIN
-                    </span>
-                  </div>
-                </Link>
-              )}
-
-              {/* Receipts Admin */}
-              {isLoggedAdmin && !showUnifiedCommandDeck && (
-                <Link
-                  href="/admin/scontrini"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-emerald-500 bg-emerald-500/5 mt-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">💰 Gestione Scontrini</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Valida gli scontrini inviati dai pirati e assegna i punti.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-emerald-500 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-400">
-                      ADMIN
-                    </span>
-                  </div>
-                </Link>
-              )}
-
-            </div>
-          </div>
-
-          <div
-            id="riconoscimento"
-            className="panel hash-scroll-target rounded-[2rem] p-5 overflow-visible"
-          >
-            <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
-              <p className="text-xs font-black uppercase tracking-[0.25em] text-[var(--accent-strong)]">
-                Passaporto del pirata
-              </p>
-              <div className="flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--accent-strong)] animate-pulse" />
-                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Documento Valido</span>
-              </div>
-            </div>
-
-            <div className="relative z-20 flex min-w-0 items-center gap-4">
-              <LocalPirateAvatar
-                customerKey={
-                  contactSnapshot.email ||
-                  identityEmail ||
-                  data.contact.CodiceContatto ||
-                  profileName
-                }
-                label={profileName}
-              />
-              <div className="min-w-0 flex-1 space-y-2">
-                <h2 className="truncate text-2xl font-semibold text-white">
-                  {profileName}
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5 rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 pl-1 pr-3 py-1">
-                    {loyaltyProgress.loyaltyTier.image ? (
-                      <img 
-                        src={loyaltyProgress.loyaltyTier.image} 
-                        alt={loyaltyProgress.loyaltyTier.label}
-                        className="h-5 w-5 object-contain"
-                      />
-                    ) : null}
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
-                      {loyaltyProgress.loyaltyTier.label}
-                    </span>
-                  </div>
-                  <span className="text-xs leading-5 text-[var(--text-muted)]">
-                    {loyaltyProgress.points} punti
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="my-8 border-t border-white/5" />
-
-            {contactError ? (
-              <div className="mt-4 rounded-[1.4rem] border border-[rgba(240,139,117,0.22)] bg-[rgba(240,139,117,0.08)] px-4 py-3 text-sm leading-6 text-[var(--danger)]">
-                {contactError}
-              </div>
-            ) : null}
-
-            {contactMessage ? (
-              <div className="mt-4 rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
-                {contactMessage}
-              </div>
-            ) : null}
-
-            <div className="mt-4 space-y-3">
-              {/* Core Header (Always visible) */}
-              <div className="flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                    Dati Anagrafici
-                  </p>
-                  <h3 className="text-lg font-bold text-white">
-                    {contactSnapshot.firstName} {contactSnapshot.lastName}
-                  </h3>
-                </div>
-                {!isEditingProfile && (
-                  <button
-                    type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(216,176,106,0.25)] bg-[rgba(216,176,106,0.1)] text-[var(--accent-strong)] transition-all active:scale-90"
-                    onClick={() => {
-                      triggerHaptic();
-                      setIsDataExpanded(!isDataExpanded);
-                    }}
-                  >
-                    <span className="text-xl font-bold leading-none">
-                      {isDataExpanded ? "−" : "+"}
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {isEditingProfile ? (
-                <div className="grid gap-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Nome</span>
-                      <input
-                        className="field"
-                        value={contactForm.firstName}
-                        onChange={(event) =>
-                          setContactForm((current) => ({
-                            ...current,
-                            firstName: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Cognome</span>
-                      <input
-                        className="field"
-                        value={contactForm.lastName}
-                        onChange={(event) =>
-                          setContactForm((current) => ({
-                            ...current,
-                            lastName: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Email</span>
-                      <input
-                        className="field"
-                        type="email"
-                        value={contactForm.email}
-                        onChange={(event) =>
-                          setContactForm((current) => ({
-                            ...current,
-                            email: normalizeCustomerEmail(event.target.value),
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Telefono</span>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
-                          +39
-                        </span>
-                        <input
-                          className="field pl-14"
-                          type="tel"
-                          value={contactForm.phone.replace(/^\+39/, "")}
-                          onChange={(event) =>
-                            setContactForm((current) => ({
-                              ...current,
-                              phone: "+39" + event.target.value.replace(/\D/g, ""),
-                            }))
-                          }
-                          onBlur={handlePhoneBlur}
-                        />
-                      </div>
-                    </label>
-                  </div>
-
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Data di nascita</span>
-                    <input
-                      className="field"
-                      type="date"
-                      value={contactForm.birthDate}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          birthDate: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label className="flex items-start gap-3 rounded-[1.4rem] border border-[rgba(171,128,63,0.16)] bg-white/4 px-4 py-3 text-sm text-[var(--text-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={contactForm.marketingConsent}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          marketingConsent: event.target.checked,
-                        }))
-                      }
-                    />
-                    <span>
-                      Accetto comunicazioni marketing future di Tortuga.
-                    </span>
-                  </label>
-
-                  {emailChangeRequest ? (
-                    <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                          Verifica email
-                        </p>
-                        <h3 className="text-lg font-semibold text-white">
-                          Controlla {emailChangeRequest.pendingEmail}
-                        </h3>
-                        <p className="text-sm leading-6 text-[var(--text-muted)]">
-                          La tua email attuale resta valida finche non confermi il
-                          codice. Il codice scade alle {emailChangeExpiresAtLabel}.
-                        </p>
-                      </div>
-
-                      <div className="mt-4 grid gap-3">
-                        <input
-                          className="field text-center text-lg font-semibold tracking-[0.35em]"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={6}
-                          placeholder="000000"
-                          value={emailChangeCode}
-                          onChange={(event) =>
-                            setEmailChangeCode(
-                              event.target.value.replace(/\D/g, "").slice(0, 6),
-                            )
-                          }
-                        />
-
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <button
-                            type="button"
-                            className="button-primary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                            onClick={() => {
-                              triggerHaptic();
-                              void verifyEmailChange();
-                            }}
-                            disabled={
-                              verifyingEmailChange || emailChangeCode.trim().length !== 6
-                            }
-                          >
-                            {verifyingEmailChange
-                              ? "Verifico..."
-                              : "Conferma codice"}
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                            onClick={() => {
-                              triggerHaptic();
-                              void resendEmailChangeCode();
-                            }}
-                            disabled={
-                              resendingEmailChange || !emailChangeCanResend
-                            }
-                          >
-                            {resendingEmailChange
-                              ? "Invio..."
-                              : emailChangeCanResend
-                                ? "Reinvia codice"
-                                : `Reinvia tra ${emailChangeResendSeconds}s`}
-                          </button>
-                        </div>
-
-                        <p className="text-xs leading-5 text-[var(--text-muted)]">
-                          Tentativi rimasti: {emailChangeRequest.attemptsRemaining}.
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-                    onClick={() => {
-                      triggerHaptic();
-                      void saveContact();
-                    }}
-                    disabled={savingContact || verifyingEmailChange}
-                  >
-                    {savingContact
-                      ? "Salvo le modifiche..."
-                      : emailChangeNeedsVerification
-                        ? "Invia codice verifica"
-                        : "Salva modifiche"}
-                  </button>
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {/* Collapsible/Missing Content */}
-                  <div className="grid gap-3">
-                    {/* Contacts (Email/Phone) - Expanded only if full, or if one is missing */}
-                    {(isDataExpanded || !contactSnapshot.email || !contactSnapshot.phone) && (
-                      <div className="panel-muted rounded-[1.5rem] px-4 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                          Contatti
-                        </p>
-                        <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
-                          <p>
-                            Email:{" "}
-                            <span className={contactSnapshot.email ? "text-white" : "text-[var(--danger)] font-semibold"}>
-                              {contactSnapshot.email || "Non disponibile"}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Birth Date - Expanded only if full, or if missing */}
-                    {(isDataExpanded || !contactSnapshot.birthDate) && (
-                      <div className="panel-muted rounded-[1.5rem] px-4 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                          Data di nascita
-                        </p>
-                        <p className={contactSnapshot.birthDate ? "mt-2 text-base font-semibold text-white" : "mt-2 text-sm text-[var(--danger)] font-semibold"}>
-                          {contactSnapshot.birthDate
-                            ? formatBirthDateLabel(contactSnapshot.birthDate)
-                            : "Non disponibile"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {!activeCardCode || showActivatedCardPanel ? (
-                <div className="mt-2">
-                  <FidelityActivationPanel
-                    contactCode={contactCode}
-                    activeCardCode={activeCardCode}
-                    qrLabel="QR ciurma Tortuga"
-                    onActivated={handleFidelityActivated}
-                  />
-                </div>
-              ) : null}
-            </div>
-
-
-            <div className="mt-5 flex flex-col gap-2 border-t border-[rgba(216,176,106,0.14)] pt-4 sm:flex-row">
-              <button
-                type="button"
-                className="button-secondary inline-flex min-h-11 flex-1 items-center justify-center px-4 text-sm"
-                onClick={() => {
-                  triggerHaptic();
-                  if (isEditingProfile) {
-                    setIsEditingProfile(false);
-                    setContactError("");
-                    setContactMessage("");
-                    return;
-                  }
-
-                  openContactEditor();
-                }}
-              >
-                {isEditingProfile ? "Chiudi modifiche" : "Modifica dati"}
-              </button>
-              <button
-                type="button"
-                className="button-secondary inline-flex min-h-11 flex-1 items-center justify-center px-4 text-sm"
-                onClick={() => {
-                  triggerHaptic();
-                  changeAccount();
-                }}
-              >
-                Cambia profilo
-              </button>
-            </div>
-
-          </div>
+          <ProfilePassport
+            data={data}
+            contactSnapshot={contactSnapshot}
+            identityEmail={identityEmail}
+            profileName={profileName}
+            loyaltyProgress={loyaltyProgress}
+            contactError={contactError}
+            contactMessage={contactMessage}
+            isEditingProfile={isEditingProfile}
+            isDataExpanded={isDataExpanded}
+            setIsDataExpanded={setIsDataExpanded}
+            activeCardCode={activeCardCode}
+            showActivatedCardPanel={showActivatedCardPanel}
+            contactCode={contactCode}
+            handleFidelityActivated={handleFidelityActivated}
+            triggerHaptic={triggerHaptic}
+            setIsEditingProfile={setIsEditingProfile}
+            setContactError={setContactError}
+            setContactMessage={setContactMessage}
+            openContactEditor={openContactEditor}
+            changeAccount={changeAccount}
+          />
         </>
       ) : null}
 
@@ -1885,6 +1020,7 @@ export function CiurmaScreen() {
           <div className="absolute inset-0 -z-10" onClick={() => setSelectedMission(null)} />
         </div>
       )}
+      </>)}
     </section>
   );
 }

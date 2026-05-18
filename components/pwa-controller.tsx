@@ -137,18 +137,38 @@ export function PwaController() {
         // Force an update check on registration
         void registration.update();
 
-        // Listen for updates and reload when a new worker takes control
+        // Listen for updates – reload ONCE when a new SW takes control.
+        // We use sessionStorage to prevent infinite reload loops: if the new
+        // SW is installed but the page keeps erroring, we stop reloading.
         registration.onupdatefound = () => {
           const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.onstatechange = () => {
-              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                console.log("Nuova versione trovata. Ricarico l'app...");
-                window.location.reload();
+          if (!newWorker) return;
+
+          newWorker.onstatechange = () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              const RELOAD_KEY = "tortuga.sw-reload-at";
+              const lastReload = Number(sessionStorage.getItem(RELOAD_KEY) ?? "0");
+              const now = Date.now();
+
+              // Guard: non ricaricare più di una volta ogni 30 secondi
+              if (now - lastReload < 30_000) {
+                console.log("SW update trovato ma reload troppo recente – skip.");
+                return;
               }
-            };
-          }
+
+              console.log("Nuova versione trovata. Ricarico l'app...");
+              sessionStorage.setItem(RELOAD_KEY, String(now));
+              window.location.reload();
+            }
+          };
         };
+
+        // Forza il nuovo SW in attesa a prendere controllo immediatamente
+        // (evita che rimanga bloccato in "waiting" per sempre)
+        const waitingWorker = registration.waiting;
+        if (waitingWorker) {
+          waitingWorker.postMessage({ type: "SKIP_WAITING" });
+        }
 
         setServiceWorkerRegistration(registration);
 
