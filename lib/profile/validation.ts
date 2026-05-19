@@ -55,7 +55,7 @@ export const validateProfileUpdateInput = (
     return "Inserisci un indirizzo email valido.";
   }
 
-  if (!isValidItalianMobileNumber(payload.phone)) {
+  if (payload.phone && !isValidItalianMobileNumber(payload.phone)) {
     return italianPhoneValidationError;
   }
 

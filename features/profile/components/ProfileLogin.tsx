@@ -30,6 +30,12 @@ export interface ProfileLoginProps {
   resendingLogin: boolean;
   loginCanResend: boolean;
   loginResendSeconds: number;
+  lookupEmailError: string;
+  loginCodeError: string;
+  clearLoginFieldErrors: (...fields: Array<"lookupEmail" | "loginCode">) => void;
+  setFieldRef: (
+    field: "lookupEmail" | "loginCode",
+  ) => (element: HTMLElement | null) => void;
 }
 
 export function ProfileLogin({
@@ -53,6 +59,10 @@ export function ProfileLogin({
   resendingLogin,
   loginCanResend,
   loginResendSeconds,
+  lookupEmailError,
+  loginCodeError,
+  clearLoginFieldErrors,
+  setFieldRef,
 }: ProfileLoginProps) {
   return (
     <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
@@ -68,10 +78,15 @@ export function ProfileLogin({
         {loginMode === "lookup" ? (
           <div className="space-y-3">
             <Input
+              ref={setFieldRef("lookupEmail")}
               type="email"
               placeholder="cliente@email.it"
+              error={lookupEmailError}
               value={lookupEmail}
-              onChange={(event) => setLookupEmail(event.target.value)}
+              onChange={(event) => {
+                clearLoginFieldErrors("lookupEmail");
+                setLookupEmail(event.target.value);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleLookupSubmit();
               }}
@@ -138,15 +153,18 @@ export function ProfileLogin({
               <p className="mt-1 text-xs">Scade alle {loginExpiresAtLabel}.</p>
             </div>
             <Input
+              ref={setFieldRef("loginCode")}
               className="text-center text-lg font-semibold tracking-[0.35em]"
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={6}
               placeholder="000000"
+              error={loginCodeError}
               value={loginCode}
-              onChange={(event) =>
-                setLoginCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-              }
+              onChange={(event) => {
+                clearLoginFieldErrors("loginCode");
+                setLoginCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+              }}
             />
             <div className="grid gap-2 sm:grid-cols-2">
               <Button

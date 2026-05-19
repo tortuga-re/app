@@ -6,6 +6,9 @@ import { triggerHaptic } from "@/lib/haptics";
 export interface ProfileEditorProps {
   isRegistering: boolean;
   contactError: string;
+  contactFieldErrors: Partial<
+    Record<"firstName" | "lastName" | "email" | "phone", string>
+  >;
   contactMessage: string;
   contactForm: {
     firstName: string;
@@ -26,17 +29,26 @@ export interface ProfileEditorProps {
   handlePhoneBlur: () => void;
   saveContact: () => void;
   savingContact: boolean;
+  clearContactFieldErrors: (
+    ...fields: Array<"firstName" | "lastName" | "email" | "phone">
+  ) => void;
+  setFieldRef: (
+    field: "firstName" | "lastName" | "email" | "phone",
+  ) => (element: HTMLElement | null) => void;
 }
 
 export function ProfileEditor({
   isRegistering,
   contactError,
+  contactFieldErrors,
   contactMessage,
   contactForm,
   setContactForm,
   handlePhoneBlur,
   saveContact,
   savingContact,
+  clearContactFieldErrors,
+  setFieldRef,
 }: ProfileEditorProps) {
   return (
     <div id={isRegistering ? "registrazione" : "modifica"} className="panel hash-scroll-target rounded-[2rem] p-5">
@@ -66,38 +78,47 @@ export function ProfileEditor({
       <div className="mt-6 grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
+            ref={setFieldRef("firstName")}
             label="Nome"
+            error={contactFieldErrors.firstName}
             value={contactForm.firstName}
-            onChange={(event) =>
+            onChange={(event) => {
+              clearContactFieldErrors("firstName");
               setContactForm((current) => ({
                 ...current,
                 firstName: event.target.value,
-              }))
-            }
+              }));
+            }}
           />
           <Input
+            ref={setFieldRef("lastName")}
             label="Cognome"
+            error={contactFieldErrors.lastName}
             value={contactForm.lastName}
-            onChange={(event) =>
+            onChange={(event) => {
+              clearContactFieldErrors("lastName");
               setContactForm((current) => ({
                 ...current,
                 lastName: event.target.value,
-              }))
-            }
+              }));
+            }}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
+            ref={setFieldRef("email")}
             label="Email"
             type="email"
+            error={contactFieldErrors.email}
             value={contactForm.email}
-            onChange={(event) =>
+            onChange={(event) => {
+              clearContactFieldErrors("email");
               setContactForm((current) => ({
                 ...current,
                 email: event.target.value,
-              }))
-            }
+              }));
+            }}
           />
           <div className="flex w-full flex-col gap-2">
             <label className="eyebrow ml-3">Telefono</label>
@@ -106,18 +127,26 @@ export function ProfileEditor({
                 +39
               </span>
               <input
-                className="field pl-14"
+                ref={setFieldRef("phone")}
+                className={`field pl-14 ${contactFieldErrors.phone ? "border-red-500 focus:border-red-500" : ""}`}
                 type="tel"
                 value={contactForm.phone.replace(/^\+39/, "")}
-                onChange={(event) =>
+                onChange={(event) => {
+                  clearContactFieldErrors("phone");
+                  const nationalNumber = event.target.value.replace(/\D/g, "");
                   setContactForm((current) => ({
                     ...current,
-                    phone: "+39" + event.target.value.replace(/\D/g, ""),
-                  }))
-                }
+                    phone: nationalNumber ? `+39${nationalNumber}` : "",
+                  }));
+                }}
                 onBlur={handlePhoneBlur}
               />
             </div>
+            {contactFieldErrors.phone ? (
+              <span className="pl-4 text-xs font-semibold text-red-400">
+                {contactFieldErrors.phone}
+              </span>
+            ) : null}
           </div>
         </div>
 
