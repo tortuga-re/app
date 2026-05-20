@@ -245,6 +245,9 @@ const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
 
 const getCoopertoNationalPhone = (value?: string) =>
   normalizeItalianPhone(value ?? "")?.nationalNumber ?? "";
+
+const getCoopertoInternationalPhone = (value?: string) =>
+  normalizeItalianPhone(value ?? "")?.normalizedE164 ?? "";
 const normalizeContactCode = (value?: string) => value?.trim() ?? "";
 
 const buildWaitlistNote = (input: WaitlistCreateInput) => {
@@ -668,7 +671,7 @@ export const updateProfileContact = async (
     Nome: input.firstName,
     Cognome: input.lastName,
     Email: input.email,
-    Telefono: getCoopertoNationalPhone(input.phone) || undefined,
+    Telefono: getCoopertoInternationalPhone(input.phone),
     DataDiNascita: buildBirthDateDateTime(input.birthDate),
     ConsensoMarketing: input.marketingConsent,
     SovrascriviDati: true,

@@ -37,7 +37,6 @@ export default function MatchDrinkSessionAdminPage() {
   } = useMatchDrinkAdmin(id);
 
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isAdvancingStage, setIsAdvancingStage] = useState(false);
   const [countdownMinutes, setCountdownMinutes] = useState(5);
 
   if (loading) return null;
@@ -53,71 +52,6 @@ export default function MatchDrinkSessionAdminPage() {
   const peopleWaiting = Math.max(realPlayers.length - confirmedMatches.length * 2, 0);
   const revealReady = session.status === "matching" && matches.length > 0;
   const analytics = session.analytics;
-  const lastQuestionIndex = Math.max(questions.length - 1, 0);
-  const isLastQuestion = session.currentQuestionIndex >= lastQuestionIndex;
-
-  const getAdvanceButtonLabel = () => {
-    if (session.status === "matching") {
-      return "REVEAL MATCH";
-    }
-
-    if (session.status !== "playing") {
-      return null;
-    }
-
-    if (session.stageMode === "question") {
-      return "MOSTRA RISULTATI";
-    }
-
-    if (session.stageMode === "question_results") {
-      return isLastQuestion ? "CALCOLA MATCH" : "PROSSIMA DOMANDA";
-    }
-
-    return "MOSTRA DOMANDA";
-  };
-
-  const advanceButtonLabel = getAdvanceButtonLabel();
-
-  const handleAdvanceStage = async () => {
-    if (isAdvancingStage) {
-      return;
-    }
-
-    setIsAdvancingStage(true);
-
-    try {
-      triggerHaptic();
-
-      if (session.status === "matching") {
-        await updateStatus("reveal");
-        await updateStageMode("reveal");
-        return;
-      }
-
-      if (session.status !== "playing") {
-        return;
-      }
-
-      if (session.stageMode === "question") {
-        await updateStageMode("question_results");
-        return;
-      }
-
-      if (session.stageMode === "question_results") {
-        if (isLastQuestion) {
-          await calculateMatches();
-          return;
-        }
-
-        await nextQuestion(session.currentQuestionIndex + 1);
-        return;
-      }
-
-      await updateStageMode("question");
-    } finally {
-      setIsAdvancingStage(false);
-    }
-  };
 
   const handleToggleExcludedTable = async (tableKey: string) => {
     const nextExcluded = excludedMeetingTables.includes(tableKey)
@@ -179,24 +113,34 @@ export default function MatchDrinkSessionAdminPage() {
                       onClick={() => updateStageMode("intro")}
                       disabled={session.stageMode === "intro"}
                     >MOSTRA STATISTICHE</MatchDrinkButton>
-                    {advanceButtonLabel && (
-                      <MatchDrinkButton
-                        onClick={() => void handleAdvanceStage()}
-                        variant="primary"
-                        loading={isAdvancingStage}
-                      >
-                        {advanceButtonLabel}
+                    <MatchDrinkButton 
+                      variant="secondary" 
+                      onClick={() => updateStageMode("question")}
+                      disabled={session.stageMode === "question"}
+                    >MOSTRA DOMANDA</MatchDrinkButton>
+                    <MatchDrinkButton 
+                      variant="secondary" 
+                      onClick={() => updateStageMode("question_results")}
+                      disabled={session.stageMode === "question_results"}
+                    >MOSTRA RISULTATI</MatchDrinkButton>
+                    {session.currentQuestionIndex < (session.questions?.length || 0) - 1 ? (
+                      <MatchDrinkButton onClick={() => nextQuestion(session.currentQuestionIndex + 1)}>
+                        PROSSIMA DOMANDA
                       </MatchDrinkButton>
+                    ) : (
+                      <MatchDrinkButton onClick={calculateMatches} variant="primary">CALCOLA MATCH</MatchDrinkButton>
                     )}
                   </>
                 )}
                 {session.status === "matching" && (
-                  <MatchDrinkButton
-                    onClick={() => void handleAdvanceStage()}
-                    loading={isAdvancingStage}
-                  >
-                    REVEAL MATCH
-                  </MatchDrinkButton>
+                   <MatchDrinkButton 
+                     onClick={() => {
+                       updateStatus("reveal");
+                       updateStageMode("reveal");
+                     }}
+                   >
+                     REVEAL MATCH
+                   </MatchDrinkButton>
                 )}
               </div>
 

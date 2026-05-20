@@ -33,10 +33,9 @@ import {
   useHydratedLocalStorageState,
   writeLocalStorageValue,
 } from "@/lib/local-storage-state";
-import { scrollToFormField } from "@/lib/form-focus";
 import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
-import { cn, formatLongDate, formatTime, todayIso } from "@/lib/utils";
+import { cn, formatDateTime, formatLongDate, safeNumber, todayIso } from "@/lib/utils";
 import {
   italianPhoneValidationError,
   normalizeItalianPhone,
@@ -45,7 +44,7 @@ import {
 
 type BookingDraft = {
   date: string;
-  pax: string;
+  pax: number;
   roomCode: string;
   isAfterDinner: boolean;
   childrenCount: string;
@@ -58,19 +57,6 @@ type BookingDraft = {
   marketingAccepted: boolean;
 };
 
-type BookingFieldName =
-  | "date"
-  | "pax"
-  | "selectedTime"
-  | "childrenCount"
-  | "firstName"
-  | "lastName"
-  | "email"
-  | "phone"
-  | "privacyAccepted";
-
-type BookingFieldErrors = Partial<Record<BookingFieldName, string>>;
-
 type DecoratedSlot = BookingSlot & {
   bandLabel: string;
   date: string;
@@ -78,7 +64,7 @@ type DecoratedSlot = BookingSlot & {
 
 const baseDraft: BookingDraft = {
   date: todayIso(),
-  pax: "",
+  pax: 2,
   roomCode: "",
   isAfterDinner: false,
   childrenCount: "",
@@ -93,31 +79,6 @@ const baseDraft: BookingDraft = {
 
 const SALA_CENTRALE_ROOM_CODE = "da1d57f0-e0d5-4d7e-86be-9f8300f388b8";
 const AREA_FAMILY_ROOM_CODE = "2a2cda28-9466-4a9d-b2d0-5a0294b2fd0c";
-
-const parsePositiveInteger = (value: string) => {
-  if (!/^\d+$/.test(value.trim())) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-};
-
-const formatReservationDateLabel = (value?: string) => {
-  if (!value || Number.isNaN(Date.parse(value))) {
-    return "";
-  }
-
-  return formatLongDate(value);
-};
-
-const formatReservationTimeLabel = (value?: string) => {
-  if (!value || Number.isNaN(Date.parse(value))) {
-    return "";
-  }
-
-  return formatTime(value);
-};
 
 const buildDraftFallback = (
   firstName?: string,
@@ -196,14 +157,16 @@ const parseStoredDraft = (
   marketingConsent?: boolean,
 ): BookingDraft | null => {
   const parsed = JSON.parse(raw) as Partial<BookingDraft>;
-  const currentDate = todayIso();
 
   return {
-    date: currentDate,
-    pax: "",
+    date:
+      typeof parsed.date === "string" && parsed.date
+        ? parsed.date
+        : fallbackDraft.date,
+    pax: Math.max(1, safeNumber(parsed.pax, fallbackDraft.pax)),
     roomCode: typeof parsed.roomCode === "string" ? parsed.roomCode : "",
     isAfterDinner: typeof parsed.isAfterDinner === "boolean" ? parsed.isAfterDinner : false,
-    childrenCount: "",
+    childrenCount: typeof parsed.childrenCount === "string" ? parsed.childrenCount : "",
     firstName:
       typeof parsed.firstName === "string" && parsed.firstName.trim()
         ? parsed.firstName
@@ -268,142 +231,12 @@ export function BookingFlow() {
     useState<WaitlistCreateResponse | null>(null);
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
   const [waitlistContextKey, setWaitlistContextKey] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<BookingFieldErrors>({});
   const customerDetailsStepRef = useRef<HTMLDivElement | null>(null);
   const hasAutoScrolledToCustomerStepRef = useRef(false);
   const pendingInitialSlotScrollRef = useRef(false);
   const seededCustomerEmailRef = useRef("");
   const marketingFirstUntickBlockedRef = useRef(false);
   const trackedStartBookingRef = useRef(false);
-  const dateFieldRef = useRef<HTMLInputElement | null>(null);
-  const paxFieldRef = useRef<HTMLInputElement | null>(null);
-  const selectedTimeFieldRef = useRef<HTMLDivElement | null>(null);
-  const childrenCountFieldRef = useRef<HTMLInputElement | null>(null);
-  const firstNameFieldRef = useRef<HTMLInputElement | null>(null);
-  const lastNameFieldRef = useRef<HTMLInputElement | null>(null);
-  const emailFieldRef = useRef<HTMLInputElement | null>(null);
-  const phoneFieldRef = useRef<HTMLInputElement | null>(null);
-  const privacyAcceptedFieldRef = useRef<HTMLParagraphElement | null>(null);
-  const minimumBookingDate = todayIso();
-  const paxCount = parsePositiveInteger(draft.pax);
-
-  const clearFieldErrors = (...fields: BookingFieldName[]) => {
-    setFieldErrors((current) => {
-      let hasChanged = false;
-      const next = { ...current };
-
-      for (const field of fields) {
-        if (next[field]) {
-          delete next[field];
-          hasChanged = true;
-        }
-      }
-
-      return hasChanged ? next : current;
-    });
-  };
-
-  const scrollToFirstBookingError = (errors: BookingFieldErrors) => {
-    const fieldOrder: BookingFieldName[] = [
-      "date",
-      "pax",
-      "selectedTime",
-      "childrenCount",
-      "firstName",
-      "lastName",
-      "email",
-      "phone",
-      "privacyAccepted",
-    ];
-
-    const firstInvalidField = fieldOrder.find((field) => errors[field]);
-    if (firstInvalidField) {
-      const fieldMap: Record<BookingFieldName, HTMLElement | null> = {
-        date: dateFieldRef.current,
-        pax: paxFieldRef.current,
-        selectedTime: selectedTimeFieldRef.current,
-        childrenCount: childrenCountFieldRef.current,
-        firstName: firstNameFieldRef.current,
-        lastName: lastNameFieldRef.current,
-        email: emailFieldRef.current,
-        phone: phoneFieldRef.current,
-        privacyAccepted: privacyAcceptedFieldRef.current,
-      };
-
-      scrollToFormField(fieldMap[firstInvalidField]);
-    }
-  };
-
-  const validateDraftFields = ({
-    requireSelectedSlot,
-    requireEmail,
-  }: {
-    requireSelectedSlot: boolean;
-    requireEmail: boolean;
-  }) => {
-    const errors: BookingFieldErrors = {};
-
-    if (!draft.date) {
-      errors.date = "Seleziona una data.";
-    } else if (draft.date < minimumBookingDate) {
-      errors.date = "Non puoi selezionare una data precedente a oggi.";
-    }
-
-    if (!draft.pax.trim()) {
-      errors.pax = "Inserisci il numero di persone.";
-    } else if (!paxCount) {
-      errors.pax = "Inserisci un numero di persone valido.";
-    } else if (paxCount > 16) {
-      errors.pax = "Il numero massimo di persone e 16.";
-    }
-
-    if (requireSelectedSlot && !selectedSlot) {
-      errors.selectedTime = "Scegli un orario disponibile prima di confermare.";
-    }
-
-    if (isAreaFamily) {
-      const childrenCount = parsePositiveInteger(draft.childrenCount);
-
-      if (!draft.childrenCount.trim()) {
-        errors.childrenCount = "Inserisci il numero di bambini.";
-      } else if (!childrenCount) {
-        errors.childrenCount = "Inserisci un numero di bambini valido.";
-      }
-    }
-
-    if (!draft.firstName.trim()) {
-      errors.firstName = "Inserisci il nome.";
-    }
-
-    if (!draft.lastName.trim()) {
-      errors.lastName = "Inserisci il cognome.";
-    }
-
-    if (requireEmail) {
-      if (!draft.email.trim()) {
-        errors.email = "Inserisci l'email del cliente.";
-      } else if (!isValidCustomerEmail(draft.email)) {
-        errors.email = "Inserisci un indirizzo email valido.";
-      }
-    } else if (draft.email.trim() && !isValidCustomerEmail(draft.email)) {
-      errors.email = "Inserisci un indirizzo email valido.";
-    }
-
-    if (!draft.phone.trim()) {
-      errors.phone = italianPhoneValidationError;
-    } else {
-      const normalizedPhone = validateItalianPhone(draft.phone);
-      if (!normalizedPhone.ok) {
-        errors.phone = normalizedPhone.error;
-      }
-    }
-
-    if (!draft.privacyAccepted) {
-      errors.privacyAccepted = "Devi accettare il consenso privacy per continuare.";
-    }
-
-    return errors;
-  };
 
   const handlePhoneBlur = () => {
     if (!draft.phone.trim()) return;
@@ -425,10 +258,10 @@ export function BookingFlow() {
     trackedStartBookingRef.current = true;
     trackAppEvent("start_booking", {
       app_section: "prenota",
-      default_pax: paxCount,
+      default_pax: draft.pax,
       has_prefilled_email: Boolean(draft.email),
     });
-  }, [draft.email, paxCount]);
+  }, [draft.email, draft.pax]);
 
   useEffect(() => {
     const loadBootstrap = async () => {
@@ -475,8 +308,7 @@ export function BookingFlow() {
   const canLoadAvailability = Boolean(
     bootstrap &&
       draft.date &&
-      draft.date >= minimumBookingDate &&
-      paxCount &&
+      draft.pax > 0 &&
       (!requiresRoomSelection || activeRoomCode),
   );
   const visibleDays = canLoadAvailability ? getVisibleBands(availability) : [];
@@ -485,16 +317,15 @@ export function BookingFlow() {
     ? enabledSlots.find((slot) => slot.time === selectedTime) ?? null
     : null;
   const successDateLabel = success?.reservation.DataPrenotazione
-    ? formatReservationDateLabel(success.reservation.DataPrenotazione)
+    ? formatLongDate(success.reservation.DataPrenotazione)
     : selectedSlot
       ? formatLongDate(selectedSlot.date)
       : "-";
-  const successTimeLabel =
-    formatReservationTimeLabel(success?.reservation.DataPrenotazione) ||
-    selectedSlot?.time ||
-    "-";
+  const successTimeLabel = success?.reservation.DataPrenotazione
+    ? formatDateTime(success.reservation.DataPrenotazione).split(" alle ")[1]
+    : selectedSlot?.time || "-";
   const availabilityKey = canLoadAvailability
-    ? `${draft.date}|${paxCount}|${activeRoomCode}`
+    ? `${draft.date}|${draft.pax}|${activeRoomCode}`
     : "";
   const hasNoAvailableSlots = Boolean(
     canLoadAvailability &&
@@ -526,7 +357,7 @@ export function BookingFlow() {
 
       const params = new URLSearchParams({
         date: draft.date,
-        pax: String(paxCount),
+        pax: String(draft.pax),
       });
 
       if (activeRoomCode) {
@@ -566,7 +397,7 @@ export function BookingFlow() {
     return () => {
       cancelled = true;
     };
-  }, [availabilityKey, activeRoomCode, draft.date, paxCount]);
+  }, [availabilityKey, activeRoomCode, draft.date, draft.pax]);
 
   useEffect(() => {
     if (
@@ -661,40 +492,54 @@ export function BookingFlow() {
   ]);
 
   const submitBooking = async () => {
-    const errors = validateDraftFields({
-      requireSelectedSlot: true,
-      requireEmail: true,
-    });
-
-    if (Object.keys(errors).length > 0 || !paxCount) {
-      setFieldErrors(errors);
-      setError("");
-      scrollToFirstBookingError(errors);
+    if (isAreaFamily && !draft.childrenCount.trim()) {
+      setError("Inserisci il numero di bambini per l'Area Family.");
       return;
     }
 
     if (!selectedSlot) {
+      setError("Scegli uno slot disponibile prima di confermare.");
       return;
     }
 
-    const confirmedPax = paxCount;
+    if (!draft.firstName.trim() || !draft.lastName.trim()) {
+      setError("Inserisci nome e cognome del cliente.");
+      return;
+    }
+
+    if (!draft.email.trim()) {
+      setError("Inserisci l'email del cliente.");
+      return;
+    }
+
+    if (!isValidCustomerEmail(draft.email)) {
+      setError("Inserisci un indirizzo email valido.");
+      return;
+    }
+
+    if (!draft.phone.trim()) {
+      setError("Inserisci un numero di cellulare italiano.");
+      return;
+    }
 
     const normalizedPhone = validateItalianPhone(draft.phone);
     if (!normalizedPhone.ok) {
-      const errors = { phone: normalizedPhone.error } satisfies BookingFieldErrors;
-      setFieldErrors(errors);
-      scrollToFirstBookingError(errors);
+      setError(normalizedPhone.error);
+      return;
+    }
+
+    if (!draft.privacyAccepted) {
+      setError("Il consenso privacy e richiesto per inviare la prenotazione.");
       return;
     }
 
     setSubmitting(true);
     setError("");
-    setFieldErrors({});
 
     const payload: BookingCreateInput = {
       date: draft.date,
       time: selectedSlot.time,
-      pax: confirmedPax,
+      pax: draft.pax,
       roomCode: activeRoomCode || undefined,
       statusCode: selectedStatusCode,
       firstName: draft.firstName.trim(),
@@ -764,38 +609,41 @@ export function BookingFlow() {
   };
 
   const submitWaitlist = async () => {
-    const errors = validateDraftFields({
-      requireSelectedSlot: false,
-      requireEmail: false,
-    });
-
-    if (Object.keys(errors).length > 0 || !paxCount) {
-      setFieldErrors(errors);
-      setWaitlistError("");
-      scrollToFirstBookingError(errors);
+    if (isAreaFamily && !draft.childrenCount.trim()) {
+      setWaitlistError("Inserisci il numero di bambini per l'Area Family.");
       return;
     }
 
-    const confirmedPax = paxCount;
+    if (!draft.firstName.trim() || !draft.lastName.trim()) {
+      setWaitlistError("Inserisci nome e cognome per entrare in lista d'attesa.");
+      return;
+    }
+
+    if (!draft.phone.trim()) {
+      setWaitlistError(italianPhoneValidationError);
+      return;
+    }
 
     const normalizedPhone = validateItalianPhone(draft.phone);
     if (!normalizedPhone.ok) {
-      const errors = { phone: normalizedPhone.error } satisfies BookingFieldErrors;
-      setFieldErrors(errors);
-      scrollToFirstBookingError(errors);
+      setWaitlistError(normalizedPhone.error);
+      return;
+    }
+
+    if (!draft.privacyAccepted) {
+      setWaitlistError("Il consenso privacy e richiesto per la lista d'attesa.");
       return;
     }
 
     setSubmittingWaitlist(true);
     setWaitlistError("");
-    setFieldErrors({});
 
     const payload: WaitlistCreateInput = {
       date: draft.date,
       requestedTime: draft.isAfterDinner
         ? "Dopo cena"
         : selectedTime || undefined,
-      pax: confirmedPax,
+      pax: draft.pax,
       roomCode: activeRoomCode || undefined,
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
@@ -903,42 +751,28 @@ export function BookingFlow() {
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Nome</span>
                       <input
-                        ref={firstNameFieldRef}
                         className="field"
                         value={draft.firstName}
-                        onChange={(event) => {
-                          clearFieldErrors("firstName");
+                        onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
                             firstName: event.target.value,
-                          }));
-                        }}
+                          }))
+                        }
                       />
-                      {fieldErrors.firstName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.firstName}
-                        </p>
-                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Cognome</span>
                       <input
-                        ref={lastNameFieldRef}
                         className="field"
                         value={draft.lastName}
-                        onChange={(event) => {
-                          clearFieldErrors("lastName");
+                        onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
                             lastName: event.target.value,
-                          }));
-                        }}
+                          }))
+                        }
                       />
-                      {fieldErrors.lastName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.lastName}
-                        </p>
-                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Telefono</span>
@@ -947,46 +781,32 @@ export function BookingFlow() {
                           +39
                         </span>
                         <input
-                          ref={phoneFieldRef}
                           className="field pl-14"
                           type="tel"
                           value={draft.phone.replace(/^\+39/, "")}
-                          onChange={(event) => {
-                            clearFieldErrors("phone");
+                          onChange={(event) =>
                             setDraft((current) => ({
                               ...current,
                               phone: "+39" + event.target.value.replace(/\D/g, ""),
-                            }));
-                          }}
+                            }))
+                          }
                           onBlur={handlePhoneBlur}
                         />
                       </div>
-                      {fieldErrors.phone ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.phone}
-                        </p>
-                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Email</span>
                       <input
-                        ref={emailFieldRef}
                         className="field"
                         type="email"
                         value={draft.email}
-                        onChange={(event) => {
-                          clearFieldErrors("email");
+                        onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
                             email: event.target.value,
-                          }));
-                        }}
+                          }))
+                        }
                       />
-                      {fieldErrors.email ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.email}
-                        </p>
-                      ) : null}
                     </label>
                   </div>
 
@@ -1009,27 +829,18 @@ export function BookingFlow() {
                       <input
                         type="checkbox"
                         checked={draft.privacyAccepted}
-                        onChange={(event) => {
-                          clearFieldErrors("privacyAccepted");
+                        onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
                             privacyAccepted: event.target.checked,
-                          }));
-                        }}
+                          }))
+                        }
                       />
                       <span>
                         Accetto il trattamento privacy per inviare la richiesta in
                         lista d&apos;attesa.
                       </span>
                     </label>
-                    {fieldErrors.privacyAccepted ? (
-                      <p
-                        ref={privacyAcceptedFieldRef}
-                        className="text-xs font-semibold text-red-400"
-                      >
-                        {fieldErrors.privacyAccepted}
-                      </p>
-                    ) : null}
                     {!shouldHideMarketingConsent ? (
                       <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
                         <input
@@ -1119,7 +930,6 @@ export function BookingFlow() {
                                   if (!hasAutoScrolledToCustomerStepRef.current) {
                                     pendingInitialSlotScrollRef.current = true;
                                   }
-                                  clearFieldErrors("selectedTime");
                                   setSelectedTime(slot.time);
                                   setSelectedStatusCode(slot.statusCode);
                                   window.location.hash = "#dati-cliente";
@@ -1217,7 +1027,6 @@ export function BookingFlow() {
                     triggerHaptic();
                     setSuccess(null);
                     setSelectedTime("");
-                    setFieldErrors({});
                     setDraft(fallbackDraft);
                   }}
                 >
@@ -1239,45 +1048,31 @@ export function BookingFlow() {
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
                     <span>Giorno del viaggio</span>
                     <input
-                      ref={dateFieldRef}
                       className="field min-w-0"
                       type="date"
-                      min={minimumBookingDate}
+                      min={baseDraft.date}
                       value={draft.date}
-                      onChange={(event) => {
-                        clearFieldErrors("date", "selectedTime");
-                        setDraft((current) => ({ ...current, date: event.target.value }));
-                      }}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, date: event.target.value }))
+                      }
                     />
-                    {fieldErrors.date ? (
-                      <p className="text-xs font-semibold text-red-400">
-                        {fieldErrors.date}
-                      </p>
-                    ) : null}
                   </label>
 
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
                     <span>Quanti pirati?</span>
                     <input
-                      ref={paxFieldRef}
                       className="field min-w-0"
                       type="number"
                       min={1}
                       max={16}
                       value={draft.pax}
-                      onChange={(event) => {
-                        clearFieldErrors("pax", "selectedTime");
+                      onChange={(event) =>
                         setDraft((current) => ({
                           ...current,
-                          pax: event.target.value,
-                        }));
-                      }}
+                          pax: Number(event.target.value) || 1,
+                        }))
+                      }
                     />
-                    {fieldErrors.pax ? (
-                      <p className="text-xs font-semibold text-red-400">
-                        {fieldErrors.pax}
-                      </p>
-                    ) : null}
                   </label>
                 </div>
 
@@ -1304,15 +1099,7 @@ export function BookingFlow() {
                             )}
                             onClick={() => {
                               triggerHaptic();
-                              clearFieldErrors("childrenCount", "selectedTime");
-                              setDraft((current) => ({
-                                ...current,
-                                roomCode: room.code,
-                                childrenCount:
-                                  room.code === AREA_FAMILY_ROOM_CODE
-                                    ? current.childrenCount
-                                    : "",
-                              }));
+                              setDraft((current) => ({ ...current, roomCode: room.code }));
                               setSelectedTime("");
                               
                               // Scroll manuale agli orari disponibili dopo un breve delay per il re-render
@@ -1367,37 +1154,25 @@ export function BookingFlow() {
                         <label className="block space-y-2 text-sm text-[var(--text-muted)]">
                           <span>Numero di bambini (obbligatorio)</span>
                           <input
-                            ref={childrenCountFieldRef}
                             className="field"
                             type="number"
                             min={1}
                             required
                             placeholder="Es: 2"
                             value={draft.childrenCount}
-                            onChange={(event) => {
-                              clearFieldErrors("childrenCount");
+                            onChange={(event) =>
                               setDraft((current) => ({
                                 ...current,
                                 childrenCount: event.target.value,
-                              }));
-                            }}
+                              }))
+                            }
                           />
-                          {fieldErrors.childrenCount ? (
-                            <p className="text-xs font-semibold text-red-400">
-                              {fieldErrors.childrenCount}
-                            </p>
-                          ) : null}
                         </label>
                       ) : null}
                     </div>
 
-                    <div id="availability-section" ref={selectedTimeFieldRef}>
+                    <div id="availability-section">
                       {renderAvailabilityContent("mt-5")}
-                      {fieldErrors.selectedTime ? (
-                        <p className="mt-3 text-xs font-semibold text-red-400">
-                          {fieldErrors.selectedTime}
-                        </p>
-                      ) : null}
                     </div>
                   </div>
                 ) : null}
@@ -1446,7 +1221,7 @@ export function BookingFlow() {
                       </span>
                       , alle ore <span className="font-semibold">{selectedSlot.time}</span> per{" "}
                       <span className="font-semibold">
-                        {paxCount} {paxCount === 1 ? "persona" : "persone"}
+                        {draft.pax} {draft.pax === 1 ? "persona" : "persone"}
                       </span>{" "}
                       , <span className="font-medium text-[var(--text-muted)]">Sala richiesta:</span> <span className="font-semibold text-[var(--accent-strong)]">{selectedRoom?.publicName || selectedRoom?.name || "Sala"}</span>.
                     </p>
@@ -1456,13 +1231,11 @@ export function BookingFlow() {
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Nome</span>
                       <input
-                        ref={firstNameFieldRef}
                         className="field"
                         required
                         value={draft.firstName}
                         onChange={(event) => {
                           const nextFirstName = event.target.value;
-                          clearFieldErrors("firstName");
                           setDraft((current) => ({
                             ...current,
                             firstName: nextFirstName,
@@ -1473,22 +1246,15 @@ export function BookingFlow() {
                           }
                         }}
                       />
-                      {fieldErrors.firstName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.firstName}
-                        </p>
-                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Cognome</span>
                       <input
-                        ref={lastNameFieldRef}
                         className="field"
                         required
                         value={draft.lastName}
                         onChange={(event) => {
                           const nextLastName = event.target.value;
-                          clearFieldErrors("lastName");
                           setDraft((current) => ({
                             ...current,
                             lastName: nextLastName,
@@ -1499,23 +1265,16 @@ export function BookingFlow() {
                           }
                         }}
                       />
-                      {fieldErrors.lastName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.lastName}
-                        </p>
-                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Email</span>
                       <input
-                        ref={emailFieldRef}
                         className="field"
                         type="email"
                         required
                         value={draft.email}
                         onChange={(event) => {
                           const nextEmail = normalizeCustomerEmail(event.target.value);
-                          clearFieldErrors("email");
 
                           setDraft((current) => ({ ...current, email: nextEmail }));
 
@@ -1529,11 +1288,6 @@ export function BookingFlow() {
                           }
                         }}
                       />
-                      {fieldErrors.email ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.email}
-                        </p>
-                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Telefono</span>
@@ -1542,14 +1296,12 @@ export function BookingFlow() {
                           +39
                         </span>
                         <input
-                          ref={phoneFieldRef}
                           className="field pl-14"
                           type="tel"
                           required
                           value={draft.phone.replace(/^\+39/, "")}
                           onChange={(event) => {
                             const nextPhone = "+39" + event.target.value.replace(/\D/g, "");
-                            clearFieldErrors("phone");
 
                             setDraft((current) => ({ ...current, phone: nextPhone }));
 
@@ -1560,11 +1312,6 @@ export function BookingFlow() {
                           onBlur={handlePhoneBlur}
                         />
                       </div>
-                      {fieldErrors.phone ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.phone}
-                        </p>
-                      ) : null}
                     </label>
                   </div>
 
@@ -1584,24 +1331,15 @@ export function BookingFlow() {
                       <input
                         type="checkbox"
                         checked={draft.privacyAccepted}
-                        onChange={(event) => {
-                          clearFieldErrors("privacyAccepted");
+                        onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
                             privacyAccepted: event.target.checked,
-                          }));
-                        }}
+                          }))
+                        }
                       />
                       <span>Accetto il trattamento privacy per inviare la prenotazione.</span>
                     </label>
-                    {fieldErrors.privacyAccepted ? (
-                      <p
-                        ref={privacyAcceptedFieldRef}
-                        className="text-xs font-semibold text-red-400"
-                      >
-                        {fieldErrors.privacyAccepted}
-                      </p>
-                    ) : null}
                     {!shouldHideMarketingConsent ? (
                       <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
                         <input

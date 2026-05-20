@@ -11,7 +11,6 @@ import { MatchDrinkPlayer } from "@/lib/match-drink/types";
 import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
 import { QRScanner } from "@/components/QRScanner";
 import { useCustomerIdentity, normalizeCustomerEmail } from "@/lib/customer-identity";
-import { scrollToFormField } from "@/lib/form-focus";
 
 export function MatchDrinkPlayerController() {
   const { identity } = useCustomerIdentity();
@@ -647,34 +646,10 @@ function JoinForm({
   const [lookingFor, setLookingFor] = useState<MatchDrinkPlayer["lookingFor"]>(savedProfile?.lookingFor || "entrambi");
   const [avatarUrl, setAvatarUrl] = useState<string>(savedProfile?.avatarUrl || "");
   const [submitting, setSubmitting] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<"nickname" | "tableNumber", string>>
-  >({});
-  const nicknameFieldRef = React.useRef<HTMLInputElement | null>(null);
-  const tableNumberFieldRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const nextFieldErrors: Partial<Record<"nickname" | "tableNumber", string>> = {};
-
-    if (!nickname.trim()) {
-      nextFieldErrors.nickname = "Inserisci il tuo nickname.";
-    }
-
-    if (!tableNumber.trim()) {
-      nextFieldErrors.tableNumber = "Inserisci il numero del tavolo.";
-    }
-
-    if (Object.keys(nextFieldErrors).length > 0) {
-      setFieldErrors(nextFieldErrors);
-      scrollToFormField(
-        nextFieldErrors.nickname ? nicknameFieldRef.current : tableNumberFieldRef.current,
-      );
-      return;
-    }
-
     setSubmitting(true);
-    setFieldErrors({});
     try {
       await onJoin(nickname, {
         tableNumber,
@@ -714,42 +689,24 @@ function JoinForm({
             <div>
               <label className="eyebrow mb-2 block">Il tuo Nickname</label>
               <input 
-                ref={nicknameFieldRef}
                 value={nickname} 
-                onChange={e => {
-                  setFieldErrors((current) => ({ ...current, nickname: undefined }));
-                  setNickname(e.target.value);
-                }}
+                onChange={e => setNickname(e.target.value)}
                 placeholder="Nome da battaglia..." 
                 className="field font-bold uppercase tracking-widest"
                 required
               />
-              {fieldErrors.nickname ? (
-                <p className="mt-2 text-xs font-semibold text-red-400">
-                  {fieldErrors.nickname}
-                </p>
-              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                <div>
                 <label className="eyebrow mb-2 block">Tavolo</label>
                 <input 
-                  ref={tableNumberFieldRef}
                   value={tableNumber} 
-                  onChange={e => {
-                    setFieldErrors((current) => ({ ...current, tableNumber: undefined }));
-                    setTableNumber(e.target.value);
-                  }}
+                  onChange={e => setTableNumber(e.target.value)}
                   placeholder="Es. 12" 
                   className="field font-bold"
                   required
                 />
-                {fieldErrors.tableNumber ? (
-                  <p className="mt-2 text-xs font-semibold text-red-400">
-                    {fieldErrors.tableNumber}
-                  </p>
-                ) : null}
               </div>
               <div>
                 <label className="eyebrow mb-2 block">Età</label>

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import type { FidelityRewardProgress } from "@/lib/fidelity-rewards";
 import { formatBirthDateLabel } from "@/lib/customer-profile";
@@ -156,25 +157,21 @@ export function ProfilePassport({
             {/* Collapsible/Missing Content */}
             <div className="grid gap-3">
               {/* Contacts (Email/Phone) - Expanded only if full, or if one is missing */}
-              <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                  Contatti
-                </p>
-                <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
-                  <p>
-                    Email:{" "}
-                    <span className={contactSnapshot.email ? "text-white" : "text-[var(--danger)] font-semibold"}>
-                      {contactSnapshot.email || "Non disponibile"}
-                    </span>
+              {(isDataExpanded || !contactSnapshot.email || !contactSnapshot.phone) && (
+                <div className="panel-muted rounded-[1.5rem] px-4 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                    Contatti
                   </p>
-                  <p>
-                    Telefono:{" "}
-                    <span className={contactSnapshot.phone ? "text-white" : "text-[var(--danger)] font-semibold"}>
-                      {contactSnapshot.phone || "Non disponibile"}
-                    </span>
-                  </p>
+                  <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
+                    <p>
+                      Email:{" "}
+                      <span className={contactSnapshot.email ? "text-white" : "text-[var(--danger)] font-semibold"}>
+                        {contactSnapshot.email || "Non disponibile"}
+                      </span>
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Birth Date - Expanded only if full, or if missing */}
               {(isDataExpanded || !contactSnapshot.birthDate) && (

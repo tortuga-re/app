@@ -4,13 +4,7 @@ export const cn = (...values: Array<string | false | null | undefined>) =>
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export const todayIso = (now = new Date()) => {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
+export const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export const formatLongDate = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
@@ -24,12 +18,6 @@ export const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
-
-export const formatTime = (value: string) =>
-  new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(new Date(value));
 
 export const formatDateInput = (value: string) => value.slice(0, 10);
