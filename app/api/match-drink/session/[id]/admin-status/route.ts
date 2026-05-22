@@ -45,7 +45,14 @@ export async function GET(
     session.questions = questions;
     session.excludedMeetingTables = excludedMeetingTables;
 
-    const meetingAssignments = assignMatchDrinkMeetingTables(matches, players, excludedMeetingTables);
+    const meetingAssignments = assignMatchDrinkMeetingTables(
+      matches,
+      players,
+      answers,
+      questions,
+      session.secondaryTraitMode ?? "absolute",
+      excludedMeetingTables,
+    );
     const enrichedMatches = matches.map((match) => {
       const meetingAssignment = meetingAssignments.get(match.id);
 

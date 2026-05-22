@@ -163,7 +163,7 @@ const getVisibleBands = (availability: BookingAvailabilityResponse | null) => {
   }));
 };
 
-const getEnabledSlots = (
+const getVisibleSlots = (
   availabilityDays: BookingAvailabilityResponse["days"],
   isAfterDinner?: boolean,
 ): DecoratedSlot[] => {
@@ -171,10 +171,6 @@ const getEnabledSlots = (
     day.bands.flatMap((band) =>
       band.slots
         .filter((slot) => {
-          if (!slot.enabled) {
-            return false;
-          }
-
           if (isAfterDinner) {
             return slot.time >= "22:30";
           }
@@ -190,20 +186,95 @@ const getEnabledSlots = (
   );
 };
 
+const fallbackWaitlistSlots = [
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00",
+];
+
+const timeToMinutes = (time: string) => {
+  const [hours, minutes] = time.split(":").map((part) => Number.parseInt(part, 10));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const minutesToTime = (minutes: number) => {
+  const normalizedMinutes = ((minutes % 1440) + 1440) % 1440;
+  const hours = Math.floor(normalizedMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const mins = (normalizedMinutes % 60).toString().padStart(2, "0");
+  return `${hours}:${mins}`;
+};
+
+const buildSlotRange = (slots: DecoratedSlot[]) => {
+  if (slots.length === 0) {
+    return [];
+  }
+
+  const knownSlots = new Map(slots.map((slot) => [slot.time, slot]));
+  const times = slots
+    .map((slot) => timeToMinutes(slot.time))
+    .filter((value): value is number => typeof value === "number");
+
+  if (times.length === 0) {
+    return slots;
+  }
+
+  const start = Math.min(...times);
+  const end = Math.max(...times);
+  const generated: DecoratedSlot[] = [];
+
+  for (let minute = start; minute <= end; minute += 30) {
+    const time = minutesToTime(minute);
+    const existing = knownSlots.get(time);
+
+    if (existing) {
+      generated.push(existing);
+      continue;
+    }
+
+    generated.push({
+      time,
+      enabled: false,
+      statusCode: 1,
+      beyondMidnight: false,
+      bandLabel: slots[0]?.bandLabel ?? "",
+      date: slots[0]?.date ?? "",
+    } as DecoratedSlot);
+  }
+
+  return generated;
+};
+
 const parseStoredDraft = (
   raw: string,
   fallbackDraft: BookingDraft,
   marketingConsent?: boolean,
 ): BookingDraft | null => {
   const parsed = JSON.parse(raw) as Partial<BookingDraft>;
-  const currentDate = todayIso();
+  const currentDate =
+    typeof parsed.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)
+      ? parsed.date
+      : fallbackDraft.date;
 
   return {
     date: currentDate,
-    pax: "",
+    pax: typeof parsed.pax === "string" ? parsed.pax : fallbackDraft.pax,
     roomCode: typeof parsed.roomCode === "string" ? parsed.roomCode : "",
     isAfterDinner: typeof parsed.isAfterDinner === "boolean" ? parsed.isAfterDinner : false,
-    childrenCount: "",
+    childrenCount:
+      typeof parsed.childrenCount === "string"
+        ? parsed.childrenCount
+        : fallbackDraft.childrenCount,
     firstName:
       typeof parsed.firstName === "string" && parsed.firstName.trim()
         ? parsed.firstName
@@ -353,8 +424,6 @@ export function BookingFlow() {
       errors.pax = "Inserisci il numero di persone.";
     } else if (!paxCount) {
       errors.pax = "Inserisci un numero di persone valido.";
-    } else if (paxCount > 16) {
-      errors.pax = "Il numero massimo di persone e 16.";
     }
 
     if (requireSelectedSlot && !selectedSlot) {
@@ -480,9 +549,69 @@ export function BookingFlow() {
       (!requiresRoomSelection || activeRoomCode),
   );
   const visibleDays = canLoadAvailability ? getVisibleBands(availability) : [];
-  const enabledSlots = getEnabledSlots(visibleDays, draft.isAfterDinner);
+  const visibleSlots = getVisibleSlots(visibleDays, draft.isAfterDinner);
+  const enabledSlots = visibleSlots.filter((slot) => slot.enabled);
   const selectedSlot = canLoadAvailability
     ? enabledSlots.find((slot) => slot.time === selectedTime) ?? null
+    : null;
+  const selectedVisibleSlot = canLoadAvailability
+    ? visibleSlots.find((slot) => slot.time === selectedTime) ?? null
+    : null;
+  const isSundaySelected = Boolean(
+    draft.date && !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) && new Date(`${draft.date}T00:00:00`).getDay() === 0,
+  );
+  const displayedSlots = visibleSlots.length
+    ? buildSlotRange(Array.from(new Map(visibleSlots.map((slot) => [slot.time, slot])).values()))
+    : fallbackWaitlistSlots.map((time) => ({
+        time,
+        enabled: false,
+        statusCode: 1,
+        beyondMidnight: false,
+        bandLabel: "",
+        date: draft.date,
+      } as DecoratedSlot));
+  const displayedSlotGroups = Array.from(
+    displayedSlots.reduce((groups, slot) => {
+      if (isSundaySelected) {
+        const minutes = timeToMinutes(slot.time);
+        if (minutes === null) {
+          return groups;
+        }
+
+        if (minutes >= 900 && minutes <= 1140) {
+          return groups;
+        }
+
+        const sundayLabel = minutes < 900 ? "PRANZO" : "CENA";
+        const sundaySlots = groups.get(sundayLabel) ?? [];
+        sundaySlots.push(slot);
+        groups.set(sundayLabel, sundaySlots);
+        return groups;
+      }
+
+      const groupLabel = slot.bandLabel || "ORARI";
+      const groupSlots = groups.get(groupLabel) ?? [];
+      groupSlots.push(slot);
+      groups.set(groupLabel, groupSlots);
+      return groups;
+    }, new Map<string, DecoratedSlot[]>()),
+  ).map(([groupLabel, groupSlots]) => ({
+    groupLabel,
+    slots: groupSlots,
+  }));
+  const selectedUnavailableSlot = canLoadAvailability
+        ? selectedVisibleSlot && !selectedVisibleSlot.enabled
+      ? selectedVisibleSlot
+      : selectedTime && fallbackWaitlistSlots.includes(selectedTime) && !selectedSlot
+        ? ({
+            time: selectedTime,
+            enabled: false,
+            statusCode: selectedStatusCode,
+            beyondMidnight: false,
+            bandLabel: "",
+            date: draft.date,
+          } as DecoratedSlot)
+        : null
     : null;
   const successDateLabel = success?.reservation.DataPrenotazione
     ? formatReservationDateLabel(success.reservation.DataPrenotazione)
@@ -502,11 +631,13 @@ export function BookingFlow() {
       !loadingAvailability &&
       enabledSlots.length === 0,
   );
+  const hasWaitlistContext =
+    hasNoAvailableSlots || Boolean(selectedUnavailableSlot);
   const isWaitlistContextActive = waitlistContextKey === availabilityKey;
   const visibleWaitlistSuccess =
     hasNoAvailableSlots && isWaitlistContextActive ? waitlistSuccess : null;
   const showVisibleWaitlistForm =
-    hasNoAvailableSlots && isWaitlistContextActive && showWaitlistForm;
+    hasWaitlistContext && isWaitlistContextActive && showWaitlistForm;
   const shouldHideMarketingConsent = identity.marketingConsent === true;
   useHashScroll(
     `${loadingBootstrap}:${availabilityKey}:${Boolean(selectedSlot)}:${Boolean(success)}:${showVisibleWaitlistForm}:${Boolean(error)}:${Boolean(waitlistError)}`,
@@ -856,50 +987,101 @@ export function BookingFlow() {
 
       {!loadingAvailability && availability ? (
         <>
-          {hasNoAvailableSlots ? (
-            <div className={`${spacingClass} space-y-4`}>
-              <StatusBlock
-                variant="empty"
-                title="Nessun orario disponibile per questa selezione."
-                description={
-                  availability.days[0]?.unavailableMessage ||
-                  "Puoi lasciare i tuoi dati ed entrare in lista d'attesa per questa richiesta."
-                }
-                action={
-                  <button
-                    type="button"
-                    className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
-                    onClick={() => {
-                      triggerHaptic();
-                      openWaitlistForm();
-                    }}
-                  >
-                    Entra in lista d&apos;attesa
-                  </button>
-                }
-              />
-
-              {showVisibleWaitlistForm ? (
-                <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                  <div className="space-y-2">
-                    <p className="eyebrow">Lista d&apos;attesa</p>
-                    <p className="text-sm leading-6 text-[var(--text-muted)]">
-                      Lascia i tuoi dati e la ciurma ti ricontattera&apos; se si
-                      libera un tavolo per questa richiesta.
+          <div className={`${spacingClass} space-y-4`}>
+            <div className="space-y-3">
+              {displayedSlotGroups.map((group) => (
+                <div key={group.groupLabel} className="space-y-2">
+                  {isSundaySelected ? (
+                    <p className="eyebrow text-[0.72rem] text-[var(--text-muted)]">
+                      {group.groupLabel}
                     </p>
-                  </div>
-
-                  {waitlistError ? (
-                    <div className="mt-4">
-                      <StatusBlock
-                        variant="error"
-                        title="Richiesta non completa"
-                        description={waitlistError}
-                      />
-                    </div>
                   ) : null}
+                  <div className="grid grid-cols-4 gap-2">
+                    {group.slots.map((slot) => {
+                      const time = slot.time;
+                      const isActive = selectedTime === time;
+                      const isUnavailable = !slot || !slot.enabled;
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      return (
+                        <button
+                          key={time}
+                          type="button"
+                          className={cn(
+                            "panel-muted flex min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-5 text-center transition",
+                            isActive && "border border-[var(--border-strong)] bg-white/8",
+                            isUnavailable &&
+                              "border-[rgba(255,216,156,0.12)] bg-white/[0.03] text-[var(--text-muted)]",
+                          )}
+                          onClick={() => {
+                            if (!hasAutoScrolledToCustomerStepRef.current) {
+                              pendingInitialSlotScrollRef.current = true;
+                            }
+                            clearFieldErrors("selectedTime");
+                            setSelectedTime(time);
+                            setSelectedStatusCode(slot?.statusCode ?? 1);
+                            window.location.hash = "#dati-cliente";
+                          }}
+                        >
+                          <p
+                            className={cn(
+                              "text-base font-semibold leading-none",
+                              isUnavailable ? "text-[var(--text-muted)]" : "text-white",
+                            )}
+                          >
+                            {time}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {hasWaitlistContext ? (
+                <div className="rounded-[1.5rem] border border-[rgba(255,216,156,0.38)] bg-[rgba(255,216,156,0.08)] px-4 py-4">
+                  <p className="text-base leading-7 text-white">
+                    Purtroppo per questa ora non ci sono posti disponibili,
+                    prova un altro orario o <strong>ENTRA IN LISTA D&apos;ATTESA</strong>.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            {hasWaitlistContext ? (
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
+                  onClick={() => {
+                    triggerHaptic();
+                    openWaitlistForm();
+                  }}
+                >
+                  Entra in lista d&apos;attesa
+                </button>
+              </div>
+            ) : null}
+
+            {showVisibleWaitlistForm ? (
+              <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
+                <div className="space-y-2">
+                  <p className="eyebrow">Lista d&apos;attesa</p>
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    Lascia i tuoi dati e la ciurma ti ricontattera&apos; se si
+                    libera un tavolo per questa richiesta.
+                  </p>
+                </div>
+
+                {waitlistError ? (
+                  <div className="mt-4">
+                    <StatusBlock
+                      variant="error"
+                      title="Richiesta non completa"
+                      description={waitlistError}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Nome</span>
                       <input
@@ -1060,85 +1242,23 @@ export function BookingFlow() {
                       : "Conferma lista d'attesa"}
                   </button>
                 </div>
-              ) : null}
+            ) : null}
 
-              {visibleWaitlistSuccess ? (
-                <div id="waitlist-success" className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                  <p className="eyebrow">Lista d&apos;attesa registrata</p>
-                  <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-muted)]">
-                    <p className="text-white">
-                      La tua richiesta e&apos; stata inserita correttamente.
-                    </p>
-                    <p>
-                      Qualora si dovessero liberare dei posti sarai contattato/a
-                      per confermare la prenotazione.
-                    </p>
-                  </div>
+            {visibleWaitlistSuccess ? (
+              <div id="waitlist-success" className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
+                <p className="eyebrow">Lista d&apos;attesa registrata</p>
+                <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-muted)]">
+                  <p className="text-white">
+                    La tua richiesta e&apos; stata inserita correttamente.
+                  </p>
+                  <p>
+                    Qualora si dovessero liberare dei posti sarai contattato/a
+                    per confermare la prenotazione.
+                  </p>
                 </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className={`${spacingClass} space-y-4`}>
-              {visibleDays.map((day) => (
-                <div key={day.date} className="space-y-3">
-                  {day.bands.map((band) => {
-                    const availableSlots = band.slots.filter((slot) => {
-                      if (!slot.enabled) return false;
-                      if (draft.isAfterDinner) return slot.time >= "22:30";
-                      return true;
-                    });
-                    const cleanedWarning = cleanText(band.warning);
-
-                    if (availableSlots.length === 0) {
-                      return null;
-                    }
-
-                    return (
-                      <div key={band.code} className="space-y-3">
-
-                        {cleanedWarning ? (
-                          <p className="rounded-2xl border border-[var(--border)] bg-white/4 px-4 py-3 text-xs leading-5 text-[var(--text-muted)]">
-                            {cleanedWarning}
-                          </p>
-                        ) : null}
-
-                        <div className="grid grid-cols-4 gap-2">
-                          {availableSlots.map((slot) => {
-                            const isActive = selectedTime === slot.time;
-
-                            return (
-                              <button
-                                key={`${band.code}-${slot.time}`}
-                                type="button"
-                                className={cn(
-                                  "panel-muted flex min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-5 text-center transition",
-                                  isActive &&
-                                    "border border-[var(--border-strong)] bg-white/8",
-                                )}
-                                onClick={() => {
-                                  if (!hasAutoScrolledToCustomerStepRef.current) {
-                                    pendingInitialSlotScrollRef.current = true;
-                                  }
-                                  clearFieldErrors("selectedTime");
-                                  setSelectedTime(slot.time);
-                                  setSelectedStatusCode(slot.statusCode);
-                                  window.location.hash = "#dati-cliente";
-                                }}
-                              >
-                                <p className="text-base font-semibold leading-none text-white">
-                                  {slot.time}
-                                </p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ) : null}
+          </div>
         </>
       ) : null}
     </>
@@ -1263,7 +1383,6 @@ export function BookingFlow() {
                       className="field min-w-0"
                       type="number"
                       min={1}
-                      max={16}
                       value={draft.pax}
                       onChange={(event) => {
                         clearFieldErrors("pax", "selectedTime");

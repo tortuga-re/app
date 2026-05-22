@@ -34,6 +34,7 @@ export default function MatchDrinkSessionAdminPage() {
     updateStatus,
     toggleMessages,
     updateExcludedMeetingTables,
+    updateSecondaryTraitMode,
   } = useMatchDrinkAdmin(id);
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,6 +50,7 @@ export default function MatchDrinkSessionAdminPage() {
   const confirmedMatches = matches.filter(m => m.drinkUnlocked);
   const redeemedDrinks = confirmedMatches.filter((match) => match.drinkRedeemed).length;
   const excludedMeetingTables = session.excludedMeetingTables || [];
+  const secondaryTraitMode = session.secondaryTraitMode ?? "absolute";
   const realPlayers = players.filter((player) => player.nickname !== "_SYSTEM_");
   const peopleWaiting = Math.max(realPlayers.length - confirmedMatches.length * 2, 0);
   const revealReady = session.status === "matching" && matches.length > 0;
@@ -389,6 +391,40 @@ export default function MatchDrinkSessionAdminPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </MatchDrinkCard>
+
+            <MatchDrinkCard>
+              <h2 className="eyebrow mb-4">Approccio profili</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => void updateSecondaryTraitMode("macro_category")}
+                  className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                    secondaryTraitMode === "macro_category"
+                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 text-white"
+                      : "border-white/10 bg-white/5 text-[var(--text-muted)]"
+                  }`}
+                >
+                  <p className="text-sm font-black uppercase tracking-widest">Secondario in Macrocategoria</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Il tratto secondario viene scelto dentro la stessa famiglia del dominante.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void updateSecondaryTraitMode("absolute")}
+                  className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                    secondaryTraitMode === "absolute"
+                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 text-white"
+                      : "border-white/10 bg-white/5 text-[var(--text-muted)]"
+                  }`}
+                >
+                  <p className="text-sm font-black uppercase tracking-widest">Secondario assoluto</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Il tratto secondario è il secondo più forte in assoluto, anche fuori macro-categoria.
+                  </p>
+                </button>
               </div>
             </MatchDrinkCard>
 

@@ -159,5 +159,7 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     toggleMessages: (enabled: boolean) => apiCall("settings", { bottleMessagesEnabled: enabled }),
     updateExcludedMeetingTables: (excludedMeetingTables: string[]) =>
       apiCall("settings", { excludedMeetingTables }),
+    updateSecondaryTraitMode: (secondaryTraitMode: "macro_category" | "absolute") =>
+      apiCall("settings", { secondaryTraitMode }),
   };
 }

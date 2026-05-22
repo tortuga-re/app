@@ -130,6 +130,7 @@ export const calculatePlayerProfile = (
   answers: MatchDrinkAnswer[],
   questionsBank: MatchDrinkQuestion[],
   mainCategoryNormalizer: MatchDrinkMainCategoryNormalizer = buildMainCategoryNormalizer(questionsBank),
+  secondaryTraitMode: "macro_category" | "absolute" = "absolute",
 ): MatchDrinkProfile => {
   const traitScores = buildTraitScores(answers, questionsBank);
 
@@ -139,7 +140,7 @@ export const calculatePlayerProfile = (
 
   const dominantTrait = getDominantTraitFromTraits(traitScores);
   const mainCategory = getMainCategoryFromTraits(traitScores, mainCategoryNormalizer);
-  const secondaryTrait = getSecondaryTraitFromTraits(traitScores, mainCategory);
+  const secondaryTrait = getSecondaryTraitFromTraits(traitScores, mainCategory, secondaryTraitMode);
   const mainCategoryLabel = getMainCategoryLabel(mainCategory, player.gender);
   const secondaryTraitLabel = getTraitLabel(secondaryTrait, player.gender);
 
@@ -273,13 +274,14 @@ export const calculateMatches = (
   eligiblePlayers.forEach((player) => {
     profilesByPlayerId.set(
       player.id,
-      calculatePlayerProfile(
-        player,
-        answersByPlayer.get(player.id) ?? [],
-        questionsBank,
-        mainCategoryNormalizer,
-      ),
-    );
+        calculatePlayerProfile(
+          player,
+          answersByPlayer.get(player.id) ?? [],
+          questionsBank,
+          mainCategoryNormalizer,
+          session.secondaryTraitMode ?? "absolute",
+        ),
+      );
   });
 
   const allPotentialPairs: ScoredPotentialPair[] = [];
@@ -290,6 +292,14 @@ export const calculateMatches = (
       const playerB = eligiblePlayers[j];
 
       if (!isGenderCompatible(playerA, playerB)) {
+        continue;
+      }
+
+      if (
+        playerA.lookingFor !== "amicizie" &&
+        playerB.lookingFor !== "amicizie" &&
+        !isRomanceAgeCompatible(playerA, playerB)
+      ) {
         continue;
       }
 
@@ -334,6 +344,34 @@ export const calculateMatches = (
   });
 };
 
+const getAgeRangeBounds = (ageRange: MatchDrinkPlayer["ageRange"]) => {
+  switch (ageRange) {
+    case "18-24":
+      return { min: 18, max: 24 };
+    case "25-34":
+      return { min: 25, max: 34 };
+    case "35-45":
+      return { min: 35, max: 45 };
+    case "46-plus":
+      return { min: 46, max: 99 };
+    default:
+      return null;
+  }
+};
+
+const isRomanceAgeCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer) => {
+  const rangeA = getAgeRangeBounds(playerA.ageRange);
+  const rangeB = getAgeRangeBounds(playerB.ageRange);
+
+  if (!rangeA || !rangeB) {
+    return true;
+  }
+
+  const midpointA = (rangeA.min + rangeA.max) / 2;
+  const midpointB = (rangeB.min + rangeB.max) / 2;
+  return Math.abs(midpointA - midpointB) <= 10;
+};
+
 const isGenderCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer): boolean => {
   const checkCompatibility = (sourcePlayer: MatchDrinkPlayer, targetPlayer: MatchDrinkPlayer) => {
     if (sourcePlayer.lookingFor === "amicizie") {
@@ -370,7 +408,7 @@ const getMatchTypeFromScore = (score: number): MatchDrinkMatch["matchType"] =>
         ? "una_birra_e_vediamo"
         : "errore_consigliato";
 
-const calculateMatchScore = (
+export const calculateMatchScore = (
   playerA: MatchDrinkPlayer,
   playerB: MatchDrinkPlayer,
   profileA: MatchDrinkProfile,

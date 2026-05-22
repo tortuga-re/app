@@ -130,13 +130,13 @@ export function ProfileEditor({
                 ref={setFieldRef("phone")}
                 className={`field pl-14 ${contactFieldErrors.phone ? "border-red-500 focus:border-red-500" : ""}`}
                 type="tel"
-                value={contactForm.phone.replace(/^\+39/, "")}
+                value={contactForm.phone}
                 onChange={(event) => {
                   clearContactFieldErrors("phone");
                   const nationalNumber = event.target.value.replace(/\D/g, "");
                   setContactForm((current) => ({
                     ...current,
-                    phone: nationalNumber ? `+39${nationalNumber}` : "",
+                    phone: nationalNumber,
                   }));
                 }}
                 onBlur={handlePhoneBlur}

@@ -13,14 +13,8 @@ interface OfflinePassportScreenProps {
 }
 
 export function OfflinePassportScreen({ data: propData }: OfflinePassportScreenProps) {
-  const [passport, setPassport] = useState<OfflinePassportData | null>(propData ?? null);
+  const [passport] = useState<OfflinePassportData | null>(() => propData ?? loadOfflinePassport());
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-
-  useEffect(() => {
-    if (!passport) {
-      setPassport(loadOfflinePassport());
-    }
-  }, [passport]);
 
   // Genera il QR code SVG come data-url (tutto in locale, senza rete)
   useEffect(() => {
@@ -88,3 +82,5 @@ export function OfflinePassportScreen({ data: propData }: OfflinePassportScreenP
     </section>
   );
 }
+
+

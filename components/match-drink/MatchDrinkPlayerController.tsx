@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -7,7 +7,9 @@ import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { MatchDrinkShell } from "./MatchDrinkShell";
 import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
+import { MatchDrinkRevealCard } from "./MatchDrinkRevealCard";
 import { MatchDrinkPlayer } from "@/lib/match-drink/types";
+import { getMainCategoryPluralLabel } from "@/lib/match-drink/profile";
 import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
 import { QRScanner } from "@/components/QRScanner";
 import { useCustomerIdentity, normalizeCustomerEmail } from "@/lib/customer-identity";
@@ -18,6 +20,7 @@ export function MatchDrinkPlayerController() {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [profileAvatarUrl, setProfileAvatarUrl] = useState("");
   const [profileFullName, setProfileFullName] = useState("");
+  const [avatarZoomOpen, setAvatarZoomOpen] = useState(false);
   const {
     session,
     player,
@@ -159,7 +162,7 @@ export function MatchDrinkPlayerController() {
               ) : (
                 <>
                   <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
-                    <span className="text-3xl">📍</span>
+                    <span className="text-3xl">ðŸ“</span>
                   </div>
                   <div className="space-y-2">
                     <h2 className="text-2xl font-black text-white uppercase italic">Sei al Tortuga?</h2>
@@ -175,7 +178,7 @@ export function MatchDrinkPlayerController() {
                       className="w-full"
                       onClick={() => setShowQRScanner(true)}
                     >
-                      📷 Scannerizza QR Tavolo
+                      ðŸ“· Scannerizza QR Tavolo
                     </MatchDrinkButton>
                     <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
                       Torna alla Ciurma
@@ -194,12 +197,12 @@ export function MatchDrinkPlayerController() {
           <div className="flex flex-1 items-center justify-center p-6 text-center">
             <MatchDrinkCard className="space-y-4">
               <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 flex items-center justify-center">
-                <span className="text-3xl">⛔</span>
+                <span className="text-3xl">â›”</span>
               </div>
               <h2 className="text-2xl font-black text-white uppercase italic">Iscrizioni Chiuse</h2>
               <p className="text-sm text-[var(--text-muted)] leading-relaxed uppercase font-bold">
-                Il Capitano ha già levato l&apos;ancora!<br />
-                Non puoi più unirti a questa sfida, ma resta nei paraggi per la prossima.
+                Il Capitano ha già  levato l&apos;ancora!<br />
+                Non puoi pià¹ unirti a questa sfida, ma resta nei paraggi per la prossima.
               </p>
               <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase mt-4">
                 Torna alla Ciurma
@@ -228,7 +231,7 @@ export function MatchDrinkPlayerController() {
             <p className="eyebrow mb-2">Sei a bordo</p>
             <h1 className="text-3xl font-bold text-white uppercase">{session.title}</h1>
             <p className="mt-4 text-sm text-[var(--text-muted)]">
-              La vergogna inizierà tra poco. Tieni il telefono acceso.
+              La vergogna inizierà  tra poco. Tieni il telefono acceso.
             </p>
           </MatchDrinkCard>
           
@@ -313,7 +316,7 @@ export function MatchDrinkPlayerController() {
           <div className="space-y-4">
             <div className="h-16 w-16 mx-auto rounded-full border-2 border-[var(--accent-strong)] animate-spin border-t-transparent" />
             <p className="text-lg font-bold text-white uppercase tracking-tight">
-              Il sistema sta incrociando risposte, traumi e pessime decisioni…
+              Il sistema sta incrociando risposte, traumi e pessime decisioniâ€¦
             </p>
           </div>
         </div>
@@ -329,7 +332,7 @@ export function MatchDrinkPlayerController() {
           <div className="flex flex-1 items-center justify-center p-4">
             <MatchDrinkCard className="text-center py-16 space-y-6">
               <div className="w-20 h-20 mx-auto rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-                <span className="text-4xl italic">☠️</span>
+                <span className="text-4xl italic">â˜ ï¸</span>
               </div>
               <div className="space-y-2">
                 <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">Nessun Match sicuro</h2>
@@ -362,10 +365,15 @@ export function MatchDrinkPlayerController() {
       myMatch.meetingTableLabel ||
       (meetingTableArea ? `${meetingTableNumber} in ${meetingTableArea}` : meetingTableNumber);
     const matchedAvatar = isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar;
+    const categoryKey = (myMatch.sharedMainCategory || myMatch.ownMainCategory || "romantico") as
+      | "romantico"
+      | "passionale"
+      | "piccante"
+      | "energico";
     const categorySummary = myMatch.sharedMainCategoryLabel
       ? `Siete entrambi ${myMatch.sharedMainCategoryLabel}.`
-      : myMatch.ownMainCategoryLabel && myMatch.matchedPlayerMainCategoryLabel
-        ? `Tu sei ${myMatch.ownMainCategoryLabel}, ${matchedNickname} è ${myMatch.matchedPlayerMainCategoryLabel}.`
+      : myMatch.ownMainCategoryLabel
+        ? `Siete entrambi ${getMainCategoryPluralLabel(myMatch.ownMainCategory!).toUpperCase()}.`
         : null;
 
     let mainReason = myMatch.reason;
@@ -385,157 +393,58 @@ export function MatchDrinkPlayerController() {
     if (myMatch.drinkUnlocked) {
       return (
         <MatchDrinkShell>
-          <MatchDrinkCard variant="accent" className="overflow-hidden">
-            <div className="space-y-5">
-              <div className="space-y-2 text-center">
-                <p className="eyebrow">Match confermato.</p>
-                <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">
-                  Il Capitano ha aperto la rotta
-                </h2>
-              </div>
+          <MatchDrinkRevealCard
+            nickname={matchedNickname}
+            avatarUrl={matchedAvatar}
+            avatarInitial={matchedNickname[0] || "?"}
+            tableNumber={meetingTableNumber}
+            tableArea={meetingTableArea}
+            categoryKey={categoryKey}
+            categorySummary={categorySummary}
+            secondaryTraitLabel={myMatch.matchedPlayerSecondaryTraitLabel || "misterioso"}
+            approachAdvice={
+              myMatch.matchedPlayerApproachAdvice ||
+              "Fai il primo passo con leggerezza e lascia che il brindisi faccia il resto."
+            }
+            rewardText={
+              myMatch.rewardText ||
+              `Accomodati al tavolo ${meetingTableLabel} e richiedi il tuo drink omaggio.`
+            }
+            onAvatarClick={() => setAvatarZoomOpen(true)}
+          />
 
-              <div className="panel-muted rounded-[1.75rem] border border-[var(--accent-strong)]/25 bg-black/50 px-5 py-6 shadow-[0_0_40px_rgba(216,176,106,0.16)]">
-                <div className="flex flex-col items-center gap-4 text-center">
-                  <div className="relative">
-                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-[var(--accent-strong)] bg-black/40 shadow-[0_0_30px_rgba(216,176,106,0.25)]">
-                      {matchedAvatar ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={matchedAvatar}
-                          alt="Avatar del match"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-5xl font-black uppercase italic gold-gradient">
-                          {matchedNickname[0] || "?"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-[var(--accent-strong)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-black">
-                      Tavolo {meetingTableNumber}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 pt-4">
-                    <p className="text-lg font-bold leading-relaxed text-white">
-                      Il tuo match è {matchedNickname}.
-                    </p>
-                    <p className="text-sm font-bold uppercase tracking-wide text-white/85">
-                      Vi aspetta il tavolo {meetingTableLabel}.
-                    </p>
-                    {categorySummary ? (
-                      <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent-strong)]">
-                        {categorySummary}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
-                  <p className="eyebrow mb-2">Da sapere</p>
-                  <p className="text-sm leading-relaxed text-white">
-                    {matchedNickname} è un po&apos;{" "}
-                    {myMatch.matchedPlayerSecondaryTraitLabel || "misterioso"}.
-                  </p>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
-                  <p className="eyebrow mb-2">Consiglio del Capitano</p>
-                  <p className="text-sm leading-relaxed text-white/90">
-                    {myMatch.matchedPlayerApproachAdvice ||
-                      "Fai il primo passo con leggerezza e lascia che il brindisi faccia il resto."}
-                  </p>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/10 px-5 py-4">
-                  <p className="text-sm font-bold leading-relaxed text-[var(--accent-strong)]">
-                    {myMatch.rewardText ||
-                      `Accomodati al tavolo ${meetingTableLabel} e richiedi il tuo drink omaggio.`}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </MatchDrinkCard>
-        </MatchDrinkShell>
-      );
-    }
-
-    if (false && myMatch?.drinkUnlocked) {
-      return (
-        <MatchDrinkShell>
-          <MatchDrinkCard variant="accent" className="text-center">
-            <h2 className="text-3xl font-bold text-white mb-6 uppercase tracking-tighter italic">DRINK DEL MATCH SBLOCCATO!</h2>
-            
-            <div className="panel-muted rounded-xl p-8 mb-6 border-2 border-[var(--accent-strong)] bg-black/60 shadow-[0_0_50px_rgba(216,176,106,0.2)] flex flex-col items-center">
-              <p className="text-[10px] uppercase tracking-[0.4em] text-[var(--accent-strong)] mb-6 font-black opacity-80">
-                Incontro al Tavolo {isPlayerA ? (myMatch?.playerBTable || "?") : (myMatch?.playerATable || "?")}
-              </p>
-              
-              <div className="relative mb-6">
-                <div className="w-24 h-24 rounded-full border-2 border-[var(--accent-strong)] flex items-center justify-center shadow-[0_0_30px_rgba(216,176,106,0.3)] animate-in zoom-in duration-700 overflow-hidden bg-black/40">
-                   {(isPlayerA ? myMatch?.playerBAvatar : myMatch?.playerAAvatar) ? (
-                     /* eslint-disable-next-line @next/next/no-img-element */
-                     <img 
-                       src={isPlayerA ? myMatch?.playerBAvatar : myMatch?.playerAAvatar} 
-                       alt="Partner avatar"
-                       className="w-full h-full object-cover"
-                     />
-                   ) : (
-                     <span className="text-5xl font-black gold-gradient italic uppercase">
-                       {(isPlayerA ? myMatch?.playerBNickname : myMatch?.playerANickname)?.[0] || "?"}
-                     </span>
-                   )}
-                </div>
-                <div className="absolute -bottom-1 -right-1 bg-[var(--accent-strong)] text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                  Match
-                </div>
-              </div>
-
-              <p className="text-3xl md:text-4xl font-black tracking-tighter text-white uppercase italic mb-2">
-                {isPlayerA ? myMatch?.playerBNickname : myMatch?.playerANickname}
-              </p>
-              <div className="h-px w-12 bg-[var(--accent-strong)] opacity-50 mb-4" />
-              <p className="text-[10px] text-[var(--text-muted)] uppercase font-black tracking-widest text-center leading-relaxed">
-                Compatibilit&agrave;: {myMatch?.score}% <br />
-                <span className="text-white">{myMatch?.commonCriterion}</span>
-              </p>
-              
-              <div className="mt-4 pt-4 border-t border-white/10 w-full text-center space-y-2">
-                <p className="text-[10px] text-[var(--text-muted)] uppercase font-black tracking-widest">Cosa vi unisce:</p>
-                <p className="text-xs text-white/90 italic">&quot;{mainReason}&quot;</p>
-                
-                {spicyQ && (
-                  <div className="mt-4 p-3 rounded bg-[var(--accent-strong)]/10 border border-[var(--accent-strong)]/30">
-                    <p className="text-[10px] text-[var(--accent-strong)] uppercase font-black mb-1 flex items-center justify-center gap-1">
-                      <span>🌶️</span> Avete dato la stessa risposta
-                    </p>
-                    <p className="text-xs text-white font-bold mb-1">{spicyQ}</p>
-                    <p className="text-xs text-[var(--accent-strong)] italic">&quot;{spicyA}&quot;</p>
-                  </div>
+          {avatarZoomOpen ? (
+            <button
+              type="button"
+              onClick={() => setAvatarZoomOpen(false)}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+              aria-label="Chiudi avatar ingrandito"
+            >
+              <div className="flex h-[min(80vw,28rem)] w-[min(80vw,28rem)] items-center justify-center overflow-hidden rounded-full border-4 border-[var(--accent-strong)] bg-black shadow-[0_0_60px_rgba(216,176,106,0.35)]">
+                {matchedAvatar ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={matchedAvatar}
+                    alt="Avatar del match ingrandito"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[8rem] font-black uppercase italic gold-gradient">
+                    {matchedNickname[0] || "?"}
+                  </span>
                 )}
               </div>
-            </div>
-
-            <div className="space-y-4 px-2">
-              <p className="text-sm uppercase font-bold leading-relaxed text-center">
-                Mostrate questa schermata allo staff per avere <br />
-                <span className="text-xl gold-gradient font-black">1 DRINK × 2 PERSONE</span><br />
-                al prezzo di uno!
-              </p>
-            </div>
-          </MatchDrinkCard>
+            </button>
+          ) : null}
         </MatchDrinkShell>
       );
     }
-
     if (iAccepted === false) {
-       return (
+      return (
         <MatchDrinkShell>
           <MatchDrinkCard className="text-center">
             <h2 className="text-xl font-bold text-white uppercase">Va bene così.</h2>
-            <p className="mt-4 text-[var(--text-muted)]">Il Capitano rispetta la fuga. Il tuo match rester&agrave; nell&apos;ombra.</p>
+            <p className="mt-4 text-[var(--text-muted)]">Il Capitano rispetta la fuga.</p>
           </MatchDrinkCard>
         </MatchDrinkShell>
       );
@@ -544,10 +453,10 @@ export function MatchDrinkPlayerController() {
     if (iAccepted === true) {
       return (
         <MatchDrinkShell>
-            <MatchDrinkCard className="text-center">
-              <h2 className="text-xl font-bold text-white uppercase tracking-tight">Tu hai accettato.</h2>
-              <p className="mt-4 text-[var(--text-muted)]">
-              Ora aspettiamo l&apos;altra met&agrave; del naufragio. Se accetta anche lei/lui, sbloccherete i drink omaggio del match.
+          <MatchDrinkCard className="text-center">
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight">Tu hai accettato.</h2>
+            <p className="mt-4 text-[var(--text-muted)]">
+              Ora aspettiamo l&apos;altra metà del naufragio. Se accetta anche lei/lui, sbloccherete i drink omaggio del match.
             </p>
           </MatchDrinkCard>
         </MatchDrinkShell>
@@ -557,33 +466,34 @@ export function MatchDrinkPlayerController() {
     return (
       <MatchDrinkShell>
         <div className="space-y-6">
-          <MatchDrinkCard variant="accent">
+          <MatchDrinkCard variant="accent" className="text-center">
             <p className="eyebrow mb-2">Hai un abbinamento!</p>
-            <h2 className="text-2xl font-bold text-white mb-4 uppercase tracking-tighter">Il Capitano ha parlato.</h2>
-            
+            <h2 className="text-2xl font-bold text-white mb-4 uppercase tracking-tighter">
+              Il Capitano ha parlato.
+            </h2>
+
             <div className="space-y-4 text-sm">
-              <div className="flex justify-between border-b border-[var(--border)] pb-2">
-                <span className="text-[var(--text-muted)] uppercase font-bold">Compatibilità</span>
-                <span className="font-bold text-[var(--accent-strong)]">{myMatch.score}%</span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[var(--text-muted)] uppercase font-bold">Il verdetto del Capitano:</p>
-                <p className="font-bold text-white uppercase">{myMatch.commonCriterion}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[var(--text-muted)] uppercase font-bold">Perché:</p>
-                <p className="italic uppercase text-xs">{mainReason}</p>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Compatibilità</p>
+                <p className="mt-1 text-white font-bold">
+                  {myMatch?.score}% - {myMatch?.commonCriterion}
+                </p>
               </div>
 
-              {spicyQ && (
-                <div className="mt-4 p-3 rounded bg-[var(--accent-strong)]/10 border border-[var(--accent-strong)]/30">
-                  <p className="text-[10px] text-[var(--accent-strong)] uppercase font-black mb-1 flex items-center justify-center gap-1">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Cosa vi unisce</p>
+                <p className="mt-1 text-white italic">&quot;{mainReason}&quot;</p>
+              </div>
+
+              {spicyQ ? (
+                <div className="rounded-2xl border border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/10 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--accent-strong)] font-black flex items-center justify-center gap-2">
                     <span>🌶️</span> Avete dato la stessa risposta
                   </p>
-                  <p className="text-xs text-white font-bold mb-1">{spicyQ}</p>
-                  <p className="text-xs text-[var(--accent-strong)] italic">&quot;{spicyA}&quot;</p>
+                  <p className="mt-2 text-white font-bold">{spicyQ}</p>
+                  <p className="text-[var(--accent-strong)] italic">&quot;{spicyA}&quot;</p>
                 </div>
-              )}
+              ) : null}
             </div>
           </MatchDrinkCard>
 
@@ -595,14 +505,13 @@ export function MatchDrinkPlayerController() {
               NO, RESTO NELL&apos;OMBRA
             </MatchDrinkButton>
           </div>
-          
+
           <p className="text-center text-[10px] text-[var(--text-muted)] px-4 uppercase font-bold tracking-widest leading-relaxed">
             Se entrambi accettate, sbloccate i drink omaggio del vostro match.
           </p>
         </div>
       </MatchDrinkShell>
     );
-  }
 
   return (
     <MatchDrinkShell>
@@ -625,6 +534,8 @@ function JoinForm({
     gender: MatchDrinkPlayer["gender"];
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
+    email?: string;
+    phone?: string;
     publicConsent: boolean;
     avatarUrl?: string;
   }) => Promise<void>, 
@@ -639,8 +550,8 @@ function JoinForm({
     avatarUrl?: string;
   } | null
 }) {
-  const [nickname, setNickname] = useState(savedProfile?.nickname || "");
-  const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
+    const [nickname, setNickname] = useState(savedProfile?.nickname || "");
+    const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
   const [ageRange, setAgeRange] = useState<MatchDrinkPlayer["ageRange"]>(savedProfile?.ageRange || "25-34");
   const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "donna");
   const [relationshipStatus, setRelationshipStatus] = useState<MatchDrinkPlayer["relationshipStatus"]>(savedProfile?.relationshipStatus || "single");
@@ -682,6 +593,8 @@ function JoinForm({
         gender,
         relationshipStatus,
         lookingFor,
+        email: identity.email,
+        phone: identity.phone,
         avatarUrl,
         publicConsent: true
       });
@@ -695,7 +608,7 @@ function JoinForm({
       <div className="space-y-6 pb-12">
         <div className="text-center">
           <h1 className="hero-title text-4xl font-black gold-gradient uppercase">Match & Drink</h1>
-          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">Il gioco live più pericolosamente social</p>
+          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">Il gioco live pià¹ pericolosamente social</p>
         </div>
 
             <MatchDrinkCard className="max-w-md w-full">
@@ -752,7 +665,7 @@ function JoinForm({
                 ) : null}
               </div>
               <div>
-                <label className="eyebrow mb-2 block">Età</label>
+                <label className="eyebrow mb-2 block">Età </label>
                 <select 
                   value={ageRange} 
                   onChange={e => setAgeRange(e.target.value as MatchDrinkPlayer["ageRange"])} 
@@ -888,4 +801,13 @@ function BottleMessageForm({
       </form>
     </MatchDrinkCard>
   );
+}
+
+
+
+
+
+
+
+
 }

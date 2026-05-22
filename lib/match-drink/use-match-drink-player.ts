@@ -170,6 +170,7 @@ export function useMatchDrinkPlayer() {
     gender: MatchDrinkPlayer["gender"];
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
+    phone?: string;
     publicConsent: boolean;
     avatarUrl?: string;
   }) => {
@@ -195,10 +196,10 @@ export function useMatchDrinkPlayer() {
       const res = await fetch(`/api/match-drink/session/${activeSessionId}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: activeSessionId,
-          nickname,
-          ...details
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        nickname,
+        ...details
         }),
       });
 

@@ -17,11 +17,13 @@ export async function POST(
     const payload = await readJsonBody<{
       bottleMessagesEnabled?: boolean;
       excludedMeetingTables?: string[];
+      secondaryTraitMode?: "macro_category" | "absolute";
     }>(req);
 
     const updates: {
       bottleMessagesEnabled?: boolean;
       excludedMeetingTables?: string[];
+      secondaryTraitMode?: "macro_category" | "absolute";
     } = {};
 
     if ("bottleMessagesEnabled" in payload) {
@@ -39,6 +41,14 @@ export async function POST(
       updates.excludedMeetingTables = payload.excludedMeetingTables.filter(
         (value): value is string => typeof value === "string" && value.trim().length > 0,
       );
+    }
+
+    if ("secondaryTraitMode" in payload) {
+      const value = payload.secondaryTraitMode;
+      if (value !== "macro_category" && value !== "absolute") {
+        throw new RequestValidationError("Modalità trait secondario non valida.");
+      }
+      updates.secondaryTraitMode = value;
     }
 
     await updateSession(id, updates);
