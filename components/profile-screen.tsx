@@ -19,6 +19,7 @@ const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/com
 const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => ({ default: () => null } as any)), { ssr: false });
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
+import { scrollToFormField } from "@/lib/form-focus";
 import {
   formatBirthDateLabel,
   toDateInputValue,
@@ -60,6 +61,14 @@ type ContactFormState = {
   marketingConsent: boolean;
 };
 
+type ProfileFieldName =
+  | "lookupEmail"
+  | "loginCode"
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phone";
+
 const emptyContactForm: ContactFormState = {
   firstName: "",
   lastName: "",
@@ -84,7 +93,7 @@ const buildContactForm = (
 ): ContactFormState => ({
   firstName: contact?.Nome?.trim() ?? "",
   lastName: contact?.Cognome?.trim() ?? "",
-  phone: normalizeItalianPhone(contact?.Telefono?.trim() ?? "")?.normalizedE164 ?? "",
+  phone: normalizeItalianPhone(contact?.Telefono?.trim() ?? "")?.nationalNumber ?? "",
   email: normalizeCustomerEmail(contact?.Email),
   birthDate: toDateInputValue(contact?.DataDiNascita),
   marketingConsent: contact?.ConsensoMarketing === 1,
@@ -131,15 +140,66 @@ export function CiurmaScreen() {
   const [loginCode, setLoginCode] = useState("");
   const [verifyingLogin, setVerifyingLogin] = useState(false);
   const [resendingLogin, setResendingLogin] = useState(false);
+  const [loginFieldErrors, setLoginFieldErrors] = useState<
+    Partial<Record<"lookupEmail" | "loginCode", string>>
+  >({});
+  const [contactFieldErrors, setContactFieldErrors] = useState<
+    Partial<Record<"firstName" | "lastName" | "email" | "phone", string>>
+  >({});
   const longPressRef = useRef<number | null>(null);
   const autoLoadedKeyRef = useRef("");
+  const fieldRefs = useRef<Partial<Record<ProfileFieldName, HTMLElement | null>>>({});
+  const setFieldRef = (field: ProfileFieldName) => (element: HTMLElement | null) => {
+    fieldRefs.current[field] = element;
+  };
+  const clearLoginFieldErrors = (...fields: Array<"lookupEmail" | "loginCode">) => {
+    setLoginFieldErrors((current) => {
+      let hasChanged = false;
+      const next = { ...current };
+
+      for (const field of fields) {
+        if (next[field]) {
+          delete next[field];
+          hasChanged = true;
+        }
+      }
+
+      return hasChanged ? next : current;
+    });
+  };
+  const clearContactFieldErrors = (
+    ...fields: Array<"firstName" | "lastName" | "email" | "phone">
+  ) => {
+    setContactFieldErrors((current) => {
+      let hasChanged = false;
+      const next = { ...current };
+
+      for (const field of fields) {
+        if (next[field]) {
+          delete next[field];
+          hasChanged = true;
+        }
+      }
+
+      return hasChanged ? next : current;
+    });
+  };
+  const scrollToFirstProfileField = (fields: ProfileFieldName[]) => {
+    for (const field of fields) {
+      const element = fieldRefs.current[field];
+      if (element) {
+        scrollToFormField(element);
+        return;
+      }
+    }
+  };
   const handlePhoneBlur = () => {
     if (!contactForm.phone.trim()) return;
     const normalized = normalizeItalianPhone(contactForm.phone);
     if (normalized) {
       setContactForm((current) => ({
         ...current,
-        phone: normalized.normalizedE164,
+        phone: normalized.nationalNumber,
       }));
     }
   };
@@ -160,6 +220,7 @@ export function CiurmaScreen() {
   const contactCode = data?.contact?.CodiceContatto?.trim() ?? "";
   const showLookupPanel = (isEditingLookup || !hasIdentity) && !isRegistering;
   const contactSnapshot = buildContactForm(data?.contact ?? undefined);
+  const didProfileStartWithPhone = Boolean(contactSnapshot.phone.trim());
   const existingSavedEmail = hasProfile
     ? normalizeCustomerEmail(contactSnapshot.email || identityEmail)
     : "";
@@ -359,17 +420,22 @@ export function CiurmaScreen() {
 
   const handleLookupSubmit = () => {
     const normalizedEmail = normalizeCustomerEmail(lookupEmail);
+    const nextFieldErrors: Partial<Record<"lookupEmail", string>> = {};
 
     if (!normalizedEmail) {
-      setError("Inserisci un'email valida.");
+      nextFieldErrors.lookupEmail = "Inserisci un'email valida.";
+    } else if (!isValidCustomerEmail(normalizedEmail)) {
+      nextFieldErrors.lookupEmail = "Inserisci un indirizzo email valido.";
+    }
+
+    if (nextFieldErrors.lookupEmail) {
+      setLoginFieldErrors(nextFieldErrors);
+      setError("");
+      scrollToFirstProfileField(["lookupEmail"]);
       return;
     }
 
-    if (!isValidCustomerEmail(normalizedEmail)) {
-      setError("Inserisci un indirizzo email valido.");
-      return;
-    }
-
+    setLoginFieldErrors({});
     setError("");
     setLoginMode("confirm");
   };
@@ -434,12 +500,15 @@ export function CiurmaScreen() {
     if (!loginRequest) return;
     const code = loginCode.trim();
     if (!/^\d{6}$/.test(code)) {
-      setError("Inserisci il codice a 6 cifre.");
+      setLoginFieldErrors({ loginCode: "Inserisci il codice a 6 cifre." });
+      setError("");
+      scrollToFirstProfileField(["loginCode"]);
       return;
     }
 
     setVerifyingLogin(true);
     setError("");
+    setLoginFieldErrors({});
 
     try {
       const response = await requestJson<ProfileResponse>("/api/session/login-verify", {
@@ -491,12 +560,15 @@ export function CiurmaScreen() {
   const handleBypassLogin = async (pin: string) => {
     const normalizedEmail = normalizeCustomerEmail(lookupEmail);
     if (!isValidCustomerEmail(normalizedEmail)) {
-      setError("Inserisci un indirizzo email valido.");
+      setLoginFieldErrors({ lookupEmail: "Inserisci un indirizzo email valido." });
+      setError("");
+      scrollToFirstProfileField(["lookupEmail"]);
       return;
     }
 
     setLoading(true);
     setError("");
+    setLoginFieldErrors({});
     setIsRegistering(false);
     setShowActivatedCardPanel(false);
 
@@ -534,37 +606,64 @@ export function CiurmaScreen() {
 
   const saveContact = async () => {
     const normalizedEmail = normalizeCustomerEmail(contactForm.email);
+    const trimmedPhone = contactForm.phone.trim();
+    const isPhoneRequired = isRegistering || didProfileStartWithPhone;
+    const nextFieldErrors: Partial<
+      Record<"firstName" | "lastName" | "email" | "phone", string>
+    > = {};
 
-    if (!contactForm.firstName.trim() || !contactForm.lastName.trim()) {
-      setContactError("Inserisci nome e cognome.");
-      return;
+    if (!contactForm.firstName.trim()) {
+      nextFieldErrors.firstName = "Inserisci il nome.";
+    }
+
+    if (!contactForm.lastName.trim()) {
+      nextFieldErrors.lastName = "Inserisci il cognome.";
     }
 
     if (!normalizedEmail || !isValidCustomerEmail(normalizedEmail)) {
-      setContactError("Inserisci un indirizzo email valido.");
+      nextFieldErrors.email = "Inserisci un indirizzo email valido.";
+    }
+
+    if (!trimmedPhone && isPhoneRequired) {
+      nextFieldErrors.phone = italianPhoneValidationError;
+    } else if (trimmedPhone) {
+      const normalizedPhoneResult = validateItalianPhone(trimmedPhone);
+      if (!normalizedPhoneResult.ok) {
+        nextFieldErrors.phone = normalizedPhoneResult.error;
+      }
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setContactFieldErrors(nextFieldErrors);
+      setContactError("");
+      scrollToFirstProfileField(["firstName", "lastName", "email", "phone"]);
       return;
     }
 
-    if (!contactForm.phone.trim()) {
-      setContactError(italianPhoneValidationError);
-      return;
-    }
+    const normalizedPhone = trimmedPhone
+      ? validateItalianPhone(trimmedPhone)
+      : null;
 
-    const normalizedPhone = validateItalianPhone(contactForm.phone);
-    if (!normalizedPhone.ok) {
-      setContactError(normalizedPhone.error);
+    if (normalizedPhone && !normalizedPhone.ok) {
+      setContactFieldErrors({ phone: normalizedPhone.error });
+      setContactError("");
+      scrollToFirstProfileField(["phone"]);
       return;
     }
 
     setSavingContact(true);
     setContactError("");
     setContactMessage("");
+    setContactFieldErrors({});
 
     try {
       const profilePayload = {
         firstName: contactForm.firstName.trim(),
         lastName: contactForm.lastName.trim(),
-        phone: normalizedPhone.normalizedE164,
+        phone:
+          normalizedPhone && normalizedPhone.ok
+            ? normalizedPhone.normalizedE164
+            : "",
         email: normalizedEmail,
         birthDate: contactForm.birthDate || undefined,
         marketingConsent: contactForm.marketingConsent,
@@ -725,6 +824,7 @@ export function CiurmaScreen() {
 
   const openContactEditor = () => {
     setContactError("");
+    setContactFieldErrors({});
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
@@ -737,7 +837,9 @@ export function CiurmaScreen() {
   const startRegistration = () => {
     const normalizedEmail = normalizeCustomerEmail(lookupEmail || identityEmail);
     setError("");
+    setLoginFieldErrors({});
     setContactError("");
+    setContactFieldErrors({});
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
@@ -756,11 +858,13 @@ export function CiurmaScreen() {
     setLookupEmail("");
     setData(null);
     setError("");
+    setLoginFieldErrors({});
     setIsEditingLookup(true);
     setIsEditingProfile(false);
     setIsRegistering(false);
     setContactForm(emptyContactForm);
     setContactError("");
+    setContactFieldErrors({});
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
@@ -822,6 +926,10 @@ export function CiurmaScreen() {
           resendingLogin={resendingLogin}
           loginCanResend={loginCanResend}
           loginResendSeconds={loginResendSeconds}
+          lookupEmailError={loginFieldErrors.lookupEmail ?? ""}
+          loginCodeError={loginFieldErrors.loginCode ?? ""}
+          clearLoginFieldErrors={clearLoginFieldErrors}
+          setFieldRef={setFieldRef}
         />
       ) : null}
 
@@ -829,12 +937,15 @@ export function CiurmaScreen() {
         <ProfileEditor
           isRegistering={isRegistering}
           contactError={contactError}
+          contactFieldErrors={contactFieldErrors}
           contactMessage={contactMessage}
           contactForm={contactForm}
           setContactForm={setContactForm}
           handlePhoneBlur={handlePhoneBlur}
           saveContact={saveContact}
           savingContact={savingContact}
+          clearContactFieldErrors={clearContactFieldErrors}
+          setFieldRef={setFieldRef}
         />
       ) : null}
 

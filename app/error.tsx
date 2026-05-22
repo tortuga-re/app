@@ -3,7 +3,52 @@
 import { useEffect } from "react";
 
 const RECOVERY_KEY = "tortuga.error-recovery-at";
-const RECOVERY_COOLDOWN_MS = 15_000; // Non più di 1 reload automatico ogni 15 secondi
+const RECOVERY_COOLDOWN_MS = 15_000;
+
+const isChunkRecoveryError = (message: string) =>
+  message.includes("chunk") ||
+  message.includes("Load failed") ||
+  message.includes("ChunkLoad") ||
+  message.includes("404") ||
+  message.includes("unexpected token '<'") ||
+  message.includes("Failed to fetch dynamically imported module");
+
+const recoverFromChunkError = async () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const lastRecovery = Number(sessionStorage.getItem(RECOVERY_KEY) ?? "0");
+  const now = Date.now();
+
+  if (now - lastRecovery < RECOVERY_COOLDOWN_MS) {
+    console.warn("Rilevato possibile loop di ricarica. Recupero automatico sospeso.");
+    return false;
+  }
+
+  sessionStorage.setItem(RECOVERY_KEY, String(now));
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  } catch {
+    // Ignore cleanup failures and continue with reload.
+  }
+
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    // Ignore cache cleanup failures and continue with reload.
+  }
+
+  window.location.reload();
+  return true;
+};
 
 export default function Error({
   error,
@@ -14,61 +59,16 @@ export default function Error({
   useEffect(() => {
     console.error("Page Error Boundary caught:", error);
 
-    const isChunkError =
-      error.message.includes("chunk") ||
-      error.message.includes("Load failed") ||
-      error.message.includes("ChunkLoad") ||
-      error.message.includes("404") ||
-      error.message.includes("unexpected token '<'") ||
-      error.message.includes("Failed to fetch dynamically imported module");
-
-    if (!isChunkError) return;
-
-    // Anti-loop guard: non ricaricare se abbiamo già provato di recente
-    const lastRecovery = Number(sessionStorage.getItem(RECOVERY_KEY) ?? "0");
-    const now = Date.now();
-
-    if (now - lastRecovery < RECOVERY_COOLDOWN_MS) {
-      // Siamo in loop — smetti di ricaricare e mostra il pulsante manuale
-      console.warn("Rilevato possibile loop di ricarica. Recupero automatico sospeso.");
+    if (!isChunkRecoveryError(error.message)) {
       return;
     }
 
-    sessionStorage.setItem(RECOVERY_KEY, String(now));
-
-    // Deregistra il SW e ricarica per forzare i nuovi chunk
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-        // Pulisci anche la cache del browser
-        if ("caches" in window) {
-          caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
-        }
-        window.location.reload();
-      });
-    } else {
-      window.location.reload();
-    }
+    void recoverFromChunkError();
   }, [error]);
 
   const handleManualReload = () => {
-    // Click manuale: resetta il counter e ricarica sempre
     sessionStorage.removeItem(RECOVERY_KEY);
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-        if ("caches" in window) {
-          caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
-        }
-        window.location.reload();
-      });
-    } else {
-      window.location.reload();
-    }
+    void recoverFromChunkError();
   };
 
   return (
@@ -77,12 +77,9 @@ export default function Error({
         Aggiornamento in corso
       </h2>
       <p className="mb-8 text-sm text-white/60">
-        Stiamo caricando l&apos;ultima versione dell&apos;app per garantirti la massima stabilità.
+        Stiamo caricando l&apos;ultima versione dell&apos;app per garantirti la massima stabilit&agrave;.
       </p>
-      <button
-        onClick={handleManualReload}
-        className="button-primary px-8 py-3"
-      >
+      <button onClick={handleManualReload} className="button-primary px-8 py-3">
         Aggiorna ora
       </button>
     </div>

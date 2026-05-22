@@ -33,9 +33,10 @@ import {
   useHydratedLocalStorageState,
   writeLocalStorageValue,
 } from "@/lib/local-storage-state";
+import { scrollToFormField } from "@/lib/form-focus";
 import { useHashScroll } from "@/lib/hash-scroll";
 import { triggerHaptic } from "@/lib/haptics";
-import { cn, formatDateTime, formatLongDate, safeNumber, todayIso } from "@/lib/utils";
+import { cn, formatLongDate, formatTime, todayIso } from "@/lib/utils";
 import {
   italianPhoneValidationError,
   normalizeItalianPhone,
@@ -44,7 +45,7 @@ import {
 
 type BookingDraft = {
   date: string;
-  pax: number;
+  pax: string;
   roomCode: string;
   isAfterDinner: boolean;
   childrenCount: string;
@@ -57,6 +58,19 @@ type BookingDraft = {
   marketingAccepted: boolean;
 };
 
+type BookingFieldName =
+  | "date"
+  | "pax"
+  | "selectedTime"
+  | "childrenCount"
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phone"
+  | "privacyAccepted";
+
+type BookingFieldErrors = Partial<Record<BookingFieldName, string>>;
+
 type DecoratedSlot = BookingSlot & {
   bandLabel: string;
   date: string;
@@ -64,7 +78,7 @@ type DecoratedSlot = BookingSlot & {
 
 const baseDraft: BookingDraft = {
   date: todayIso(),
-  pax: 2,
+  pax: "",
   roomCode: "",
   isAfterDinner: false,
   childrenCount: "",
@@ -79,6 +93,31 @@ const baseDraft: BookingDraft = {
 
 const SALA_CENTRALE_ROOM_CODE = "da1d57f0-e0d5-4d7e-86be-9f8300f388b8";
 const AREA_FAMILY_ROOM_CODE = "2a2cda28-9466-4a9d-b2d0-5a0294b2fd0c";
+
+const parsePositiveInteger = (value: string) => {
+  if (!/^\d+$/.test(value.trim())) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const formatReservationDateLabel = (value?: string) => {
+  if (!value || Number.isNaN(Date.parse(value))) {
+    return "";
+  }
+
+  return formatLongDate(value);
+};
+
+const formatReservationTimeLabel = (value?: string) => {
+  if (!value || Number.isNaN(Date.parse(value))) {
+    return "";
+  }
+
+  return formatTime(value);
+};
 
 const buildDraftFallback = (
   firstName?: string,
@@ -124,7 +163,7 @@ const getVisibleBands = (availability: BookingAvailabilityResponse | null) => {
   }));
 };
 
-const getEnabledSlots = (
+const getVisibleSlots = (
   availabilityDays: BookingAvailabilityResponse["days"],
   isAfterDinner?: boolean,
 ): DecoratedSlot[] => {
@@ -132,10 +171,6 @@ const getEnabledSlots = (
     day.bands.flatMap((band) =>
       band.slots
         .filter((slot) => {
-          if (!slot.enabled) {
-            return false;
-          }
-
           if (isAfterDinner) {
             return slot.time >= "22:30";
           }
@@ -151,22 +186,95 @@ const getEnabledSlots = (
   );
 };
 
+const fallbackWaitlistSlots = [
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00",
+];
+
+const timeToMinutes = (time: string) => {
+  const [hours, minutes] = time.split(":").map((part) => Number.parseInt(part, 10));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const minutesToTime = (minutes: number) => {
+  const normalizedMinutes = ((minutes % 1440) + 1440) % 1440;
+  const hours = Math.floor(normalizedMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const mins = (normalizedMinutes % 60).toString().padStart(2, "0");
+  return `${hours}:${mins}`;
+};
+
+const buildSlotRange = (slots: DecoratedSlot[]) => {
+  if (slots.length === 0) {
+    return [];
+  }
+
+  const knownSlots = new Map(slots.map((slot) => [slot.time, slot]));
+  const times = slots
+    .map((slot) => timeToMinutes(slot.time))
+    .filter((value): value is number => typeof value === "number");
+
+  if (times.length === 0) {
+    return slots;
+  }
+
+  const start = Math.min(...times);
+  const end = Math.max(...times);
+  const generated: DecoratedSlot[] = [];
+
+  for (let minute = start; minute <= end; minute += 30) {
+    const time = minutesToTime(minute);
+    const existing = knownSlots.get(time);
+
+    if (existing) {
+      generated.push(existing);
+      continue;
+    }
+
+    generated.push({
+      time,
+      enabled: false,
+      statusCode: 1,
+      beyondMidnight: false,
+      bandLabel: slots[0]?.bandLabel ?? "",
+      date: slots[0]?.date ?? "",
+    } as DecoratedSlot);
+  }
+
+  return generated;
+};
+
 const parseStoredDraft = (
   raw: string,
   fallbackDraft: BookingDraft,
   marketingConsent?: boolean,
 ): BookingDraft | null => {
   const parsed = JSON.parse(raw) as Partial<BookingDraft>;
+  const currentDate =
+    typeof parsed.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)
+      ? parsed.date
+      : fallbackDraft.date;
 
   return {
-    date:
-      typeof parsed.date === "string" && parsed.date
-        ? parsed.date
-        : fallbackDraft.date,
-    pax: Math.max(1, safeNumber(parsed.pax, fallbackDraft.pax)),
+    date: currentDate,
+    pax: typeof parsed.pax === "string" ? parsed.pax : fallbackDraft.pax,
     roomCode: typeof parsed.roomCode === "string" ? parsed.roomCode : "",
     isAfterDinner: typeof parsed.isAfterDinner === "boolean" ? parsed.isAfterDinner : false,
-    childrenCount: typeof parsed.childrenCount === "string" ? parsed.childrenCount : "",
+    childrenCount:
+      typeof parsed.childrenCount === "string"
+        ? parsed.childrenCount
+        : fallbackDraft.childrenCount,
     firstName:
       typeof parsed.firstName === "string" && parsed.firstName.trim()
         ? parsed.firstName
@@ -231,12 +339,140 @@ export function BookingFlow() {
     useState<WaitlistCreateResponse | null>(null);
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
   const [waitlistContextKey, setWaitlistContextKey] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<BookingFieldErrors>({});
   const customerDetailsStepRef = useRef<HTMLDivElement | null>(null);
   const hasAutoScrolledToCustomerStepRef = useRef(false);
   const pendingInitialSlotScrollRef = useRef(false);
   const seededCustomerEmailRef = useRef("");
   const marketingFirstUntickBlockedRef = useRef(false);
   const trackedStartBookingRef = useRef(false);
+  const dateFieldRef = useRef<HTMLInputElement | null>(null);
+  const paxFieldRef = useRef<HTMLInputElement | null>(null);
+  const selectedTimeFieldRef = useRef<HTMLDivElement | null>(null);
+  const childrenCountFieldRef = useRef<HTMLInputElement | null>(null);
+  const firstNameFieldRef = useRef<HTMLInputElement | null>(null);
+  const lastNameFieldRef = useRef<HTMLInputElement | null>(null);
+  const emailFieldRef = useRef<HTMLInputElement | null>(null);
+  const phoneFieldRef = useRef<HTMLInputElement | null>(null);
+  const privacyAcceptedFieldRef = useRef<HTMLParagraphElement | null>(null);
+  const minimumBookingDate = todayIso();
+  const paxCount = parsePositiveInteger(draft.pax);
+
+  const clearFieldErrors = (...fields: BookingFieldName[]) => {
+    setFieldErrors((current) => {
+      let hasChanged = false;
+      const next = { ...current };
+
+      for (const field of fields) {
+        if (next[field]) {
+          delete next[field];
+          hasChanged = true;
+        }
+      }
+
+      return hasChanged ? next : current;
+    });
+  };
+
+  const scrollToFirstBookingError = (errors: BookingFieldErrors) => {
+    const fieldOrder: BookingFieldName[] = [
+      "date",
+      "pax",
+      "selectedTime",
+      "childrenCount",
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "privacyAccepted",
+    ];
+
+    const firstInvalidField = fieldOrder.find((field) => errors[field]);
+    if (firstInvalidField) {
+      const fieldMap: Record<BookingFieldName, HTMLElement | null> = {
+        date: dateFieldRef.current,
+        pax: paxFieldRef.current,
+        selectedTime: selectedTimeFieldRef.current,
+        childrenCount: childrenCountFieldRef.current,
+        firstName: firstNameFieldRef.current,
+        lastName: lastNameFieldRef.current,
+        email: emailFieldRef.current,
+        phone: phoneFieldRef.current,
+        privacyAccepted: privacyAcceptedFieldRef.current,
+      };
+
+      scrollToFormField(fieldMap[firstInvalidField]);
+    }
+  };
+
+  const validateDraftFields = ({
+    requireSelectedSlot,
+    requireEmail,
+  }: {
+    requireSelectedSlot: boolean;
+    requireEmail: boolean;
+  }) => {
+    const errors: BookingFieldErrors = {};
+
+    if (!draft.date) {
+      errors.date = "Seleziona una data.";
+    } else if (draft.date < minimumBookingDate) {
+      errors.date = "Non puoi selezionare una data precedente a oggi.";
+    }
+
+    if (!draft.pax.trim()) {
+      errors.pax = "Inserisci il numero di persone.";
+    } else if (!paxCount) {
+      errors.pax = "Inserisci un numero di persone valido.";
+    }
+
+    if (requireSelectedSlot && !selectedSlot) {
+      errors.selectedTime = "Scegli un orario disponibile prima di confermare.";
+    }
+
+    if (isAreaFamily) {
+      const childrenCount = parsePositiveInteger(draft.childrenCount);
+
+      if (!draft.childrenCount.trim()) {
+        errors.childrenCount = "Inserisci il numero di bambini.";
+      } else if (!childrenCount) {
+        errors.childrenCount = "Inserisci un numero di bambini valido.";
+      }
+    }
+
+    if (!draft.firstName.trim()) {
+      errors.firstName = "Inserisci il nome.";
+    }
+
+    if (!draft.lastName.trim()) {
+      errors.lastName = "Inserisci il cognome.";
+    }
+
+    if (requireEmail) {
+      if (!draft.email.trim()) {
+        errors.email = "Inserisci l'email del cliente.";
+      } else if (!isValidCustomerEmail(draft.email)) {
+        errors.email = "Inserisci un indirizzo email valido.";
+      }
+    } else if (draft.email.trim() && !isValidCustomerEmail(draft.email)) {
+      errors.email = "Inserisci un indirizzo email valido.";
+    }
+
+    if (!draft.phone.trim()) {
+      errors.phone = italianPhoneValidationError;
+    } else {
+      const normalizedPhone = validateItalianPhone(draft.phone);
+      if (!normalizedPhone.ok) {
+        errors.phone = normalizedPhone.error;
+      }
+    }
+
+    if (!draft.privacyAccepted) {
+      errors.privacyAccepted = "Devi accettare il consenso privacy per continuare.";
+    }
+
+    return errors;
+  };
 
   const handlePhoneBlur = () => {
     if (!draft.phone.trim()) return;
@@ -258,10 +494,10 @@ export function BookingFlow() {
     trackedStartBookingRef.current = true;
     trackAppEvent("start_booking", {
       app_section: "prenota",
-      default_pax: draft.pax,
+      default_pax: paxCount,
       has_prefilled_email: Boolean(draft.email),
     });
-  }, [draft.email, draft.pax]);
+  }, [draft.email, paxCount]);
 
   useEffect(() => {
     const loadBootstrap = async () => {
@@ -308,24 +544,86 @@ export function BookingFlow() {
   const canLoadAvailability = Boolean(
     bootstrap &&
       draft.date &&
-      draft.pax > 0 &&
+      draft.date >= minimumBookingDate &&
+      paxCount &&
       (!requiresRoomSelection || activeRoomCode),
   );
   const visibleDays = canLoadAvailability ? getVisibleBands(availability) : [];
-  const enabledSlots = getEnabledSlots(visibleDays, draft.isAfterDinner);
+  const visibleSlots = getVisibleSlots(visibleDays, draft.isAfterDinner);
+  const enabledSlots = visibleSlots.filter((slot) => slot.enabled);
   const selectedSlot = canLoadAvailability
     ? enabledSlots.find((slot) => slot.time === selectedTime) ?? null
     : null;
+  const selectedVisibleSlot = canLoadAvailability
+    ? visibleSlots.find((slot) => slot.time === selectedTime) ?? null
+    : null;
+  const isSundaySelected = Boolean(
+    draft.date && !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) && new Date(`${draft.date}T00:00:00`).getDay() === 0,
+  );
+  const displayedSlots = visibleSlots.length
+    ? buildSlotRange(Array.from(new Map(visibleSlots.map((slot) => [slot.time, slot])).values()))
+    : fallbackWaitlistSlots.map((time) => ({
+        time,
+        enabled: false,
+        statusCode: 1,
+        beyondMidnight: false,
+        bandLabel: "",
+        date: draft.date,
+      } as DecoratedSlot));
+  const displayedSlotGroups = Array.from(
+    displayedSlots.reduce((groups, slot) => {
+      if (isSundaySelected) {
+        const minutes = timeToMinutes(slot.time);
+        if (minutes === null) {
+          return groups;
+        }
+
+        if (minutes >= 900 && minutes <= 1140) {
+          return groups;
+        }
+
+        const sundayLabel = minutes < 900 ? "PRANZO" : "CENA";
+        const sundaySlots = groups.get(sundayLabel) ?? [];
+        sundaySlots.push(slot);
+        groups.set(sundayLabel, sundaySlots);
+        return groups;
+      }
+
+      const groupLabel = slot.bandLabel || "ORARI";
+      const groupSlots = groups.get(groupLabel) ?? [];
+      groupSlots.push(slot);
+      groups.set(groupLabel, groupSlots);
+      return groups;
+    }, new Map<string, DecoratedSlot[]>()),
+  ).map(([groupLabel, groupSlots]) => ({
+    groupLabel,
+    slots: groupSlots,
+  }));
+  const selectedUnavailableSlot = canLoadAvailability
+        ? selectedVisibleSlot && !selectedVisibleSlot.enabled
+      ? selectedVisibleSlot
+      : selectedTime && fallbackWaitlistSlots.includes(selectedTime) && !selectedSlot
+        ? ({
+            time: selectedTime,
+            enabled: false,
+            statusCode: selectedStatusCode,
+            beyondMidnight: false,
+            bandLabel: "",
+            date: draft.date,
+          } as DecoratedSlot)
+        : null
+    : null;
   const successDateLabel = success?.reservation.DataPrenotazione
-    ? formatLongDate(success.reservation.DataPrenotazione)
+    ? formatReservationDateLabel(success.reservation.DataPrenotazione)
     : selectedSlot
       ? formatLongDate(selectedSlot.date)
       : "-";
-  const successTimeLabel = success?.reservation.DataPrenotazione
-    ? formatDateTime(success.reservation.DataPrenotazione).split(" alle ")[1]
-    : selectedSlot?.time || "-";
+  const successTimeLabel =
+    formatReservationTimeLabel(success?.reservation.DataPrenotazione) ||
+    selectedSlot?.time ||
+    "-";
   const availabilityKey = canLoadAvailability
-    ? `${draft.date}|${draft.pax}|${activeRoomCode}`
+    ? `${draft.date}|${paxCount}|${activeRoomCode}`
     : "";
   const hasNoAvailableSlots = Boolean(
     canLoadAvailability &&
@@ -333,11 +631,13 @@ export function BookingFlow() {
       !loadingAvailability &&
       enabledSlots.length === 0,
   );
+  const hasWaitlistContext =
+    hasNoAvailableSlots || Boolean(selectedUnavailableSlot);
   const isWaitlistContextActive = waitlistContextKey === availabilityKey;
   const visibleWaitlistSuccess =
     hasNoAvailableSlots && isWaitlistContextActive ? waitlistSuccess : null;
   const showVisibleWaitlistForm =
-    hasNoAvailableSlots && isWaitlistContextActive && showWaitlistForm;
+    hasWaitlistContext && isWaitlistContextActive && showWaitlistForm;
   const shouldHideMarketingConsent = identity.marketingConsent === true;
   useHashScroll(
     `${loadingBootstrap}:${availabilityKey}:${Boolean(selectedSlot)}:${Boolean(success)}:${showVisibleWaitlistForm}:${Boolean(error)}:${Boolean(waitlistError)}`,
@@ -357,7 +657,7 @@ export function BookingFlow() {
 
       const params = new URLSearchParams({
         date: draft.date,
-        pax: String(draft.pax),
+        pax: String(paxCount),
       });
 
       if (activeRoomCode) {
@@ -397,7 +697,7 @@ export function BookingFlow() {
     return () => {
       cancelled = true;
     };
-  }, [availabilityKey, activeRoomCode, draft.date, draft.pax]);
+  }, [availabilityKey, activeRoomCode, draft.date, paxCount]);
 
   useEffect(() => {
     if (
@@ -492,54 +792,40 @@ export function BookingFlow() {
   ]);
 
   const submitBooking = async () => {
-    if (isAreaFamily && !draft.childrenCount.trim()) {
-      setError("Inserisci il numero di bambini per l'Area Family.");
+    const errors = validateDraftFields({
+      requireSelectedSlot: true,
+      requireEmail: true,
+    });
+
+    if (Object.keys(errors).length > 0 || !paxCount) {
+      setFieldErrors(errors);
+      setError("");
+      scrollToFirstBookingError(errors);
       return;
     }
 
     if (!selectedSlot) {
-      setError("Scegli uno slot disponibile prima di confermare.");
       return;
     }
 
-    if (!draft.firstName.trim() || !draft.lastName.trim()) {
-      setError("Inserisci nome e cognome del cliente.");
-      return;
-    }
-
-    if (!draft.email.trim()) {
-      setError("Inserisci l'email del cliente.");
-      return;
-    }
-
-    if (!isValidCustomerEmail(draft.email)) {
-      setError("Inserisci un indirizzo email valido.");
-      return;
-    }
-
-    if (!draft.phone.trim()) {
-      setError("Inserisci un numero di cellulare italiano.");
-      return;
-    }
+    const confirmedPax = paxCount;
 
     const normalizedPhone = validateItalianPhone(draft.phone);
     if (!normalizedPhone.ok) {
-      setError(normalizedPhone.error);
-      return;
-    }
-
-    if (!draft.privacyAccepted) {
-      setError("Il consenso privacy e richiesto per inviare la prenotazione.");
+      const errors = { phone: normalizedPhone.error } satisfies BookingFieldErrors;
+      setFieldErrors(errors);
+      scrollToFirstBookingError(errors);
       return;
     }
 
     setSubmitting(true);
     setError("");
+    setFieldErrors({});
 
     const payload: BookingCreateInput = {
       date: draft.date,
       time: selectedSlot.time,
-      pax: draft.pax,
+      pax: confirmedPax,
       roomCode: activeRoomCode || undefined,
       statusCode: selectedStatusCode,
       firstName: draft.firstName.trim(),
@@ -609,41 +895,38 @@ export function BookingFlow() {
   };
 
   const submitWaitlist = async () => {
-    if (isAreaFamily && !draft.childrenCount.trim()) {
-      setWaitlistError("Inserisci il numero di bambini per l'Area Family.");
+    const errors = validateDraftFields({
+      requireSelectedSlot: false,
+      requireEmail: false,
+    });
+
+    if (Object.keys(errors).length > 0 || !paxCount) {
+      setFieldErrors(errors);
+      setWaitlistError("");
+      scrollToFirstBookingError(errors);
       return;
     }
 
-    if (!draft.firstName.trim() || !draft.lastName.trim()) {
-      setWaitlistError("Inserisci nome e cognome per entrare in lista d'attesa.");
-      return;
-    }
-
-    if (!draft.phone.trim()) {
-      setWaitlistError(italianPhoneValidationError);
-      return;
-    }
+    const confirmedPax = paxCount;
 
     const normalizedPhone = validateItalianPhone(draft.phone);
     if (!normalizedPhone.ok) {
-      setWaitlistError(normalizedPhone.error);
-      return;
-    }
-
-    if (!draft.privacyAccepted) {
-      setWaitlistError("Il consenso privacy e richiesto per la lista d'attesa.");
+      const errors = { phone: normalizedPhone.error } satisfies BookingFieldErrors;
+      setFieldErrors(errors);
+      scrollToFirstBookingError(errors);
       return;
     }
 
     setSubmittingWaitlist(true);
     setWaitlistError("");
+    setFieldErrors({});
 
     const payload: WaitlistCreateInput = {
       date: draft.date,
       requestedTime: draft.isAfterDinner
         ? "Dopo cena"
         : selectedTime || undefined,
-      pax: draft.pax,
+      pax: confirmedPax,
       roomCode: activeRoomCode || undefined,
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
@@ -704,75 +987,140 @@ export function BookingFlow() {
 
       {!loadingAvailability && availability ? (
         <>
-          {hasNoAvailableSlots ? (
-            <div className={`${spacingClass} space-y-4`}>
-              <StatusBlock
-                variant="empty"
-                title="Nessun orario disponibile per questa selezione."
-                description={
-                  availability.days[0]?.unavailableMessage ||
-                  "Puoi lasciare i tuoi dati ed entrare in lista d'attesa per questa richiesta."
-                }
-                action={
-                  <button
-                    type="button"
-                    className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
-                    onClick={() => {
-                      triggerHaptic();
-                      openWaitlistForm();
-                    }}
-                  >
-                    Entra in lista d&apos;attesa
-                  </button>
-                }
-              />
-
-              {showVisibleWaitlistForm ? (
-                <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                  <div className="space-y-2">
-                    <p className="eyebrow">Lista d&apos;attesa</p>
-                    <p className="text-sm leading-6 text-[var(--text-muted)]">
-                      Lascia i tuoi dati e la ciurma ti ricontattera&apos; se si
-                      libera un tavolo per questa richiesta.
+          <div className={`${spacingClass} space-y-4`}>
+            <div className="space-y-3">
+              {displayedSlotGroups.map((group) => (
+                <div key={group.groupLabel} className="space-y-2">
+                  {isSundaySelected ? (
+                    <p className="eyebrow text-[0.72rem] text-[var(--text-muted)]">
+                      {group.groupLabel}
                     </p>
-                  </div>
-
-                  {waitlistError ? (
-                    <div className="mt-4">
-                      <StatusBlock
-                        variant="error"
-                        title="Richiesta non completa"
-                        description={waitlistError}
-                      />
-                    </div>
                   ) : null}
+                  <div className="grid grid-cols-4 gap-2">
+                    {group.slots.map((slot) => {
+                      const time = slot.time;
+                      const isActive = selectedTime === time;
+                      const isUnavailable = !slot || !slot.enabled;
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      return (
+                        <button
+                          key={time}
+                          type="button"
+                          className={cn(
+                            "panel-muted flex min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-5 text-center transition",
+                            isActive && "border border-[var(--border-strong)] bg-white/8",
+                            isUnavailable &&
+                              "border-[rgba(255,216,156,0.12)] bg-white/[0.03] text-[var(--text-muted)]",
+                          )}
+                          onClick={() => {
+                            if (!hasAutoScrolledToCustomerStepRef.current) {
+                              pendingInitialSlotScrollRef.current = true;
+                            }
+                            clearFieldErrors("selectedTime");
+                            setSelectedTime(time);
+                            setSelectedStatusCode(slot?.statusCode ?? 1);
+                            window.location.hash = "#dati-cliente";
+                          }}
+                        >
+                          <p
+                            className={cn(
+                              "text-base font-semibold leading-none",
+                              isUnavailable ? "text-[var(--text-muted)]" : "text-white",
+                            )}
+                          >
+                            {time}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {hasWaitlistContext ? (
+                <div className="rounded-[1.5rem] border border-[rgba(255,216,156,0.38)] bg-[rgba(255,216,156,0.08)] px-4 py-4">
+                  <p className="text-base leading-7 text-white">
+                    Purtroppo per questa ora non ci sono posti disponibili,
+                    prova un altro orario o <strong>ENTRA IN LISTA D&apos;ATTESA</strong>.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            {hasWaitlistContext ? (
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
+                  onClick={() => {
+                    triggerHaptic();
+                    openWaitlistForm();
+                  }}
+                >
+                  Entra in lista d&apos;attesa
+                </button>
+              </div>
+            ) : null}
+
+            {showVisibleWaitlistForm ? (
+              <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
+                <div className="space-y-2">
+                  <p className="eyebrow">Lista d&apos;attesa</p>
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    Lascia i tuoi dati e la ciurma ti ricontattera&apos; se si
+                    libera un tavolo per questa richiesta.
+                  </p>
+                </div>
+
+                {waitlistError ? (
+                  <div className="mt-4">
+                    <StatusBlock
+                      variant="error"
+                      title="Richiesta non completa"
+                      description={waitlistError}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Nome</span>
                       <input
+                        ref={firstNameFieldRef}
                         className="field"
                         value={draft.firstName}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          clearFieldErrors("firstName");
                           setDraft((current) => ({
                             ...current,
                             firstName: event.target.value,
-                          }))
-                        }
+                          }));
+                        }}
                       />
+                      {fieldErrors.firstName ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.firstName}
+                        </p>
+                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Cognome</span>
                       <input
+                        ref={lastNameFieldRef}
                         className="field"
                         value={draft.lastName}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          clearFieldErrors("lastName");
                           setDraft((current) => ({
                             ...current,
                             lastName: event.target.value,
-                          }))
-                        }
+                          }));
+                        }}
                       />
+                      {fieldErrors.lastName ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.lastName}
+                        </p>
+                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Telefono</span>
@@ -781,32 +1129,46 @@ export function BookingFlow() {
                           +39
                         </span>
                         <input
+                          ref={phoneFieldRef}
                           className="field pl-14"
                           type="tel"
                           value={draft.phone.replace(/^\+39/, "")}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            clearFieldErrors("phone");
                             setDraft((current) => ({
                               ...current,
                               phone: "+39" + event.target.value.replace(/\D/g, ""),
-                            }))
-                          }
+                            }));
+                          }}
                           onBlur={handlePhoneBlur}
                         />
                       </div>
+                      {fieldErrors.phone ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.phone}
+                        </p>
+                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Email</span>
                       <input
+                        ref={emailFieldRef}
                         className="field"
                         type="email"
                         value={draft.email}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          clearFieldErrors("email");
                           setDraft((current) => ({
                             ...current,
                             email: event.target.value,
-                          }))
-                        }
+                          }));
+                        }}
                       />
+                      {fieldErrors.email ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.email}
+                        </p>
+                      ) : null}
                     </label>
                   </div>
 
@@ -829,18 +1191,27 @@ export function BookingFlow() {
                       <input
                         type="checkbox"
                         checked={draft.privacyAccepted}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          clearFieldErrors("privacyAccepted");
                           setDraft((current) => ({
                             ...current,
                             privacyAccepted: event.target.checked,
-                          }))
-                        }
+                          }));
+                        }}
                       />
                       <span>
                         Accetto il trattamento privacy per inviare la richiesta in
                         lista d&apos;attesa.
                       </span>
                     </label>
+                    {fieldErrors.privacyAccepted ? (
+                      <p
+                        ref={privacyAcceptedFieldRef}
+                        className="text-xs font-semibold text-red-400"
+                      >
+                        {fieldErrors.privacyAccepted}
+                      </p>
+                    ) : null}
                     {!shouldHideMarketingConsent ? (
                       <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
                         <input
@@ -871,84 +1242,23 @@ export function BookingFlow() {
                       : "Conferma lista d'attesa"}
                   </button>
                 </div>
-              ) : null}
+            ) : null}
 
-              {visibleWaitlistSuccess ? (
-                <div id="waitlist-success" className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                  <p className="eyebrow">Lista d&apos;attesa registrata</p>
-                  <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-muted)]">
-                    <p className="text-white">
-                      La tua richiesta e&apos; stata inserita correttamente.
-                    </p>
-                    <p>
-                      Qualora si dovessero liberare dei posti sarai contattato/a
-                      per confermare la prenotazione.
-                    </p>
-                  </div>
+            {visibleWaitlistSuccess ? (
+              <div id="waitlist-success" className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
+                <p className="eyebrow">Lista d&apos;attesa registrata</p>
+                <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-muted)]">
+                  <p className="text-white">
+                    La tua richiesta e&apos; stata inserita correttamente.
+                  </p>
+                  <p>
+                    Qualora si dovessero liberare dei posti sarai contattato/a
+                    per confermare la prenotazione.
+                  </p>
                 </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className={`${spacingClass} space-y-4`}>
-              {visibleDays.map((day) => (
-                <div key={day.date} className="space-y-3">
-                  {day.bands.map((band) => {
-                    const availableSlots = band.slots.filter((slot) => {
-                      if (!slot.enabled) return false;
-                      if (draft.isAfterDinner) return slot.time >= "22:30";
-                      return true;
-                    });
-                    const cleanedWarning = cleanText(band.warning);
-
-                    if (availableSlots.length === 0) {
-                      return null;
-                    }
-
-                    return (
-                      <div key={band.code} className="space-y-3">
-
-                        {cleanedWarning ? (
-                          <p className="rounded-2xl border border-[var(--border)] bg-white/4 px-4 py-3 text-xs leading-5 text-[var(--text-muted)]">
-                            {cleanedWarning}
-                          </p>
-                        ) : null}
-
-                        <div className="grid grid-cols-4 gap-2">
-                          {availableSlots.map((slot) => {
-                            const isActive = selectedTime === slot.time;
-
-                            return (
-                              <button
-                                key={`${band.code}-${slot.time}`}
-                                type="button"
-                                className={cn(
-                                  "panel-muted flex min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-5 text-center transition",
-                                  isActive &&
-                                    "border border-[var(--border-strong)] bg-white/8",
-                                )}
-                                onClick={() => {
-                                  if (!hasAutoScrolledToCustomerStepRef.current) {
-                                    pendingInitialSlotScrollRef.current = true;
-                                  }
-                                  setSelectedTime(slot.time);
-                                  setSelectedStatusCode(slot.statusCode);
-                                  window.location.hash = "#dati-cliente";
-                                }}
-                              >
-                                <p className="text-base font-semibold leading-none text-white">
-                                  {slot.time}
-                                </p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ) : null}
+          </div>
         </>
       ) : null}
     </>
@@ -1027,6 +1337,7 @@ export function BookingFlow() {
                     triggerHaptic();
                     setSuccess(null);
                     setSelectedTime("");
+                    setFieldErrors({});
                     setDraft(fallbackDraft);
                   }}
                 >
@@ -1048,31 +1359,44 @@ export function BookingFlow() {
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
                     <span>Giorno del viaggio</span>
                     <input
+                      ref={dateFieldRef}
                       className="field min-w-0"
                       type="date"
-                      min={baseDraft.date}
+                      min={minimumBookingDate}
                       value={draft.date}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, date: event.target.value }))
-                      }
+                      onChange={(event) => {
+                        clearFieldErrors("date", "selectedTime");
+                        setDraft((current) => ({ ...current, date: event.target.value }));
+                      }}
                     />
+                    {fieldErrors.date ? (
+                      <p className="text-xs font-semibold text-red-400">
+                        {fieldErrors.date}
+                      </p>
+                    ) : null}
                   </label>
 
                   <label className="space-y-2 text-sm text-[var(--text-muted)]">
                     <span>Quanti pirati?</span>
                     <input
+                      ref={paxFieldRef}
                       className="field min-w-0"
                       type="number"
                       min={1}
-                      max={16}
                       value={draft.pax}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        clearFieldErrors("pax", "selectedTime");
                         setDraft((current) => ({
                           ...current,
-                          pax: Number(event.target.value) || 1,
-                        }))
-                      }
+                          pax: event.target.value,
+                        }));
+                      }}
                     />
+                    {fieldErrors.pax ? (
+                      <p className="text-xs font-semibold text-red-400">
+                        {fieldErrors.pax}
+                      </p>
+                    ) : null}
                   </label>
                 </div>
 
@@ -1099,7 +1423,15 @@ export function BookingFlow() {
                             )}
                             onClick={() => {
                               triggerHaptic();
-                              setDraft((current) => ({ ...current, roomCode: room.code }));
+                              clearFieldErrors("childrenCount", "selectedTime");
+                              setDraft((current) => ({
+                                ...current,
+                                roomCode: room.code,
+                                childrenCount:
+                                  room.code === AREA_FAMILY_ROOM_CODE
+                                    ? current.childrenCount
+                                    : "",
+                              }));
                               setSelectedTime("");
                               
                               // Scroll manuale agli orari disponibili dopo un breve delay per il re-render
@@ -1154,25 +1486,37 @@ export function BookingFlow() {
                         <label className="block space-y-2 text-sm text-[var(--text-muted)]">
                           <span>Numero di bambini (obbligatorio)</span>
                           <input
+                            ref={childrenCountFieldRef}
                             className="field"
                             type="number"
                             min={1}
                             required
                             placeholder="Es: 2"
                             value={draft.childrenCount}
-                            onChange={(event) =>
+                            onChange={(event) => {
+                              clearFieldErrors("childrenCount");
                               setDraft((current) => ({
                                 ...current,
                                 childrenCount: event.target.value,
-                              }))
-                            }
+                              }));
+                            }}
                           />
+                          {fieldErrors.childrenCount ? (
+                            <p className="text-xs font-semibold text-red-400">
+                              {fieldErrors.childrenCount}
+                            </p>
+                          ) : null}
                         </label>
                       ) : null}
                     </div>
 
-                    <div id="availability-section">
+                    <div id="availability-section" ref={selectedTimeFieldRef}>
                       {renderAvailabilityContent("mt-5")}
+                      {fieldErrors.selectedTime ? (
+                        <p className="mt-3 text-xs font-semibold text-red-400">
+                          {fieldErrors.selectedTime}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
@@ -1221,7 +1565,7 @@ export function BookingFlow() {
                       </span>
                       , alle ore <span className="font-semibold">{selectedSlot.time}</span> per{" "}
                       <span className="font-semibold">
-                        {draft.pax} {draft.pax === 1 ? "persona" : "persone"}
+                        {paxCount} {paxCount === 1 ? "persona" : "persone"}
                       </span>{" "}
                       , <span className="font-medium text-[var(--text-muted)]">Sala richiesta:</span> <span className="font-semibold text-[var(--accent-strong)]">{selectedRoom?.publicName || selectedRoom?.name || "Sala"}</span>.
                     </p>
@@ -1231,11 +1575,13 @@ export function BookingFlow() {
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Nome</span>
                       <input
+                        ref={firstNameFieldRef}
                         className="field"
                         required
                         value={draft.firstName}
                         onChange={(event) => {
                           const nextFirstName = event.target.value;
+                          clearFieldErrors("firstName");
                           setDraft((current) => ({
                             ...current,
                             firstName: nextFirstName,
@@ -1246,15 +1592,22 @@ export function BookingFlow() {
                           }
                         }}
                       />
+                      {fieldErrors.firstName ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.firstName}
+                        </p>
+                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Cognome</span>
                       <input
+                        ref={lastNameFieldRef}
                         className="field"
                         required
                         value={draft.lastName}
                         onChange={(event) => {
                           const nextLastName = event.target.value;
+                          clearFieldErrors("lastName");
                           setDraft((current) => ({
                             ...current,
                             lastName: nextLastName,
@@ -1265,16 +1618,23 @@ export function BookingFlow() {
                           }
                         }}
                       />
+                      {fieldErrors.lastName ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.lastName}
+                        </p>
+                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Email</span>
                       <input
+                        ref={emailFieldRef}
                         className="field"
                         type="email"
                         required
                         value={draft.email}
                         onChange={(event) => {
                           const nextEmail = normalizeCustomerEmail(event.target.value);
+                          clearFieldErrors("email");
 
                           setDraft((current) => ({ ...current, email: nextEmail }));
 
@@ -1288,6 +1648,11 @@ export function BookingFlow() {
                           }
                         }}
                       />
+                      {fieldErrors.email ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.email}
+                        </p>
+                      ) : null}
                     </label>
                     <label className="space-y-2 text-sm text-[var(--text-muted)]">
                       <span>Telefono</span>
@@ -1296,12 +1661,14 @@ export function BookingFlow() {
                           +39
                         </span>
                         <input
+                          ref={phoneFieldRef}
                           className="field pl-14"
                           type="tel"
                           required
                           value={draft.phone.replace(/^\+39/, "")}
                           onChange={(event) => {
                             const nextPhone = "+39" + event.target.value.replace(/\D/g, "");
+                            clearFieldErrors("phone");
 
                             setDraft((current) => ({ ...current, phone: nextPhone }));
 
@@ -1312,6 +1679,11 @@ export function BookingFlow() {
                           onBlur={handlePhoneBlur}
                         />
                       </div>
+                      {fieldErrors.phone ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.phone}
+                        </p>
+                      ) : null}
                     </label>
                   </div>
 
@@ -1331,15 +1703,24 @@ export function BookingFlow() {
                       <input
                         type="checkbox"
                         checked={draft.privacyAccepted}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          clearFieldErrors("privacyAccepted");
                           setDraft((current) => ({
                             ...current,
                             privacyAccepted: event.target.checked,
-                          }))
-                        }
+                          }));
+                        }}
                       />
                       <span>Accetto il trattamento privacy per inviare la prenotazione.</span>
                     </label>
+                    {fieldErrors.privacyAccepted ? (
+                      <p
+                        ref={privacyAcceptedFieldRef}
+                        className="text-xs font-semibold text-red-400"
+                      >
+                        {fieldErrors.privacyAccepted}
+                      </p>
+                    ) : null}
                     {!shouldHideMarketingConsent ? (
                       <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
                         <input

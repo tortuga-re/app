@@ -61,6 +61,9 @@ export async function GET(
       const meetingAssignment = assignMatchDrinkMeetingTables(
         matches,
         players,
+        answers,
+        questions,
+        session.secondaryTraitMode ?? "absolute",
         session.excludedMeetingTables ?? [],
       ).get(match.id);
       const sharedMainCategory =
@@ -73,13 +76,16 @@ export async function GET(
         playerANickname: pA?.nickname,
         playerATable: pA?.tableNumber,
         playerAAvatar: pA?.avatarUrl,
+        playerAPhone: pA?.phone,
         playerBNickname: pB?.nickname,
         playerBTable: pB?.tableNumber,
         playerBAvatar: pB?.avatarUrl,
+        playerBPhone: pB?.phone,
         ownMainCategory: ownProfile?.mainCategory,
         ownMainCategoryLabel: ownProfile?.mainCategoryLabel,
         matchedPlayerNickname: matchedPlayer?.nickname,
         matchedPlayerTable: matchedPlayer?.tableNumber,
+        matchedPlayerPhone: matchedPlayer?.phone,
         matchedPlayerMainCategory: matchedProfile?.mainCategory,
         matchedPlayerMainCategoryLabel: matchedProfile?.mainCategoryLabel,
         matchedPlayerSecondaryTrait: matchedProfile?.secondaryTrait,

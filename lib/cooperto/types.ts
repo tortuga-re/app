@@ -70,6 +70,23 @@ export interface CoopertoCreateReservationRequest {
   ConsensoMarketing?: boolean;
 }
 
+export interface CoopertoUpdateReservationRequest {
+  CodicePrenotazione: string;
+  DataPrenotazione: string;
+  CodiceStato: number;
+  Pax: number;
+  Nome?: string;
+  Cognome?: string;
+  Telefono?: string;
+  Email?: string;
+  Note?: string;
+}
+
+export interface CoopertoUpdateReservationStatusRequest {
+  CodicePrenotazione: string;
+  CodiceStato: number;
+}
+
 export interface CoopertoCreateQueueRequest {
   CodiceSede: string;
   CodiceSala?: string;

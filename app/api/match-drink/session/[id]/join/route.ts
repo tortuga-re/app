@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCustomerAvatar } from "@/lib/profile/avatar-service";
 import { getSession, joinSession } from "@/lib/match-drink/storage";
+import { normalizeItalianPhone } from "@/lib/validation/phone";
 
 export async function POST(
   req: NextRequest,
@@ -18,15 +20,28 @@ export async function POST(
       return NextResponse.json({ error: "Le iscrizioni per questa sfida sono chiuse." }, { status: 403 });
     }
 
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const resolvedAvatarUrl =
+      typeof body.avatarUrl === "string" && body.avatarUrl.trim()
+        ? body.avatarUrl.trim()
+        : email
+          ? await getCustomerAvatar(email).catch(() => null)
+          : null;
+    const resolvedPhone =
+      typeof body.phone === "string"
+        ? normalizeItalianPhone(body.phone)?.normalizedE164 ?? ""
+        : "";
+
     const player = await joinSession({
       sessionId: id,
       nickname: body.nickname,
       tableNumber: body.tableNumber,
+      phone: resolvedPhone || undefined,
       ageRange: body.ageRange,
       gender: body.gender,
       relationshipStatus: body.relationshipStatus,
       lookingFor: body.lookingFor,
-      avatarUrl: body.avatarUrl,
+      avatarUrl: resolvedAvatarUrl || undefined,
       publicConsent: body.publicConsent ?? false,
     });
 

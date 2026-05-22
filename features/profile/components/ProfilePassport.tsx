@@ -1,8 +1,11 @@
+"use client";
+
 import * as React from "react";
-import { cn } from "@/lib/utils";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import type { FidelityRewardProgress } from "@/lib/fidelity-rewards";
 import { formatBirthDateLabel } from "@/lib/customer-profile";
+import { fidelityLoyaltyTiers } from "@/lib/fidelity-rewards.config";
+import { cn } from "@/lib/utils";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import dynamic from "next/dynamic";
 
@@ -62,10 +65,12 @@ export function ProfilePassport({
   openContactEditor,
   changeAccount,
 }: ProfilePassportProps) {
+  const [isTierListOpen, setIsTierListOpen] = React.useState(false);
+
   return (
     <div
       id="riconoscimento"
-      className="panel hash-scroll-target rounded-[2rem] p-5 overflow-visible"
+      className="panel hash-scroll-target rounded-[2rem] overflow-hidden p-5"
     >
       <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
         <p className="text-xs font-black uppercase tracking-[0.25em] text-[var(--accent-strong)]">
@@ -92,7 +97,13 @@ export function ProfilePassport({
             {profileName}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 pl-1 pr-3 py-1">
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 pl-1 pr-3 py-1 transition-colors hover:bg-white/10"
+              onClick={() => setIsTierListOpen((value) => !value)}
+              aria-expanded={isTierListOpen}
+              aria-label={`Mostra i ranghi disponibili per ${loyaltyProgress.loyaltyTier.label}`}
+            >
               {loyaltyProgress.loyaltyTier.image ? (
                 <img 
                   src={loyaltyProgress.loyaltyTier.image} 
@@ -103,11 +114,36 @@ export function ProfilePassport({
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
                 {loyaltyProgress.loyaltyTier.label}
               </span>
-            </div>
+            </button>
             <span className="text-xs leading-5 text-[var(--text-muted)]">
               {loyaltyProgress.points} punti
             </span>
           </div>
+          {isTierListOpen ? (
+            <div className="mt-3 w-full max-w-[18rem] rounded-[1.25rem] border border-[rgba(216,176,106,0.18)] bg-[rgba(0,0,0,0.18)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                Ranghi disponibili
+              </p>
+              <div className="mt-2 space-y-1.5">
+                {fidelityLoyaltyTiers.map((tier, index) => (
+                  <div
+                    key={tier.label}
+                    className={cn(
+                      "flex items-center justify-between gap-3 rounded-full border px-3 py-1.5 text-sm",
+                      tier.label === loyaltyProgress.loyaltyTier.label
+                        ? "border-[rgba(216,176,106,0.35)] bg-[rgba(216,176,106,0.12)] text-white"
+                        : "border-white/5 bg-white/[0.03] text-[var(--text-muted)]",
+                    )}
+                  >
+                    <span className="font-semibold uppercase tracking-[0.08em]">{tier.label}</span>
+                    <span className="text-[11px] font-semibold text-[var(--accent-strong)]">
+                      {index === 0 ? "> 0" : `> ${tier.minPoints}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -157,21 +193,25 @@ export function ProfilePassport({
             {/* Collapsible/Missing Content */}
             <div className="grid gap-3">
               {/* Contacts (Email/Phone) - Expanded only if full, or if one is missing */}
-              {(isDataExpanded || !contactSnapshot.email || !contactSnapshot.phone) && (
-                <div className="panel-muted rounded-[1.5rem] px-4 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                    Contatti
+              <div className="panel-muted rounded-[1.5rem] px-4 py-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                  Contatti
+                </p>
+                <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
+                  <p>
+                    Email:{" "}
+                    <span className={contactSnapshot.email ? "text-white" : "text-[var(--danger)] font-semibold"}>
+                      {contactSnapshot.email || "Non disponibile"}
+                    </span>
                   </p>
-                  <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
-                    <p>
-                      Email:{" "}
-                      <span className={contactSnapshot.email ? "text-white" : "text-[var(--danger)] font-semibold"}>
-                        {contactSnapshot.email || "Non disponibile"}
-                      </span>
-                    </p>
-                  </div>
+                  <p>
+                    Telefono:{" "}
+                    <span className={contactSnapshot.phone ? "text-white" : "text-[var(--danger)] font-semibold"}>
+                      {contactSnapshot.phone || "Non disponibile"}
+                    </span>
+                  </p>
                 </div>
-              )}
+              </div>
 
               {/* Birth Date - Expanded only if full, or if missing */}
               {(isDataExpanded || !contactSnapshot.birthDate) && (

@@ -26,6 +26,8 @@ const MATCH_DRINK_OPTION_IDS = new Set(["A", "B", "C", "D"]);
 export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
 const getSessionExcludedTablesKey = (sessionId: string) =>
   `match_drink_excluded_tables:${sessionId}`;
+const getSessionSecondaryTraitModeKey = (sessionId: string) =>
+  `match_drink_secondary_trait_mode:${sessionId}`;
 
 const shuffle = <T>(items: T[] | null | undefined): T[] => {
   const result = [...(items ?? [])];
@@ -141,6 +143,21 @@ export const updateSession = async (id: string, updates: Partial<MatchDrinkSessi
     if (settingsError) throw settingsError;
   }
 
+  if (updates.secondaryTraitMode !== undefined) {
+    const { error: settingsError } = await admin
+      .from("app_state")
+      .upsert(
+        {
+          key: getSessionSecondaryTraitModeKey(id),
+          value: JSON.stringify(updates.secondaryTraitMode),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+
+    if (settingsError) throw settingsError;
+  }
+
   if (Object.keys(dbUpdates).length > 0) {
     const { error } = await admin
       .from("match_drink_sessions")
@@ -163,6 +180,7 @@ export const getSession = async (id: string): Promise<MatchDrinkSession | null> 
   if (error || !data) return null;
   const session = mapSession(data);
   session.excludedMeetingTables = await getSessionExcludedMeetingTables(id);
+  session.secondaryTraitMode = await getSessionSecondaryTraitMode(id);
   session.analytics = await getMatchDrinkAnalytics(id);
   return session;
 };
@@ -176,7 +194,10 @@ export const getSessionByJoinCode = async (code: string): Promise<MatchDrinkSess
     .single();
 
   if (error || !data) return null;
-  return mapSession(data);
+  const session = mapSession(data);
+  session.excludedMeetingTables = await getSessionExcludedMeetingTables(session.id);
+  session.secondaryTraitMode = await getSessionSecondaryTraitMode(session.id);
+  return session;
 };
 
 export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
@@ -192,6 +213,8 @@ export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
   if (error || !data) return null;
   const session = mapSession(data);
   session.analytics = await getMatchDrinkAnalytics(session.id);
+  session.excludedMeetingTables = await getSessionExcludedMeetingTables(session.id);
+  session.secondaryTraitMode = await getSessionSecondaryTraitMode(session.id);
   return session;
 };
 
@@ -270,6 +293,7 @@ export const joinSession = async (
       session_id: player.sessionId,
       nickname: player.nickname,
       table_number: player.tableNumber,
+      phone: player.phone,
       age_range: player.ageRange,
       gender: player.gender,
       relationship_status: player.relationshipStatus,
@@ -644,11 +668,34 @@ export const getSessionExcludedMeetingTables = async (sessionId: string): Promis
   }
 };
 
+export const getSessionSecondaryTraitMode = async (
+  sessionId: string,
+): Promise<MatchDrinkSession["secondaryTraitMode"]> => {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("app_state")
+    .select("value")
+    .eq("key", getSessionSecondaryTraitModeKey(sessionId))
+    .maybeSingle();
+
+  if (error || !data?.value) {
+    return "absolute";
+  }
+
+  try {
+    const parsed = JSON.parse(data.value) as unknown;
+    return parsed === "macro_category" ? "macro_category" : "absolute";
+  } catch {
+    return "absolute";
+  }
+};
+
 const mapPlayer = (row: Record<string, unknown>): MatchDrinkPlayer => ({
   id: row.id as string,
   sessionId: row.session_id as string,
   nickname: row.nickname as string,
   tableNumber: row.table_number as string,
+  phone: row.phone as string,
   ageRange: row.age_range as MatchDrinkPlayer["ageRange"],
   gender: row.gender as MatchDrinkPlayer["gender"],
   relationshipStatus: row.relationship_status as MatchDrinkPlayer["relationshipStatus"],

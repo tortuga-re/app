@@ -267,10 +267,11 @@ export const getMainCategoryFromTraits = (
 export const getSecondaryTraitFromTraits = (
   traits: Partial<Record<MatchDrinkTrait, number>>,
   mainCategory?: MatchDrinkMainCategory,
+  mode: "macro_category" | "absolute" = "absolute",
 ) => {
   const dominantTrait = getDominantTraitFromTraits(traits);
 
-  if (!mainCategory) {
+  if (mode === "absolute" || !mainCategory) {
     return dominantTrait;
   }
 

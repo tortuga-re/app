@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { requestJson } from "@/lib/client";
+import { scrollToFormField } from "@/lib/form-focus";
 import { triggerHaptic } from "@/lib/haptics";
 import { triggerBuzzerVibration, VIBRATION_PATTERNS } from "@/lib/live-buzzer/vibration";
 import { getSupabase } from "@/lib/match-drink/supabase";
@@ -21,8 +22,13 @@ export default function BuzzerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<"nickname" | "tableNumber", string>>
+  >({});
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [dismissWinnerOverlay, setDismissWinnerOverlay] = useState(false);
+  const nicknameFieldRef = useRef<HTMLInputElement | null>(null);
+  const tableNumberFieldRef = useRef<HTMLInputElement | null>(null);
 
   // Feedback State
   const [feedback, setFeedback] = useState<{ message: string; type: "result" | "position" | null }>({ message: "", type: null });
@@ -208,13 +214,28 @@ export default function BuzzerPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamInfo.nickname.trim() || !teamInfo.tableNumber.trim()) {
-      setError("Inserisci nickname e numero tavolo.");
+    const nextFieldErrors: Partial<Record<"nickname" | "tableNumber", string>> = {};
+
+    if (!teamInfo.nickname.trim()) {
+      nextFieldErrors.nickname = "Inserisci il nickname della squadra.";
+    }
+
+    if (!teamInfo.tableNumber.trim()) {
+      nextFieldErrors.tableNumber = "Inserisci il numero del tavolo.";
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setError("");
+      scrollToFormField(
+        nextFieldErrors.nickname ? nicknameFieldRef.current : tableNumberFieldRef.current,
+      );
       return;
     }
 
     setSubmitting(true);
     setError("");
+    setFieldErrors({});
     try {
       await requestJson("/api/live-buzzer/team", {
         method: "POST",
@@ -314,22 +335,36 @@ export default function BuzzerPage() {
           <div className="space-y-2">
             <label className="text-sm text-[var(--text-muted)]">Nickname Squadra</label>
             <input
+              ref={nicknameFieldRef}
               className="field"
               placeholder="E.g. I Pirati del Bar"
               value={teamInfo.nickname}
-              onChange={(e) => setTeamInfo({ ...teamInfo, nickname: e.target.value })}
+              onChange={(e) => {
+                setFieldErrors((current) => ({ ...current, nickname: undefined }));
+                setTeamInfo({ ...teamInfo, nickname: e.target.value });
+              }}
               required
             />
+            {fieldErrors.nickname ? (
+              <p className="text-xs font-semibold text-red-400">{fieldErrors.nickname}</p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <label className="text-sm text-[var(--text-muted)]">Numero Tavolo</label>
             <input
+              ref={tableNumberFieldRef}
               className="field"
               placeholder="E.g. 12"
               value={teamInfo.tableNumber}
-              onChange={(e) => setTeamInfo({ ...teamInfo, tableNumber: e.target.value })}
+              onChange={(e) => {
+                setFieldErrors((current) => ({ ...current, tableNumber: undefined }));
+                setTeamInfo({ ...teamInfo, tableNumber: e.target.value });
+              }}
               required
             />
+            {fieldErrors.tableNumber ? (
+              <p className="text-xs font-semibold text-red-400">{fieldErrors.tableNumber}</p>
+            ) : null}
           </div>
           {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
           <button type="submit" className="button-primary w-full min-h-12" disabled={submitting}>

@@ -40,7 +40,11 @@ export default function MediaManagerPage() {
   };
 
   useEffect(() => {
-    void loadMedia();
+    const timer = window.setTimeout(() => {
+      void loadMedia();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleUpload = async (file: File) => {
@@ -197,3 +201,5 @@ export default function MediaManagerPage() {
     </div>
   );
 }
+
+

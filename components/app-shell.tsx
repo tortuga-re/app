@@ -13,6 +13,53 @@ import { useCustomerIdentity } from "@/lib/customer-identity";
 import { triggerHaptic } from "@/lib/haptics";
 import { useCustomerStatus } from "@/lib/use-customer-status";
 
+const RECOVERY_KEY = "tortuga.chunk-recovery-at";
+const RECOVERY_COOLDOWN_MS = 30_000;
+
+const isChunkRecoveryError = (message: string) =>
+  message.includes("Loading chunk") ||
+  message.includes("Failed to fetch dynamically imported module") ||
+  message.includes("ChunkLoadError") ||
+  message.includes("unexpected token '<'") ||
+  message.includes("Load failed") ||
+  message.includes("404");
+
+const recoverFromChunkError = async () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const lastRecovery = Number(sessionStorage.getItem(RECOVERY_KEY) ?? "0");
+  const now = Date.now();
+
+  if (now - lastRecovery < RECOVERY_COOLDOWN_MS) {
+    return false;
+  }
+
+  sessionStorage.setItem(RECOVERY_KEY, String(now));
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  } catch {
+    // Ignore cleanup failures and continue with reload.
+  }
+
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    // Ignore cache cleanup failures and continue with reload.
+  }
+
+  window.location.reload();
+  return true;
+};
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { greeting, identity } = useCustomerIdentity();
   const customerStatus = useCustomerStatus(identity.email);
@@ -20,26 +67,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isStageOrAdmin = pathname.startsWith("/stage") || pathname.startsWith("/live") || pathname.startsWith("/admin/");
 
-  // Global handler for ChunkLoadErrors (classic PWA issue after deploy)
   useEffect(() => {
-    const handleError = (e: ErrorEvent | PromiseRejectionEvent) => {
-      const message = "message" in e ? e.message : String(e.reason);
-      if (
-        message.includes("Loading chunk") || 
-        message.includes("unexpected token '<'") ||
-        message.includes("Load failed") ||
-        message.includes("404")
-      ) {
-        console.warn("Rilevato errore di caricamento (cache vecchia). Ricarico...");
-        window.location.reload();
+    const handleError = (e: ErrorEvent) => {
+      const message =
+        e.error instanceof Error
+          ? e.error.message
+          : typeof e.message === "string"
+            ? e.message
+            : "";
+
+      if (!isChunkRecoveryError(message)) {
+        return;
       }
+
+      void recoverFromChunkError();
+    };
+
+    const handleRejection = (e: PromiseRejectionEvent) => {
+      const message =
+        e.reason instanceof Error
+          ? e.reason.message
+          : typeof e.reason === "string"
+            ? e.reason
+            : JSON.stringify(e.reason ?? "");
+
+      if (!isChunkRecoveryError(message)) {
+        return;
+      }
+
+      void recoverFromChunkError();
     };
 
     window.addEventListener("error", handleError);
-    window.addEventListener("unhandledrejection", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
     return () => {
       window.removeEventListener("error", handleError);
-      window.removeEventListener("unhandledrejection", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
     };
   }, []);
 

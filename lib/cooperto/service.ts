@@ -30,6 +30,7 @@ import type {
   CoopertoCreateContactRequest,
   CoopertoCreateQueueRequest,
   CoopertoCreateReservationRequest,
+  CoopertoUpdateReservationStatusRequest,
   DataSource,
   CoopertoFidelityCard,
   CoopertoListResponse,
@@ -245,7 +246,6 @@ const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
 
 const getCoopertoNationalPhone = (value?: string) =>
   normalizeItalianPhone(value ?? "")?.nationalNumber ?? "";
-
 const getCoopertoInternationalPhone = (value?: string) =>
   normalizeItalianPhone(value ?? "")?.normalizedE164 ?? "";
 const normalizeContactCode = (value?: string) => value?.trim() ?? "";
@@ -265,6 +265,84 @@ const buildWaitlistNote = (input: WaitlistCreateInput) => {
   }
 
   return [...contextLines, "", `Note cliente: ${input.note.trim()}`].join("\n");
+};
+
+const resolveWaitlistReservationTime = (requestedTime?: string) => {
+  if (!requestedTime) {
+    return "19:00";
+  }
+
+  const normalized = requestedTime.trim();
+  if (/^\d{2}:\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  return "19:00";
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const markAvailabilityAsUnavailable = (
+  availability: BookingAvailabilityResponse,
+): BookingAvailabilityResponse => ({
+  ...availability,
+  days: availability.days.map((day) => ({
+    ...day,
+    bands: day.bands.map((band) => ({
+      ...band,
+      slots: band.slots.map((slot) => ({
+        ...slot,
+        enabled: false,
+      })),
+    })),
+  })),
+});
+
+const getReservationFromWaitlistEntry = async (email: string) => {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const reservations = await coopertoFetch<CoopertoListResponse<CoopertoReservation>>(
+    "/api/Prenotazioni/ElencoByEMailContatto",
+    {
+      query: {
+        emailContatto: normalizedEmail,
+        skip: 0,
+        pageSize: 100,
+      },
+    },
+  );
+
+  const now = Date.now();
+
+  return reservations.data
+    .filter((reservation) => {
+      const dateTime = reservation.DataPrenotazione ?? "";
+      const timestamp = Date.parse(dateTime);
+
+      return Boolean(
+        reservation.CodicePrenotazione &&
+          dateTime &&
+          !Number.isNaN(timestamp) &&
+          timestamp >= now,
+      );
+    })
+    .sort(
+      (left, right) =>
+        Date.parse(right.DataPrenotazione ?? "") - Date.parse(left.DataPrenotazione ?? ""),
+    )[0] ?? null;
+};
+
+const updateReservationStatus = async (
+  input: CoopertoUpdateReservationStatusRequest,
+) => {
+  return await coopertoFetch<boolean>("/api/Prenotazioni/AggiornaStato", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 };
 
 const buildBookingNote = (input: BookingCreateInput) => {
@@ -457,14 +535,41 @@ export const getBookingAvailability = unstable_cache(
           },
         },
       );
-
-      return {
+      const liveAvailability: BookingAvailabilityResponse = {
         source: "live",
         date,
         pax,
         roomCode,
         days: normalizeDays(response),
       };
+
+      const hasAnySlots = liveAvailability.days.some((day) =>
+        day.bands.some((band) => band.slots.length > 0),
+      );
+
+      if (hasAnySlots) {
+        return liveAvailability;
+      }
+
+      const previewResponse = await coopertoFetch<CoopertoBookingDay[]>(
+        "/api/Prenotazioni/OrariModulo",
+        {
+          query: {
+            codiceModulo: coopertoConfig.bookingModuleCode,
+            data: date,
+            pax: 1,
+            codiceSala: roomCode,
+          },
+        },
+      );
+
+      return markAvailabilityAsUnavailable({
+        source: "live",
+        date,
+        pax,
+        roomCode,
+        days: normalizeDays(previewResponse),
+      });
     } catch {
       return fallbackSource(await mockBookingAvailability(date, pax, roomCode));
     }
@@ -527,34 +632,72 @@ export const createWaitlist = async (
     return mockWaitlistCreate(input);
   }
 
-  const requestBody: CoopertoCreateQueueRequest = {
-    CodiceSede: coopertoConfig.sedeCode,
-    CodiceSala: input.roomCode,
-    CodiceModulo: coopertoConfig.bookingModuleCode,
-    CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
-    Nome: input.firstName,
-    Cognome: input.lastName,
-    Telefono: getCoopertoNationalPhone(input.phone),
-    Email: input.email,
-    Pax: input.pax,
-    Note: buildWaitlistNote(input),
-    ConsensoPrivacy: input.privacyAccepted,
-    ConsensoMarketing: input.marketingAccepted,
-  };
-
   try {
-    const entry = await coopertoFetch<CoopertoWaitlistEntry>("/api/Coda/Crea", {
+    const reservation = await coopertoFetch<CoopertoReservation>("/api/Prenotazioni/Crea", {
       method: "POST",
-      query: {
-        codiceSala: input.roomCode,
-        codiceModulo: coopertoConfig.bookingModuleCode,
-      },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        CodiceSede: coopertoConfig.sedeCode,
+        DataPrenotazione: buildCoopertoDateTime(
+          input.date,
+          resolveWaitlistReservationTime(input.requestedTime),
+        ),
+        CodiceStato: 1,
+        Pax: input.pax,
+        CodiceSala: input.roomCode,
+        CodiceModulo: coopertoConfig.bookingModuleCode,
+        CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
+        Nome: input.firstName,
+        Cognome: input.lastName,
+        Telefono: input.phone,
+        Email: input.email,
+        Note: buildWaitlistNote(input),
+        ConsensoPrivacy: input.privacyAccepted,
+        ConsensoMarketing: input.marketingAccepted,
+      }),
     });
+
+    const reservationEmail = input.email?.trim();
+    if (reservationEmail) {
+      let foundReservation: CoopertoReservation | null = null;
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await sleep(700);
+        foundReservation = await getReservationFromWaitlistEntry(reservationEmail);
+        if (foundReservation?.CodicePrenotazione) {
+          break;
+        }
+      }
+
+      if (foundReservation?.CodicePrenotazione) {
+        try {
+          await updateReservationStatus({
+            CodicePrenotazione: foundReservation.CodicePrenotazione,
+            CodiceStato: 8,
+          });
+        } catch (error) {
+          console.warn("[Cooperto createWaitlist] Impossibile promuovere la prenotazione a lista d'attesa:", error);
+        }
+      }
+    }
 
     return {
       source: "live",
-      entry,
+      entry: {
+        CodiceCoda: reservation.CodicePrenotazione,
+        CodiceContatto: reservation.CodiceContatto,
+        CodiceSede: reservation.CodiceSede,
+        DataCreazione: reservation.DataCreazione,
+        DataCoda: reservation.DataPrenotazione,
+        Nome: reservation.Nome,
+        Cognome: reservation.Cognome,
+        Telefono: reservation.Telefono,
+        Email: reservation.Email,
+        Pax: reservation.Pax,
+        Note: reservation.Note,
+        LinkCoda: "",
+        MinutiAttesaMin: 0,
+        MinutiAttesaMax: 0,
+      },
     };
   } catch (error) {
     console.error("[Cooperto createWaitlist] Errore critico:", error);
@@ -671,7 +814,7 @@ export const updateProfileContact = async (
     Nome: input.firstName,
     Cognome: input.lastName,
     Email: input.email,
-    Telefono: getCoopertoInternationalPhone(input.phone),
+    Telefono: getCoopertoInternationalPhone(input.phone) || undefined,
     DataDiNascita: buildBirthDateDateTime(input.birthDate),
     ConsensoMarketing: input.marketingConsent,
     SovrascriviDati: true,
