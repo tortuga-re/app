@@ -1,9 +1,12 @@
 import type {
+  MatchDrinkAnswer,
   MatchDrinkForecastSummary,
   MatchDrinkMatch,
   MatchDrinkMeetingTableOption,
   MatchDrinkPlayer,
+  MatchDrinkQuestion,
 } from "./types";
+import { calculateMatchScore, calculatePlayerProfile } from "./scoring";
 
 type MatchDrinkMeetingZone = "romance" | "friendship";
 
@@ -90,6 +93,40 @@ const buildAssignment = (
   tableLabel: `${slot.number} in ${slot.area}`,
 });
 
+const buildFriendshipMatchGroups = (matchCount: number) => {
+  if (matchCount <= 0) {
+    return [];
+  }
+
+  if (matchCount === 1) {
+    return [1];
+  }
+
+  if (matchCount === 2) {
+    return [2];
+  }
+
+  if (matchCount === 3) {
+    return [3];
+  }
+
+  if (matchCount === 4) {
+    return [2, 2];
+  }
+
+  const base = Math.floor(matchCount / 3);
+  const remainder = matchCount % 3;
+  if (remainder === 0) {
+    return Array.from({ length: base }, () => 3);
+  }
+
+  if (remainder === 1) {
+    return [...Array.from({ length: base - 1 }, () => 3), 2, 2];
+  }
+
+  return [...Array.from({ length: base }, () => 3), 2];
+};
+
 const isFriendshipMatch = (
   playerA?: MatchDrinkPlayer,
   playerB?: MatchDrinkPlayer,
@@ -107,9 +144,123 @@ const compareMatches = (left: MatchDrinkMatch, right: MatchDrinkMatch) => {
   return leftKey.localeCompare(rightKey);
 };
 
+type FriendshipMatchBundle = {
+  match: MatchDrinkMatch;
+  score: number;
+};
+
+type FriendshipScoringContext = {
+  playersById: Map<string, MatchDrinkPlayer>;
+  profilesByPlayerId: Map<string, ReturnType<typeof calculatePlayerProfile>>;
+  answersByPlayerId: Map<string, MatchDrinkAnswer[]>;
+  questionsBank: MatchDrinkQuestion[];
+};
+
+const getFriendshipPairCompatibility = (
+  left: MatchDrinkMatch,
+  right: MatchDrinkMatch,
+  context: FriendshipScoringContext,
+) => {
+  const leftPlayers = [
+    context.playersById.get(left.playerAId),
+    context.playersById.get(left.playerBId),
+  ].filter(Boolean) as MatchDrinkPlayer[];
+  const rightPlayers = [
+    context.playersById.get(right.playerAId),
+    context.playersById.get(right.playerBId),
+  ].filter(Boolean) as MatchDrinkPlayer[];
+
+  if (leftPlayers.length < 2 || rightPlayers.length < 2) {
+    return 0;
+  }
+
+  const leftA = leftPlayers[0];
+  const leftB = leftPlayers[1];
+  const rightA = rightPlayers[0];
+  const rightB = rightPlayers[1];
+
+  const score = (
+    a: MatchDrinkPlayer,
+    b: MatchDrinkPlayer,
+  ) => calculateMatchScore(
+    a,
+    b,
+    context.profilesByPlayerId.get(a.id)!,
+    context.profilesByPlayerId.get(b.id)!,
+    context.answersByPlayerId.get(a.id) ?? [],
+    context.answersByPlayerId.get(b.id) ?? [],
+    context.questionsBank,
+  ).score;
+
+  const crossScores = [
+    score(leftA, rightA),
+    score(leftA, rightB),
+    score(leftB, rightA),
+    score(leftB, rightB),
+  ];
+
+  return crossScores.reduce((total, value) => total + value, 0) / crossScores.length;
+};
+
+const selectBestFriendshipBundle = (
+  available: FriendshipMatchBundle[],
+  size: number,
+  context: FriendshipScoringContext,
+) => {
+  if (available.length === 0) {
+    return [];
+  }
+
+  if (size === 1 || available.length === 1) {
+    return [available[0]];
+  }
+
+  if (size === 2 || available.length === 2) {
+    let bestScore = -Infinity;
+    let bestBundle: FriendshipMatchBundle[] = [available[0], available[1]];
+
+    for (let i = 0; i < available.length; i += 1) {
+      for (let j = i + 1; j < available.length; j += 1) {
+        const score = getFriendshipPairCompatibility(available[i].match, available[j].match, context);
+        if (score > bestScore) {
+          bestScore = score;
+          bestBundle = [available[i], available[j]];
+        }
+      }
+    }
+
+    return bestBundle;
+  }
+
+  let bestScore = -Infinity;
+  let bestBundle: FriendshipMatchBundle[] = available.slice(0, 3);
+
+  for (let i = 0; i < available.length; i += 1) {
+    for (let j = i + 1; j < available.length; j += 1) {
+      for (let k = j + 1; k < available.length; k += 1) {
+        const bundle = [available[i], available[j], available[k]];
+        const score =
+          getFriendshipPairCompatibility(bundle[0].match, bundle[1].match, context) +
+          getFriendshipPairCompatibility(bundle[0].match, bundle[2].match, context) +
+          getFriendshipPairCompatibility(bundle[1].match, bundle[2].match, context);
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestBundle = bundle;
+        }
+      }
+    }
+  }
+
+  return bestBundle;
+};
+
 export const assignMatchDrinkMeetingTables = (
   matches: MatchDrinkMatch[],
   players: MatchDrinkPlayer[],
+  answers: MatchDrinkAnswer[] = [],
+  questionsBank: MatchDrinkQuestion[] = [],
+  secondaryTraitMode: "macro_category" | "absolute" = "absolute",
   excludedTableKeys: string[] = [],
 ) => {
   const playersById = new Map(players.map((player) => [player.id, player]));
@@ -130,6 +281,25 @@ export const assignMatchDrinkMeetingTables = (
   });
 
   const assignments = new Map<string, MatchDrinkMeetingAssignment>();
+  const answersByPlayerId = new Map<string, MatchDrinkAnswer[]>();
+  answers.forEach((answer) => {
+    const current = answersByPlayerId.get(answer.playerId) ?? [];
+    current.push(answer);
+    answersByPlayerId.set(answer.playerId, current);
+  });
+  const profilesByPlayerId = new Map<string, ReturnType<typeof calculatePlayerProfile>>();
+  players.forEach((player) => {
+    profilesByPlayerId.set(
+        player.id,
+        calculatePlayerProfile(
+          player,
+          answersByPlayerId.get(player.id) ?? [],
+          questionsBank,
+          undefined,
+          secondaryTraitMode,
+        ),
+      );
+  });
 
   const romanceSlots = getFilteredSlots(ROMANCE_SLOTS, excludedTableKeys);
   const friendshipSlots = getFilteredSlots(FRIENDSHIP_SLOTS, excludedTableKeys);
@@ -141,12 +311,33 @@ export const assignMatchDrinkMeetingTables = (
     }
   });
 
-  friendshipMatches.forEach((match, index) => {
-    const slot =
-      friendshipSlots[index] ?? friendshipSlots[friendshipSlots.length - 1];
-    if (slot) {
-      assignments.set(match.id, buildAssignment("friendship", slot));
+  const friendshipGroups = buildFriendshipMatchGroups(friendshipMatches.length);
+  let remainingFriendshipMatches = [...friendshipMatches];
+  const friendshipContext: FriendshipScoringContext = {
+    playersById,
+    profilesByPlayerId,
+    answersByPlayerId,
+    questionsBank,
+  };
+
+  friendshipGroups.forEach((groupSize, groupIndex) => {
+    const slot = friendshipSlots[groupIndex] ?? friendshipSlots[friendshipSlots.length - 1];
+    if (!slot || remainingFriendshipMatches.length === 0) {
+      return;
     }
+
+    const selected = selectBestFriendshipBundle(
+      remainingFriendshipMatches.map((match) => ({ match, score: match.score })),
+      Math.min(groupSize, remainingFriendshipMatches.length),
+      friendshipContext,
+    );
+
+    selected.forEach((bundle) => {
+      assignments.set(bundle.match.id, buildAssignment("friendship", slot));
+    });
+
+    const selectedIds = new Set(selected.map((bundle) => bundle.match.id));
+    remainingFriendshipMatches = remainingFriendshipMatches.filter((match) => !selectedIds.has(match.id));
   });
 
   return assignments;

@@ -2,6 +2,53 @@
 
 import { useEffect } from "react";
 
+const RECOVERY_KEY = "tortuga.global-error-recovery-at";
+const RECOVERY_COOLDOWN_MS = 15_000;
+
+const isChunkRecoveryError = (message: string) =>
+  message.includes("chunk") ||
+  message.includes("Load failed") ||
+  message.includes("ChunkLoad") ||
+  message.includes("404") ||
+  message.includes("unexpected token '<'") ||
+  message.includes("Failed to fetch dynamically imported module");
+
+const recoverFromChunkError = async () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const lastRecovery = Number(sessionStorage.getItem(RECOVERY_KEY) ?? "0");
+  const now = Date.now();
+
+  if (now - lastRecovery < RECOVERY_COOLDOWN_MS) {
+    return false;
+  }
+
+  sessionStorage.setItem(RECOVERY_KEY, String(now));
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  } catch {
+    // Ignore cleanup failures and continue with reload.
+  }
+
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    // Ignore cache cleanup failures and continue with reload.
+  }
+
+  window.location.reload();
+  return true;
+};
+
 export default function GlobalError({
   error,
 }: {
@@ -9,28 +56,19 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log dell'errore per debug (opzionale)
     console.error("Global Error Boundary caught:", error);
-    
-    // Se è un errore di caricamento (tipico post-deploy), ricarichiamo la pagina e puliamo SW
-    if (
-      error.message.includes("chunk") || 
-      error.message.includes("Load failed") ||
-      error.message.includes("404") ||
-      error.message.includes("unexpected token '<'")
-    ) {
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (const registration of registrations) {
-            registration.unregister();
-          }
-          window.location.reload();
-        });
-      } else {
-        window.location.reload();
-      }
+
+    if (!isChunkRecoveryError(error.message)) {
+      return;
     }
+
+    void recoverFromChunkError();
   }, [error]);
+
+  const handleManualReload = () => {
+    sessionStorage.removeItem(RECOVERY_KEY);
+    void recoverFromChunkError();
+  };
 
   return (
     <html>
@@ -42,10 +80,7 @@ export default function GlobalError({
           <p className="mb-8 text-sm text-white/60">
             Stiamo ricalcolando la rotta per te. Un attimo di pazienza.
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="button-primary px-8 py-3"
-          >
+          <button onClick={handleManualReload} className="button-primary px-8 py-3">
             Ricarica ora
           </button>
         </div>

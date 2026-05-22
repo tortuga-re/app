@@ -333,13 +333,13 @@ function PlaylistItemEditor({
 
   return (
     <div className="panel rounded-[1.8rem] p-0 overflow-hidden">
-      {/* Header — always visible, clickable to expand/collapse */}
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-3 p-5 text-left"
-        onClick={() => setExpanded((prev) => !prev)}
-      >
-        <div className="flex items-center gap-3 min-w-0">
+      {/* Header always visible, clickable to expand/collapse */}
+      <div className="flex w-full items-center justify-between gap-3 p-5 text-left">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
           <span
             className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${
               item.enabled
@@ -357,12 +357,12 @@ function PlaylistItemEditor({
               {item.title || "Elemento senza titolo"}
             </h3>
           </div>
-        </div>
+        </button>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             className="button-secondary text-xs px-3 py-1"
-            onClick={(e) => { e.stopPropagation(); void onToggle(item); }}
+            onClick={() => void onToggle(item)}
             disabled={busy}
           >
             {item.enabled ? "Disattiva" : "Attiva"}
@@ -370,7 +370,7 @@ function PlaylistItemEditor({
           <button
             type="button"
             className="button-secondary text-xs px-3 py-1"
-            onClick={(e) => { e.stopPropagation(); void onMoveUp(item.id); }}
+            onClick={() => void onMoveUp(item.id)}
             disabled={busy}
           >
             &#8593;
@@ -378,16 +378,21 @@ function PlaylistItemEditor({
           <button
             type="button"
             className="button-secondary text-xs px-3 py-1"
-            onClick={(e) => { e.stopPropagation(); void onMoveDown(item.id); }}
+            onClick={() => void onMoveDown(item.id)}
             disabled={busy}
           >
             &#8595;
           </button>
-          <span className="text-[var(--text-muted)] text-sm">{expanded ? "▲" : "▼"}</span>
+          <button
+            type="button"
+            className="text-[var(--text-muted)] text-sm"
+            onClick={() => setExpanded((prev) => !prev)}
+            aria-label={expanded ? "Comprimi scheda" : "Espandi scheda"}
+          >
+            {expanded ? "▲" : "▼"}
+          </button>
         </div>
-      </button>
-
-      {/* Expanded content */}
+      </div>      {/* Expanded content */}
       {expanded && (
         <div className="space-y-4 border-t border-white/10 p-5 pt-4">
           <ItemFields value={draft} onChange={setDraft} busy={busy} />
@@ -429,6 +434,9 @@ export default function AdminLiveTvPage() {
   const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(false);
   const [scheduleDraft, setScheduleDraft] = useState<LiveTvScheduleEntry[]>([]);
   const [presetActionId, setPresetActionId] = useState<LiveTvPresetId | null>(null);
+  const [sendNowExpanded, setSendNowExpanded] = useState(true);
+  const [submissionsExpanded, setSubmissionsExpanded] = useState(false);
+  const [mediaLibraryExpanded, setMediaLibraryExpanded] = useState(false);
 
   const orderedItems = useMemo(
     () => [...(state?.playlist || [])].sort((a, b) => a.order - b.order),
@@ -874,29 +882,6 @@ export default function AdminLiveTvPage() {
                 </div>
               </div>
             </div>
-          </div>
-
-
-          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="panel rounded-[1.8rem] p-5">
-              <p className="eyebrow">Modalita stage</p>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                {STAGE_MODE_VALUES.map((mode) => (
-                  <button
-                    key={mode}
-                    className={
-                      mode === state.stageMode
-                        ? "button-primary min-h-14 text-xs"
-                        : "button-secondary min-h-14 text-xs"
-                    }
-                    onClick={() => void runAction("/api/live-tv/admin/set-stage-mode", { stageMode: mode })}
-                    disabled={busy}
-                  >
-                    {stageModeLabels[mode]}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="panel rounded-[1.8rem] p-5">
               <p className="eyebrow">Stato attuale</p>
@@ -923,425 +908,300 @@ export default function AdminLiveTvPage() {
             </div>
           </div>
 
-          <div className="panel rounded-[1.8rem] p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">Palinsesto serata</p>
-                <h3 className="text-lg font-black text-white">Auto-switch per fasce orarie</h3>
-              </div>
-              <label className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
-                <input
-                  type="checkbox"
-                  checked={autoScheduleEnabled}
-                  onChange={(event) => setAutoScheduleEnabled(event.target.checked)}
-                />
-                Auto palinsesto
-              </label>
-            </div>
-
-            <div className="space-y-3">
-              {scheduleDraft.map((entry) => (
-                <div key={entry.id} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-                    <input
-                      className="field"
-                      value={entry.label}
-                      placeholder="Nome fascia"
-                      onChange={(event) => updateScheduleEntry(entry.id, { label: event.target.value })}
-                    />
-                    <input
-                      className="field"
-                      type="time"
-                      value={entry.startTime}
-                      onChange={(event) => updateScheduleEntry(entry.id, { startTime: event.target.value })}
-                    />
-                    <input
-                      className="field"
-                      type="time"
-                      value={entry.endTime}
-                      onChange={(event) => updateScheduleEntry(entry.id, { endTime: event.target.value })}
-                    />
-                    <select
-                      className="field"
-                      value={entry.stageMode}
-                      onChange={(event) =>
-                        updateScheduleEntry(entry.id, {
-                          stageMode: event.target.value as StageMode,
-                          presetId:
-                            event.target.value === "live_tv"
-                              ? (entry.presetId || "generica")
-                              : null,
-                        })
-                      }
-                    >
-                      {STAGE_MODE_VALUES.map((mode) => (
-                        <option key={mode} value={mode}>
-                          {stageModeLabels[mode]}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      className="field"
-                      value={entry.presetId || "generica"}
-                      disabled={entry.stageMode !== "live_tv"}
-                      onChange={(event) =>
-                        updateScheduleEntry(entry.id, {
-                          presetId: event.target.value as LiveTvPresetId,
-                        })
-                      }
-                    >
-                      {LIVE_TV_PRESETS.map((preset) => (
-                        <option key={preset.id} value={preset.id}>
-                          {preset.label}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-black/20 px-4 py-3 text-xs text-white">
-                      <input
-                        type="checkbox"
-                        checked={entry.enabled}
-                        onChange={(event) => updateScheduleEntry(entry.id, { enabled: event.target.checked })}
-                      />
-                      Attivo
-                    </label>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {WEEKDAY_OPTIONS.map((day) => (
-                      <button
-                        key={day.value}
-                        type="button"
-                        className={
-                          entry.daysOfWeek.includes(day.value)
-                            ? "button-primary px-3 py-2 text-[10px]"
-                            : "button-secondary px-3 py-2 text-[10px]"
-                        }
-                        onClick={() => toggleScheduleDay(entry.id, day.value)}
-                      >
-                        {day.label}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="button-secondary ml-auto px-3 py-2 text-[10px]"
-                      onClick={() =>
-                        setScheduleDraft((current) =>
-                          current.filter((candidate) => candidate.id !== entry.id),
-                        )
-                      }
-                    >
-                      Rimuovi
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                className="button-secondary text-xs"
-                onClick={() =>
-                  setScheduleDraft((current) => [...current, createEmptyScheduleEntry()])
-                }
-                disabled={busy}
-              >
-                Aggiungi fascia
-              </button>
-              <button
-                className="button-primary text-xs"
-                onClick={() =>
-                  void runAction("/api/live-tv/admin/set-schedule", {
-                    autoScheduleEnabled,
-                    schedule: scheduleDraft,
-                  })
-                }
-                disabled={busy}
-              >
-                Salva palinsesto
-              </button>
-            </div>
-          </div>
-
           <div className="panel rounded-[1.8rem] p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">Preset serata</p>
-                <h3 className="text-lg font-black text-white">Carica una scaletta pronta</h3>
-              </div>
-              <button className="button-secondary text-xs" onClick={() => void runAction("/api/live-tv/admin/reset-defaults")} disabled={busy}>
-                Ripristina default
-              </button>
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {LIVE_TV_PRESETS.map((preset) => (
-                <div
-                  key={preset.id}
-                  className={preset.id === state.activePresetId ? "panel rounded-[1.4rem] border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 p-4" : "panel rounded-[1.4rem] p-4"}
-                >
-                  <p className="text-sm font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                    {preset.label}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                    {preset.description}
-                  </p>
-                  {presetActionId === preset.id ? (
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <button
-                        className="button-primary text-xs"
-                        onClick={() => { void runAction("/api/live-tv/admin/set-active-preset", { presetId: preset.id }); setPresetActionId(null); }}
-                        disabled={busy}
-                      >
-                        Carica preset
-                      </button>
-                      <button
-                        className="button-secondary text-xs"
-                        onClick={() => { void runAction("/api/live-tv/admin/save-preset", { presetId: preset.id }); setPresetActionId(null); }}
-                        disabled={busy || !orderedItems.length}
-                        title={!orderedItems.length ? "Scaletta vuota" : "Salva scaletta corrente in questo preset"}
-                      >
-                        Salva scaletta
-                      </button>
-                      <button
-                        className="button-secondary col-span-2 text-xs text-[var(--text-muted)]"
-                        onClick={() => setPresetActionId(null)}
-                      >
-                        Annulla
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      className="button-secondary mt-3 w-full text-xs"
-                      onClick={() => setPresetActionId(preset.id)}
-                      disabled={busy}
-                    >
-                      Seleziona
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel rounded-[1.8rem] p-5 space-y-4">
-            <div>
-              <p className="eyebrow">Manda in onda ora</p>
-              <h3 className="text-lg font-black text-white">Override immediato</h3>
-            </div>
-            <ItemFields value={sendNowDraft} onChange={setSendNowDraft} busy={busy} />
-            <label className="flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              <input type="checkbox" checked={sendNowAlsoAdd} onChange={(event) => setSendNowAlsoAdd(event.target.checked)} />
-              <span className="text-sm font-bold text-white">Aggiungi anche alla scaletta</span>
-            </label>
-            <div className="grid gap-2 md:grid-cols-2">
-              <button
-                className="button-primary text-xs"
-                onClick={() =>
-                  void runAction("/api/live-tv/admin/send-now", {
-                    ...sendNowDraft,
-                    addToPlaylist: sendNowAlsoAdd,
-                  })
-                }
-                disabled={busy}
-              >
-                Manda in onda ora
-              </button>
-              <button className="button-secondary text-xs" onClick={() => void runAction("/api/live-tv/admin/clear-now")} disabled={busy}>
-                Riprendi rotazione
-              </button>
-            </div>
-          </div>
-
-
-          <div className="panel rounded-[1.8rem] p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">Contributi clienti</p>
-                <h3 className="text-lg font-black text-white">Inbox moderazione Live TV</h3>
-              </div>
-              <span className="rounded-full border border-[var(--accent-strong)]/30 bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                {pendingCustomerSubmissions.length} pending
-              </span>
-            </div>
-
-            {pendingCustomerSubmissions.length ? (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {pendingCustomerSubmissions.map((submission) => (
-                  <div
-                    key={submission.id}
-                    className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
+              <p className="eyebrow">Modalita stage</p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                {STAGE_MODE_VALUES.map((mode) => (
+                  <button
+                    key={mode}
+                    className={
+                      mode === state.stageMode
+                        ? "button-primary min-h-14 text-xs"
+                        : "button-secondary min-h-14 text-xs"
+                    }
+                    onClick={() => void runAction("/api/live-tv/admin/set-stage-mode", { stageMode: mode })}
+                    disabled={busy}
                   >
-                    <div className="aspect-video overflow-hidden rounded-[1rem] bg-black/40">
-                      {submission.kind === "image" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={submission.mediaUrl}
-                          alt={submission.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <video
-                          src={submission.mediaUrl}
-                          className="h-full w-full object-cover"
-                          muted
-                        />
-                      )}
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <p className="text-base font-black text-white">{submission.title}</p>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                        {submission.kind === "video" ? "Video cliente" : "Foto cliente"}
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {submission.uploaderName || "Cliente Tortuga"}
-                        {submission.uploaderEmail ? ` · ${submission.uploaderEmail}` : ""}
-                      </p>
-                      <p className="text-[11px] text-[var(--text-muted)]">
-                        {new Date(submission.createdAt).toLocaleString("it-IT")}
-                      </p>
-                    </div>
-                    <div className="mt-4 grid gap-2">
-                      <button
-                        type="button"
-                        className="button-primary text-[11px]"
-                        onClick={() => void moderateCustomerSubmission(submission, "library")}
-                        disabled={busy}
-                      >
-                        Approva in libreria
-                      </button>
-                      <button
-                        type="button"
-                        className="button-secondary text-[11px]"
-                        onClick={() => void moderateCustomerSubmission(submission, "playlist")}
-                        disabled={busy}
-                      >
-                        Approva e aggiungi in scaletta
-                      </button>
-                      <button
-                        type="button"
-                        className="button-secondary border-[var(--danger-soft)] text-[11px] text-[var(--danger)]"
-                        onClick={() => void moderateCustomerSubmission(submission, "reject")}
-                        disabled={busy}
-                      >
-                        Rifiuta
-                      </button>
-                    </div>
-                  </div>
+                    {stageModeLabels[mode]}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-[var(--text-muted)]">
-                Nessun contributo cliente in attesa. Quando un cliente invia foto o video
-                della serata, lo vedrai qui prima di mandarlo in libreria o in scaletta.
-              </p>
-            )}
+            </div>
 
-            {reviewedCustomerSubmissions.length ? (
-              <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-white">
-                  Ultimi moderati
-                </p>
-                <div className="mt-3 space-y-2">
-                  {reviewedCustomerSubmissions.map((submission) => (
-                    <div
-                      key={`${submission.id}-${submission.status}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-white/10 bg-white/5 px-3 py-3"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-white">{submission.title}</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">
-                          {submission.uploaderName || "Cliente Tortuga"} ·{" "}
-                          {submission.resolvedAt
-                            ? new Date(submission.resolvedAt).toLocaleString("it-IT")
-                            : new Date(submission.createdAt).toLocaleString("it-IT")}
-                        </p>
-                      </div>
-                      <span
-                        className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
-                          submission.status === "approved"
-                            ? "bg-green-500/20 text-green-300"
-                            : "bg-[var(--danger-soft)] text-[var(--danger)]"
-                        }`}
-                      >
-                        {submission.status === "approved"
-                          ? submission.resolution === "playlist"
-                            ? "In scaletta"
-                            : "In libreria"
-                          : "Rifiutato"}
-                      </span>
-                    </div>
-                  ))}
+          <div className="panel rounded-[1.8rem] overflow-hidden">
+            <div className="flex w-full items-center justify-between gap-3 p-5 text-left">
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                onClick={() => setSendNowExpanded((prev) => !prev)}
+              >
+                <div>
+                  <p className="eyebrow">Manda in onda ora</p>
+                  <h3 className="text-lg font-black text-white">Override immediato</h3>
+                </div>
+              </button>
+              <button
+                type="button"
+                className="text-sm font-black text-[var(--accent-strong)]"
+                onClick={() => setSendNowExpanded((prev) => !prev)}
+                aria-label={sendNowExpanded ? "Comprimi scheda" : "Espandi scheda"}
+              >
+                {sendNowExpanded ? "^" : "v"}
+              </button>
+            </div>
+            {sendNowExpanded ? (
+              <div className="space-y-4 border-t border-white/10 p-5 pt-4">
+                <ItemFields value={sendNowDraft} onChange={setSendNowDraft} busy={busy} />
+                <label className="flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={sendNowAlsoAdd}
+                    onChange={(event) => setSendNowAlsoAdd(event.target.checked)}
+                  />
+                  <span className="text-sm font-bold text-white">Aggiungi anche alla scaletta</span>
+                </label>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <button
+                    className="button-primary text-xs"
+                    onClick={() =>
+                      void runAction("/api/live-tv/admin/send-now", {
+                        ...sendNowDraft,
+                        addToPlaylist: sendNowAlsoAdd,
+                      })
+                    }
+                    disabled={busy}
+                  >
+                    Manda in onda ora
+                  </button>
+                  <button
+                    className="button-secondary text-xs"
+                    onClick={() => void runAction("/api/live-tv/admin/clear-now")}
+                    disabled={busy}
+                  >
+                    Riprendi rotazione
+                  </button>
                 </div>
               </div>
             ) : null}
           </div>
 
-          <div className="panel rounded-[1.8rem] p-5 space-y-4">
-            <div>
-              <p className="eyebrow">Libreria media</p>
-              <h3 className="text-lg font-black text-white">File gia caricati</h3>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {mediaLibrary.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 transition hover:border-[var(--accent-strong)]/40"
-                >
-                  <button
-                    type="button"
-                    className="block w-full text-left"
-                    onClick={() =>
-                      setSendNowDraft((current) => ({
-                        ...current,
-                        type: asset.kind,
-                        mediaUrl: asset.mediaUrl,
-                        title: current.title || asset.title,
-                      }))
-                    }
-                  >
-                    <div className="aspect-video overflow-hidden rounded-[1rem] bg-black/40">
-                      {asset.kind === "image" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={asset.mediaUrl} alt={asset.title} className="h-full w-full object-cover" />
-                      ) : (
-                        <video src={asset.mediaUrl} className="h-full w-full object-cover" muted />
-                      )}
-                    </div>
-                    <p className="mt-3 text-sm font-black text-white">{asset.title}</p>
-                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                      {asset.storageMode === "external" ? "Storage esterno" : "Storage locale fallback"}
-                    </p>
-                  </button>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      className="button-secondary text-[11px]"
-                      onClick={() =>
-                        setSendNowDraft((current) => ({
-                          ...current,
-                          type: asset.kind,
-                          mediaUrl: asset.mediaUrl,
-                          title: current.title || asset.title,
-                        }))
-                      }
-                      disabled={busy}
-                    >
-                      Usa in Manda in onda
-                    </button>
-                    <button
-                      type="button"
-                      className="button-secondary border-[var(--danger-soft)] text-[11px] text-[var(--danger)]"
-                      onClick={() => void deleteMediaAsset(asset)}
-                      disabled={busy}
-                    >
-                      Elimina file
-                    </button>
-                  </div>
+          <div className="panel rounded-[1.8rem] overflow-hidden">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 p-5 text-left"
+              onClick={() => setSubmissionsExpanded((prev) => !prev)}
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <p className="eyebrow">Contributi clienti</p>
+                  <h3 className="text-lg font-black text-white">Inbox moderazione Live TV</h3>
                 </div>
-              ))}
-            </div>
-            {!mediaLibrary.length ? (
-              <p className="text-sm text-[var(--text-muted)]">
-                Nessun file in libreria. Carica un media dagli item sopra e lo ritroverai qui.
-              </p>
+                <span className="rounded-full border border-[var(--accent-strong)]/30 bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                  {pendingCustomerSubmissions.length} pending
+                </span>
+              </div>
+              <span className="text-sm font-black text-[var(--accent-strong)]">
+                {submissionsExpanded ? "^" : "v"}
+              </span>
+            </button>
+
+            {submissionsExpanded ? (
+              <div className="space-y-4 border-t border-white/10 p-5 pt-4">
+                {pendingCustomerSubmissions.length ? (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {pendingCustomerSubmissions.map((submission) => (
+                      <div
+                        key={submission.id}
+                        className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
+                      >
+                        <div className="aspect-video overflow-hidden rounded-[1rem] bg-black/40">
+                          {submission.kind === "image" ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={submission.mediaUrl}
+                              alt={submission.title}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={submission.mediaUrl}
+                              className="h-full w-full object-cover"
+                              muted
+                            />
+                          )}
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          <p className="text-base font-black text-white">{submission.title}</p>
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                            {submission.kind === "video" ? "Video cliente" : "Foto cliente"}
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)]">
+                            {submission.uploaderName || "Cliente Tortuga"}
+                            {submission.uploaderEmail ? ` Ã‚Â· ${submission.uploaderEmail}` : ""}
+                          </p>
+                          <p className="text-[11px] text-[var(--text-muted)]">
+                            {new Date(submission.createdAt).toLocaleString("it-IT")}
+                          </p>
+                        </div>
+                        <div className="mt-4 grid gap-2">
+                          <button
+                            type="button"
+                            className="button-primary text-[11px]"
+                            onClick={() => void moderateCustomerSubmission(submission, "library")}
+                            disabled={busy}
+                          >
+                            Approva in libreria
+                          </button>
+                          <button
+                            type="button"
+                            className="button-secondary text-[11px]"
+                            onClick={() => void moderateCustomerSubmission(submission, "playlist")}
+                            disabled={busy}
+                          >
+                            Approva e aggiungi in scaletta
+                          </button>
+                          <button
+                            type="button"
+                            className="button-secondary border-[var(--danger-soft)] text-[11px] text-[var(--danger)]"
+                            onClick={() => void moderateCustomerSubmission(submission, "reject")}
+                            disabled={busy}
+                          >
+                            Rifiuta
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[var(--text-muted)]">
+                    Nessun contributo cliente in attesa. Quando un cliente invia foto o video
+                    della serata, lo vedrai qui prima di mandarlo in libreria o in scaletta.
+                  </p>
+                )}
+
+                {reviewedCustomerSubmissions.length ? (
+                  <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+                    <p className="text-sm font-black uppercase tracking-[0.18em] text-white">
+                      Ultimi moderati
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {reviewedCustomerSubmissions.map((submission) => (
+                        <div
+                          key={`${submission.id}-${submission.status}`}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-white/10 bg-white/5 px-3 py-3"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-white">{submission.title}</p>
+                            <p className="text-[11px] text-[var(--text-muted)]">
+                              {submission.uploaderName || "Cliente Tortuga"} Ã‚Â·{" "}
+                              {submission.resolvedAt
+                                ? new Date(submission.resolvedAt).toLocaleString("it-IT")
+                                : new Date(submission.createdAt).toLocaleString("it-IT")}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+                              submission.status === "approved"
+                                ? "bg-green-500/20 text-green-300"
+                                : "bg-[var(--danger-soft)] text-[var(--danger)]"
+                            }`}
+                          >
+                            {submission.status === "approved"
+                              ? submission.resolution === "playlist"
+                                ? "In scaletta"
+                                : "In libreria"
+                              : "Rifiutato"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="panel rounded-[1.8rem] overflow-hidden">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 p-5 text-left"
+              onClick={() => setMediaLibraryExpanded((prev) => !prev)}
+            >
+              <div>
+                <p className="eyebrow">Libreria media</p>
+                <h3 className="text-lg font-black text-white">File gia caricati</h3>
+              </div>
+              <span className="text-sm font-black text-[var(--accent-strong)]">
+                {mediaLibraryExpanded ? "^" : "v"}
+              </span>
+            </button>
+            {mediaLibraryExpanded ? (
+              <div className="space-y-4 border-t border-white/10 p-5 pt-4">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {mediaLibrary.map((asset) => (
+                    <div
+                      key={asset.id}
+                      className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 transition hover:border-[var(--accent-strong)]/40"
+                    >
+                      <button
+                        type="button"
+                        className="block w-full text-left"
+                        onClick={() =>
+                          setSendNowDraft((current) => ({
+                            ...current,
+                            type: asset.kind,
+                            mediaUrl: asset.mediaUrl,
+                            title: current.title || asset.title,
+                          }))
+                        }
+                      >
+                        <div className="aspect-video overflow-hidden rounded-[1rem] bg-black/40">
+                          {asset.kind === "image" ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={asset.mediaUrl} alt={asset.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <video src={asset.mediaUrl} className="h-full w-full object-cover" muted />
+                          )}
+                        </div>
+                        <p className="mt-3 text-sm font-black text-white">{asset.title}</p>
+                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                          {asset.storageMode === "external" ? "Storage esterno" : "Storage locale fallback"}
+                        </p>
+                      </button>
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          className="button-secondary text-[11px]"
+                          onClick={() =>
+                            setSendNowDraft((current) => ({
+                              ...current,
+                              type: asset.kind,
+                              mediaUrl: asset.mediaUrl,
+                              title: current.title || asset.title,
+                            }))
+                          }
+                          disabled={busy}
+                        >
+                          Usa in Manda in onda
+                        </button>
+                        <button
+                          type="button"
+                          className="button-secondary border-[var(--danger-soft)] text-[11px] text-[var(--danger)]"
+                          onClick={() => void deleteMediaAsset(asset)}
+                          disabled={busy}
+                        >
+                          Elimina file
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {!mediaLibrary.length ? (
+                  <p className="text-sm text-[var(--text-muted)]">
+                    Nessun file in libreria. Carica un media dagli item sopra e lo ritroverai qui.
+                  </p>
+                ) : null}
+              </div>
             ) : null}
           </div>
 
@@ -1396,3 +1256,4 @@ export default function AdminLiveTvPage() {
     </div>
   );
 }
+

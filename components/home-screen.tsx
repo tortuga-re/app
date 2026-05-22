@@ -464,9 +464,6 @@ function VenueScannerCard({
           <h2 className="text-2xl font-semibold leading-tight text-white">
             Scannerizza il QR del tavolo per sbloccare il menu ed i giochi live!
           </h2>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Abiliti menu, giochi, promo e tutte le funzioni on premise della app in un solo passaggio.
-          </p>
         </div>
 
         <span className="rounded-full border border-[rgba(255,216,156,0.24)] bg-[rgba(255,255,255,0.05)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">

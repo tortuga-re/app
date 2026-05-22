@@ -39,6 +39,7 @@ export interface MatchDrinkSession {
   title: string;
   status: "lobby" | "playing" | "matching" | "reveal" | "ended";
   stageMode: "lobby" | "intro" | "question" | "question_results" | "message" | "matching" | "reveal" | "ended";
+  secondaryTraitMode?: "macro_category" | "absolute";
   currentQuestionIndex: number;
   currentStageMessageId?: string | null;
   questionIds?: string[] | null;
@@ -83,6 +84,7 @@ export interface MatchDrinkPlayer {
   sessionId: string;
   nickname: string;
   tableNumber?: string;
+  phone?: string;
   ageRange: "18-24" | "25-34" | "35-45" | "46-plus" | "preferisco_non_dirlo";
   gender: "uomo" | "donna" | "preferisco_non_dirlo";
   relationshipStatus: "single" | "in_coppia" | "complicato" | "solo_per_ridere";
@@ -133,10 +135,13 @@ export interface MatchDrinkMatch {
   playerBTable?: string;
   playerAAvatar?: string;
   playerBAvatar?: string;
+  playerAPhone?: string;
+  playerBPhone?: string;
   ownMainCategory?: MatchDrinkMainCategory;
   ownMainCategoryLabel?: string;
   matchedPlayerNickname?: string;
   matchedPlayerTable?: string;
+  matchedPlayerPhone?: string;
   matchedPlayerMainCategory?: MatchDrinkMainCategory;
   matchedPlayerMainCategoryLabel?: string;
   matchedPlayerSecondaryTrait?: MatchDrinkTrait;

@@ -93,7 +93,7 @@ const buildContactForm = (
 ): ContactFormState => ({
   firstName: contact?.Nome?.trim() ?? "",
   lastName: contact?.Cognome?.trim() ?? "",
-  phone: normalizeItalianPhone(contact?.Telefono?.trim() ?? "")?.normalizedE164 ?? "",
+  phone: normalizeItalianPhone(contact?.Telefono?.trim() ?? "")?.nationalNumber ?? "",
   email: normalizeCustomerEmail(contact?.Email),
   birthDate: toDateInputValue(contact?.DataDiNascita),
   marketingConsent: contact?.ConsensoMarketing === 1,
@@ -199,7 +199,7 @@ export function CiurmaScreen() {
     if (normalized) {
       setContactForm((current) => ({
         ...current,
-        phone: normalized.normalizedE164,
+        phone: normalized.nationalNumber,
       }));
     }
   };
