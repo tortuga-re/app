@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import type { FidelityRewardProgress } from "@/lib/fidelity-rewards";
 import { formatBirthDateLabel } from "@/lib/customer-profile";
@@ -105,10 +106,12 @@ export function ProfilePassport({
               aria-label={`Mostra i ranghi disponibili per ${loyaltyProgress.loyaltyTier.label}`}
             >
               {loyaltyProgress.loyaltyTier.image ? (
-                <img 
+                <Image 
                   src={loyaltyProgress.loyaltyTier.image} 
                   alt={loyaltyProgress.loyaltyTier.label}
-                  className="h-5 w-5 object-contain"
+                  width={20}
+                  height={20}
+                  className="object-contain"
                 />
               ) : null}
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">

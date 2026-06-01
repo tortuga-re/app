@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { trackAppEvent } from "@/lib/analytics";
@@ -80,7 +81,13 @@ export function FidelityStatusCard({
           <div className="flex items-center gap-3">
             {tierImage ? (
               <div className="relative h-12 w-12 flex-shrink-0 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)] transition-transform duration-300 hover:scale-110">
-                <img src={tierImage} alt={tierLabel} className="h-full w-full object-contain" />
+                <Image
+                  src={tierImage}
+                  alt={tierLabel}
+                  fill
+                  sizes="48px"
+                  className="object-contain"
+                />
               </div>
             ) : (
               <svg
