@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       note: payload.note?.trim() || undefined,
       privacyAccepted: Boolean(payload.privacyAccepted),
       marketingAccepted: Boolean(payload.marketingAccepted),
+      moduleCode: payload.moduleCode?.trim() || undefined,
     });
 
     return NextResponse.json(data);

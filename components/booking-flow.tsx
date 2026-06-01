@@ -67,7 +67,10 @@ type BookingFieldName =
   | "lastName"
   | "email"
   | "phone"
-  | "privacyAccepted";
+  | "privacyAccepted"
+  | "matchDrinkMen"
+  | "matchDrinkWomen"
+  | "matchDrinkAgeGroup";
 
 type BookingFieldErrors = Partial<Record<BookingFieldName, string>>;
 
@@ -206,54 +209,8 @@ const timeToMinutes = (time: string) => {
   return hours * 60 + minutes;
 };
 
-const minutesToTime = (minutes: number) => {
-  const normalizedMinutes = ((minutes % 1440) + 1440) % 1440;
-  const hours = Math.floor(normalizedMinutes / 60)
-    .toString()
-    .padStart(2, "0");
-  const mins = (normalizedMinutes % 60).toString().padStart(2, "0");
-  return `${hours}:${mins}`;
-};
 
-const buildSlotRange = (slots: DecoratedSlot[]) => {
-  if (slots.length === 0) {
-    return [];
-  }
 
-  const knownSlots = new Map(slots.map((slot) => [slot.time, slot]));
-  const times = slots
-    .map((slot) => timeToMinutes(slot.time))
-    .filter((value): value is number => typeof value === "number");
-
-  if (times.length === 0) {
-    return slots;
-  }
-
-  const start = Math.min(...times);
-  const end = Math.max(...times);
-  const generated: DecoratedSlot[] = [];
-
-  for (let minute = start; minute <= end; minute += 30) {
-    const time = minutesToTime(minute);
-    const existing = knownSlots.get(time);
-
-    if (existing) {
-      generated.push(existing);
-      continue;
-    }
-
-    generated.push({
-      time,
-      enabled: false,
-      statusCode: 1,
-      beyondMidnight: false,
-      bandLabel: slots[0]?.bandLabel ?? "",
-      date: slots[0]?.date ?? "",
-    } as DecoratedSlot);
-  }
-
-  return generated;
-};
 
 const parseStoredDraft = (
   raw: string,
@@ -340,6 +297,13 @@ export function BookingFlow() {
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
   const [waitlistContextKey, setWaitlistContextKey] = useState("");
   const [fieldErrors, setFieldErrors] = useState<BookingFieldErrors>({});
+
+  const [customModuleCode, setCustomModuleCode] = useState("");
+  const [isRoomSelectionDisabled, setIsRoomSelectionDisabled] = useState(false);
+  const [matchDrinkMen, setMatchDrinkMen] = useState("0");
+  const [matchDrinkWomen, setMatchDrinkWomen] = useState("0");
+  const [matchDrinkAgeGroup, setMatchDrinkAgeGroup] = useState("");
+
   const customerDetailsStepRef = useRef<HTMLDivElement | null>(null);
   const hasAutoScrolledToCustomerStepRef = useRef(false);
   const pendingInitialSlotScrollRef = useRef(false);
@@ -357,6 +321,8 @@ export function BookingFlow() {
   const privacyAcceptedFieldRef = useRef<HTMLParagraphElement | null>(null);
   const minimumBookingDate = todayIso();
   const paxCount = parsePositiveInteger(draft.pax);
+
+
 
   const clearFieldErrors = (...fields: BookingFieldName[]) => {
     setFieldErrors((current) => {
@@ -378,6 +344,9 @@ export function BookingFlow() {
     const fieldOrder: BookingFieldName[] = [
       "date",
       "pax",
+      "matchDrinkMen",
+      "matchDrinkWomen",
+      "matchDrinkAgeGroup",
       "selectedTime",
       "childrenCount",
       "firstName",
@@ -392,6 +361,9 @@ export function BookingFlow() {
       const fieldMap: Record<BookingFieldName, HTMLElement | null> = {
         date: dateFieldRef.current,
         pax: paxFieldRef.current,
+        matchDrinkMen: dateFieldRef.current,
+        matchDrinkWomen: dateFieldRef.current,
+        matchDrinkAgeGroup: dateFieldRef.current,
         selectedTime: selectedTimeFieldRef.current,
         childrenCount: childrenCountFieldRef.current,
         firstName: firstNameFieldRef.current,
@@ -437,6 +409,20 @@ export function BookingFlow() {
         errors.childrenCount = "Inserisci il numero di bambini.";
       } else if (!childrenCount) {
         errors.childrenCount = "Inserisci un numero di bambini valido.";
+      }
+    }
+
+    if (isThursdaySelected) {
+      if (!matchDrinkAgeGroup) {
+        errors.matchDrinkAgeGroup = "Seleziona la fascia d'età del tuo gruppo.";
+      }
+      const men = parseInt(matchDrinkMen, 10);
+      const women = parseInt(matchDrinkWomen, 10);
+      if (isNaN(men) || men < 0) {
+        errors.matchDrinkMen = "Inserisci un numero valido di uomini.";
+      }
+      if (isNaN(women) || women < 0) {
+        errors.matchDrinkWomen = "Inserisci un numero valido di donne.";
       }
     }
 
@@ -532,15 +518,24 @@ export function BookingFlow() {
   const isAreaFamily = activeRoomCode === AREA_FAMILY_ROOM_CODE;
   const selectedRoom =
     bootstrap?.rooms.find((room) => room.code === activeRoomCode) ?? null;
+  const isThursdaySelected = Boolean(
+    draft.date &&
+      !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) &&
+      new Date(`${draft.date}T00:00:00`).getDay() === 4,
+  );
+  const matchDrinkNote = isThursdaySelected
+    ? `Uomini: ${matchDrinkMen} | Donne: ${matchDrinkWomen} | Fascia età: ${matchDrinkAgeGroup}`
+    : "";
   const composedCustomerNote = [
     draft.isAfterDinner ? "INGRESSO DOPO CENA" : "",
     isAreaFamily && draft.childrenCount ? `Bambini: ${draft.childrenCount}` : "",
+    matchDrinkNote,
     draft.note.trim(),
   ]
     .filter(Boolean)
     .join("\n")
     .trim() || undefined;
-  const showRoomDropdown = requiresRoomSelection;
+  const showRoomDropdown = requiresRoomSelection && !isRoomSelectionDisabled;
   const canLoadAvailability = Boolean(
     bootstrap &&
       draft.date &&
@@ -560,16 +555,19 @@ export function BookingFlow() {
   const isSundaySelected = Boolean(
     draft.date && !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) && new Date(`${draft.date}T00:00:00`).getDay() === 0,
   );
-  const displayedSlots = visibleSlots.length
-    ? buildSlotRange(Array.from(new Map(visibleSlots.map((slot) => [slot.time, slot])).values()))
-    : fallbackWaitlistSlots.map((time) => ({
-        time,
-        enabled: false,
-        statusCode: 1,
-        beyondMidnight: false,
-        bandLabel: "",
-        date: draft.date,
-      } as DecoratedSlot));
+  const unavailableMessage = availability?.days[0]?.unavailableMessage || (availability && visibleSlots.length === 0 ? "Giorno di chiusura" : undefined);
+  const displayedSlots = visibleSlots.length > 0
+    ? visibleSlots
+    : (!availability
+        ? fallbackWaitlistSlots.map((time) => ({
+            time,
+            enabled: false,
+            statusCode: 1,
+            beyondMidnight: false,
+            bandLabel: "",
+            date: draft.date,
+          } as DecoratedSlot))
+        : []);
   const displayedSlotGroups = Array.from(
     displayedSlots.reduce((groups, slot) => {
       if (isSundaySelected) {
@@ -623,12 +621,13 @@ export function BookingFlow() {
     selectedSlot?.time ||
     "-";
   const availabilityKey = canLoadAvailability
-    ? `${draft.date}|${paxCount}|${activeRoomCode}`
+    ? `${draft.date}|${paxCount}|${activeRoomCode}|${customModuleCode}|${isRoomSelectionDisabled}`
     : "";
   const hasNoAvailableSlots = Boolean(
     canLoadAvailability &&
       availability &&
       !loadingAvailability &&
+      visibleSlots.length > 0 &&
       enabledSlots.length === 0,
   );
   const hasWaitlistContext =
@@ -660,8 +659,12 @@ export function BookingFlow() {
         pax: String(paxCount),
       });
 
-      if (activeRoomCode) {
+      if (activeRoomCode && !isRoomSelectionDisabled) {
         params.set("roomCode", activeRoomCode);
+      }
+
+      if (customModuleCode) {
+        params.set("moduleCode", customModuleCode);
       }
 
       try {
@@ -674,8 +677,22 @@ export function BookingFlow() {
         }
 
         setAvailability(response);
+
+        if (response.days[0]?.redirectOnEvent && response.days[0]?.redirectUrl) {
+          const redirectUrl = response.days[0].redirectUrl;
+          const match = redirectUrl.match(/\/in\/([a-zA-Z0-9-]+)/);
+          if (match && match[1] && customModuleCode !== match[1]) {
+            setCustomModuleCode(match[1]);
+          }
+        }
       } catch (availabilityError) {
         if (cancelled) {
+          return;
+        }
+
+        const msg = availabilityError instanceof Error ? availabilityError.message : String(availabilityError);
+        if (msg.includes("SALA_NON_SELEZIONABILE_MODULO")) {
+          setIsRoomSelectionDisabled(true);
           return;
         }
 
@@ -697,7 +714,7 @@ export function BookingFlow() {
     return () => {
       cancelled = true;
     };
-  }, [availabilityKey, activeRoomCode, draft.date, paxCount]);
+  }, [availabilityKey, activeRoomCode, draft.date, paxCount, customModuleCode, isRoomSelectionDisabled]);
 
   useEffect(() => {
     if (
@@ -826,7 +843,7 @@ export function BookingFlow() {
       date: draft.date,
       time: selectedSlot.time,
       pax: confirmedPax,
-      roomCode: activeRoomCode || undefined,
+      roomCode: isRoomSelectionDisabled ? undefined : (activeRoomCode || undefined),
       statusCode: selectedStatusCode,
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
@@ -835,6 +852,7 @@ export function BookingFlow() {
       note: composedCustomerNote,
       privacyAccepted: draft.privacyAccepted,
       marketingAccepted: draft.marketingAccepted,
+      moduleCode: customModuleCode || undefined,
     };
 
     trackAppEvent("booking_request_submit", {
@@ -927,7 +945,7 @@ export function BookingFlow() {
         ? "Dopo cena"
         : selectedTime || undefined,
       pax: confirmedPax,
-      roomCode: activeRoomCode || undefined,
+      roomCode: isRoomSelectionDisabled ? undefined : (activeRoomCode || undefined),
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
       phone: normalizedPhone.normalizedE164,
@@ -935,6 +953,7 @@ export function BookingFlow() {
       note: composedCustomerNote,
       privacyAccepted: draft.privacyAccepted,
       marketingAccepted: draft.marketingAccepted,
+      moduleCode: customModuleCode || undefined,
     };
 
     try {
@@ -987,7 +1006,16 @@ export function BookingFlow() {
 
       {!loadingAvailability && availability ? (
         <>
-          <div className={`${spacingClass} space-y-4`}>
+          {unavailableMessage ? (
+            <div className={spacingClass}>
+              <StatusBlock
+                variant="info"
+                title="Giorno di chiusura"
+                description={unavailableMessage}
+              />
+            </div>
+          ) : (
+            <div className={`${spacingClass} space-y-4`}>
             <div className="space-y-3">
               {displayedSlotGroups.map((group) => (
                 <div key={group.groupLabel} className="space-y-2">
@@ -1007,7 +1035,7 @@ export function BookingFlow() {
                           key={time}
                           type="button"
                           className={cn(
-                            "panel-muted flex min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-5 text-center transition",
+                            "panel-muted flex flex-col min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-4 text-center transition",
                             isActive && "border border-[var(--border-strong)] bg-white/8",
                             isUnavailable &&
                               "border-[rgba(255,216,156,0.12)] bg-white/[0.03] text-[var(--text-muted)]",
@@ -1030,6 +1058,11 @@ export function BookingFlow() {
                           >
                             {time}
                           </p>
+                          {isUnavailable ? (
+                            <span className="mt-1 text-[10px] uppercase font-bold tracking-wider text-[var(--text-muted)]">
+                              Lista d&apos;attesa
+                            </span>
+                          ) : null}
                         </button>
                       );
                     })}
@@ -1259,6 +1292,7 @@ export function BookingFlow() {
               </div>
             ) : null}
           </div>
+          )}
         </>
       ) : null}
     </>
@@ -1367,6 +1401,11 @@ export function BookingFlow() {
                       onChange={(event) => {
                         clearFieldErrors("date", "selectedTime");
                         setDraft((current) => ({ ...current, date: event.target.value }));
+                        setCustomModuleCode("");
+                        setIsRoomSelectionDisabled(false);
+                        setMatchDrinkMen("0");
+                        setMatchDrinkWomen("0");
+                        setMatchDrinkAgeGroup("");
                       }}
                     />
                     {fieldErrors.date ? (
@@ -1460,6 +1499,86 @@ export function BookingFlow() {
                   </div>
                 ) : null}
 
+                {isThursdaySelected ? (
+                  <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5 space-y-4">
+                    <p className="font-bold text-[var(--accent-strong)] text-[15px] leading-6">
+                      Stai prenotando per la serata Match & Drink, una serata dedicata alle nuove conoscenze.
+                    </p>
+                    
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                        <span>Numero uomini</span>
+                        <input
+                          className="field"
+                          type="number"
+                          min={0}
+                          value={matchDrinkMen}
+                          onChange={(event) => {
+                            clearFieldErrors("matchDrinkMen");
+                            setMatchDrinkMen(event.target.value);
+                          }}
+                        />
+                        {fieldErrors.matchDrinkMen ? (
+                          <p className="text-xs font-semibold text-red-400">
+                            {fieldErrors.matchDrinkMen}
+                          </p>
+                        ) : null}
+                      </label>
+
+                      <label className="space-y-2 text-sm text-[var(--text-muted)]">
+                        <span>Numero donne</span>
+                        <input
+                          className="field"
+                          type="number"
+                          min={0}
+                          value={matchDrinkWomen}
+                          onChange={(event) => {
+                            clearFieldErrors("matchDrinkWomen");
+                            setMatchDrinkWomen(event.target.value);
+                          }}
+                        />
+                        {fieldErrors.matchDrinkWomen ? (
+                          <p className="text-xs font-semibold text-red-400">
+                            {fieldErrors.matchDrinkWomen}
+                          </p>
+                        ) : null}
+                      </label>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm text-[var(--text-muted)]">Fascia d&apos;età del tuo gruppo</p>
+                      <div className="flex flex-wrap gap-2">
+                        {["18-24", "25-34", "35-44", "over 44"].map((age) => {
+                          const isSelected = matchDrinkAgeGroup === age;
+                          return (
+                            <button
+                              key={age}
+                              type="button"
+                              className={cn(
+                                "px-4 py-2 text-sm rounded-full border transition-all",
+                                isSelected
+                                  ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] text-white"
+                                  : "border-[rgba(255,216,156,0.1)] bg-white/4 text-[var(--text-muted)] hover:border-[rgba(255,216,156,0.3)]",
+                              )}
+                              onClick={() => {
+                                clearFieldErrors("matchDrinkAgeGroup");
+                                setMatchDrinkAgeGroup(age);
+                              }}
+                            >
+                              {age}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {fieldErrors.matchDrinkAgeGroup ? (
+                        <p className="text-xs font-semibold text-red-400">
+                          {fieldErrors.matchDrinkAgeGroup}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
                 {canLoadAvailability ? (
                   <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
                     <div className="space-y-3">
@@ -1521,7 +1640,7 @@ export function BookingFlow() {
                   </div>
                 ) : null}
 
-                {requiresRoomSelection && !activeRoomCode ? (
+                {requiresRoomSelection && !activeRoomCode && !isRoomSelectionDisabled ? (
                   <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
                     <p className="text-sm leading-6 text-[var(--text-muted)]">
                       Scegli prima la sala richiesta per vedere gli orari disponibili.
@@ -1530,7 +1649,7 @@ export function BookingFlow() {
                 ) : null}
               </div>
 
-              {activeRoomCode && selectedRoom ? (
+              {activeRoomCode && selectedRoom && !isRoomSelectionDisabled ? (
                 <TortugaMapViewer
                   roomCode={activeRoomCode}
                   roomName={selectedRoom.publicName || selectedRoom.name}

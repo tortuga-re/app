@@ -518,17 +518,20 @@ export const getBookingAvailability = unstable_cache(
     date: string,
     pax: number,
     roomCode?: string,
+    moduleCode?: string,
   ): Promise<BookingAvailabilityResponse> => {
     if (!hasCoopertoLiveConfig) {
       return mockBookingAvailability(date, pax, roomCode);
     }
+
+    const activeModuleCode = moduleCode || coopertoConfig.bookingModuleCode;
 
     try {
       const response = await coopertoFetch<CoopertoBookingDay[]>(
         "/api/Prenotazioni/OrariModulo",
         {
           query: {
-            codiceModulo: coopertoConfig.bookingModuleCode,
+            codiceModulo: activeModuleCode,
             data: date,
             pax,
             codiceSala: roomCode,
@@ -555,7 +558,7 @@ export const getBookingAvailability = unstable_cache(
         "/api/Prenotazioni/OrariModulo",
         {
           query: {
-            codiceModulo: coopertoConfig.bookingModuleCode,
+            codiceModulo: activeModuleCode,
             data: date,
             pax: 1,
             codiceSala: roomCode,
@@ -570,7 +573,12 @@ export const getBookingAvailability = unstable_cache(
         roomCode,
         days: normalizeDays(previewResponse),
       });
-    } catch {
+    } catch (error) {
+      // Se l'errore contiene il codice SALA_NON_SELEZIONABILE_MODULO, lo propaghiamo intatto
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("SALA_NON_SELEZIONABILE_MODULO")) {
+        throw new Error("SALA_NON_SELEZIONABILE_MODULO");
+      }
       return fallbackSource(await mockBookingAvailability(date, pax, roomCode));
     }
   },
@@ -585,13 +593,15 @@ export const createBooking = async (
     return mockBookingCreate(input);
   }
 
+  const activeModuleCode = input.moduleCode || coopertoConfig.bookingModuleCode;
+
   const requestBody: CoopertoCreateReservationRequest = {
     CodiceSede: coopertoConfig.sedeCode,
     DataPrenotazione: buildCoopertoDateTime(input.date, input.time),
     CodiceStato: input.statusCode ?? 1,
     CodiceSala: input.roomCode,
-    CodiceModulo: coopertoConfig.bookingModuleCode,
-    CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
+    CodiceModulo: activeModuleCode,
+    CodiceModuloPrenotazione: activeModuleCode,
     Pax: input.pax,
     Nome: input.firstName,
     Cognome: input.lastName,
@@ -607,7 +617,7 @@ export const createBooking = async (
       method: "POST",
       query: {
         codiceSala: input.roomCode,
-        codiceModulo: coopertoConfig.bookingModuleCode,
+        codiceModulo: activeModuleCode,
       },
       body: JSON.stringify(requestBody),
     });
@@ -632,6 +642,8 @@ export const createWaitlist = async (
     return mockWaitlistCreate(input);
   }
 
+  const activeModuleCode = input.moduleCode || coopertoConfig.bookingModuleCode;
+
   try {
     const reservation = await coopertoFetch<CoopertoReservation>("/api/Prenotazioni/Crea", {
       method: "POST",
@@ -644,8 +656,8 @@ export const createWaitlist = async (
         CodiceStato: 1,
         Pax: input.pax,
         CodiceSala: input.roomCode,
-        CodiceModulo: coopertoConfig.bookingModuleCode,
-        CodiceModuloPrenotazione: coopertoConfig.bookingModuleCode,
+        CodiceModulo: activeModuleCode,
+        CodiceModuloPrenotazione: activeModuleCode,
         Nome: input.firstName,
         Cognome: input.lastName,
         Telefono: input.phone,
@@ -952,6 +964,9 @@ export const activateFidelityCard = async ({
       });
     }
   }
+
+  // Attende 1 secondo per consentire la propagazione dell'attivazione sul DB Cooperto
+  await sleep(1000);
 
   const refreshedProfile = await getProfileData("contactCode", normalizedContactCode);
   const refreshedCardCode = refreshedProfile.contact?.CodiceCard?.trim() ?? "";

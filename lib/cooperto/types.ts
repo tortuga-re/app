@@ -347,6 +347,7 @@ export interface BookingCreateInput {
   note?: string;
   privacyAccepted: boolean;
   marketingAccepted: boolean;
+  moduleCode?: string;
 }
 
 export interface BookingCreateResponse {
@@ -366,6 +367,7 @@ export interface WaitlistCreateInput {
   note?: string;
   privacyAccepted: boolean;
   marketingAccepted: boolean;
+  moduleCode?: string;
 }
 
 export interface WaitlistCreateResponse {
