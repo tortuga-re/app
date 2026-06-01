@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { verifyAndUseCoupon } from "@/lib/cooperto/coupon-verify";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
+  }
+
   try {
     const body = (await request.json().catch(() => null)) as {
       codiceCouponContatto?: string;
