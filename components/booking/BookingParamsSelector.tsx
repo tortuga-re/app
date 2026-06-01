@@ -16,7 +16,7 @@ type BookingParamsSelectorProps = {
   bootstrap: BookingBootstrapResponse | null;
   showRoomDropdown: boolean;
   activeRoomCode: string;
-  isThursdaySelected: boolean;
+  isMatchDrinkActive: boolean;
   matchDrinkMen: string;
   setMatchDrinkMen: (val: string) => void;
   matchDrinkWomen: string;
@@ -40,7 +40,7 @@ export function BookingParamsSelector({
   bootstrap,
   showRoomDropdown,
   activeRoomCode,
-  isThursdaySelected,
+  isMatchDrinkActive,
   matchDrinkMen,
   setMatchDrinkMen,
   matchDrinkWomen,
@@ -52,6 +52,8 @@ export function BookingParamsSelector({
   setIsRoomSelectionDisabled,
   AREA_FAMILY_ROOM_CODE,
 }: BookingParamsSelectorProps) {
+  const selectedAges = matchDrinkAgeGroup ? matchDrinkAgeGroup.split(", ") : [];
+
   return (
     <div id="booking-form" className="panel hash-scroll-target rounded-[2rem] p-5">
       <div className="space-y-2">
@@ -167,7 +169,7 @@ export function BookingParamsSelector({
         </div>
       ) : null}
 
-      {isThursdaySelected ? (
+      {isMatchDrinkActive ? (
         <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5 space-y-4">
           <p className="font-bold text-[var(--accent-strong)] text-[15px] leading-6">
             Stai prenotando per la serata Match & Drink, una serata dedicata alle nuove conoscenze.
@@ -182,7 +184,7 @@ export function BookingParamsSelector({
                 min={0}
                 value={matchDrinkMen}
                 onChange={(event) => {
-                  clearFieldErrors("matchDrinkMen");
+                  clearFieldErrors("matchDrinkMen", "matchDrinkWomen");
                   setMatchDrinkMen(event.target.value);
                 }}
               />
@@ -199,7 +201,7 @@ export function BookingParamsSelector({
                 min={0}
                 value={matchDrinkWomen}
                 onChange={(event) => {
-                  clearFieldErrors("matchDrinkWomen");
+                  clearFieldErrors("matchDrinkMen", "matchDrinkWomen");
                   setMatchDrinkWomen(event.target.value);
                 }}
               />
@@ -210,10 +212,10 @@ export function BookingParamsSelector({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm text-[var(--text-muted)]">Fascia d&apos;età del tuo gruppo</p>
+            <p className="text-sm text-[var(--text-muted)]">Fasce d&apos;età del tuo gruppo (scelta multipla)</p>
             <div className="flex flex-wrap gap-2">
               {["18-24", "25-34", "35-44", "over 44"].map((age) => {
-                const isSelected = matchDrinkAgeGroup === age;
+                const isSelected = selectedAges.includes(age);
                 return (
                   <button
                     key={age}
@@ -226,7 +228,13 @@ export function BookingParamsSelector({
                     )}
                     onClick={() => {
                       clearFieldErrors("matchDrinkAgeGroup");
-                      setMatchDrinkAgeGroup(age);
+                      let nextAges: string[];
+                      if (selectedAges.includes(age)) {
+                        nextAges = selectedAges.filter((a) => a !== age);
+                      } else {
+                        nextAges = [...selectedAges, age];
+                      }
+                      setMatchDrinkAgeGroup(nextAges.join(", "));
                     }}
                   >
                     {age}

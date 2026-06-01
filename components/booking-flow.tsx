@@ -383,17 +383,27 @@ export function BookingFlow() {
       }
     }
 
-    if (isThursdaySelected) {
+    if (isMatchDrinkActive) {
       if (!matchDrinkAgeGroup) {
-        errors.matchDrinkAgeGroup = "Seleziona la fascia d'età del tuo gruppo.";
+        errors.matchDrinkAgeGroup = "Seleziona almeno una fascia d'età.";
       }
       const men = parseInt(matchDrinkMen, 10);
       const women = parseInt(matchDrinkWomen, 10);
+      let hasMenError = false;
+      let hasWomenError = false;
+
       if (isNaN(men) || men < 0) {
         errors.matchDrinkMen = "Inserisci un numero valido di uomini.";
+        hasMenError = true;
       }
       if (isNaN(women) || women < 0) {
         errors.matchDrinkWomen = "Inserisci un numero valido di donne.";
+        hasWomenError = true;
+      }
+
+      if (!hasMenError && !hasWomenError && men === 0 && women === 0) {
+        errors.matchDrinkMen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
+        errors.matchDrinkWomen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
       }
     }
 
@@ -494,7 +504,8 @@ export function BookingFlow() {
       !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) &&
       new Date(`${draft.date}T00:00:00`).getDay() === 4,
   );
-  const matchDrinkNote = isThursdaySelected
+  const isMatchDrinkActive = Boolean(isThursdaySelected && customModuleCode);
+  const matchDrinkNote = isMatchDrinkActive
     ? `Uomini: ${matchDrinkMen} | Donne: ${matchDrinkWomen} | Fascia età: ${matchDrinkAgeGroup}`
     : "";
   const composedCustomerNote = [
@@ -1022,7 +1033,7 @@ export function BookingFlow() {
                 bootstrap={bootstrap}
                 showRoomDropdown={showRoomDropdown}
                 activeRoomCode={activeRoomCode}
-                isThursdaySelected={isThursdaySelected}
+                isMatchDrinkActive={isMatchDrinkActive}
                 matchDrinkMen={matchDrinkMen}
                 setMatchDrinkMen={setMatchDrinkMen}
                 matchDrinkWomen={matchDrinkWomen}
