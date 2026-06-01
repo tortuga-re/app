@@ -1,16 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-
-import { StatusBlock } from "@/components/status-block";
 import dynamic from "next/dynamic";
 
+import { StatusBlock } from "@/components/status-block";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TortugaMapViewer = dynamic<any>(() => import("@/components/tortuga-map-viewer").then(mod => mod.TortugaMapViewer).catch(() => { if (typeof window !== 'undefined') window.location.reload(); return { default: () => null } as any; }), {
-  loading: () => <div className="h-48 w-full animate-pulse rounded-[2rem] bg-white/5" />,
-  ssr: false
-});
+const TortugaMapViewer = dynamic<any>(
+  () =>
+    import("@/components/tortuga-map-viewer")
+      .then((mod) => mod.TortugaMapViewer)
+      .catch(() => {
+        if (typeof window !== "undefined") window.location.reload();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return { default: () => null } as any;
+      }),
+  {
+    loading: () => <div className="h-48 w-full animate-pulse rounded-[2rem] bg-white/5" />,
+    ssr: false,
+  },
+);
 import { trackAppEvent } from "@/lib/analytics";
 import { storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
@@ -19,7 +27,6 @@ import type {
   BookingBootstrapResponse,
   BookingCreateInput,
   BookingCreateResponse,
-  BookingSlot,
   ProfileResponse,
   WaitlistCreateInput,
   WaitlistCreateResponse,
@@ -35,49 +42,18 @@ import {
 } from "@/lib/local-storage-state";
 import { scrollToFormField } from "@/lib/form-focus";
 import { useHashScroll } from "@/lib/hash-scroll";
-import { triggerHaptic } from "@/lib/haptics";
-import { cn, formatLongDate, formatTime, todayIso } from "@/lib/utils";
+import { formatLongDate, formatTime, todayIso } from "@/lib/utils";
 import {
   italianPhoneValidationError,
   normalizeItalianPhone,
   validateItalianPhone,
 } from "@/lib/validation/phone";
 
-type BookingDraft = {
-  date: string;
-  pax: string;
-  roomCode: string;
-  isAfterDinner: boolean;
-  childrenCount: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  note: string;
-  privacyAccepted: boolean;
-  marketingAccepted: boolean;
-};
-
-type BookingFieldName =
-  | "date"
-  | "pax"
-  | "selectedTime"
-  | "childrenCount"
-  | "firstName"
-  | "lastName"
-  | "email"
-  | "phone"
-  | "privacyAccepted"
-  | "matchDrinkMen"
-  | "matchDrinkWomen"
-  | "matchDrinkAgeGroup";
-
-type BookingFieldErrors = Partial<Record<BookingFieldName, string>>;
-
-type DecoratedSlot = BookingSlot & {
-  bandLabel: string;
-  date: string;
-};
+import type { BookingDraft, BookingFieldErrors, BookingFieldName, DecoratedSlot } from "./booking/types";
+import { BookingSuccessView } from "./booking/BookingSuccessView";
+import { BookingParamsSelector } from "./booking/BookingParamsSelector";
+import { TimeSlotSelector } from "./booking/TimeSlotSelector";
+import { CustomerDetailsForm } from "./booking/CustomerDetailsForm";
 
 const baseDraft: BookingDraft = {
   date: todayIso(),
@@ -209,9 +185,6 @@ const timeToMinutes = (time: string) => {
   return hours * 60 + minutes;
 };
 
-
-
-
 const parseStoredDraft = (
   raw: string,
   fallbackDraft: BookingDraft,
@@ -322,8 +295,6 @@ export function BookingFlow() {
   const minimumBookingDate = todayIso();
   const paxCount = parsePositiveInteger(draft.pax);
 
-
-
   const clearFieldErrors = (...fields: BookingFieldName[]) => {
     setFieldErrors((current) => {
       let hasChanged = false;
@@ -412,17 +383,27 @@ export function BookingFlow() {
       }
     }
 
-    if (isThursdaySelected) {
+    if (isMatchDrinkActive) {
       if (!matchDrinkAgeGroup) {
-        errors.matchDrinkAgeGroup = "Seleziona la fascia d'età del tuo gruppo.";
+        errors.matchDrinkAgeGroup = "Seleziona almeno una fascia d'età.";
       }
       const men = parseInt(matchDrinkMen, 10);
       const women = parseInt(matchDrinkWomen, 10);
+      let hasMenError = false;
+      let hasWomenError = false;
+
       if (isNaN(men) || men < 0) {
         errors.matchDrinkMen = "Inserisci un numero valido di uomini.";
+        hasMenError = true;
       }
       if (isNaN(women) || women < 0) {
         errors.matchDrinkWomen = "Inserisci un numero valido di donne.";
+        hasWomenError = true;
+      }
+
+      if (!hasMenError && !hasWomenError && men === 0 && women === 0) {
+        errors.matchDrinkMen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
+        errors.matchDrinkWomen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
       }
     }
 
@@ -523,7 +504,8 @@ export function BookingFlow() {
       !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) &&
       new Date(`${draft.date}T00:00:00`).getDay() === 4,
   );
-  const matchDrinkNote = isThursdaySelected
+  const isMatchDrinkActive = Boolean(isThursdaySelected && customModuleCode);
+  const matchDrinkNote = isMatchDrinkActive
     ? `Uomini: ${matchDrinkMen} | Donne: ${matchDrinkWomen} | Fascia età: ${matchDrinkAgeGroup}`
     : "";
   const composedCustomerNote = [
@@ -598,7 +580,7 @@ export function BookingFlow() {
     slots: groupSlots,
   }));
   const selectedUnavailableSlot = canLoadAvailability
-        ? selectedVisibleSlot && !selectedVisibleSlot.enabled
+    ? selectedVisibleSlot && !selectedVisibleSlot.enabled
       ? selectedVisibleSlot
       : selectedTime && fallbackWaitlistSlots.includes(selectedTime) && !selectedSlot
         ? ({
@@ -992,311 +974,19 @@ export function BookingFlow() {
     }));
   };
 
-  const renderAvailabilityContent = (spacingClass = "mt-4") => (
-    <>
-      {loadingAvailability ? (
-        <div className={spacingClass}>
-          <StatusBlock
-            variant="loading"
-            title="Sto rileggendo la rotta"
-            description="Gli orari si aggiornano da soli quando cambi data, persone o sala."
-          />
-        </div>
-      ) : null}
-
-      {!loadingAvailability && availability ? (
-        <>
-          {unavailableMessage ? (
-            <div className={spacingClass}>
-              <StatusBlock
-                variant="info"
-                title="Giorno di chiusura"
-                description={unavailableMessage}
-              />
-            </div>
-          ) : (
-            <div className={`${spacingClass} space-y-4`}>
-            <div className="space-y-3">
-              {displayedSlotGroups.map((group) => (
-                <div key={group.groupLabel} className="space-y-2">
-                  {isSundaySelected ? (
-                    <p className="eyebrow text-[0.72rem] text-[var(--text-muted)]">
-                      {group.groupLabel}
-                    </p>
-                  ) : null}
-                  <div className="grid grid-cols-4 gap-2">
-                    {group.slots.map((slot) => {
-                      const time = slot.time;
-                      const isActive = selectedTime === time;
-                      const isUnavailable = !slot || !slot.enabled;
-
-                      return (
-                        <button
-                          key={time}
-                          type="button"
-                          className={cn(
-                            "panel-muted flex flex-col min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-4 text-center transition",
-                            isActive && "border border-[var(--border-strong)] bg-white/8",
-                            isUnavailable &&
-                              "border-[rgba(255,216,156,0.12)] bg-white/[0.03] text-[var(--text-muted)]",
-                          )}
-                          onClick={() => {
-                            if (!hasAutoScrolledToCustomerStepRef.current) {
-                              pendingInitialSlotScrollRef.current = true;
-                            }
-                            clearFieldErrors("selectedTime");
-                            setSelectedTime(time);
-                            setSelectedStatusCode(slot?.statusCode ?? 1);
-                            window.location.hash = "#dati-cliente";
-                          }}
-                        >
-                          <p
-                            className={cn(
-                              "text-base font-semibold leading-none",
-                              isUnavailable ? "text-[var(--text-muted)]" : "text-white",
-                            )}
-                          >
-                            {time}
-                          </p>
-                          {isUnavailable ? (
-                            <span className="mt-1 text-[10px] uppercase font-bold tracking-wider text-[var(--text-muted)]">
-                              Lista d&apos;attesa
-                            </span>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-              {hasWaitlistContext ? (
-                <div className="rounded-[1.5rem] border border-[rgba(255,216,156,0.38)] bg-[rgba(255,216,156,0.08)] px-4 py-4">
-                  <p className="text-base leading-7 text-white">
-                    Purtroppo per questa ora non ci sono posti disponibili,
-                    prova un altro orario o <strong>ENTRA IN LISTA D&apos;ATTESA</strong>.
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            {hasWaitlistContext ? (
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
-                  onClick={() => {
-                    triggerHaptic();
-                    openWaitlistForm();
-                  }}
-                >
-                  Entra in lista d&apos;attesa
-                </button>
-              </div>
-            ) : null}
-
-            {showVisibleWaitlistForm ? (
-              <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                <div className="space-y-2">
-                  <p className="eyebrow">Lista d&apos;attesa</p>
-                  <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    Lascia i tuoi dati e la ciurma ti ricontattera&apos; se si
-                    libera un tavolo per questa richiesta.
-                  </p>
-                </div>
-
-                {waitlistError ? (
-                  <div className="mt-4">
-                    <StatusBlock
-                      variant="error"
-                      title="Richiesta non completa"
-                      description={waitlistError}
-                    />
-                  </div>
-                ) : null}
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Nome</span>
-                      <input
-                        ref={firstNameFieldRef}
-                        className="field"
-                        value={draft.firstName}
-                        onChange={(event) => {
-                          clearFieldErrors("firstName");
-                          setDraft((current) => ({
-                            ...current,
-                            firstName: event.target.value,
-                          }));
-                        }}
-                      />
-                      {fieldErrors.firstName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.firstName}
-                        </p>
-                      ) : null}
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Cognome</span>
-                      <input
-                        ref={lastNameFieldRef}
-                        className="field"
-                        value={draft.lastName}
-                        onChange={(event) => {
-                          clearFieldErrors("lastName");
-                          setDraft((current) => ({
-                            ...current,
-                            lastName: event.target.value,
-                          }));
-                        }}
-                      />
-                      {fieldErrors.lastName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.lastName}
-                        </p>
-                      ) : null}
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Telefono</span>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
-                          +39
-                        </span>
-                        <input
-                          ref={phoneFieldRef}
-                          className="field pl-14"
-                          type="tel"
-                          value={draft.phone.replace(/^\+39/, "")}
-                          onChange={(event) => {
-                            clearFieldErrors("phone");
-                            setDraft((current) => ({
-                              ...current,
-                              phone: "+39" + event.target.value.replace(/\D/g, ""),
-                            }));
-                          }}
-                          onBlur={handlePhoneBlur}
-                        />
-                      </div>
-                      {fieldErrors.phone ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.phone}
-                        </p>
-                      ) : null}
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Email</span>
-                      <input
-                        ref={emailFieldRef}
-                        className="field"
-                        type="email"
-                        value={draft.email}
-                        onChange={(event) => {
-                          clearFieldErrors("email");
-                          setDraft((current) => ({
-                            ...current,
-                            email: event.target.value,
-                          }));
-                        }}
-                      />
-                      {fieldErrors.email ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.email}
-                        </p>
-                      ) : null}
-                    </label>
-                  </div>
-
-                  <label className="mt-3 block space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Note facoltative</span>
-                    <textarea
-                      className="field min-h-28 resize-none"
-                      value={draft.note}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          note: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <div className="mt-4 space-y-3">
-                    <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                      <input
-                        type="checkbox"
-                        checked={draft.privacyAccepted}
-                        onChange={(event) => {
-                          clearFieldErrors("privacyAccepted");
-                          setDraft((current) => ({
-                            ...current,
-                            privacyAccepted: event.target.checked,
-                          }));
-                        }}
-                      />
-                      <span>
-                        Accetto il trattamento privacy per inviare la richiesta in
-                        lista d&apos;attesa.
-                      </span>
-                    </label>
-                    {fieldErrors.privacyAccepted ? (
-                      <p
-                        ref={privacyAcceptedFieldRef}
-                        className="text-xs font-semibold text-red-400"
-                      >
-                        {fieldErrors.privacyAccepted}
-                      </p>
-                    ) : null}
-                    {!shouldHideMarketingConsent ? (
-                      <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                        <input
-                          type="checkbox"
-                          checked={draft.marketingAccepted}
-                          onChange={(event) =>
-                            handleMarketingConsentChange(event.target.checked)
-                          }
-                        />
-                        <span>
-                          Accetto comunicazioni marketing future di Tortuga.
-                        </span>
-                      </label>
-                    ) : null}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                    onClick={() => {
-                      triggerHaptic();
-                      void submitWaitlist();
-                    }}
-                    disabled={submittingWaitlist}
-                  >
-                    {submittingWaitlist
-                      ? "Invio la lista d'attesa..."
-                      : "Conferma lista d'attesa"}
-                  </button>
-                </div>
-            ) : null}
-
-            {visibleWaitlistSuccess ? (
-              <div id="waitlist-success" className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                <p className="eyebrow">Lista d&apos;attesa registrata</p>
-                <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-muted)]">
-                  <p className="text-white">
-                    La tua richiesta e&apos; stata inserita correttamente.
-                  </p>
-                  <p>
-                    Qualora si dovessero liberare dei posti sarai contattato/a
-                    per confermare la prenotazione.
-                  </p>
-                </div>
-              </div>
-            ) : null}
-          </div>
-          )}
-        </>
-      ) : null}
-    </>
-  );
+  const handleSelectSlot = (time: string, statusCode: number) => {
+    if (time) {
+      if (!hasAutoScrolledToCustomerStepRef.current) {
+        pendingInitialSlotScrollRef.current = true;
+      }
+      clearFieldErrors("selectedTime");
+      setSelectedTime(time);
+      setSelectedStatusCode(statusCode);
+      window.location.hash = "#dati-cliente";
+    } else {
+      setSelectedTime("");
+    }
+  };
 
   return (
     <section className="space-y-5">
@@ -1319,335 +1009,50 @@ export function BookingFlow() {
       {bootstrap ? (
         <>
           {success ? (
-            <div id="prenotazione-completata" className="panel parchment-texture rounded-[2rem] p-6 text-center animate-in zoom-in duration-500">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(145deg,#ead092_0%,#b98036_100%)] shadow-[0_0_30px_rgba(216,176,106,0.4)]">
-                <svg viewBox="0 0 24 24" className="h-10 w-10 text-[#21170e]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </div>
-
-              <div className="space-y-3">
-                <p className="eyebrow text-[var(--accent-strong)]">Patto di Ciurma sigillato</p>
-                <h2 className="text-3xl font-bold text-white">
-                  {success.reservation.LabelStato || "Ti aspettiamo a bordo!"}
-                </h2>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  La tua richiesta e arrivata al capitano. Riceverai presto una pergamena di conferma via email.
-                </p>
-              </div>
-              
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <div className="panel-muted rounded-[1.45rem] px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Data</p>
-                  <p className="mt-1 text-sm font-bold text-white">
-                    {successDateLabel}
-                  </p>
-                </div>
-                <div className="panel-muted rounded-[1.45rem] px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Ora</p>
-                  <p className="mt-1 text-sm font-bold text-white">
-                    {successTimeLabel}
-                  </p>
-                </div>
-                <div className="panel-muted rounded-[1.45rem] px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Persone</p>
-                  <p className="mt-1 text-sm font-bold text-white">{success.reservation.Pax}</p>
-                </div>
-              </div>
-
-              <div className="mt-8 space-y-3">
-                <Link
-                  href="/ciurma#riconoscimento"
-                  className="button-primary flex min-h-12 w-full items-center justify-center px-5 text-sm"
-                  onClick={() => triggerHaptic()}
-                >
-                  Gestisci la tua prenotazione
-                </Link>
-                
-                <button
-                  type="button"
-                  className="button-secondary flex min-h-12 w-full items-center justify-center px-5 text-sm"
-                  onClick={() => {
-                    triggerHaptic();
-                    setSuccess(null);
-                    setSelectedTime("");
-                    setFieldErrors({});
-                    setDraft(fallbackDraft);
-                  }}
-                >
-                  Fai un&apos;altra prenotazione
-                </button>
-              </div>
-            </div>
+            <BookingSuccessView
+              success={success}
+              successDateLabel={successDateLabel}
+              successTimeLabel={successTimeLabel}
+              onReset={() => {
+                setSuccess(null);
+                setSelectedTime("");
+                setFieldErrors({});
+                setDraft(fallbackDraft);
+              }}
+            />
           ) : (
             <>
-              <div id="booking-form" className="panel hash-scroll-target rounded-[2rem] p-5">
-                <div className="space-y-2">
-                  <p className="eyebrow">Rotta e Ciurma</p>
+              <BookingParamsSelector
+                draft={draft}
+                setDraft={setDraft}
+                fieldErrors={fieldErrors}
+                clearFieldErrors={clearFieldErrors}
+                dateFieldRef={dateFieldRef}
+                paxFieldRef={paxFieldRef}
+                minimumBookingDate={minimumBookingDate}
+                bootstrap={bootstrap}
+                showRoomDropdown={showRoomDropdown}
+                activeRoomCode={activeRoomCode}
+                isMatchDrinkActive={isMatchDrinkActive}
+                matchDrinkMen={matchDrinkMen}
+                setMatchDrinkMen={setMatchDrinkMen}
+                matchDrinkWomen={matchDrinkWomen}
+                setMatchDrinkWomen={setMatchDrinkWomen}
+                matchDrinkAgeGroup={matchDrinkAgeGroup}
+                setMatchDrinkAgeGroup={setMatchDrinkAgeGroup}
+                setSelectedTime={setSelectedTime}
+                setCustomModuleCode={setCustomModuleCode}
+                setIsRoomSelectionDisabled={setIsRoomSelectionDisabled}
+                AREA_FAMILY_ROOM_CODE={AREA_FAMILY_ROOM_CODE}
+              />
+
+              {requiresRoomSelection && !activeRoomCode && !isRoomSelectionDisabled ? (
+                <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    Scegli quando vuoi salpare e quanti sarete a bordo.
+                    Scegli prima la sala richiesta per vedere gli orari disponibili.
                   </p>
                 </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Giorno del viaggio</span>
-                    <input
-                      ref={dateFieldRef}
-                      className="field min-w-0"
-                      type="date"
-                      min={minimumBookingDate}
-                      value={draft.date}
-                      onChange={(event) => {
-                        clearFieldErrors("date", "selectedTime");
-                        setDraft((current) => ({ ...current, date: event.target.value }));
-                        setCustomModuleCode("");
-                        setIsRoomSelectionDisabled(false);
-                        setMatchDrinkMen("0");
-                        setMatchDrinkWomen("0");
-                        setMatchDrinkAgeGroup("");
-                      }}
-                    />
-                    {fieldErrors.date ? (
-                      <p className="text-xs font-semibold text-red-400">
-                        {fieldErrors.date}
-                      </p>
-                    ) : null}
-                  </label>
-
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Quanti pirati?</span>
-                    <input
-                      ref={paxFieldRef}
-                      className="field min-w-0"
-                      type="number"
-                      min={1}
-                      value={draft.pax}
-                      onChange={(event) => {
-                        clearFieldErrors("pax", "selectedTime");
-                        setDraft((current) => ({
-                          ...current,
-                          pax: event.target.value,
-                        }));
-                      }}
-                    />
-                    {fieldErrors.pax ? (
-                      <p className="text-xs font-semibold text-red-400">
-                        {fieldErrors.pax}
-                      </p>
-                    ) : null}
-                  </label>
-                </div>
-
-                {showRoomDropdown ? (
-                  <div className="mt-5 space-y-3">
-                    <p className="text-sm font-medium text-[var(--text-muted)]">Scegli la Sala</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {bootstrap.rooms.map((room) => {
-                        const isSelected = activeRoomCode === room.code;
-                        const roomLabel =
-                          (room.publicName || room.name).trim().toUpperCase() === "CABINA DI POPPA"
-                            ? "GALEONE"
-                            : room.publicName || room.name;
-
-                        return (
-                          <button
-                            key={room.code}
-                            type="button"
-                            className={cn(
-                              "flex flex-col items-center justify-center rounded-[1.25rem] border p-5 transition-all active:scale-95 min-h-[80px]",
-                              isSelected
-                                ? "active-tab-glow border-[var(--accent-strong)] bg-[var(--accent-soft)] text-white"
-                                : "border-[rgba(255,216,156,0.1)] bg-white/4 text-[var(--text-muted)] hover:border-[rgba(255,216,156,0.3)]",
-                            )}
-                            onClick={() => {
-                              triggerHaptic();
-                              clearFieldErrors("childrenCount", "selectedTime");
-                              setDraft((current) => ({
-                                ...current,
-                                roomCode: room.code,
-                                childrenCount:
-                                  room.code === AREA_FAMILY_ROOM_CODE
-                                    ? current.childrenCount
-                                    : "",
-                              }));
-                              setSelectedTime("");
-                              
-                              // Scroll manuale agli orari disponibili dopo un breve delay per il re-render
-                              setTimeout(() => {
-                                const el = document.getElementById("availability-section");
-                                if (el) {
-                                  const offset = 100; // Offset per non incollare l'elemento al top
-                                  const bodyRect = document.body.getBoundingClientRect().top;
-                                  const elementRect = el.getBoundingClientRect().top;
-                                  const elementPosition = elementRect - bodyRect;
-                                  const offsetPosition = elementPosition - offset;
-
-                                  window.scrollTo({
-                                    top: offsetPosition,
-                                    behavior: "smooth"
-                                  });
-                                }
-                              }, 100);
-                            }}
-                          >
-                            <span className="text-xs font-bold uppercase tracking-[0.15em] text-center">{roomLabel}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-
-                {isThursdaySelected ? (
-                  <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5 space-y-4">
-                    <p className="font-bold text-[var(--accent-strong)] text-[15px] leading-6">
-                      Stai prenotando per la serata Match & Drink, una serata dedicata alle nuove conoscenze.
-                    </p>
-                    
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                        <span>Numero uomini</span>
-                        <input
-                          className="field"
-                          type="number"
-                          min={0}
-                          value={matchDrinkMen}
-                          onChange={(event) => {
-                            clearFieldErrors("matchDrinkMen");
-                            setMatchDrinkMen(event.target.value);
-                          }}
-                        />
-                        {fieldErrors.matchDrinkMen ? (
-                          <p className="text-xs font-semibold text-red-400">
-                            {fieldErrors.matchDrinkMen}
-                          </p>
-                        ) : null}
-                      </label>
-
-                      <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                        <span>Numero donne</span>
-                        <input
-                          className="field"
-                          type="number"
-                          min={0}
-                          value={matchDrinkWomen}
-                          onChange={(event) => {
-                            clearFieldErrors("matchDrinkWomen");
-                            setMatchDrinkWomen(event.target.value);
-                          }}
-                        />
-                        {fieldErrors.matchDrinkWomen ? (
-                          <p className="text-xs font-semibold text-red-400">
-                            {fieldErrors.matchDrinkWomen}
-                          </p>
-                        ) : null}
-                      </label>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-sm text-[var(--text-muted)]">Fascia d&apos;età del tuo gruppo</p>
-                      <div className="flex flex-wrap gap-2">
-                        {["18-24", "25-34", "35-44", "over 44"].map((age) => {
-                          const isSelected = matchDrinkAgeGroup === age;
-                          return (
-                            <button
-                              key={age}
-                              type="button"
-                              className={cn(
-                                "px-4 py-2 text-sm rounded-full border transition-all",
-                                isSelected
-                                  ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] text-white"
-                                  : "border-[rgba(255,216,156,0.1)] bg-white/4 text-[var(--text-muted)] hover:border-[rgba(255,216,156,0.3)]",
-                              )}
-                              onClick={() => {
-                                clearFieldErrors("matchDrinkAgeGroup");
-                                setMatchDrinkAgeGroup(age);
-                              }}
-                            >
-                              {age}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {fieldErrors.matchDrinkAgeGroup ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.matchDrinkAgeGroup}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-
-                {canLoadAvailability ? (
-                  <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-3 text-sm text-white">
-                        <input
-                          type="checkbox"
-                          className="h-5 w-5 rounded border-[var(--border)] bg-white/4"
-                          checked={draft.isAfterDinner}
-                          onChange={(event) => {
-                            triggerHaptic();
-                            setDraft((current) => ({
-                              ...current,
-                              isAfterDinner: event.target.checked,
-                            }));
-                            setSelectedTime("");
-                          }}
-                        />
-                        <span className="font-semibold uppercase tracking-wider">
-                          Ingresso Dopo Cena
-                        </span>
-                      </label>
-
-                      {isAreaFamily ? (
-                        <label className="block space-y-2 text-sm text-[var(--text-muted)]">
-                          <span>Numero di bambini (obbligatorio)</span>
-                          <input
-                            ref={childrenCountFieldRef}
-                            className="field"
-                            type="number"
-                            min={1}
-                            required
-                            placeholder="Es: 2"
-                            value={draft.childrenCount}
-                            onChange={(event) => {
-                              clearFieldErrors("childrenCount");
-                              setDraft((current) => ({
-                                ...current,
-                                childrenCount: event.target.value,
-                              }));
-                            }}
-                          />
-                          {fieldErrors.childrenCount ? (
-                            <p className="text-xs font-semibold text-red-400">
-                              {fieldErrors.childrenCount}
-                            </p>
-                          ) : null}
-                        </label>
-                      ) : null}
-                    </div>
-
-                    <div id="availability-section" ref={selectedTimeFieldRef}>
-                      {renderAvailabilityContent("mt-5")}
-                      {fieldErrors.selectedTime ? (
-                        <p className="mt-3 text-xs font-semibold text-red-400">
-                          {fieldErrors.selectedTime}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-
-                {requiresRoomSelection && !activeRoomCode && !isRoomSelectionDisabled ? (
-                  <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
-                    <p className="text-sm leading-6 text-[var(--text-muted)]">
-                      Scegli prima la sala richiesta per vedere gli orari disponibili.
-                    </p>
-                  </div>
-                ) : null}
-              </div>
+              ) : null}
 
               {activeRoomCode && selectedRoom && !isRoomSelectionDisabled ? (
                 <TortugaMapViewer
@@ -1656,218 +1061,64 @@ export function BookingFlow() {
                 />
               ) : null}
 
+              {canLoadAvailability ? (
+                <TimeSlotSelector
+                  draft={draft}
+                  setDraft={setDraft}
+                  fieldErrors={fieldErrors}
+                  clearFieldErrors={clearFieldErrors}
+                  loadingAvailability={loadingAvailability}
+                  availability={availability}
+                  unavailableMessage={unavailableMessage}
+                  displayedSlotGroups={displayedSlotGroups}
+                  selectedTime={selectedTime}
+                  onSelectSlot={handleSelectSlot}
+                  isSundaySelected={isSundaySelected}
+                  hasWaitlistContext={hasWaitlistContext}
+                  openWaitlistForm={openWaitlistForm}
+                  showVisibleWaitlistForm={showVisibleWaitlistForm}
+                  submitWaitlist={submitWaitlist}
+                  submittingWaitlist={submittingWaitlist}
+                  waitlistError={waitlistError}
+                  visibleWaitlistSuccess={!!visibleWaitlistSuccess}
+                  isAreaFamily={isAreaFamily}
+                  childrenCountFieldRef={childrenCountFieldRef}
+                  selectedTimeFieldRef={selectedTimeFieldRef}
+                  firstNameFieldRef={firstNameFieldRef}
+                  lastNameFieldRef={lastNameFieldRef}
+                  phoneFieldRef={phoneFieldRef}
+                  emailFieldRef={emailFieldRef}
+                  privacyAcceptedFieldRef={privacyAcceptedFieldRef}
+                  shouldHideMarketingConsent={shouldHideMarketingConsent}
+                  handleMarketingConsentChange={handleMarketingConsentChange}
+                  handlePhoneBlur={handlePhoneBlur}
+                />
+              ) : null}
+
               {selectedSlot ? (
-                <div
-                  id="dati-cliente"
-                  ref={customerDetailsStepRef}
-                  className="panel hash-scroll-target rounded-[2rem] p-5"
-                >
-                  <div className="space-y-2">
-                    <p className="eyebrow">Libro degli Ospiti</p>
-                    <p className="text-sm leading-6 text-[var(--text-muted)]">
-                      Ultimo passo: inserisci i tuoi dati e conferma la prenotazione.
-                    </p>
-                  </div>
-
-                  <div className="mt-4 rounded-[1.4rem] border border-[var(--border)] bg-white/4 px-4 py-3">
-                    <p className="text-sm leading-6 text-white">
-                      Prenotazione per{" "}
-                      <span className="font-semibold">
-                        {new Intl.DateTimeFormat("it-IT", {
-                          weekday: "long",
-                        }).format(new Date(selectedSlot.date))}
-                        ,{" "}
-                        {new Intl.DateTimeFormat("it-IT", {
-                          day: "2-digit",
-                          month: "2-digit",
-                        }).format(new Date(selectedSlot.date))}
-                      </span>
-                      , alle ore <span className="font-semibold">{selectedSlot.time}</span> per{" "}
-                      <span className="font-semibold">
-                        {paxCount} {paxCount === 1 ? "persona" : "persone"}
-                      </span>{" "}
-                      , <span className="font-medium text-[var(--text-muted)]">Sala richiesta:</span> <span className="font-semibold text-[var(--accent-strong)]">{selectedRoom?.publicName || selectedRoom?.name || "Sala"}</span>.
-                    </p>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Nome</span>
-                      <input
-                        ref={firstNameFieldRef}
-                        className="field"
-                        required
-                        value={draft.firstName}
-                        onChange={(event) => {
-                          const nextFirstName = event.target.value;
-                          clearFieldErrors("firstName");
-                          setDraft((current) => ({
-                            ...current,
-                            firstName: nextFirstName,
-                          }));
-
-                          if (draft.email && isValidCustomerEmail(draft.email)) {
-                            updateIdentity({ firstName: nextFirstName });
-                          }
-                        }}
-                      />
-                      {fieldErrors.firstName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.firstName}
-                        </p>
-                      ) : null}
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Cognome</span>
-                      <input
-                        ref={lastNameFieldRef}
-                        className="field"
-                        required
-                        value={draft.lastName}
-                        onChange={(event) => {
-                          const nextLastName = event.target.value;
-                          clearFieldErrors("lastName");
-                          setDraft((current) => ({
-                            ...current,
-                            lastName: nextLastName,
-                          }));
-
-                          if (draft.email && isValidCustomerEmail(draft.email)) {
-                            updateIdentity({ lastName: nextLastName });
-                          }
-                        }}
-                      />
-                      {fieldErrors.lastName ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.lastName}
-                        </p>
-                      ) : null}
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Email</span>
-                      <input
-                        ref={emailFieldRef}
-                        className="field"
-                        type="email"
-                        required
-                        value={draft.email}
-                        onChange={(event) => {
-                          const nextEmail = normalizeCustomerEmail(event.target.value);
-                          clearFieldErrors("email");
-
-                          setDraft((current) => ({ ...current, email: nextEmail }));
-
-                          if (isValidCustomerEmail(nextEmail)) {
-                            setIdentityFromEmail(nextEmail, {
-                              firstName: draft.firstName,
-                              lastName: draft.lastName,
-                              phone: draft.phone,
-                              marketingConsent: identity.marketingConsent,
-                            });
-                          }
-                        }}
-                      />
-                      {fieldErrors.email ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.email}
-                        </p>
-                      ) : null}
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Telefono</span>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-4 text-sm font-semibold text-[var(--accent-strong)]">
-                          +39
-                        </span>
-                        <input
-                          ref={phoneFieldRef}
-                          className="field pl-14"
-                          type="tel"
-                          required
-                          value={draft.phone.replace(/^\+39/, "")}
-                          onChange={(event) => {
-                            const nextPhone = "+39" + event.target.value.replace(/\D/g, "");
-                            clearFieldErrors("phone");
-
-                            setDraft((current) => ({ ...current, phone: nextPhone }));
-
-                            if (draft.email && isValidCustomerEmail(draft.email)) {
-                              updateIdentity({ phone: nextPhone });
-                            }
-                          }}
-                          onBlur={handlePhoneBlur}
-                        />
-                      </div>
-                      {fieldErrors.phone ? (
-                        <p className="text-xs font-semibold text-red-400">
-                          {fieldErrors.phone}
-                        </p>
-                      ) : null}
-                    </label>
-                  </div>
-
-                  <label className="mt-3 block space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Note</span>
-                    <textarea
-                      className="field min-h-28 resize-none"
-                      value={draft.note}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, note: event.target.value }))
-                      }
-                    />
-                  </label>
-
-                  <div className="mt-4 space-y-3">
-                    <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                      <input
-                        type="checkbox"
-                        checked={draft.privacyAccepted}
-                        onChange={(event) => {
-                          clearFieldErrors("privacyAccepted");
-                          setDraft((current) => ({
-                            ...current,
-                            privacyAccepted: event.target.checked,
-                          }));
-                        }}
-                      />
-                      <span>Accetto il trattamento privacy per inviare la prenotazione.</span>
-                    </label>
-                    {fieldErrors.privacyAccepted ? (
-                      <p
-                        ref={privacyAcceptedFieldRef}
-                        className="text-xs font-semibold text-red-400"
-                      >
-                        {fieldErrors.privacyAccepted}
-                      </p>
-                    ) : null}
-                    {!shouldHideMarketingConsent ? (
-                      <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                        <input
-                          type="checkbox"
-                          checked={draft.marketingAccepted}
-                          onChange={(event) =>
-                            handleMarketingConsentChange(event.target.checked)
-                          }
-                        />
-                        <span>Accetto comunicazioni marketing future di Tortuga.</span>
-                      </label>
-                    ) : null}
-                  </div>
-
-                  <div id="conferma" className="hash-scroll-target">
-                    <button
-                      type="button"
-                      className="button-primary cta-glow mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                      onClick={() => {
-                        triggerHaptic();
-                        void submitBooking();
-                      }}
-                      disabled={submitting}
-                    >
-                      {submitting ? "Creo la prenotazione..." : "Conferma prenotazione"}
-                    </button>
-                  </div>
-                </div>
+                <CustomerDetailsForm
+                  draft={draft}
+                  setDraft={setDraft}
+                  fieldErrors={fieldErrors}
+                  clearFieldErrors={clearFieldErrors}
+                  selectedSlot={selectedSlot}
+                  selectedRoom={selectedRoom}
+                  paxCount={paxCount}
+                  firstNameFieldRef={firstNameFieldRef}
+                  lastNameFieldRef={lastNameFieldRef}
+                  emailFieldRef={emailFieldRef}
+                  phoneFieldRef={phoneFieldRef}
+                  privacyAcceptedFieldRef={privacyAcceptedFieldRef}
+                  shouldHideMarketingConsent={shouldHideMarketingConsent}
+                  handleMarketingConsentChange={handleMarketingConsentChange}
+                  handlePhoneBlur={handlePhoneBlur}
+                  updateIdentity={updateIdentity}
+                  setIdentityFromEmail={setIdentityFromEmail}
+                  identity={identity}
+                  submitBooking={submitBooking}
+                  submitting={submitting}
+                  customerDetailsStepRef={customerDetailsStepRef}
+                />
               ) : null}
             </>
           )}
