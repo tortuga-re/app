@@ -1,4 +1,5 @@
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import type { FidelityRewardProgress } from "@/lib/fidelity-rewards";
@@ -99,17 +100,19 @@ export function ProfileDashboard({
               >
                 <div
                   className={cn(
-                    "flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-500 overflow-hidden",
+                    "relative flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-500 overflow-hidden",
                     isUnlocked
                       ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_15px_rgba(216,176,106,0.3)]"
                       : "border-white/5 bg-white/5 grayscale opacity-30"
                   )}
                 >
                   {mission.image ? (
-                    <img
+                    <Image
                       src={mission.image}
                       alt={mission.label}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="64px"
+                      className="object-cover"
                     />
                   ) : (
                     <span className="text-3xl">{mission.icon}</span>
