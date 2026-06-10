@@ -12,30 +12,11 @@ const items = [
     label: "Home",
     icon: (
       <>
-        <path
-          d="M12 3.75v3.2m0 10.1v3.2M4.95 12h3.2m7.7 0h3.2M6.35 6.35l2.2 2.2m6.9 6.9 2.2 2.2m-11.1 0 2.2-2.2m6.9-6.9 2.2-2.2"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M12 6.1a5.9 5.9 0 1 1 0 11.8 5.9 5.9 0 0 1 0-11.8Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M10 14.7 14.9 9.8 13 16l-2.12-1.3L10 14.7Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
+        {/* Compass Icon */}
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M12 3v2.5M12 18.5v2.5M3 12h2.5M18.5 12h2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M12 7l2 5-2 5-2-5 2-5z" fill="currentColor" />
+        <circle cx="12" cy="12" r="1" fill="none" stroke="currentColor" strokeWidth="1" />
       </>
     ),
   },
@@ -44,30 +25,10 @@ const items = [
     label: "Prenota",
     icon: (
       <>
-        <path
-          d="M4.6 6.6 9.1 4.8l5.1 1.8 5.2-1.8v12.6l-5.2 1.8-5.1-1.8-4.5 1.8V6.6Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M9.1 4.8v12.8m5.1-11v12.8"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="m11.2 16.8 5.8-9.4 1.3 1.3-6.7 8.4-2.1.9.6-2.2 1.1 1Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
+        {/* Map Icon */}
+        <path d="M4 6l5.5-2.5 5 2 5.5-2.5v13.5l-5.5 2.5-5-2-5.5 2.5V6z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        <path d="M9.5 3.5v13.5M14.5 5.5v13.5" stroke="currentColor" strokeWidth="1.2" opacity="0.6" />
+        <path d="M17 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="currentColor" opacity="0.8" />
       </>
     ),
   },
@@ -76,30 +37,10 @@ const items = [
     label: "Ciurma",
     icon: (
       <>
-        <path
-          d="M8 6.6c1.4-1.45 3.1-2.15 4-2.15 2.7 0 4.9 1.98 4.9 4.43 0 1.79-1.17 3.38-2.9 4.1V14.4c0 .62-.5 1.12-1.12 1.12h-1.76c-.62 0-1.12-.5-1.12-1.12v-1.42c-1.74-.72-2.9-2.3-2.9-4.1 0-.58.12-1.13.35-1.66Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M7.85 6.8h7.8c1.05 0 1.9.85 1.9 1.9"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M10.15 9.65h.02m3.66 0h.02m-2.62 2.3c.3.26.58.38.8.38.22 0 .5-.12.8-.38M9.1 17.65l5.8 2.1m-5.8 0 5.8-2.1"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
+        {/* Elegant Skull Icon */}
+        <path d="M12 4c-3.3 0-6 2.7-6 6 0 2.2 1.2 4.1 3 5.2V18c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-2.8c1.8-1.1 3-3 3-5.2 0-3.3-2.7-6-6-6z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        <path d="M10 10.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM14 10.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor" />
+        <path d="M11 19v1M13 19v1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       </>
     ),
   },
@@ -108,30 +49,10 @@ const items = [
     label: "Info",
     icon: (
       <>
-        <path
-          d="M9 4.8h6l2 2.7v7.1a3.6 3.6 0 0 1-3.6 3.6h-2.8A3.6 3.6 0 0 1 7 14.6V7.5L9 4.8Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M9.1 7.8h5.8m-6 3.1h6.2m-5.2 5.2h4.2"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M11 18.2v1.3m2 0v-1.3"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-        />
+        {/* Parchment Icon */}
+        <path d="M6 4h10l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        <path d="M7 8h6M7 12h10M7 16h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.7" />
+        <path d="M16 4v3h3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
       </>
     ),
   },
@@ -154,7 +75,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
                 className={cn(
                   "flex min-h-[64px] flex-col items-center justify-center gap-2 rounded-[1.05rem] border px-2 py-3 text-[8px] font-semibold uppercase leading-tight tracking-[0.16em] transition",
                   isActive
-                    ? "border-[rgba(214,172,94,0.48)] bg-[linear-gradient(145deg,#ead092_0%,#b98036_48%,#6b4219_100%)] text-[#21170e] shadow-[0_12px_28px_rgba(181,138,77,0.32),inset_0_1px_0_rgba(255,247,218,0.34)]"
+                    ? "active-tab-glow border-[rgba(214,172,94,0.48)] bg-[linear-gradient(145deg,#ead092_0%,#b98036_48%,#6b4219_100%)] text-[#21170e] shadow-[0_12px_28px_rgba(181,138,77,0.32),inset_0_1px_0_rgba(255,247,218,0.34)]"
                     : "border-[rgba(255,216,156,0.09)] bg-[linear-gradient(180deg,rgba(216,176,106,0.04),rgba(255,255,255,0.024))] text-[var(--text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
                 )}
               >
@@ -202,8 +123,8 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
 
         <div className="tortuga-divider" />
         <div>
-          <p className="px-3 text-center text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:rgba(240,211,154,0.7)]">
-            EAT. DRINK. TORTUGA. REPEAT.
+          <p className="px-3 text-center text-[10px] font-semibold tracking-[0.3em] text-[color:rgba(240,211,154,0.7)]">
+            eat.drink.<span className="text-[#D8B06A]" style={{ textShadow: "0 0 10px rgba(216, 176, 106, 0.9), 0 0 20px rgba(216, 176, 106, 0.4)" }}>TORTUGA</span>.repeat.
           </p>
         </div>
       </nav>

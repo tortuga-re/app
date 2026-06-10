@@ -1,4 +1,4 @@
-const CACHE_NAME = "tortuga-shell-v3";
+const CACHE_NAME = "tortuga-shell-v4";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
   OFFLINE_URL,
@@ -7,10 +7,23 @@ const PRECACHE_URLS = [
   "/pwa-icon/512",
 ];
 
-const isStaticAssetRequest = (url) =>
-  url.pathname.startsWith("/_next/static/") ||
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const isNextJsChunk = (url) =>
+  url.pathname.startsWith("/_next/static/chunks/") ||
+  url.pathname.startsWith("/_next/static/css/") ||
+  url.pathname.startsWith("/_next/static/media/");
+
+const isImmutableStaticAsset = (url) =>
+  // _next/static assets with content hashes in their filename are immutable
+  // (images, fonts, etc. outside chunks). Chunks are handled separately above.
+  url.pathname.startsWith("/_next/static/") && !isNextJsChunk(url);
+
+const isStaticShellAsset = (url) =>
   url.pathname.startsWith("/pwa-icon/") ||
   url.pathname === "/manifest.webmanifest";
+
+// ─── Lifecycle ──────────────────────────────────────────────────────────────
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -39,6 +52,16 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// ─── SKIP_WAITING message (sent by pwa-controller when update is waiting) ───
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+// ─── Fetch Strategy ─────────────────────────────────────────────────────────
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
@@ -51,6 +74,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // API calls: Network first, fallback to cache
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(request)
@@ -79,15 +103,38 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Navigation (HTML pages): Always network, fallback to /offline
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .catch(() => caches.match(OFFLINE_URL)),
+      fetch(request).catch(() => caches.match(OFFLINE_URL)),
     );
     return;
   }
 
-  if (isStaticAssetRequest(url)) {
+  // Next.js JS/CSS chunks: NETWORK FIRST.
+  // After a deploy, cached stale chunks cause ChunkLoadErrors.
+  // We always try the network; only if that fails we serve from cache
+  // (so the user can at least see something while offline).
+  if (isNextJsChunk(url)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached ?? Response.error();
+        }),
+    );
+    return;
+  }
+
+  // Other immutable static assets (hashed filenames): Cache first, then network
+  if (isImmutableStaticAsset(url) || isStaticShellAsset(url)) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         const networkFetch = fetch(request)
@@ -98,21 +145,18 @@ self.addEventListener("fetch", (event) => {
             }
             return response;
           })
-          .catch(() => cachedResponse || Response.error());
+          .catch(() => cachedResponse ?? Response.error());
 
-        return cachedResponse || networkFetch;
+        return cachedResponse ?? networkFetch;
       }),
     );
     return;
   }
 
+  // Everything else: Stale-while-revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(request)
+      const networkFetch = fetch(request)
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
@@ -120,10 +164,14 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => Response.error());
+        .catch(() => cachedResponse ?? Response.error());
+
+      return cachedResponse ?? networkFetch;
     }),
   );
 });
+
+// ─── Push Notifications ─────────────────────────────────────────────────────
 
 const parsePushPayload = (event) => {
   if (!event.data) {

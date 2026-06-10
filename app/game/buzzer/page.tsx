@@ -3,20 +3,32 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useCustomerIdentity } from "@/lib/customer-identity";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { requestJson } from "@/lib/client";
+import { scrollToFormField } from "@/lib/form-focus";
 import { triggerHaptic } from "@/lib/haptics";
 import { triggerBuzzerVibration, VIBRATION_PATTERNS } from "@/lib/live-buzzer/vibration";
+import { getSupabase } from "@/lib/match-drink/supabase";
 import { StatusBlock } from "@/components/status-block";
 import type { BuzzerState, Team, BuzzerEntry } from "@/lib/live-buzzer/types";
+import { QRScanner } from "@/components/QRScanner";
 
 export default function BuzzerPage() {
   const { identity, hasIdentity } = useCustomerIdentity();
+  const { hasAccess: isPresent } = useOnPremiseAccess();
   const [gameState, setGameState] = useState<BuzzerState | null>(null);
   const [teamInfo, setTeamInfo] = useState({ nickname: "", tableNumber: "" });
   const [isRegistered, setIsRegistered] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<"nickname" | "tableNumber", string>>
+  >({});
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [dismissWinnerOverlay, setDismissWinnerOverlay] = useState(false);
+  const nicknameFieldRef = useRef<HTMLInputElement | null>(null);
+  const tableNumberFieldRef = useRef<HTMLInputElement | null>(null);
 
   // Feedback State
   const [feedback, setFeedback] = useState<{ message: string; type: "result" | "position" | null }>({ message: "", type: null });
@@ -24,6 +36,7 @@ export default function BuzzerPage() {
   const lastResponderIdRef = useRef<string | null>(null);
   const lastRoundEndedRef = useRef<boolean>(false);
   const gameStateRef = useRef<BuzzerState | null>(null);
+  const lastUpdateIdRef = useRef<number | string>(0);
 
   const syncSession = useCallback(async () => {
     if (identity.email) {
@@ -38,16 +51,8 @@ export default function BuzzerPage() {
   const triggerFeedbackSequence = useCallback((entry: BuzzerEntry, team: Team | undefined) => {
     let resultMsg = "";
     switch (entry.result) {
-      case "perfect":
-        resultMsg = "Colpo da Capitano! Hai indovinato 3 su 3. +10 punti alla tua ciurma.";
-        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
-        break;
-      case "partial2":
-        resultMsg = "Bella bordata! Hai indovinato 2 su 3. +6 punti alla tua ciurma.";
-        triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
-        break;
-      case "partial1":
-        resultMsg = "Mezzo tesoro è sempre tesoro. Hai indovinato 1 su 3. +3 punti.";
+      case "correct":
+        resultMsg = `Risposta esatta! +${entry.scoreAwarded} punti alla tua ciurma.`;
         triggerBuzzerVibration(VIBRATION_PATTERNS.CORRECT_ANSWER);
         break;
       case "wrong":
@@ -81,45 +86,111 @@ export default function BuzzerPage() {
 
   const fetchState = useCallback(async () => {
     try {
-      const data = await requestJson<BuzzerState>("/api/live-buzzer/state");
-      setGameState(data);
-      gameStateRef.current = data;
-      
-      const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
-      setIsRegistered(Boolean(userInLeaderboard));
-      if (userInLeaderboard) {
-        setTeamInfo({ nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber });
-      }
+      const res = await fetch("/api/live-buzzer/state", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const incomingId = Number(data.lastUpdateId) || 0;
+        const currentId = Number(lastUpdateIdRef.current) || 0;
+        if (incomingId >= currentId) {
+          lastUpdateIdRef.current = incomingId;
+          setGameState(data);
+          gameStateRef.current = data;
+          
+          const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
+          setIsRegistered(Boolean(userInLeaderboard));
+          if (userInLeaderboard) {
+            setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+          }
 
-      // Check for new score feedback
-      if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
-        lastScoredIdRef.current = data.userEntry.id;
-        triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+          if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
+            lastScoredIdRef.current = data.userEntry.id;
+            triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+          }
+        }
       }
-    } catch (err) {
-      console.error("Failed to fetch state", err);
-    } finally {
       setLoading(false);
+    } catch (err) {
+      console.error("Fetch state error", err);
     }
   }, [identity.email, triggerFeedbackSequence]);
 
   useEffect(() => {
     if (!hasIdentity) return;
 
-    let cancelled = false;
-    let interval: ReturnType<typeof setInterval> | undefined;
+    let mounted = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+    const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null;
 
     void syncSession().then(() => {
-      if (cancelled) return;
+      if (!mounted) return;
+      
+      const startPolling = () => {
+        if (pollInterval) clearInterval(pollInterval);
+        // Fallback lento (10s) ora che abbiamo Realtime
+        pollInterval = setInterval(() => {
+          if (document.visibilityState === "visible") {
+            void fetchState();
+          }
+        }, 2000);
+      };
+
+      // Sottoscrizione Realtime Broadcast per reattività istantanea
+      channel = supabase
+        .channel("live-buzzer")
+        .on("broadcast", { event: "state_update" }, ({ payload }) => {
+          if (mounted && payload) {
+            const incomingId = Number(payload.lastUpdateId) || 0;
+            const currentId = Number(lastUpdateIdRef.current) || 0;
+            if (incomingId >= currentId) {
+              lastUpdateIdRef.current = incomingId;
+              setGameState(payload);
+              gameStateRef.current = payload;
+              
+              // Sync local team info and feedback
+              const data = payload as BuzzerState;
+              const userInLeaderboard = data.leaderboard?.find((t: Team) => t.email === identity.email);
+              setIsRegistered(Boolean(userInLeaderboard));
+              if (userInLeaderboard) {
+                setTeamInfo(prev => ({ ...prev, nickname: userInLeaderboard.nickname, tableNumber: userInLeaderboard.tableNumber }));
+              }
+              if (data.userEntry?.scored && data.userEntry.id !== lastScoredIdRef.current) {
+                lastScoredIdRef.current = data.userEntry.id;
+                triggerFeedbackSequence(data.userEntry, userInLeaderboard);
+              }
+            }
+          }
+        })
+        .subscribe();
+
       void fetchState();
-      interval = setInterval(fetchState, 1000);
+      startPolling();
     });
 
-    return () => {
-      cancelled = true;
-      if (interval) clearInterval(interval);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void fetchState();
+      }
     };
-  }, [hasIdentity, syncSession, fetchState]);
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      mounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+      if (channel) supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [hasIdentity, syncSession, fetchState, identity.email, triggerFeedbackSequence]);
+
+  // Reset winner overlay dismissal when a new round starts or game status changes
+  useEffect(() => {
+    if (gameState?.status === "open" || gameState?.status === "idle") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDismissWinnerOverlay(false);
+    }
+  }, [gameState?.status]);
 
   // Haptic Detection for Turn and Round End
   useEffect(() => {
@@ -143,13 +214,28 @@ export default function BuzzerPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamInfo.nickname.trim() || !teamInfo.tableNumber.trim()) {
-      setError("Inserisci nickname e numero tavolo.");
+    const nextFieldErrors: Partial<Record<"nickname" | "tableNumber", string>> = {};
+
+    if (!teamInfo.nickname.trim()) {
+      nextFieldErrors.nickname = "Inserisci il nickname della squadra.";
+    }
+
+    if (!teamInfo.tableNumber.trim()) {
+      nextFieldErrors.tableNumber = "Inserisci il numero del tavolo.";
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setError("");
+      scrollToFormField(
+        nextFieldErrors.nickname ? nicknameFieldRef.current : tableNumberFieldRef.current,
+      );
       return;
     }
 
     setSubmitting(true);
     setError("");
+    setFieldErrors({});
     try {
       await requestJson("/api/live-buzzer/team", {
         method: "POST",
@@ -172,7 +258,6 @@ export default function BuzzerPage() {
     try {
       await requestJson("/api/live-buzzer/buzz", { method: "POST" });
       triggerBuzzerVibration(VIBRATION_PATTERNS.BUZZ_SENT);
-      void fetchState();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Errore buzzer");
     } finally {
@@ -200,10 +285,48 @@ export default function BuzzerPage() {
   }
 
   if (!isRegistered) {
+    if (!isPresent) {
+      return (
+        <StatusBlock
+          variant="info"
+          title="Sei nel locale?"
+          description="Per partecipare al Music Quiz devi essere presente al Tortuga Bay. Inquadra il QR code sul tuo tavolo per sbloccare l'accesso!"
+          action={
+            <div className="flex flex-col gap-3 w-full">
+              {showQRScanner ? (
+                <div className="bg-black/20 p-4 rounded-3xl border border-white/10">
+                  <QRScanner
+                    onSuccess={(table) => {
+                      if (table) setTeamInfo(prev => ({ ...prev, tableNumber: table }));
+                      setShowQRScanner(false);
+                    }}
+                    onCancel={() => setShowQRScanner(false)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowQRScanner(true)}
+                    className="button-primary inline-flex min-h-12 items-center justify-center gap-2 px-6 w-full text-center font-bold"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3" /><path d="M17 21v-3h3" /></svg>
+                    Scannerizza il QR del Tavolo
+                  </button>
+                  <Link href="/ciurma" className="button-secondary inline-flex min-h-12 items-center justify-center px-6 w-full">
+                    Torna alla Ciurma
+                  </Link>
+                </>
+              )}
+            </div>
+          }
+        />
+      );
+    }
+
     return (
       <div className="panel rounded-[2rem] p-6 space-y-6">
         <div className="space-y-2">
-          <p className="eyebrow">Assalto al Buzzer</p>
+          <p className="eyebrow">Tortuga Music Quiz</p>
           <h2 className="text-2xl font-bold text-white">Preparati alla sfida</h2>
           <p className="text-sm text-[var(--text-muted)]">Inserisci i dati della tua squadra per iniziare.</p>
         </div>
@@ -212,22 +335,36 @@ export default function BuzzerPage() {
           <div className="space-y-2">
             <label className="text-sm text-[var(--text-muted)]">Nickname Squadra</label>
             <input
+              ref={nicknameFieldRef}
               className="field"
               placeholder="E.g. I Pirati del Bar"
               value={teamInfo.nickname}
-              onChange={(e) => setTeamInfo({ ...teamInfo, nickname: e.target.value })}
+              onChange={(e) => {
+                setFieldErrors((current) => ({ ...current, nickname: undefined }));
+                setTeamInfo({ ...teamInfo, nickname: e.target.value });
+              }}
               required
             />
+            {fieldErrors.nickname ? (
+              <p className="text-xs font-semibold text-red-400">{fieldErrors.nickname}</p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <label className="text-sm text-[var(--text-muted)]">Numero Tavolo</label>
             <input
+              ref={tableNumberFieldRef}
               className="field"
               placeholder="E.g. 12"
               value={teamInfo.tableNumber}
-              onChange={(e) => setTeamInfo({ ...teamInfo, tableNumber: e.target.value })}
+              onChange={(e) => {
+                setFieldErrors((current) => ({ ...current, tableNumber: undefined }));
+                setTeamInfo({ ...teamInfo, tableNumber: e.target.value });
+              }}
               required
             />
+            {fieldErrors.tableNumber ? (
+              <p className="text-xs font-semibold text-red-400">{fieldErrors.tableNumber}</p>
+            ) : null}
           </div>
           {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
           <button type="submit" className="button-primary w-full min-h-12" disabled={submitting}>
@@ -240,7 +377,7 @@ export default function BuzzerPage() {
 
   const isCurrentResponder = gameState?.userEntry?.id === gameState?.currentResponderEntryId;
   const userRank = gameState ? gameState.leaderboard.findIndex(t => t.email === identity.email) + 1 : 0;
-  const isWinner = gameState?.roundEnded && userRank === 1;
+  const isWinner = gameState?.roundEnded && userRank === 1 && gameState?.leaderboardRevealFinished && !dismissWinnerOverlay;
 
   const getStatusMessage = () => {
     if (gameState?.roundEnded) {
@@ -255,30 +392,68 @@ export default function BuzzerPage() {
     if (gameState?.status === "idle") return "Gioco non ancora avviato. Attendi il Capitano.";
     if (gameState?.status === "paused") return "Buzzer in pausa. Guarda il Capitano.";
     if (gameState?.status === "closed") return "Risposte chiuse. Attendi il tuo turno.";
+    if (gameState?.status === "result_screen") return "Il Capitano ha deciso...";
+    if (gameState?.status === "countdown") return "Preparati... al via premi!";
     if (gameState?.status === "open") return "Round aperto: tocca il buzzer!";
     return "";
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-[100dvh] flex flex-col p-4 gap-4 overflow-hidden bg-black text-white">
       {/* Winner Overlay */}
       {isWinner && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-700">
           <div className="text-center space-y-8 animate-in zoom-in duration-1000">
             <div className="relative inline-block">
-               <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-40 animate-pulse" />
-               <span className="relative text-9xl">👑</span>
+              <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-40 animate-pulse" />
+              <span className="relative text-9xl">👑</span>
             </div>
             <div className="space-y-2">
               <h1 className="text-5xl font-black text-white italic tracking-tighter uppercase animate-bounce">Vittoria!</h1>
               <p className="text-[var(--accent-strong)] text-xl font-bold uppercase tracking-widest italic">Sei il nuovo Capitano</p>
             </div>
             <div className="panel p-6 rounded-[2rem] border-[var(--accent-strong)] bg-black/50 backdrop-blur-md">
-               <p className="text-sm text-[var(--text-muted)] uppercase mb-1">Squadra Vincitrice</p>
-               <p className="text-3xl font-black text-white uppercase italic">{gameState?.leaderboard[0]?.nickname}</p>
+              <p className="text-sm text-[var(--text-muted)] uppercase mb-1">Squadra Vincitrice</p>
+              <p className="text-3xl font-black text-white uppercase italic">{gameState?.leaderboard[0]?.nickname}</p>
             </div>
-            <button 
-              onClick={() => { /* maybe close overlay or just let it be */ }} 
+            <button
+              onClick={async () => {
+                const shareText = "Ho vinto il Tortuga Music Quiz! 🏴‍☠️ @tortuga.re";
+                const shareTitle = "Vittoria al Tortuga Music Quiz!";
+                
+                try {
+                  // Try to share the image if possible
+                  const response = await fetch("/images/music-quiz-victory.png").catch(() => null);
+                  if (response && response.ok && navigator.share) {
+                    const blob = await response.blob();
+                    const file = new File([blob], "vittoria.png", { type: "image/png" });
+                    
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                      await navigator.share({
+                        files: [file],
+                        title: shareTitle,
+                        text: shareText,
+                      });
+                    } else {
+                      await navigator.share({
+                        title: shareTitle,
+                        text: shareText,
+                        url: window.location.origin
+                      });
+                    }
+                  } else {
+                    // Fallback for browsers without share or if image fails
+                    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}&quote=${encodeURIComponent(shareText)}`;
+                    window.open(fbUrl, "_blank");
+                  }
+                } catch (err) {
+                  console.error("Share error:", err);
+                } finally {
+                  // Always dismiss after attempt
+                  setDismissWinnerOverlay(true);
+                  triggerHaptic();
+                }
+              }}
               className="button-primary px-10 min-h-14 uppercase font-black italic tracking-widest"
             >
               Onore alla Ciurma
@@ -299,85 +474,37 @@ export default function BuzzerPage() {
         </div>
       )}
 
-      <div className={`panel rounded-[2.5rem] p-8 text-center space-y-6 transition-all duration-500 ${isCurrentResponder ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : ""}`}>
-        <div className="space-y-2">
-          <p className="eyebrow">Round {gameState?.currentRound}</p>
-          <h2 className={`text-xl font-bold uppercase transition-all duration-300 ${isCurrentResponder ? "text-[var(--accent-strong)] scale-110" : "text-white"}`}>
+      <div className={`panel rounded-3xl p-6 text-center space-y-4 flex-1 flex flex-col justify-center items-center transition-all duration-500 ${isCurrentResponder ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : ""}`}>
+        <div className="space-y-1">
+          <p className="eyebrow text-xs">Round {gameState?.currentRound}</p>
+          <h2 className={`text-lg font-bold uppercase transition-all duration-300 ${isCurrentResponder ? "text-[var(--accent-strong)] scale-110" : "text-white"}`}>
             {getStatusMessage()}
           </h2>
           {error && <p className="text-xs text-[var(--danger)] animate-pulse">{error}</p>}
         </div>
 
-        <div className="flex justify-center py-4">
+        <div className="flex justify-center py-2">
           <button
             onClick={handleBuzz}
             disabled={gameState?.status !== "open" || !!gameState?.userEntry || submitting || gameState?.roundEnded}
             className={`
               relative w-48 h-48 rounded-full flex items-center justify-center transition-all duration-300
-              ${gameState?.status === "open" && !gameState?.userEntry 
-                ? "button-primary shadow-[0_0_50px_rgba(178,122,52,0.4)] scale-105 active:scale-95" 
+              ${gameState?.status === "open" && !gameState?.userEntry
+                ? "button-primary shadow-[0_0_50px_rgba(178,122,52,0.4)] scale-105 active:scale-95"
                 : "bg-white/5 border border-white/10 text-[var(--text-muted)] opacity-50 grayscale"}
               ${isCurrentResponder ? "border-[var(--accent-strong)] shadow-[0_0_80px_rgba(178,122,52,0.6)] animate-pulse" : ""}
             `}
           >
             <div className="text-center">
-              <span className="block text-3xl font-black uppercase tracking-tighter italic">BUZZ</span>
+              <span className="block text-2xl font-black uppercase tracking-tighter italic">BUZZ</span>
             </div>
             {gameState?.status === "open" && !gameState?.userEntry && !gameState?.roundEnded && (
               <div className="absolute inset-0 rounded-full animate-ping bg-[var(--accent)] opacity-20" />
             )}
           </button>
         </div>
-
-        {gameState?.roundEnded && (
-          <p className="text-sm text-[var(--text-muted)] italic">Classifica finale! Grazie per aver giocato.</p>
-        )}
       </div>
 
-      <div className="panel rounded-[2rem] p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white uppercase tracking-wider italic">Classifica della ciurma</h3>
-          <span className="text-xs text-[var(--text-muted)] uppercase tracking-widest">{gameState?.leaderboardVisible ? "Live" : "Nascosta"}</span>
-        </div>
-
-        <div className="space-y-2">
-          {gameState?.leaderboard?.length ? (
-            gameState.leaderboard.map((team, index) => (
-                <div 
-                  key={team.email} 
-                  className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 ${
-                    team.email === identity.email 
-                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" 
-                      : "border-white/5 bg-white/2"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-center w-8">
-                      <span className="font-bold text-[var(--accent-strong)] text-lg">{index + 1}</span>
-                      {team.movement !== "same" && (
-                        <span className={`text-[10px] font-black ${team.movement === "up" ? "text-green-500" : "text-red-500"}`}>
-                          {team.movement === "up" ? "↑" : "↓"}{Math.abs(team.rankDelta)}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-bold text-white leading-tight">{team.nickname}</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">Tavolo {team.tableNumber}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-black text-white italic">
-                      {team.totalPoints === -999 ? "X" : team.totalPoints}
-                    </p>
-                    <p className="text-[9px] uppercase tracking-tighter text-[var(--text-muted)]">{team.totalAnswers} risp.</p>
-                  </div>
-                </div>
-              ))
-          ) : (
-            <p className="text-center py-4 text-sm text-[var(--text-muted)]">Ancora nessuna risposta data.</p>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

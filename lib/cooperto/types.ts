@@ -57,6 +57,9 @@ export interface CoopertoCreateReservationRequest {
   CodiceSede: string;
   DataPrenotazione: string;
   CodiceStato: number;
+  CodiceSala?: string;
+  CodiceModulo?: string;
+  CodiceModuloPrenotazione?: string;
   Nome?: string;
   Cognome?: string;
   Telefono?: string;
@@ -67,8 +70,28 @@ export interface CoopertoCreateReservationRequest {
   ConsensoMarketing?: boolean;
 }
 
+export interface CoopertoUpdateReservationRequest {
+  CodicePrenotazione: string;
+  DataPrenotazione: string;
+  CodiceStato: number;
+  Pax: number;
+  Nome?: string;
+  Cognome?: string;
+  Telefono?: string;
+  Email?: string;
+  Note?: string;
+}
+
+export interface CoopertoUpdateReservationStatusRequest {
+  CodicePrenotazione: string;
+  CodiceStato: number;
+}
+
 export interface CoopertoCreateQueueRequest {
   CodiceSede: string;
+  CodiceSala?: string;
+  CodiceModulo?: string;
+  CodiceModuloPrenotazione?: string;
   Nome?: string;
   Cognome?: string;
   Telefono: string;
@@ -98,6 +121,25 @@ export interface CoopertoRegisterVisitRequest {
   codiceContatto: string;
   codiceSede: string;
   dataVisita: string;
+}
+
+export interface CoopertoAddPointsRequest {
+  codiceContatto: string;
+  punti: number;
+  note?: string;
+}
+
+export interface CoopertoCreateContactMovementRequest {
+  CodiceContatto: string;
+  DataMovimento: string;
+  Importo: number;
+  Note?: string;
+}
+
+export interface CoopertoCreateReservationMovementRequest {
+  CodicePrenotazione: string;
+  Importo: number;
+  Note?: string;
 }
 
 export type CoopertoRegisterVisitResponse = Record<string, unknown> | null;
@@ -305,6 +347,7 @@ export interface BookingCreateInput {
   note?: string;
   privacyAccepted: boolean;
   marketingAccepted: boolean;
+  moduleCode?: string;
 }
 
 export interface BookingCreateResponse {
@@ -314,6 +357,7 @@ export interface BookingCreateResponse {
 
 export interface WaitlistCreateInput {
   date: string;
+  requestedTime?: string;
   pax: number;
   roomCode?: string;
   firstName: string;
@@ -323,6 +367,7 @@ export interface WaitlistCreateInput {
   note?: string;
   privacyAccepted: boolean;
   marketingAccepted: boolean;
+  moduleCode?: string;
 }
 
 export interface WaitlistCreateResponse {
@@ -339,6 +384,8 @@ export interface ProfileResponse {
   upcomingReservations: UpcomingReservation[];
   lookupMode: "email" | "contactCode";
   query: string;
+  avatarUrl?: string;
+  unlockedAchievementIds?: string[];
 }
 
 export interface FidelityActivationResponse {

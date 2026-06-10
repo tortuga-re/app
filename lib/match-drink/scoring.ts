@@ -1,286 +1,564 @@
 import {
   MatchDrinkAnswer,
   MatchDrinkMatch,
+  MatchDrinkMainCategory,
   MatchDrinkPlayer,
   MatchDrinkProfile,
+  MatchDrinkQuestion,
   MatchDrinkSession,
   MatchDrinkTrait,
-  MatchDrinkQuestion,
 } from "./types";
+import {
+  MATCH_DRINK_TRAIT_ORDER,
+  getMainCategoryCompatibilityBonus,
+  getMainCategoryFromTraits,
+  getMainCategoryLabel,
+  getMainCategoryPluralLabel,
+  getProfileDescription,
+  getSecondaryTraitCompatibilityBonus,
+  getSecondaryTraitFromTraits,
+  getSharedMainCategory,
+  getTraitLabel,
+  getDominantTraitFromTraits,
+  getTraitMainCategory,
+  type MatchDrinkMainCategoryNormalizer,
+} from "./profile";
 
-export const calculatePlayerProfile = (
-  player: MatchDrinkPlayer,
+const createEmptyTraitScores = (): Record<MatchDrinkTrait, number> => ({
+  romantico: 0,
+  geloso: 0,
+  libero: 0,
+  caotico: 0,
+  festaiolo: 0,
+  diretto: 0,
+  timido: 0,
+  ironico: 0,
+  pericoloso: 0,
+  fedele: 0,
+  investigatore: 0,
+  orgoglioso: 0,
+});
+
+const buildTraitScores = (
   answers: MatchDrinkAnswer[],
-  questionsBank: MatchDrinkQuestion[]
-): MatchDrinkProfile => {
-  const traitScores: Record<MatchDrinkTrait, number> = {
-    romantico: 0,
-    geloso: 0,
-    libero: 0,
-    caotico: 0,
-    festaiolo: 0,
-    diretto: 0,
-    timido: 0,
-    ironico: 0,
-    pericoloso: 0,
-    fedele: 0,
-    investigatore: 0,
-    orgoglioso: 0,
-  };
+  questionsBank: MatchDrinkQuestion[],
+) => {
+  const traitScores = createEmptyTraitScores();
+  const questionsById = new Map(questionsBank.map((question) => [question.id, question]));
 
   answers.forEach((answer) => {
-    const question = questionsBank.find((q) => q.id === answer.questionId);
-    if (!question) return;
+    const question = questionsById.get(answer.questionId);
+    if (!question) {
+      return;
+    }
 
-    const option = question.options.find((o) => o.id === answer.selectedOptionId);
-    if (!option) return;
+    const option = question.options.find(
+      (questionOption) => questionOption.id === answer.selectedOptionId,
+    );
 
-    Object.entries(option.traits || {}).forEach(([trait, score]) => {
+    if (!option?.traits) {
+      return;
+    }
+
+    Object.entries(option.traits).forEach(([trait, score]) => {
+      if (!(trait in traitScores) || typeof score !== "number") {
+        return;
+      }
+
       traitScores[trait as MatchDrinkTrait] += score;
     });
   });
 
-  // Trova il trait dominante
-  let dominantTrait: MatchDrinkTrait = "ironico";
-  let maxScore = -1;
+  return traitScores;
+};
 
-  Object.entries(traitScores).forEach(([trait, score]) => {
-    if (score > maxScore) {
-      maxScore = score;
-      dominantTrait = trait as MatchDrinkTrait;
-    }
+const hasMeaningfulTraitScores = (traitScores: Record<MatchDrinkTrait, number>) =>
+  Object.values(traitScores).some((score) => score > 0);
+
+const getDeterministicFallbackTrait = (player: MatchDrinkPlayer) => {
+  const source = `${player.nickname}|${player.tableNumber ?? ""}|${player.id}`;
+  const charSum = source.split("").reduce((total, char) => total + char.charCodeAt(0), 0);
+
+  return MATCH_DRINK_TRAIT_ORDER[charSum % MATCH_DRINK_TRAIT_ORDER.length];
+};
+
+const buildProfileLabel = (
+  mainCategoryLabel: string,
+  secondaryTraitLabel: string,
+) => {
+  if (mainCategoryLabel.toLowerCase() === secondaryTraitLabel.toLowerCase()) {
+    return mainCategoryLabel;
+  }
+
+  return `${mainCategoryLabel} ${secondaryTraitLabel}`;
+};
+
+const createEmptyMainCategoryScores = (): Record<MatchDrinkMainCategory, number> => ({
+  romantico: 0,
+  passionale: 0,
+  piccante: 0,
+  energico: 0,
+});
+
+const buildMainCategoryNormalizer = (
+  questionsBank: MatchDrinkQuestion[],
+): MatchDrinkMainCategoryNormalizer => {
+  const normalizer = createEmptyMainCategoryScores();
+
+  questionsBank.forEach((question) => {
+    question.options.forEach((option) => {
+      Object.entries(option.traits ?? {}).forEach(([trait, score]) => {
+        if (!MATCH_DRINK_TRAIT_ORDER.includes(trait as MatchDrinkTrait) || typeof score !== "number") {
+          return;
+        }
+
+        normalizer[getTraitMainCategory(trait as MatchDrinkTrait)] += score;
+      });
+    });
   });
 
-  const { label, description } = getProfileInfo(dominantTrait);
+  return normalizer;
+};
+
+type MatchReasonResult = {
+  criterion: string;
+  reason: string;
+};
+
+export const calculatePlayerProfile = (
+  player: MatchDrinkPlayer,
+  answers: MatchDrinkAnswer[],
+  questionsBank: MatchDrinkQuestion[],
+  mainCategoryNormalizer: MatchDrinkMainCategoryNormalizer = buildMainCategoryNormalizer(questionsBank),
+  secondaryTraitMode: "macro_category" | "absolute" = "absolute",
+): MatchDrinkProfile => {
+  const traitScores = buildTraitScores(answers, questionsBank);
+
+  if (!hasMeaningfulTraitScores(traitScores)) {
+    traitScores[getDeterministicFallbackTrait(player)] = 1;
+  }
+
+  const dominantTrait = getDominantTraitFromTraits(traitScores);
+  const mainCategory = getMainCategoryFromTraits(traitScores, mainCategoryNormalizer);
+  const secondaryTrait = getSecondaryTraitFromTraits(traitScores, mainCategory, secondaryTraitMode);
+  const mainCategoryLabel = getMainCategoryLabel(mainCategory, player.gender);
+  const secondaryTraitLabel = getTraitLabel(secondaryTrait, player.gender);
 
   return {
     playerId: player.id,
     traits: traitScores,
     dominantTrait,
-    profileLabel: label,
-    profileDescription: description,
+    mainCategory,
+    mainCategoryLabel,
+    secondaryTrait,
+    secondaryTraitLabel,
+    profileLabel: buildProfileLabel(mainCategoryLabel, secondaryTraitLabel),
+    profileDescription: getProfileDescription(mainCategory, secondaryTrait),
   };
 };
 
-const getProfileInfo = (trait: MatchDrinkTrait) => {
-  const info: Record<MatchDrinkTrait, { label: string; description: string }> = {
-    romantico: {
-      label: "Pirata Romantico",
-      description: "Cuore d'oro e mappe del tesoro scritte a mano. Credi ancora nei segnali, ma spesso sono solo fuochi di segnalazione.",
-    },
-    geloso: {
-      label: "Guardiano del Forziere",
-      description: "Dici di non essere geloso, ma hai già controllato la lista passeggeri tre volte. Ti fidi, ma verifichi.",
-    },
-    libero: {
-      label: "Vento di Libertà",
-      description: "Nessun porto è troppo stretto, nessuna ancora troppo pesante. Sei qui per il viaggio, non per la meta.",
-    },
-    caotico: {
-      label: "Caos con Buone Intenzioni",
-      description: "Sei la tempesta perfetta. Non sai come ci sei finito, ma stai facendo un gran casino e ti stai divertendo.",
-    },
-    festaiolo: {
-      label: "Pericolo da Bancone",
-      description: "La tua bussola punta sempre verso il rum. Sei l'ultimo a lasciare la nave quando c'è da festeggiare.",
-    },
-    diretto: {
-      label: "Cannone Carico",
-      description: "Non giri intorno alle isole. Se qualcosa ti piace, spari. Se non ti piace, spari uguale.",
-    },
-    timido: {
-      label: "Naufrago Silenzioso",
-      description: "Preferisci l'ombra dell'albero maestro. Ma sotto la timidezza c'è un mondo che aspetta solo di essere esplorato.",
-    },
-    ironico: {
-      label: "Saggio del Baretto",
-      description: "Ridi di tutto, soprattutto dei tuoi errori. La tua arma migliore è una battuta pronta quando tutto affonda.",
-    },
-    pericoloso: {
-      label: "Red Flag Galleggiante",
-      description: "Tutti dovrebbero scappare, e invece ti corrono dietro. Sei quel brivido che rovina le serate tranquille.",
-    },
-    fedele: {
-      label: "Ancora Sicura",
-      description: "Sei il porto sicuro in ogni tempesta. Chi ti trova non ti lascia più, a meno che non sia pazzo.",
-    },
-    investigatore: {
-      label: "Investigatore Emotivo",
-      description: "Hai già fatto tre teorie e due screenshot prima ancora di dire ciao. Nulla sfugge alla tua analisi.",
-    },
-    orgoglioso: {
-      label: "Sereno Solo in Superficie",
-      description: "Dici che va tutto bene. Internamente stai scrivendo una sceneggiatura per il tuo prossimo confronto drammatico.",
-    },
+type ScoredPotentialPair = {
+  aIdx: number;
+  bIdx: number;
+  score: number;
+  info: { type: MatchDrinkMatch["matchType"]; criterion: string; reason: string };
+};
+
+type MatchingResult = {
+  pairCount: number;
+  score: number;
+  pairs: ScoredPotentialPair[];
+};
+
+const getPairKey = (aIdx: number, bIdx: number) =>
+  aIdx < bIdx ? `${aIdx}:${bIdx}` : `${bIdx}:${aIdx}`;
+
+const BIGINT_ZERO = BigInt(0);
+const BIGINT_ONE = BigInt(1);
+
+const getBit = (index: number) => BIGINT_ONE << BigInt(index);
+
+const getFirstSetBitIndex = (mask: bigint, playerCount: number) => {
+  for (let index = 0; index < playerCount; index += 1) {
+    if ((mask & getBit(index)) !== BIGINT_ZERO) {
+      return index;
+    }
+  }
+
+  return -1;
+};
+
+const findMaximumWeightMatching = (
+  playerCount: number,
+  pairs: ScoredPotentialPair[],
+): ScoredPotentialPair[] => {
+  if (playerCount < 2) {
+    return [];
+  }
+
+  const pairsByKey = new Map(
+    pairs.map((pair) => [getPairKey(pair.aIdx, pair.bIdx), pair]),
+  );
+  const fullMask = (BIGINT_ONE << BigInt(playerCount)) - BIGINT_ONE;
+  const memo = new Map<string, MatchingResult>();
+
+  const isBetter = (candidate: MatchingResult, current: MatchingResult) =>
+    candidate.pairCount > current.pairCount ||
+    (candidate.pairCount === current.pairCount && candidate.score > current.score);
+
+  const solve = (mask: bigint): MatchingResult => {
+    if (mask === BIGINT_ZERO) {
+      return { pairCount: 0, score: 0, pairs: [] };
+    }
+
+    const key = mask.toString();
+    const cached = memo.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const firstIdx = getFirstSetBitIndex(mask, playerCount);
+    const maskWithoutFirst = mask & ~getBit(firstIdx);
+    let best = solve(maskWithoutFirst);
+
+    for (let secondIdx = firstIdx + 1; secondIdx < playerCount; secondIdx += 1) {
+      const secondBit = getBit(secondIdx);
+      if ((maskWithoutFirst & secondBit) === BIGINT_ZERO) {
+        continue;
+      }
+
+      const pair = pairsByKey.get(getPairKey(firstIdx, secondIdx));
+      if (!pair) {
+        continue;
+      }
+
+      const rest = solve(maskWithoutFirst & ~secondBit);
+      const candidate = {
+        pairCount: rest.pairCount + 1,
+        score: pair.score + rest.score,
+        pairs: [pair, ...rest.pairs],
+      };
+
+      if (isBetter(candidate, best)) {
+        best = candidate;
+      }
+    }
+
+    memo.set(key, best);
+    return best;
   };
 
-  return info[trait];
+  return solve(fullMask).pairs;
 };
 
 export const calculateMatches = (
   session: MatchDrinkSession,
   players: MatchDrinkPlayer[],
   answers: MatchDrinkAnswer[],
-  questionsBank: MatchDrinkQuestion[]
+  questionsBank: MatchDrinkQuestion[],
 ): Omit<MatchDrinkMatch, "id" | "createdAt">[] => {
   const eligiblePlayers = players.filter(
-    (p) => p.relationshipStatus !== "solo_per_ridere"
+    (player) => player.nickname !== "_SYSTEM_",
   );
+  const answersByPlayer = new Map<string, MatchDrinkAnswer[]>();
+  const mainCategoryNormalizer = buildMainCategoryNormalizer(questionsBank);
 
-  const playerProfiles = eligiblePlayers.map((p) => {
-    const playerAnswers = answers.filter((a) => a.playerId === p.id);
-    return calculatePlayerProfile(p, playerAnswers, questionsBank);
+  answers.forEach((answer) => {
+    const currentAnswers = answersByPlayer.get(answer.playerId) ?? [];
+    currentAnswers.push(answer);
+    answersByPlayer.set(answer.playerId, currentAnswers);
   });
 
-  const matches: Omit<MatchDrinkMatch, "id" | "createdAt">[] = [];
-  const matchedPlayerIds = new Set<string>();
+  const profilesByPlayerId = new Map<string, MatchDrinkProfile>();
 
-  // Semplice algoritmo di matching
-  for (let i = 0; i < eligiblePlayers.length; i++) {
-    const playerA = eligiblePlayers[i];
-    if (matchedPlayerIds.has(playerA.id)) continue;
+  eligiblePlayers.forEach((player) => {
+    profilesByPlayerId.set(
+      player.id,
+        calculatePlayerProfile(
+          player,
+          answersByPlayer.get(player.id) ?? [],
+          questionsBank,
+          mainCategoryNormalizer,
+          session.secondaryTraitMode ?? "absolute",
+        ),
+      );
+  });
 
-    let bestMatch: { player: MatchDrinkPlayer; score: number; reason: string; criterion: string; type: MatchDrinkMatch["matchType"] } | null = null;
+  const allPotentialPairs: ScoredPotentialPair[] = [];
 
-    for (let j = i + 1; j < eligiblePlayers.length; j++) {
+  for (let i = 0; i < eligiblePlayers.length; i += 1) {
+    for (let j = i + 1; j < eligiblePlayers.length; j += 1) {
+      const playerA = eligiblePlayers[i];
       const playerB = eligiblePlayers[j];
-      if (matchedPlayerIds.has(playerB.id)) continue;
 
-      // Verifica preferenze di genere
-      if (!isGenderCompatible(playerA, playerB)) continue;
+      if (!isGenderCompatible(playerA, playerB)) {
+        continue;
+      }
 
+      if (
+        playerA.lookingFor !== "amicizie" &&
+        playerB.lookingFor !== "amicizie" &&
+        !isRomanceAgeCompatible(playerA, playerB)
+      ) {
+        continue;
+      }
 
       const scoreInfo = calculateMatchScore(
         playerA,
         playerB,
-        playerProfiles.find((p) => p.playerId === playerA.id)!,
-        playerProfiles.find((p) => p.playerId === playerB.id)!,
-        answers.filter((a) => a.playerId === playerA.id),
-        answers.filter((a) => a.playerId === playerB.id)
+        profilesByPlayerId.get(playerA.id)!,
+        profilesByPlayerId.get(playerB.id)!,
+        answersByPlayer.get(playerA.id) ?? [],
+        answersByPlayer.get(playerB.id) ?? [],
+        questionsBank,
       );
 
-      if (!bestMatch || scoreInfo.score > bestMatch.score) {
-        bestMatch = {
-          player: playerB,
-          ...scoreInfo,
-        };
-      }
-    }
-
-    if (bestMatch && bestMatch.score > 40) {
-      matches.push({
-        sessionId: session.id,
-        playerAId: playerA.id,
-        playerBId: bestMatch.player.id,
-        score: bestMatch.score,
-        matchType: bestMatch.type,
-        label: getMatchTypeLabel(bestMatch.type),
-        commonCriterion: bestMatch.criterion,
-        reason: bestMatch.reason,
-        drinkUnlocked: false,
+      allPotentialPairs.push({
+        aIdx: i,
+        bIdx: j,
+        score: scoreInfo.score,
+        info: {
+          criterion: scoreInfo.criterion,
+          reason: scoreInfo.reason,
+          type: scoreInfo.type,
+        },
       });
-      matchedPlayerIds.add(playerA.id);
-      matchedPlayerIds.add(bestMatch.player.id);
     }
   }
 
-  return matches;
+  return findMaximumWeightMatching(eligiblePlayers.length, allPotentialPairs).map((pair) => {
+    const playerA = eligiblePlayers[pair.aIdx];
+    const playerB = eligiblePlayers[pair.bIdx];
+
+    return {
+      sessionId: session.id,
+      playerAId: playerA.id,
+      playerBId: playerB.id,
+      score: pair.score,
+      matchType: pair.info.type,
+      label: getMatchTypeLabel(pair.info.type),
+      commonCriterion: pair.info.criterion,
+      reason: pair.info.reason,
+      drinkUnlocked: false,
+    };
+  });
 };
 
-const isGenderCompatible = (a: MatchDrinkPlayer, b: MatchDrinkPlayer): boolean => {
-  const check = (p1: MatchDrinkPlayer, p2: MatchDrinkPlayer) => {
-    if (p1.lookingFor === "amicizie") return p2.lookingFor === "amicizie";
-    if (p1.lookingFor === "uomo") return p2.gender === "uomo" && p2.lookingFor !== "amicizie";
-    if (p1.lookingFor === "donna") return p2.gender === "donna" && p2.lookingFor !== "amicizie";
-    if (p1.lookingFor === "entrambi") return ["uomo", "donna"].includes(p2.gender) && p2.lookingFor !== "amicizie";
+const getAgeRangeBounds = (ageRange: MatchDrinkPlayer["ageRange"]) => {
+  switch (ageRange) {
+    case "18-24":
+      return { min: 18, max: 24 };
+    case "25-34":
+      return { min: 25, max: 34 };
+    case "35-45":
+      return { min: 35, max: 45 };
+    case "46-plus":
+      return { min: 46, max: 99 };
+    default:
+      return null;
+  }
+};
+
+const isRomanceAgeCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer) => {
+  const rangeA = getAgeRangeBounds(playerA.ageRange);
+  const rangeB = getAgeRangeBounds(playerB.ageRange);
+
+  if (!rangeA || !rangeB) {
+    return true;
+  }
+
+  const midpointA = (rangeA.min + rangeA.max) / 2;
+  const midpointB = (rangeB.min + rangeB.max) / 2;
+  return Math.abs(midpointA - midpointB) <= 10;
+};
+
+const isGenderCompatible = (playerA: MatchDrinkPlayer, playerB: MatchDrinkPlayer): boolean => {
+  const checkCompatibility = (sourcePlayer: MatchDrinkPlayer, targetPlayer: MatchDrinkPlayer) => {
+    if (sourcePlayer.lookingFor === "amicizie") {
+      return targetPlayer.lookingFor === "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "uomo") {
+      return targetPlayer.gender === "uomo" && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "donna") {
+      return targetPlayer.gender === "donna" && targetPlayer.lookingFor !== "amicizie";
+    }
+
+    if (sourcePlayer.lookingFor === "entrambi") {
+      return (
+        ["uomo", "donna"].includes(targetPlayer.gender) &&
+        targetPlayer.lookingFor !== "amicizie"
+      );
+    }
+
     return false;
   };
 
-  return check(a, b) && check(b, a);
+  return checkCompatibility(playerA, playerB) && checkCompatibility(playerB, playerA);
 };
 
-const calculateMatchScore = (
-  a: MatchDrinkPlayer,
-  b: MatchDrinkPlayer,
-  profA: MatchDrinkProfile,
-  profB: MatchDrinkProfile,
-  ansA: MatchDrinkAnswer[],
-  ansB: MatchDrinkAnswer[]
-) => {
-  let score = 50; // Base score
-  let sameAnswers = 0;
+const getMatchTypeFromScore = (score: number): MatchDrinkMatch["matchType"] =>
+  score >= 90
+    ? "anime_gemelle"
+    : score >= 75
+      ? "compatibilita_sospetta"
+      : score >= 50
+        ? "una_birra_e_vediamo"
+        : "errore_consigliato";
 
-  // Risposte uguali
-  ansA.forEach((ans) => {
-    const matchingAns = ansB.find((ba) => ba.questionId === ans.questionId);
-    if (matchingAns && matchingAns.selectedOptionId === ans.selectedOptionId) {
-      score += 8;
-      sameAnswers++;
+export const calculateMatchScore = (
+  playerA: MatchDrinkPlayer,
+  playerB: MatchDrinkPlayer,
+  profileA: MatchDrinkProfile,
+  profileB: MatchDrinkProfile,
+  answersA: MatchDrinkAnswer[],
+  answersB: MatchDrinkAnswer[],
+  questionsBank: MatchDrinkQuestion[],
+) => {
+  const answersByQuestionId = new Map(
+    answersB.map((answer) => [answer.questionId, answer]),
+  );
+  const questionsById = new Map(questionsBank.map((question) => [question.id, question]));
+  const sharedMainCategory = getSharedMainCategory(profileA, profileB);
+
+  let score = 28;
+  let sameAnswers = 0;
+  let sharedSpicyQuestionText = "";
+  let sharedSpicyAnswerText = "";
+
+  answersA.forEach((answer) => {
+    const matchingAnswer = answersByQuestionId.get(answer.questionId);
+    if (!matchingAnswer || matchingAnswer.selectedOptionId !== answer.selectedOptionId) {
+      return;
     }
+
+    score += 6;
+    sameAnswers += 1;
+
+    const question = questionsById.get(answer.questionId);
+    if (
+      !question ||
+      question.category !== "spicy" ||
+      (sharedSpicyQuestionText && sharedSpicyAnswerText)
+    ) {
+      return;
+    }
+
+    const option = question.options.find((candidate) => candidate.id === answer.selectedOptionId);
+    if (!option) {
+      return;
+    }
+
+    sharedSpicyQuestionText = question.text;
+    sharedSpicyAnswerText = option.text;
   });
 
-  // Stesso trait dominante
-  if (profA.dominantTrait === profB.dominantTrait) {
+  score += getMainCategoryCompatibilityBonus(profileA.mainCategory, profileB.mainCategory);
+  score += getSecondaryTraitCompatibilityBonus(
+    profileA.secondaryTrait,
+    profileB.secondaryTrait,
+  );
+
+  if (profileA.secondaryTrait === profileB.secondaryTrait) {
+    score += 8;
+  }
+
+  if (profileA.dominantTrait === profileB.dominantTrait) {
+    score += 6;
+  }
+
+  if (playerA.relationshipStatus === "single" && playerB.relationshipStatus === "single") {
+    score += 10;
+  }
+
+  if (
+    playerA.relationshipStatus === "complicato" &&
+    playerB.relationshipStatus === "complicato"
+  ) {
+    score += 5;
+  }
+
+  if (playerA.lookingFor === "amicizie" && playerB.lookingFor === "amicizie") {
     score += 15;
   }
 
-  // Bonus status
-  if (a.relationshipStatus === "single" && b.relationshipStatus === "single") score += 10;
-  if (a.relationshipStatus === "complicato" && b.relationshipStatus === "complicato") score += 5;
-
-  // Penalità contrasti forti
   if (
-    (profA.traits.geloso > 5 && profB.traits.libero > 5) ||
-    (profB.traits.geloso > 5 && profA.traits.libero > 5)
+    (profileA.traits.geloso > 5 && profileB.traits.libero > 5) ||
+    (profileB.traits.geloso > 5 && profileA.traits.libero > 5)
   ) {
     score -= 20;
   }
 
-  // Normalizza
-  score = Math.min(Math.max(score, 0), 100);
+  score = Math.min(Math.max(score, 10), 100);
 
-  // Determina tipo e motivo
-  const type: MatchDrinkMatch["matchType"] = 
-    score > 85 ? "anime_gemelle" : 
-    score > 70 ? "compatibilita_sospetta" : 
-    score > 55 ? "una_birra_e_vediamo" : 
-    "errore_consigliato";
+  const type = getMatchTypeFromScore(score);
 
-  const { criterion, reason } = getMatchReason(profA, profB, sameAnswers, score);
+  const matchReason = getMatchReason(
+    playerA,
+    playerB,
+    profileA,
+    profileB,
+    sameAnswers,
+    score,
+    sharedMainCategory,
+  );
+  let reason = matchReason.reason;
 
-  return { score, type, criterion, reason };
+  if (sharedSpicyQuestionText && sharedSpicyAnswerText) {
+    reason += `|SPICY_Q|${sharedSpicyQuestionText}|SPICY_A|${sharedSpicyAnswerText}`;
+  }
+
+  return {
+    score,
+    type,
+    criterion: matchReason.criterion,
+    reason,
+  };
 };
 
 const getMatchReason = (
-  profA: MatchDrinkProfile,
-  profB: MatchDrinkProfile,
+  playerA: MatchDrinkPlayer,
+  playerB: MatchDrinkPlayer,
+  profileA: MatchDrinkProfile,
+  profileB: MatchDrinkProfile,
   sameAnswers: number,
-  score: number
-) => {
-  if (profA.dominantTrait === profB.dominantTrait) {
+  score: number,
+  sharedMainCategory: MatchDrinkProfile["mainCategory"] | null,
+): MatchReasonResult => {
+  if (sharedMainCategory) {
     return {
-      criterion: `Siete entrambi ${profA.dominantTrait === "caotico" ? "due disastri" : profA.dominantTrait + "s"}`,
-      reason: `Avete lo stesso approccio alla vita: ${profA.profileLabel}. Fondamentalmente vi capite senza parlare.`
+      criterion: `Siete entrambi ${getMainCategoryPluralLabel(sharedMainCategory)}`,
+      reason: `Avete una vibrazione di base simile: ${profileA.profileLabel} e ${profileB.profileLabel}. Il Capitano vuole vedere come va a finire dal vivo.`,
     };
   }
 
   if (sameAnswers >= 3) {
     return {
-      criterion: "Stessa visione del mondo (o quasi)",
-      reason: `Avete dato ${sameAnswers} risposte identiche. È inquietante o è destino? Decidete voi.`
+      criterion: "Stessa lunghezza d'onda",
+      reason: `Avete dato ${sameAnswers} risposte identiche. O vi siete capiti subito, o state per scoprirlo davanti a un brindisi.`,
     };
   }
 
-  if (score > 60) {
+  if (score >= 75) {
     return {
-      criterion: "Red flag compatibili",
-      reason: "Le vostre nevrosi sembrano incastrarsi bene. Un drink potrebbe aiutare a confermarlo."
+      criterion: "Categorie che possono incendiarsi bene",
+      reason: `Tu sei ${getMainCategoryLabel(profileA.mainCategory, playerA.gender)}, il match e ${getMainCategoryLabel(profileB.mainCategory, playerB.gender)}. Abbastanza diversi da incuriosirsi, abbastanza vicini da capirsi.`,
+    };
+  }
+
+  if (score >= 60) {
+    return {
+      criterion: "Curiosita reciproca",
+      reason: `Tra ${getTraitLabel(profileA.secondaryTrait, playerA.gender)} e ${getTraitLabel(profileB.secondaryTrait, playerB.gender)} c'e il potenziale per una serata meno prevedibile del solito.`,
     };
   }
 
   return {
-    criterion: "Una birra e vediamo",
-    reason: "Il sistema non è sicurissimo, ma il Capitano dice che valete un brindisi."
+    criterion: "Brindisi da verificare",
+    reason:
+      "Il sistema non promette miracoli, ma il Capitano pensa che valga comunque la pena provarci dal vivo.",
   };
 };
 
@@ -291,7 +569,8 @@ const getMatchTypeLabel = (type: MatchDrinkMatch["matchType"]) => {
     red_flag_compatibili: "Red Flag Compatibili",
     una_birra_e_vediamo: "Una Birra e Vediamo",
     pericolo_pubblico: "Pericolo Pubblico",
-    compatibilita_sospetta: "Compatibilità Sospetta",
+    compatibilita_sospetta: "Compatibilita Sospetta",
   };
-  return labels[type];
+
+  return labels[type] ?? "Match Casuale";
 };

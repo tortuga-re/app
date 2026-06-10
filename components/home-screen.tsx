@@ -1,16 +1,32 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ActiveCouponsCard } from "@/components/active-coupons-card";
-import { FidelityStatusCard } from "@/components/fidelity-status-card";
+import dynamic from "next/dynamic";
 import { StatusBlock } from "@/components/status-block";
-import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
+
+const ActiveCouponsCard = dynamic(() => import("@/components/active-coupons-card").then(mod => mod.ActiveCouponsCard), { ssr: false });
+const FidelityStatusCard = dynamic(() => import("@/components/fidelity-status-card").then(mod => mod.FidelityStatusCard), { ssr: false });
+const SurveyTeaserCard = dynamic(() => import("@/components/survey-teaser-card").then(mod => mod.SurveyTeaserCard), { ssr: false });
+const KantaquizTeaser = dynamic(() => import("@/components/kantaquiz-teaser").then(mod => mod.KantaquizTeaser), { ssr: false });
+const BuzzerTeaser = dynamic(() => import("@/components/buzzer-teaser").then(mod => mod.BuzzerTeaser), { ssr: false });
+const MatchDrinkTeaser = dynamic(() => import("@/components/match-drink-teaser").then(mod => mod.MatchDrinkTeaser), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
+const ReservationCard = dynamic(() => import("@/components/reservation-card").then(mod => mod.ReservationCard), { ssr: false });
+const SmartHeroCard = dynamic(() => import("@/components/smart-hero-card").then(mod => mod.SmartHeroCard), { ssr: false });
+const VenueModeCard = dynamic(() => import("@/components/venue-mode-card").then(mod => mod.VenueModeCard), { ssr: false });
+const ReviewsCard = dynamic(() => import("@/components/reviews-card").then(mod => mod.ReviewsCard), { ssr: false });
+const VenueScannerCard = dynamic(() => import("@/components/venue-scanner-card").then(mod => mod.VenueScannerCard), { ssr: false });
+
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
-import { tortugaInfoConfig } from "@/lib/config";
-import type { ProfileResponse, UpcomingReservation } from "@/lib/cooperto/types";
+import type {
+  ProfileResponse,
+  VenueResponse,
+  CoopertoVenueHour,
+  CoopertoVenueException,
+} from "@/lib/cooperto/types";
 import {
   getBirthdayInsight,
   getProfilePoints,
@@ -22,18 +38,12 @@ import {
   useCustomerIdentity,
 } from "@/lib/customer-identity";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
+import { useActiveGamesStatus } from "@/lib/game/use-active-games";
 import { useHashScroll } from "@/lib/hash-scroll";
-import { triggerHaptic } from "@/lib/haptics";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
-
-type RouteFallback = {
-  title: string;
-  description: string;
-  primaryHref: string;
-  primaryLabel: string;
-  secondaryHref?: string;
-  secondaryLabel?: string;
-};
+import { PwaInstallCard } from "@/components/pwa-install-card";
+import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
+import type { RouteFallback } from "@/components/reservation-card";
 
 const loadProfileData = async (email: string) => {
   const normalizedEmail = normalizeCustomerEmail(email);
@@ -45,18 +55,130 @@ const loadProfileData = async (email: string) => {
   return requestJson<ProfileResponse>(`/api/profile?${params.toString()}`);
 };
 
-const formatRouteDate = (value: string) =>
-  new Intl.DateTimeFormat("it-IT", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-  }).format(new Date(value));
+const defaultHours: CoopertoVenueHour[] = [
+  { CodiceGiorno: 2, Giorno: "Martedi", OraInizio: "19:00", OraFine: "23:30" },
+  { CodiceGiorno: 3, Giorno: "Mercoledi", OraInizio: "19:00", OraFine: "23:30" },
+  { CodiceGiorno: 4, Giorno: "Giovedi", OraInizio: "19:00", OraFine: "23:30" },
+  { CodiceGiorno: 5, Giorno: "Venerdi", OraInizio: "19:00", OraFine: "00:30" },
+  { CodiceGiorno: 6, Giorno: "Sabato", OraInizio: "19:00", OraFine: "00:30" },
+  { CodiceGiorno: 7, Giorno: "Domenica", OraInizio: "12:30", OraFine: "15:00" },
+  { CodiceGiorno: 7, Giorno: "Domenica", OraInizio: "19:00", OraFine: "23:00" },
+];
 
-const formatRouteTime = (value: string) =>
-  new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+const dayLabelsByCode: Record<number, string> = {
+  1: "lunedi",
+  2: "martedi",
+  3: "mercoledi",
+  4: "giovedi",
+  5: "venerdi",
+  6: "sabato",
+  7: "domenica",
+};
+
+const normalizedDayMap: Record<string, number> = {
+  lunedi: 1,
+  martedi: 2,
+  mercoledi: 3,
+  giovedi: 4,
+  venerdi: 5,
+  sabato: 6,
+  domenica: 7,
+};
+
+const normalizeDayName = (value?: string) =>
+  value
+    ?.trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") ?? "";
+
+const getDayCode = (hour: CoopertoVenueHour) => {
+  if (hour.CodiceGiorno && dayLabelsByCode[hour.CodiceGiorno]) {
+    return hour.CodiceGiorno;
+  }
+
+  const normalized = normalizeDayName(hour.Giorno);
+  return normalizedDayMap[normalized] ?? 99;
+};
+
+function isVenueOpen(
+  now: Date,
+  hours: CoopertoVenueHour[],
+  exceptions: CoopertoVenueException[],
+): boolean {
+  for (const exc of exceptions) {
+    if (exc.DataInizio && exc.DataFine) {
+      const start = new Date(exc.DataInizio);
+      const end = new Date(exc.DataFine);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && now >= start && now <= end) {
+        return false;
+      }
+    }
+  }
+
+  const getCoopertoDayCode = (d: Date): number => {
+    const day = d.getDay();
+    return day === 0 ? 7 : day;
+  };
+
+  const nowDay = getCoopertoDayCode(now);
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayDay = getCoopertoDayCode(yesterday);
+
+  for (const hour of hours) {
+    if (!hour.OraInizio || !hour.OraFine) continue;
+
+    const slotDay = getDayCode(hour);
+    if (!slotDay || slotDay === 99) continue;
+
+    const [startHour, startMin] = hour.OraInizio.split(":").map(Number);
+    const [endHour, endMin] = hour.OraFine.split(":").map(Number);
+
+    if (
+      isNaN(startHour) || isNaN(startMin) ||
+      isNaN(endHour) || isNaN(endMin)
+    ) {
+      continue;
+    }
+
+    const wraps = endHour < startHour || (endHour === startHour && endMin < startMin);
+
+    if (slotDay === nowDay) {
+      const startDate = new Date(now);
+      startDate.setHours(startHour, startMin, 0, 0);
+
+      const endDate = new Date(now);
+      if (wraps) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+      endDate.setHours(endHour, endMin, 0, 0);
+
+      if (now >= startDate && now < endDate) {
+        return true;
+      }
+    }
+
+    if (slotDay === yesterdayDay) {
+      const startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 1);
+      startDate.setHours(startHour, startMin, 0, 0);
+
+      const endDate = new Date(now);
+      if (!wraps) {
+        endDate.setDate(endDate.getDate() - 1);
+      }
+      endDate.setHours(endHour, endMin, 0, 0);
+
+      if (now >= startDate && now < endDate) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 const buildRouteFallback = ({
   birthdayLabel,
@@ -103,139 +225,13 @@ const buildRouteFallback = ({
   };
 };
 
-const getReservationManageHref = () => null;
-
-function ReservationStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="panel-muted rounded-[1.45rem] px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-        {label}
-      </p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function ReservationCard({
-  reservation,
-  fallback,
-}: {
-  reservation: UpcomingReservation | null;
-  fallback: RouteFallback;
-}) {
-  const manageHref = getReservationManageHref();
-
-  return (
-    <div className="panel rounded-[2rem] p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="eyebrow">Prossima prenotazione</p>
-          {!reservation ? (
-            <>
-              <h2 className="text-2xl font-semibold leading-tight text-white">
-                {fallback.title}
-              </h2>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                {fallback.description}
-              </p>
-            </>
-          ) : null}
-        </div>
-
-        {reservation?.stateLabel ? (
-          <span className="rounded-full border border-[rgba(171,128,63,0.22)] bg-[rgba(255,255,255,0.04)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-            {reservation.stateLabel}
-          </span>
-        ) : null}
-      </div>
-
-      {reservation ? (
-        <>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <ReservationStat label="Stato" value={reservation.stateLabel} />
-            <ReservationStat label="Data" value={formatRouteDate(reservation.dateTime)} />
-            <ReservationStat label="Ora" value={formatRouteTime(reservation.dateTime)} />
-            <ReservationStat
-              label="Persone"
-              value={
-                reservation.pax ? `${reservation.pax} persone` : "Dato non disponibile"
-              }
-            />
-            {reservation.roomName ? (
-              <div className="col-span-2">
-                <ReservationStat label="Sala" value={reservation.roomName} />
-              </div>
-            ) : null}
-          </div>
-
-          {manageHref ? (
-            <a
-              href={manageHref}
-              target="_blank"
-              rel="noreferrer"
-              className="button-primary mt-5 inline-flex min-h-12 items-center justify-center px-5 text-sm"
-              onClick={() => triggerHaptic()}
-            >
-              Modifica/Annulla prenotazione
-            </a>
-          ) : (
-            <p className="mt-4 text-sm leading-6 text-[var(--text-muted)]">
-              Modifica e annullo compariranno qui appena Cooperto espone un link diretto.
-            </p>
-          )}
-        </>
-      ) : (
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href={fallback.primaryHref}
-            className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-            onClick={() => triggerHaptic()}
-          >
-            {fallback.primaryLabel}
-          </Link>
-          {fallback.secondaryHref ? (
-            <Link
-              href={fallback.secondaryHref}
-              className="button-secondary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-              onClick={() => triggerHaptic()}
-            >
-              {fallback.secondaryLabel}
-            </Link>
-          ) : null}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CoopertoMenuCard() {
-  return (
-    <div className="panel rounded-[2rem] p-5">
-      <div className="space-y-2">
-        <p className="eyebrow">Menu</p>
-        <h2 className="text-2xl font-semibold leading-tight text-white">
-          Menu e mondo Tortuga
-        </h2>
-      </div>
-
-      <a
-        href={tortugaInfoConfig.menuUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="button-primary mt-5 flex min-h-14 w-full items-center justify-center px-5 text-sm"
-        onClick={() => triggerHaptic()}
-      >
-        MENU
-      </a>
-    </div>
-  );
-}
-
 export function HomeScreen() {
   const { identity } = useCustomerIdentity();
+  const { registerVisit } = useVisitRegistration();
   const identityEmail = normalizeCustomerEmail(identity.email);
   const viewedReservationsKeyRef = useRef("");
   const { hasAccess: hasMenuAccess } = useOnPremiseAccess();
+  const activeGames = useActiveGamesStatus();
   const [profileState, setProfileState] = useState<{
     email: string;
     profile: ProfileResponse | null;
@@ -245,6 +241,11 @@ export function HomeScreen() {
     profile: null,
     error: "",
   });
+  const [venueHours, setVenueHours] = useState<{
+    orari: CoopertoVenueHour[];
+    eccezioni: CoopertoVenueException[];
+  } | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     if (!identityEmail) {
@@ -285,6 +286,48 @@ export function HomeScreen() {
     };
   }, [identityEmail]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadVenues = async () => {
+      try {
+        const response = await requestJson<VenueResponse>("/api/venues");
+        if (cancelled) return;
+        const primaryVenue = response?.venues.find((v) => v.isPrimary) ?? response?.venues[0] ?? null;
+        if (primaryVenue?.hours) {
+          setVenueHours({
+            orari: primaryVenue.hours.Orari ?? [],
+            eccezioni: primaryVenue.hours.Eccezioni ?? [],
+          });
+        }
+      } catch (err) {
+        console.error("Errore caricamento orari sede:", err);
+      }
+    };
+    void loadVenues();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setNow(new Date());
+    }, 0);
+
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 30000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const orari = venueHours?.orari ?? defaultHours;
+  const eccezioni = venueHours?.eccezioni ?? [];
+  const isOpen = now ? isVenueOpen(now, orari, eccezioni) : false;
+
   const hasProfileStateForEmail = profileState.email === identityEmail;
   const profile =
     identityEmail && hasProfileStateForEmail ? profileState.profile : null;
@@ -301,7 +344,7 @@ export function HomeScreen() {
   const rewardProgress = getFidelityRewardProgress(points);
   const activeCardCode = profile?.contact?.CodiceCard?.trim() || "";
   useHashScroll(
-    `${loading}:${hasMenuAccess}:${primaryReservation?.reservationCode ?? "none"}:${activeCoupons.length}`,
+    `${loading}:${hasMenuAccess}:${primaryReservation?.reservationCode ?? "none"}:${activeCoupons.length}:${Boolean(error)}`,
   );
   const routeFallback = buildRouteFallback({
     birthdayLabel: birthdayInsight?.label,
@@ -338,6 +381,63 @@ export function HomeScreen() {
     upcomingReservations.length,
   ]);
 
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const context =
+      hasMenuAccess
+        ? "on_premise"
+        : primaryReservation
+          ? "reservation"
+          : activeCoupons.length > 0
+            ? "coupon"
+            : activeGames.buzzer || activeGames.matchDrink
+              ? "live_games"
+              : "default";
+
+    trackAppEvent("home_context_view", {
+      app_section: "home",
+      home_context: context,
+      has_menu_access: hasMenuAccess,
+      has_live_buzzer: activeGames.buzzer,
+      has_live_match_drink: activeGames.matchDrink,
+    });
+  }, [
+    activeCoupons.length,
+    activeGames.buzzer,
+    activeGames.matchDrink,
+    hasMenuAccess,
+    loading,
+    primaryReservation,
+  ]);
+
+  useEffect(() => {
+    if (!hasMenuAccess || loading) {
+      return;
+    }
+
+    trackAppEvent("live_mode_view", {
+      app_section: "home",
+      has_live_buzzer: activeGames.buzzer,
+      has_live_match_drink: activeGames.matchDrink,
+      active_coupon_count: activeCoupons.length,
+      has_reservation: Boolean(primaryReservation),
+    });
+  }, [
+    activeCoupons.length,
+    activeGames.buzzer,
+    activeGames.matchDrink,
+    hasMenuAccess,
+    loading,
+    primaryReservation,
+  ]);
+
+  const showHeroCard = !hasMenuAccess && !primaryReservation;
+  const showReservationCard = !hasMenuAccess && Boolean(primaryReservation);
+  const showCouponCard = hasMenuAccess || !primaryReservation;
+
   return (
     <section className="space-y-5">
       {loading ? (
@@ -358,27 +458,56 @@ export function HomeScreen() {
 
       {!loading ? (
         <>
-          <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
-            {hasMenuAccess ? (
-              <CoopertoMenuCard />
-            ) : (
-              <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
-            )}
-          </div>
-
+          <SurveyTeaserCard />
           {hasMenuAccess ? (
-            <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-              <CaptainChallengeTeaser compact />
+            <>
+              <VenueModeCard
+                activeGames={activeGames}
+                onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)}
+              />
+              <div id="contributi-live" className="hash-scroll-target rounded-[2rem]">
+                <LiveTvContributionCard
+                  contact={profile?.contact ?? null}
+                  onVisitTrigger={() => void registerVisit(profile?.contact?.CodiceContatto)}
+                />
+              </div>
+            </>
+          ) : showHeroCard ? (
+            <SmartHeroCard
+              hasMenuAccess={false}
+              reservation={primaryReservation}
+              activeCouponsCount={activeCoupons.length}
+              activeGames={activeGames}
+            />
+          ) : null}
+          {!hasMenuAccess && isOpen ? (
+            <VenueScannerCard
+              onScanSuccess={() => void registerVisit(profile?.contact?.CodiceContatto)}
+            />
+          ) : null}
+          <KantaquizTeaser />
+          {!hasMenuAccess ? (
+            <>
+              <BuzzerTeaser />
+              <MatchDrinkTeaser />
+            </>
+          ) : null}
+          {showReservationCard ? (
+            <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
+              <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
             </div>
           ) : null}
 
           <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
-            <div id="fidelity" className="hash-scroll-target rounded-[2rem]">
+            <PwaInstallCard />
+            
+            <div id="fidelity" className="hash-scroll-target rounded-[2rem] mt-5">
               <FidelityStatusCard
                 title="FIDELITY TORTUGA"
                 points={rewardProgress.points}
                 progressPercent={rewardProgress.progressPercent}
                 tierLabel={rewardProgress.loyaltyTier.label}
+                tierImage={rewardProgress.loyaltyTier.image}
                 tierDescription={rewardProgress.loyaltyTier.description}
                 nextRewardLabel={rewardProgress.nextReward?.label}
                 isVip={rewardProgress.isVip}
@@ -388,15 +517,20 @@ export function HomeScreen() {
             </div>
           </div>
 
-          <div id="coupon" className="hash-scroll-target rounded-[2rem]">
-            <ActiveCouponsCard
-              coupons={activeCoupons}
-              description=""
-              emptyMessage="Nessun coupon attivo da spendere per ora."
-            />
-          </div>
+          {showCouponCard ? (
+            <div id="coupon" className="hash-scroll-target rounded-[2rem]">
+              <ActiveCouponsCard
+                coupons={activeCoupons}
+                description=""
+                emptyMessage="Nessun coupon attivo da spendere per ora."
+              />
+            </div>
+          ) : null}
         </>
       ) : null}
+
+      <ReviewsCard />
     </section>
   );
 }
+

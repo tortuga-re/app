@@ -15,6 +15,7 @@ export interface SavePushSubscriptionInput {
   permission?: NotificationPermission | "unsupported";
   userAgent?: string;
   installed?: boolean;
+  venueAccessExpiresAt?: number;
 }
 
 export interface StoredPushSubscription {
@@ -28,6 +29,7 @@ export interface StoredPushSubscription {
   permission?: NotificationPermission | "unsupported";
   userAgent?: string;
   installed: boolean;
+  venueAccessExpiresAt?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +47,16 @@ export interface DeletePushSubscriptionResponse {
   deleted: boolean;
 }
 
+export type PushAudienceSegment =
+  | "all"
+  | "venue_present"
+  | "installed_app"
+  | "identified_customers"
+  | "recent_visitors_30d"
+  | "birthday_soon_14d"
+  | "vip_inactive_60d"
+  | "specific_email";
+
 export interface PushSendPayload {
   title: string;
   body: string;
@@ -54,6 +66,8 @@ export interface PushSendPayload {
   icon?: string;
   badge?: string;
   renotify?: boolean;
+  onlyVenuePresent?: boolean;
+  segment?: PushAudienceSegment;
 }
 
 export interface PushSendResponse {
@@ -61,4 +75,25 @@ export interface PushSendResponse {
   failed: number;
   removed: number;
   total: number;
+}
+
+export interface SavedPushSegment {
+  id: string;
+  name: string;
+  segment: PushAudienceSegment;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedPushCampaign {
+  id: string;
+  name: string;
+  title: string;
+  body: string;
+  url: string;
+  segment: PushAudienceSegment;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
 }

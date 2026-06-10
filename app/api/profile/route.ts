@@ -41,6 +41,23 @@ export async function GET(request: Request) {
 
   try {
     const data = await getProfileData(mode, normalizedQuery);
+    
+    // Se la ricerca è per email, cerchiamo anche l'avatar e le missioni sbloccate su Supabase
+    if (mode === "email") {
+      const { getCustomerAvatar } = await import("@/lib/profile/avatar-service");
+      const { getCustomerAchievements } = await import("@/lib/profile/achievement-service");
+      
+      const [avatarUrl, achievementIds] = await Promise.all([
+        getCustomerAvatar(normalizedQuery).catch(() => null),
+        getCustomerAchievements(normalizedQuery).catch(() => []),
+      ]);
+
+      if (avatarUrl) {
+        data.avatarUrl = avatarUrl;
+      }
+      data.unlockedAchievementIds = achievementIds;
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
@@ -72,12 +89,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
+  console.info(`[API Profile POST] Richiesta salvataggio per: ${payload.email}`, {
+    name: `${payload.firstName} ${payload.lastName}`,
+    hasBirthDate: Boolean(payload.birthDate),
+  });
+
   try {
     const data = await updateProfileContact({
       ...payload,
     });
+    console.info(`[API Profile POST] Successo per: ${payload.email}`, {
+      source: data.source,
+      hasContact: Boolean(data.contact),
+    });
     return NextResponse.json(data);
   } catch (error) {
+    console.error(`[API Profile POST] Errore per: ${payload.email}`, error);
     return NextResponse.json(
       {
         error:

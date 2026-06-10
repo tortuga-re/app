@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 
 import { createWaitlist } from "@/lib/cooperto/service";
 import type { WaitlistCreateInput } from "@/lib/cooperto/types";
+import { isValidProfileEmail } from "@/lib/profile/validation";
+import {
+  isValidItalianPhone,
+  italianPhoneValidationError,
+} from "@/lib/validation/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +27,14 @@ const validatePayload = (payload: Partial<WaitlistCreateInput>) => {
 
   if (!payload.phone?.trim()) {
     return "Il telefono e obbligatorio per la lista d'attesa.";
+  }
+
+  if (!isValidItalianPhone(payload.phone)) {
+    return italianPhoneValidationError;
+  }
+
+  if (payload.email?.trim() && !isValidProfileEmail(payload.email)) {
+    return "Inserisci un indirizzo email valido.";
   }
 
   if (!payload.privacyAccepted) {
@@ -51,6 +64,7 @@ export async function POST(request: Request) {
   try {
     const data = await createWaitlist({
       date: payload.date ?? "",
+      requestedTime: payload.requestedTime?.trim() || undefined,
       pax: payload.pax ?? 1,
       roomCode: payload.roomCode?.trim() || undefined,
       firstName: payload.firstName?.trim() ?? "",
@@ -60,6 +74,7 @@ export async function POST(request: Request) {
       note: payload.note?.trim() || undefined,
       privacyAccepted: Boolean(payload.privacyAccepted),
       marketingAccepted: Boolean(payload.marketingAccepted),
+      moduleCode: payload.moduleCode?.trim() || undefined,
     });
 
     return NextResponse.json(data);

@@ -1,17 +1,25 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
+import { missions } from "@/lib/missions";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { ScratchAndWinCard } from "@/components/scratch-and-win-card";
 import { StatusBlock } from "@/components/status-block";
-import { FidelityActivationPanel } from "@/components/fidelity-activation-panel";
-import { CaptainChallengeTeaser } from "@/features/game/components/CaptainChallengeTeaser";
-import { LocalExperienceTeaser } from "@/features/local-experience/components/LocalExperienceTeaser";
-import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
-import { PiratePhotoContestCard } from "@/features/pirate-photo/components/PiratePhotoContestCard";
+import dynamic from "next/dynamic";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const FidelityActivationPanel = dynamic<any>(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel).catch(() => ({ default: () => null } as any)), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PiratePhotoContestCard = dynamic<any>(() => import("@/features/pirate-photo/components/PiratePhotoContestCard").then(mod => mod.PiratePhotoContestCard).catch(() => ({ default: () => null } as any)), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => ({ default: () => null } as any)), { ssr: false });
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
-import { ciurmaRoadmapFeatures } from "@/lib/config";
+import { scrollToFormField } from "@/lib/form-focus";
 import {
   formatBirthDateLabel,
   toDateInputValue,
@@ -26,8 +34,24 @@ import { useHashScroll } from "@/lib/hash-scroll";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/types";
 import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { isAdmin } from "@/lib/live-buzzer/admin";
+import { useActiveGamesStatus } from "@/lib/game/use-active-games";
+import { PwaPushCard } from "@/components/pwa-push-card";
+import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
+import {
+  italianPhoneValidationError,
+  normalizeItalianPhone,
+  validateItalianPhone,
+} from "@/lib/validation/phone";
+import { ProfileLogin } from "@/features/profile/components/ProfileLogin";
+import { ProfileEditor } from "@/features/profile/components/ProfileEditor";
+import { ProfileDashboard } from "@/features/profile/components/ProfileDashboard";
+import { ProfileGamesAndAdmin } from "@/features/profile/components/ProfileGamesAndAdmin";
+import { ProfilePassport } from "@/features/profile/components/ProfilePassport";
+import { OfflinePassportScreen } from "@/features/profile/components/OfflinePassportScreen";
+import { saveOfflinePassport } from "@/lib/offline-passport";
 
 type ContactFormState = {
   firstName: string;
@@ -37,6 +61,14 @@ type ContactFormState = {
   birthDate: string;
   marketingConsent: boolean;
 };
+
+type ProfileFieldName =
+  | "lookupEmail"
+  | "loginCode"
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phone";
 
 const emptyContactForm: ContactFormState = {
   firstName: "",
@@ -62,7 +94,7 @@ const buildContactForm = (
 ): ContactFormState => ({
   firstName: contact?.Nome?.trim() ?? "",
   lastName: contact?.Cognome?.trim() ?? "",
-  phone: contact?.Telefono?.trim() ?? "",
+  phone: normalizeItalianPhone(contact?.Telefono?.trim() ?? "")?.nationalNumber ?? "",
   email: normalizeCustomerEmail(contact?.Email),
   birthDate: toDateInputValue(contact?.DataDiNascita),
   marketingConsent: contact?.ConsensoMarketing === 1,
@@ -79,6 +111,7 @@ export function CiurmaScreen() {
   const [lookupEmail, setLookupEmail] = useState("");
   const [isEditingLookup, setIsEditingLookup] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isDataExpanded, setIsDataExpanded] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
@@ -94,9 +127,89 @@ export function CiurmaScreen() {
   const [verifyingEmailChange, setVerifyingEmailChange] = useState(false);
   const [resendingEmailChange, setResendingEmailChange] = useState(false);
   const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
+  const activeGames = useActiveGamesStatus();
+  const [isOnline, setIsOnline] = useState(true);
+  const [selectedMission, setSelectedMission] = useState<import("@/lib/missions").Mission | null>(null);
+  const [loginMode, setLoginMode] = useState<"lookup" | "confirm" | "otp">("lookup");
+  const [loginRequest, setLoginRequest] = useState<{
+    requestId: string;
+    email: string;
+    expiresAt: string;
+    resendAvailableAt: string;
+    attemptsRemaining: number;
+  } | null>(null);
+  const [loginCode, setLoginCode] = useState("");
+  const [verifyingLogin, setVerifyingLogin] = useState(false);
+  const [resendingLogin, setResendingLogin] = useState(false);
+  const [loginFieldErrors, setLoginFieldErrors] = useState<
+    Partial<Record<"lookupEmail" | "loginCode", string>>
+  >({});
+  const [contactFieldErrors, setContactFieldErrors] = useState<
+    Partial<Record<"firstName" | "lastName" | "email" | "phone", string>>
+  >({});
+  const longPressRef = useRef<number | null>(null);
   const autoLoadedKeyRef = useRef("");
+  const fieldRefs = useRef<Partial<Record<ProfileFieldName, HTMLElement | null>>>({});
+  const setFieldRef = (field: ProfileFieldName) => (element: HTMLElement | null) => {
+    fieldRefs.current[field] = element;
+  };
+  const clearLoginFieldErrors = (...fields: Array<"lookupEmail" | "loginCode">) => {
+    setLoginFieldErrors((current) => {
+      let hasChanged = false;
+      const next = { ...current };
+
+      for (const field of fields) {
+        if (next[field]) {
+          delete next[field];
+          hasChanged = true;
+        }
+      }
+
+      return hasChanged ? next : current;
+    });
+  };
+  const clearContactFieldErrors = (
+    ...fields: Array<"firstName" | "lastName" | "email" | "phone">
+  ) => {
+    setContactFieldErrors((current) => {
+      let hasChanged = false;
+      const next = { ...current };
+
+      for (const field of fields) {
+        if (next[field]) {
+          delete next[field];
+          hasChanged = true;
+        }
+      }
+
+      return hasChanged ? next : current;
+    });
+  };
+  const scrollToFirstProfileField = (fields: ProfileFieldName[]) => {
+    for (const field of fields) {
+      const element = fieldRefs.current[field];
+      if (element) {
+        scrollToFormField(element);
+        return;
+      }
+    }
+  };
+  const handlePhoneBlur = () => {
+    if (!contactForm.phone.trim()) return;
+    const normalized = normalizeItalianPhone(contactForm.phone);
+    if (normalized) {
+      setContactForm((current) => ({
+        ...current,
+        phone: normalized.nationalNumber,
+      }));
+    }
+  };
 
   const identityEmail = normalizeCustomerEmail(identity.email);
+  const isLoggedAdmin = isAdmin(identity.email);
+  const showUnifiedCommandDeck =
+    identityEmail === "kinderland.re@gmail.com";
+  const { registerVisit } = useVisitRegistration();
   const hasProfile = Boolean(data?.contact);
   const profileName =
     [data?.contact?.Nome, data?.contact?.Cognome].filter(Boolean).join(" ") ||
@@ -106,8 +219,9 @@ export function CiurmaScreen() {
   );
   const activeCardCode = data?.contact?.CodiceCard?.trim() ?? "";
   const contactCode = data?.contact?.CodiceContatto?.trim() ?? "";
-  const showLookupPanel = isEditingLookup || !hasIdentity;
+  const showLookupPanel = (isEditingLookup || !hasIdentity) && !isRegistering;
   const contactSnapshot = buildContactForm(data?.contact ?? undefined);
+  const didProfileStartWithPhone = Boolean(contactSnapshot.phone.trim());
   const existingSavedEmail = hasProfile
     ? normalizeCustomerEmail(contactSnapshot.email || identityEmail)
     : "";
@@ -131,12 +245,20 @@ export function CiurmaScreen() {
       minute: "2-digit",
     }).format(new Date(emailChangeRequest.expiresAt))
     : "";
+    
+  const loginResendAt = loginRequest ? Date.parse(loginRequest.resendAvailableAt) : 0;
+  const loginCanResend = Boolean(loginRequest && emailChangeNow >= loginResendAt);
+  const loginResendSeconds = Math.max(Math.ceil((loginResendAt - emailChangeNow) / 1000), 0);
+  const loginExpiresAtLabel = loginRequest
+    ? new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(loginRequest.expiresAt))
+    : "";
+
   useHashScroll(
-    `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}`,
+    `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}:${isEditingProfile}:${Boolean(contactMessage)}:${loginMode}`,
   );
 
   useEffect(() => {
-    if (!emailChangeRequest) {
+    if (!emailChangeRequest && !loginRequest) {
       return;
     }
 
@@ -145,7 +267,19 @@ export function CiurmaScreen() {
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [emailChangeRequest]);
+  }, [emailChangeRequest, loginRequest]);
+
+  // ─── Rilevamento connessione di rete ─────────────────────────────────────
+  useEffect(() => {
+    const update = () => setIsOnline(navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
 
   useEffect(() => {
     if (!identityEmail || isEditingLookup || hasProfile) {
@@ -215,9 +349,35 @@ export function CiurmaScreen() {
     return () => {
       cancelled = true;
     };
-  }, [hasProfile, identityEmail, isEditingLookup, updateIdentity]);
+  }, [identityEmail, isEditingLookup, hasProfile, updateIdentity]);
 
-  const applyProfileResponse = (response: ProfileResponse) => {
+  useEffect(() => {
+    if (!data?.contact) {
+      return;
+    }
+
+    trackAppEvent("profile_loot_view", {
+      app_section: "ciurma",
+      visits_count: data.contact.NumeroVisite ?? 0,
+      coupons_active: data.coupons.filter((coupon) => !coupon.Utilizzato).length,
+      missions_unlocked: missions.filter((mission) => mission.isUnlocked(data)).length,
+      loyalty_points: loyaltyProgress.points,
+    });
+
+
+    // ─── Salva passaporto offline ────────────────────────────────────────────
+    const offlineName = [data.contact.Nome, data.contact.Cognome].filter(Boolean).join(" ") || "Cliente Tortuga";
+    saveOfflinePassport({
+      profileName: offlineName,
+      email: data.contact.Email ?? identityEmail,
+      contactCode: data.contact.CodiceContatto?.trim() ?? "",
+      loyaltyLabel: loyaltyProgress.loyaltyTier.label,
+      loyaltyPoints: loyaltyProgress.points,
+      savedAt: new Date().toISOString(),
+    });
+  }, [data, loyaltyProgress.points, loyaltyProgress.loyaltyTier.label, identityEmail]);
+
+  const applyProfileResponse = async (response: ProfileResponse) => {
     setData(response);
     setLookupEmail(response.contact?.Email || response.query);
 
@@ -235,21 +395,40 @@ export function CiurmaScreen() {
           ? response.contact.ConsensoMarketing === 1
           : undefined,
     });
+
+    // Sincronizza l'avatar persistente nel LocalStorage locale
+    if (response.avatarUrl) {
+      const { writeLocalStorageValue } = await import("@/lib/local-storage-state");
+      const email = response.contact?.Email || response.query;
+      const storageKey = `tortuga.customer-avatar:${email.trim().toLowerCase()}`;
+      writeLocalStorageValue(storageKey, response.avatarUrl, (v) => v);
+    }
   };
 
-  const runLookup = async () => {
+  const handleLookupSubmit = () => {
     const normalizedEmail = normalizeCustomerEmail(lookupEmail);
+    const nextFieldErrors: Partial<Record<"lookupEmail", string>> = {};
 
     if (!normalizedEmail) {
-      setError("Inserisci un'email valida.");
+      nextFieldErrors.lookupEmail = "Inserisci un'email valida.";
+    } else if (!isValidCustomerEmail(normalizedEmail)) {
+      nextFieldErrors.lookupEmail = "Inserisci un indirizzo email valido.";
+    }
+
+    if (nextFieldErrors.lookupEmail) {
+      setLoginFieldErrors(nextFieldErrors);
+      setError("");
+      scrollToFirstProfileField(["lookupEmail"]);
       return;
     }
 
-    if (!isValidCustomerEmail(normalizedEmail)) {
-      setError("Inserisci un indirizzo email valido.");
-      return;
-    }
+    setLoginFieldErrors({});
+    setError("");
+    setLoginMode("confirm");
+  };
 
+  const requestLoginOtp = async () => {
+    const normalizedEmail = normalizeCustomerEmail(lookupEmail);
     autoLoadedKeyRef.current = normalizedEmail;
     setLoading(true);
     setError("");
@@ -259,41 +438,154 @@ export function CiurmaScreen() {
     setShowActivatedCardPanel(false);
 
     try {
-      const response = await loadProfileData(normalizedEmail);
-      setData(response);
-      setLookupEmail(normalizedEmail);
+      const response = await requestJson<{
+        requestId: string;
+        email: string;
+        expiresAt: string;
+        resendAvailableAt: string;
+        attemptsRemaining: number;
+      }>("/api/session/login-request", {
+        method: "POST",
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      setLoginRequest(response);
+      setLoginCode("");
+      setLoginMode("otp");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile inviare il codice.");
+      setLoginMode("lookup");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const resendLoginCode = async () => {
+    if (!loginRequest) return;
+    setResendingLogin(true);
+    setError("");
+    try {
+      const response = await requestJson<{
+        requestId: string;
+        email: string;
+        expiresAt: string;
+        resendAvailableAt: string;
+        attemptsRemaining: number;
+      }>("/api/session/login-request", {
+        method: "POST",
+        body: JSON.stringify({ email: loginRequest.email }), // Assuming request API acts as resend if existing? Actually we didn't write a resend for login yet. Let's just create a new request!
+      });
+      setLoginRequest(response);
+      setLoginCode("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile reinviare il codice.");
+    } finally {
+      setResendingLogin(false);
+    }
+  };
+
+  const verifyLoginCode = async () => {
+    if (!loginRequest) return;
+    const code = loginCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setLoginFieldErrors({ loginCode: "Inserisci il codice a 6 cifre." });
+      setError("");
+      scrollToFirstProfileField(["loginCode"]);
+      return;
+    }
+
+    setVerifyingLogin(true);
+    setError("");
+    setLoginFieldErrors({});
+
+    try {
+      const response = await requestJson<ProfileResponse>("/api/session/login-verify", {
+        method: "POST",
+        body: JSON.stringify({ requestId: loginRequest.requestId, code }),
+      });
+
+      applyProfileResponse(response);
+      
       if (response.contact) {
-        updateIdentity({
-          email: response.contact.Email || normalizedEmail,
-          firstName: response.contact.Nome,
-          lastName: response.contact.Cognome,
-          phone: response.contact.Telefono,
-          marketingConsent:
-            typeof response.contact.ConsensoMarketing === "number"
-              ? response.contact.ConsensoMarketing === 1
-              : undefined,
-        });
         trackAppEvent("login_success", {
           app_section: "ciurma",
-          login_method: "email_lookup",
+          login_method: "email_otp",
           profile_source: response.source,
           has_contact_code: Boolean(response.contact.CodiceContatto),
         });
         setIsEditingLookup(false);
-        autoLoadedKeyRef.current = normalizedEmail;
+        autoLoadedKeyRef.current = response.contact.Email || loginRequest.email;
+        window.location.hash = "#riconoscimento";
       } else {
         setIsEditingLookup(true);
         autoLoadedKeyRef.current = "";
       }
-    } catch (loadError) {
-      setIsEditingLookup(true);
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Non sono riuscito a recuperare la tua ciurma.",
-      );
-      autoLoadedKeyRef.current = "";
+      
+      setLoginMode("lookup");
+      setLoginRequest(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Codice non valido.");
+    } finally {
+      setVerifyingLogin(false);
+    }
+  };
+
+  const startLongPress = () => {
+    longPressRef.current = window.setTimeout(() => {
+      longPressRef.current = null;
+      const pin = prompt("Inserisci PIN Capitano:");
+      if (pin) void handleBypassLogin(pin);
+    }, 1500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressRef.current) {
+      window.clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  };
+
+  const handleBypassLogin = async (pin: string) => {
+    const normalizedEmail = normalizeCustomerEmail(lookupEmail);
+    if (!isValidCustomerEmail(normalizedEmail)) {
+      setLoginFieldErrors({ lookupEmail: "Inserisci un indirizzo email valido." });
+      setError("");
+      scrollToFirstProfileField(["lookupEmail"]);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setLoginFieldErrors({});
+    setIsRegistering(false);
+    setShowActivatedCardPanel(false);
+
+    try {
+      const response = await requestJson<ProfileResponse>("/api/session/login-bypass", {
+        method: "POST",
+        body: JSON.stringify({ email: normalizedEmail, pin }),
+      });
+
+      applyProfileResponse(response);
+      
+      if (response.contact) {
+        trackAppEvent("login_success", {
+          app_section: "ciurma",
+          login_method: "bypass",
+          profile_source: response.source,
+          has_contact_code: Boolean(response.contact.CodiceContatto),
+        });
+        setIsEditingLookup(false);
+        autoLoadedKeyRef.current = response.contact.Email || normalizedEmail;
+        window.location.hash = "#riconoscimento";
+      } else {
+        setIsEditingLookup(true);
+        autoLoadedKeyRef.current = "";
+      }
+      
+      setLoginMode("lookup");
+      setLoginRequest(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PIN non valido o errore.");
     } finally {
       setLoading(false);
     }
@@ -301,31 +593,64 @@ export function CiurmaScreen() {
 
   const saveContact = async () => {
     const normalizedEmail = normalizeCustomerEmail(contactForm.email);
+    const trimmedPhone = contactForm.phone.trim();
+    const isPhoneRequired = isRegistering || didProfileStartWithPhone;
+    const nextFieldErrors: Partial<
+      Record<"firstName" | "lastName" | "email" | "phone", string>
+    > = {};
 
-    if (!contactForm.firstName.trim() || !contactForm.lastName.trim()) {
-      setContactError("Inserisci nome e cognome.");
-      return;
+    if (!contactForm.firstName.trim()) {
+      nextFieldErrors.firstName = "Inserisci il nome.";
+    }
+
+    if (!contactForm.lastName.trim()) {
+      nextFieldErrors.lastName = "Inserisci il cognome.";
     }
 
     if (!normalizedEmail || !isValidCustomerEmail(normalizedEmail)) {
-      setContactError("Inserisci un indirizzo email valido.");
+      nextFieldErrors.email = "Inserisci un indirizzo email valido.";
+    }
+
+    if (!trimmedPhone && isPhoneRequired) {
+      nextFieldErrors.phone = italianPhoneValidationError;
+    } else if (trimmedPhone) {
+      const normalizedPhoneResult = validateItalianPhone(trimmedPhone);
+      if (!normalizedPhoneResult.ok) {
+        nextFieldErrors.phone = normalizedPhoneResult.error;
+      }
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setContactFieldErrors(nextFieldErrors);
+      setContactError("");
+      scrollToFirstProfileField(["firstName", "lastName", "email", "phone"]);
       return;
     }
 
-    if (!contactForm.phone.trim()) {
-      setContactError("Inserisci un numero di telefono valido.");
+    const normalizedPhone = trimmedPhone
+      ? validateItalianPhone(trimmedPhone)
+      : null;
+
+    if (normalizedPhone && !normalizedPhone.ok) {
+      setContactFieldErrors({ phone: normalizedPhone.error });
+      setContactError("");
+      scrollToFirstProfileField(["phone"]);
       return;
     }
 
     setSavingContact(true);
     setContactError("");
     setContactMessage("");
+    setContactFieldErrors({});
 
     try {
       const profilePayload = {
         firstName: contactForm.firstName.trim(),
         lastName: contactForm.lastName.trim(),
-        phone: contactForm.phone.trim(),
+        phone:
+          normalizedPhone && normalizedPhone.ok
+            ? normalizedPhone.normalizedE164
+            : "",
         email: normalizedEmail,
         birthDate: contactForm.birthDate || undefined,
         marketingConsent: contactForm.marketingConsent,
@@ -376,12 +701,16 @@ export function CiurmaScreen() {
       setEmailChangeCode("");
       setContactMessage("Dati cliente aggiornati.");
       autoLoadedKeyRef.current = normalizedEmail;
+      // eslint-disable-next-line react-hooks/immutability
+      window.location.hash = "#riconoscimento";
     } catch (saveError) {
       setContactError(
         saveError instanceof Error
           ? saveError.message
           : "Non sono riuscito a salvare i dati cliente.",
       );
+      // eslint-disable-next-line react-hooks/immutability
+      window.location.hash = "#riconoscimento";
     } finally {
       setSavingContact(false);
     }
@@ -424,6 +753,8 @@ export function CiurmaScreen() {
         });
       }
       setContactForm(buildContactForm(response.contact ?? undefined));
+       
+      window.location.hash = "#riconoscimento";
       setIsEditingProfile(false);
       setIsRegistering(false);
       setIsEditingLookup(false);
@@ -480,17 +811,22 @@ export function CiurmaScreen() {
 
   const openContactEditor = () => {
     setContactError("");
+    setContactFieldErrors({});
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
     setContactForm(contactSnapshot);
     setIsEditingProfile(true);
+    // eslint-disable-next-line react-hooks/immutability
+    window.location.hash = "#modifica";
   };
 
   const startRegistration = () => {
     const normalizedEmail = normalizeCustomerEmail(lookupEmail || identityEmail);
     setError("");
+    setLoginFieldErrors({});
     setContactError("");
+    setContactFieldErrors({});
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
@@ -500,6 +836,8 @@ export function CiurmaScreen() {
       email: normalizedEmail,
     });
     setIsRegistering(true);
+     
+    window.location.hash = "#riconoscimento";
   };
 
   const changeAccount = () => {
@@ -507,16 +845,19 @@ export function CiurmaScreen() {
     setLookupEmail("");
     setData(null);
     setError("");
+    setLoginFieldErrors({});
     setIsEditingLookup(true);
     setIsEditingProfile(false);
     setIsRegistering(false);
     setContactForm(emptyContactForm);
     setContactError("");
+    setContactFieldErrors({});
     setContactMessage("");
     setEmailChangeRequest(null);
     setEmailChangeCode("");
     setShowActivatedCardPanel(false);
     autoLoadedKeyRef.current = "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handlePiratePhotoProfileResolved = (profile: ProfileResponse) => {
@@ -538,192 +879,61 @@ export function CiurmaScreen() {
     setContactForm(buildContactForm(profile.contact ?? undefined));
     autoLoadedKeyRef.current =
       normalizeCustomerEmail(profile.contact?.Email) || profile.query;
+     
+    window.location.hash = "#riconoscimento";
   };
 
   return (
-    <section className="space-y-5">
-      {hasOnPremiseAccess ? (
-        <>
-          <div id="sfida-capitano" className="hash-scroll-target rounded-[2rem]">
-            <CaptainChallengeTeaser />
-          </div>
-          <div id="esperienze-locale" className="hash-scroll-target rounded-[2rem]">
-            <LocalExperienceTeaser />
-          </div>
-        </>
-      ) : null}
+    <section className="space-y-5 parchment-unroll-animation">
+
+      {/* ─── Modalità Offline ─────────────────────────────────────────────────── */}
+      {!isOnline ? (
+        <OfflinePassportScreen />
+      ) : (<>
 
       {showLookupPanel ? (
-        <div id="riconoscimento" className="panel hash-scroll-target rounded-[2rem] p-5">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="eyebrow">Riconoscimento ciurma</p>
-              <h2 className="text-xl font-semibold text-white">Rientra a bordo con la tua email.</h2>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Recupera subito bottino, coupon e prenotazioni gia legate al tuo profilo.
-              </p>
-            </div>
-
-            <input
-              className="field"
-              type="email"
-              placeholder="cliente@email.it"
-              value={lookupEmail}
-              onChange={(event) => setLookupEmail(event.target.value)}
-            />
-            <button
-              type="button"
-              className="button-primary flex min-h-12 w-full items-center justify-center px-4"
-              onClick={() => {
-                triggerHaptic();
-                void runLookup();
-              }}
-              disabled={loading}
-            >
-              {loading ? "Recupero la ciurma..." : "Entra nella tua area"}
-            </button>
-            <button
-              type="button"
-              className="button-secondary flex min-h-12 w-full items-center justify-center px-4"
-              onClick={() => {
-                triggerHaptic();
-                startRegistration();
-              }}
-            >
-              Registrati
-            </button>
-          </div>
-        </div>
+        <ProfileLogin
+          loginMode={loginMode}
+          setLoginMode={setLoginMode}
+          lookupEmail={lookupEmail}
+          setLookupEmail={setLookupEmail}
+          handleLookupSubmit={handleLookupSubmit}
+          loading={loading}
+          startLongPress={startLongPress}
+          cancelLongPress={cancelLongPress}
+          startRegistration={startRegistration}
+          requestLoginOtp={requestLoginOtp}
+          loginRequest={loginRequest}
+          loginExpiresAtLabel={loginExpiresAtLabel}
+          loginCode={loginCode}
+          setLoginCode={setLoginCode}
+          verifyLoginCode={verifyLoginCode}
+          verifyingLogin={verifyingLogin}
+          resendLoginCode={resendLoginCode}
+          resendingLogin={resendingLogin}
+          loginCanResend={loginCanResend}
+          loginResendSeconds={loginResendSeconds}
+          lookupEmailError={loginFieldErrors.lookupEmail ?? ""}
+          loginCodeError={loginFieldErrors.loginCode ?? ""}
+          clearLoginFieldErrors={clearLoginFieldErrors}
+          setFieldRef={setFieldRef}
+        />
       ) : null}
 
-      {isRegistering ? (
-        <div id="registrazione" className="panel hash-scroll-target rounded-[2rem] p-5">
-          <div className="space-y-2">
-            <p className="eyebrow">Registrazione ciurma</p>
-            <h2 className="text-xl font-semibold text-white">
-              Crea il tuo profilo Tortuga.
-            </h2>
-            <p className="text-sm leading-6 text-[var(--text-muted)]">
-              Inserisci i dati principali: useremo la tua email per riconoscerti
-              quando torni a bordo.
-            </p>
-          </div>
-
-          {contactError ? (
-            <div className="mt-4 rounded-[1.4rem] border border-[rgba(240,139,117,0.22)] bg-[rgba(240,139,117,0.08)] px-4 py-3 text-sm leading-6 text-[var(--danger)]">
-              {contactError}
-            </div>
-          ) : null}
-
-          {contactMessage ? (
-            <div className="mt-4 rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
-              {contactMessage}
-            </div>
-          ) : null}
-
-          <div className="mt-4 grid gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Nome</span>
-                <input
-                  className="field"
-                  value={contactForm.firstName}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      firstName: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Cognome</span>
-                <input
-                  className="field"
-                  value={contactForm.lastName}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      lastName: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Email</span>
-                <input
-                  className="field"
-                  type="email"
-                  value={contactForm.email}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      email: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Telefono</span>
-                <input
-                  className="field"
-                  type="tel"
-                  value={contactForm.phone}
-                  onChange={(event) =>
-                    setContactForm((current) => ({
-                      ...current,
-                      phone: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-            </div>
-
-            <label className="space-y-2 text-sm text-[var(--text-muted)]">
-              <span>Data di nascita</span>
-              <input
-                className="field"
-                type="date"
-                value={contactForm.birthDate}
-                onChange={(event) =>
-                  setContactForm((current) => ({
-                    ...current,
-                    birthDate: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="flex items-start gap-3 rounded-[1.4rem] border border-[rgba(171,128,63,0.16)] bg-white/4 px-4 py-3 text-sm text-[var(--text-muted)]">
-              <input
-                type="checkbox"
-                checked={contactForm.marketingConsent}
-                onChange={(event) =>
-                  setContactForm((current) => ({
-                    ...current,
-                    marketingConsent: event.target.checked,
-                  }))
-                }
-              />
-              <span>Accetto comunicazioni marketing future di Tortuga.</span>
-            </label>
-
-            <button
-              type="button"
-              className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-              onClick={() => {
-                triggerHaptic();
-                void saveContact();
-              }}
-              disabled={savingContact}
-            >
-              {savingContact ? "Registro la ciurma..." : "Completa registrazione"}
-            </button>
-          </div>
-        </div>
+      {isRegistering || isEditingProfile ? (
+        <ProfileEditor
+          isRegistering={isRegistering}
+          contactError={contactError}
+          contactFieldErrors={contactFieldErrors}
+          contactMessage={contactMessage}
+          contactForm={contactForm}
+          setContactForm={setContactForm}
+          handlePhoneBlur={handlePhoneBlur}
+          saveContact={saveContact}
+          savingContact={savingContact}
+          clearContactFieldErrors={clearContactFieldErrors}
+          setFieldRef={setFieldRef}
+        />
       ) : null}
 
       {loading && !hasProfile ? (
@@ -783,471 +993,132 @@ export function CiurmaScreen() {
       ) : null}
 
       {!data?.contact ? (
-        <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
+        <div id="contest" className="hash-scroll-target space-y-4 rounded-[2rem]">
           <PiratePhotoContestCard
-            key={identityEmail || "ospite"}
-            contact={null}
-            onProfileResolved={handlePiratePhotoProfileResolved}
+            contact={data?.contact ?? null}
+            onProfileResolved={applyProfileResponse}
+            onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
           />
+          {hasOnPremiseAccess ? (
+            <LiveTvContributionCard
+              contact={data?.contact ?? null}
+              onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+            />
+          ) : null}
         </div>
       ) : null}
 
       {data?.contact ? (
         <>
-          <div
-            id="riconoscimento"
-            className="panel hash-scroll-target rounded-[2rem] p-5 overflow-visible"
-          >
-            <div className="relative z-20 flex min-w-0 items-center gap-4">
-              <LocalPirateAvatar
-                customerKey={
-                  contactSnapshot.email ||
-                  identityEmail ||
-                  data.contact.CodiceContatto ||
-                  profileName
-                }
-                label={profileName}
-              />
-              <div className="min-w-0 flex-1 space-y-2">
-                <h2 className="truncate text-2xl font-semibold text-white">
-                  {profileName}
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
-                    {loyaltyProgress.loyaltyTier.label}
-                  </span>
-                  <span className="text-xs leading-5 text-[var(--text-muted)]">
-                    {loyaltyProgress.points} punti
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {contactError ? (
-              <div className="mt-4 rounded-[1.4rem] border border-[rgba(240,139,117,0.22)] bg-[rgba(240,139,117,0.08)] px-4 py-3 text-sm leading-6 text-[var(--danger)]">
-                {contactError}
-              </div>
-            ) : null}
-
-            {contactMessage ? (
-              <div className="mt-4 rounded-[1.4rem] border border-[rgba(216,176,106,0.14)] bg-[rgba(216,176,106,0.08)] px-4 py-3 text-sm leading-6 text-[var(--accent-strong)]">
-                {contactMessage}
-              </div>
-            ) : null}
-
-            {isEditingProfile ? (
-              <div className="mt-4 grid gap-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Nome</span>
-                    <input
-                      className="field"
-                      value={contactForm.firstName}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          firstName: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Cognome</span>
-                    <input
-                      className="field"
-                      value={contactForm.lastName}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          lastName: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Email</span>
-                    <input
-                      className="field"
-                      type="email"
-                      value={contactForm.email}
-                      onChange={(event) => {
-                        const nextEmail = event.target.value;
-
-                        if (
-                          emailChangeRequest &&
-                          normalizeCustomerEmail(nextEmail) !==
-                          emailChangeRequest.pendingEmail
-                        ) {
-                          setEmailChangeRequest(null);
-                          setEmailChangeCode("");
-                        }
-
-                        setContactForm((current) => ({
-                          ...current,
-                          email: nextEmail,
-                        }));
-                      }}
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Telefono</span>
-                    <input
-                      className="field"
-                      type="tel"
-                      value={contactForm.phone}
-                      onChange={(event) =>
-                        setContactForm((current) => ({
-                          ...current,
-                          phone: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Data di nascita</span>
-                  <input
-                    className="field"
-                    type="date"
-                    value={contactForm.birthDate}
-                    onChange={(event) =>
-                      setContactForm((current) => ({
-                        ...current,
-                        birthDate: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-
-                <label className="flex items-start gap-3 rounded-[1.4rem] border border-[rgba(171,128,63,0.16)] bg-white/4 px-4 py-3 text-sm text-[var(--text-muted)]">
-                  <input
-                    type="checkbox"
-                    checked={contactForm.marketingConsent}
-                    onChange={(event) =>
-                      setContactForm((current) => ({
-                        ...current,
-                        marketingConsent: event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>
-                    Accetto comunicazioni marketing future di Tortuga.
-                  </span>
-                </label>
-
-                {emailChangeRequest ? (
-                  <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                        Verifica email
-                      </p>
-                      <h3 className="text-lg font-semibold text-white">
-                        Controlla {emailChangeRequest.pendingEmail}
-                      </h3>
-                      <p className="text-sm leading-6 text-[var(--text-muted)]">
-                        La tua email attuale resta valida finche non confermi il
-                        codice. Il codice scade alle {emailChangeExpiresAtLabel}.
-                      </p>
-                    </div>
-
-                    <div className="mt-4 grid gap-3">
-                      <input
-                        className="field text-center text-lg font-semibold tracking-[0.35em]"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={6}
-                        placeholder="000000"
-                        value={emailChangeCode}
-                        onChange={(event) =>
-                          setEmailChangeCode(
-                            event.target.value.replace(/\D/g, "").slice(0, 6),
-                          )
-                        }
-                      />
-
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          className="button-primary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                          onClick={() => {
-                            triggerHaptic();
-                            void verifyEmailChange();
-                          }}
-                          disabled={
-                            verifyingEmailChange || emailChangeCode.trim().length !== 6
-                          }
-                        >
-                          {verifyingEmailChange
-                            ? "Verifico..."
-                            : "Conferma codice"}
-                        </button>
-                        <button
-                          type="button"
-                          className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm"
-                          onClick={() => {
-                            triggerHaptic();
-                            void resendEmailChangeCode();
-                          }}
-                          disabled={
-                            resendingEmailChange || !emailChangeCanResend
-                          }
-                        >
-                          {resendingEmailChange
-                            ? "Invio..."
-                            : emailChangeCanResend
-                              ? "Reinvia codice"
-                              : `Reinvia tra ${emailChangeResendSeconds}s`}
-                        </button>
-                      </div>
-
-                      <p className="text-xs leading-5 text-[var(--text-muted)]">
-                        Tentativi rimasti: {emailChangeRequest.attemptsRemaining}.
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-
-                <button
-                  type="button"
-                  className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm"
-                  onClick={() => {
-                    triggerHaptic();
-                    void saveContact();
-                  }}
-                  disabled={savingContact || verifyingEmailChange}
-                >
-                  {savingContact
-                    ? "Salvo le modifiche..."
-                    : emailChangeNeedsVerification
-                      ? "Invia codice verifica"
-                      : "Salva modifiche"}
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-3">
-                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Nome e cognome
-                  </p>
-                  <div className="mt-2 grid gap-2 text-sm leading-6 text-[var(--text-muted)] sm:grid-cols-2">
-                    <p>
-                      Nome:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.firstName || "Non disponibile"}
-                      </span>
-                    </p>
-                    <p>
-                      Cognome:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.lastName || "Non disponibile"}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Contatti
-                  </p>
-                  <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--text-muted)]">
-                    <p>
-                      Email:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.email || "Non disponibile"}
-                      </span>
-                    </p>
-                    <p>
-                      Telefono:{" "}
-                      <span className="text-white">
-                        {contactSnapshot.phone || "Non disponibile"}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="panel-muted rounded-[1.5rem] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    Data di nascita
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-white">
-                    {contactSnapshot.birthDate
-                      ? formatBirthDateLabel(contactSnapshot.birthDate)
-                      : "Non disponibile"}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {!activeCardCode || showActivatedCardPanel ? (
-              <div className="mt-5">
-                <FidelityActivationPanel
-                  contactCode={contactCode}
-                  activeCardCode={activeCardCode}
-                  qrLabel="QR ciurma Tortuga"
-                  onActivated={handleFidelityActivated}
-                />
-              </div>
-            ) : null}
-
-            <div className="mt-5 flex flex-col gap-2 border-t border-[rgba(216,176,106,0.14)] pt-4 sm:flex-row">
-              <button
-                type="button"
-                className="button-secondary inline-flex min-h-11 flex-1 items-center justify-center px-4 text-sm"
-                onClick={() => {
-                  triggerHaptic();
-                  if (isEditingProfile) {
-                    setIsEditingProfile(false);
-                    setContactError("");
-                    setContactMessage("");
-                    return;
-                  }
-
-                  openContactEditor();
-                }}
-              >
-                {isEditingProfile ? "Chiudi modifiche" : "Modifica dati"}
-              </button>
-              <button
-                type="button"
-                className="button-secondary inline-flex min-h-11 flex-1 items-center justify-center px-4 text-sm"
-                onClick={() => {
-                  triggerHaptic();
-                  changeAccount();
-                }}
-              >
-                Cambia profilo
-              </button>
-            </div>
-
+          <div className="mb-5">
+            <PwaPushCard />
           </div>
-
+          <ProfileDashboard
+            data={data}
+            loyaltyProgress={loyaltyProgress}
+            missions={missions}
+            setSelectedMission={setSelectedMission}
+            triggerHaptic={triggerHaptic}
+            hasOnPremiseAccess={hasOnPremiseAccess}
+          />
           <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
             <PiratePhotoContestCard
               key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
               contact={data.contact}
               onProfileResolved={handlePiratePhotoProfileResolved}
+              onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
             />
           </div>
 
-          <div id="sfide" className="panel hash-scroll-target rounded-[2rem] p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <p className="eyebrow">Sfide e contenuti</p>
-                <h2 className="text-2xl font-semibold text-white">
-                  Sfide, inviti e contenuti speciali pensati per chi fa parte della ciurma.
-                </h2>
-              </div>
+          <ProfileGamesAndAdmin
+            data={data}
+            identityEmail={identityEmail}
+            isLoggedAdmin={isLoggedAdmin}
+            showUnifiedCommandDeck={showUnifiedCommandDeck}
+            hasOnPremiseAccess={hasOnPremiseAccess}
+            activeGames={activeGames}
+            registerVisit={registerVisit}
+            triggerHaptic={triggerHaptic}
+          />
 
-              <span className="rounded-full border border-[rgba(171,128,63,0.18)] bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                Esclusive
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              {/* Match & Drink Card */}
-              <Link
-                href="/game/match-drink"
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      Trova la tua anima gemella (o un nuovo compagno di bevute) tra i naufraghi del locale!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </Link>
-
-              {/* Buzzer Card - Client */}
-              <a
-                href="/game/buzzer"
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🏴‍☠️ Assalto al Buzzer</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      Sii il più veloce della ciurma a prenotare la risposta!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </a>
-
-              {/* Buzzer Card - Admin (Captain only) */}
-              {isAdmin(identity.email) && (
-                <a
-                  href="/admin/buzzer"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">⚓ Plancia del Capitano</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Gestisci le prenotazioni e assegna il bottino.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
-                      ADMIN
-                    </span>
-                  </div>
-                </a>
-              )}
-
-              {/* Match & Drink Admin */}
-              {isAdmin(identity.email) && (
-                <Link
-                  href="/admin/match-drink"
-                  className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)] bg-[var(--accent-strong)]/5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white uppercase italic">🍸 Plancia Match & Drink</p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Avvia sessioni, gestisci domande e sblocca i drink del match.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      ADMIN
-                    </span>
-                  </div>
-                </Link>
-              )}
-
-              {ciurmaRoadmapFeatures.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="panel-muted rounded-[1.5rem] px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-white">
-                        {feature.title}
-                      </p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        {feature.description}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-[rgba(171,128,63,0.14)] bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                      A bordo presto
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProfilePassport
+            data={data}
+            contactSnapshot={contactSnapshot}
+            identityEmail={identityEmail}
+            profileName={profileName}
+            loyaltyProgress={loyaltyProgress}
+            contactError={contactError}
+            contactMessage={contactMessage}
+            isEditingProfile={isEditingProfile}
+            isDataExpanded={isDataExpanded}
+            setIsDataExpanded={setIsDataExpanded}
+            activeCardCode={activeCardCode}
+            showActivatedCardPanel={showActivatedCardPanel}
+            contactCode={contactCode}
+            handleFidelityActivated={handleFidelityActivated}
+            triggerHaptic={triggerHaptic}
+            setIsEditingProfile={setIsEditingProfile}
+            setContactError={setContactError}
+            setContactMessage={setContactMessage}
+            openContactEditor={openContactEditor}
+            changeAccount={changeAccount}
+          />
         </>
       ) : null}
+
+      {/* Mission Info Modal */}
+      {selectedMission && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div 
+            className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#121212] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mt-4 flex flex-col items-center gap-6">
+              <div 
+                className={cn(
+                  "flex h-48 w-48 items-center justify-center rounded-full border shadow-2xl overflow-hidden",
+                  selectedMission.isUnlocked(data!) 
+                    ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_30px_rgba(216,176,106,0.2)]" 
+                    : "border-white/5 bg-white/5 grayscale opacity-30"
+                )}
+              >
+                {selectedMission.image ? (
+                  <img 
+                    src={selectedMission.image} 
+                    alt={selectedMission.label} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-8xl">{selectedMission.icon}</span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent-strong)]">
+                  {selectedMission.isUnlocked(data!) ? "Missione Compiuta" : "Missione Segreta"}
+                </p>
+                <h3 className="text-2xl font-bold text-white uppercase italic">
+                  {selectedMission.label}
+                </h3>
+              </div>
+
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {selectedMission.description}
+              </p>
+
+              <button
+                onClick={() => setSelectedMission(null)}
+                className="button-primary mt-4 w-full rounded-2xl py-4 text-sm font-bold uppercase tracking-widest"
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+          {/* Backdrop click to close */}
+          <div className="absolute inset-0 -z-10" onClick={() => setSelectedMission(null)} />
+        </div>
+      )}
+      </>)}
     </section>
   );
 }

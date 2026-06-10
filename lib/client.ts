@@ -1,4 +1,17 @@
+const cache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL = 30000; // 30 seconds
+
 export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const isGet = (!init?.method || init.method.toUpperCase() === "GET");
+  const skipCache = init?.cache === "no-store" || init?.cache === "no-cache";
+  
+  if (isGet && !skipCache) {
+    const cached = cache.get(url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data as T;
+    }
+  }
+
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -13,6 +26,10 @@ export async function requestJson<T>(url: string, init?: RequestInit): Promise<T
 
   if (!response.ok) {
     throw new Error(body?.error || "Richiesta non riuscita.");
+  }
+
+  if (isGet && body && !skipCache) {
+    cache.set(url, { data: body, timestamp: Date.now() });
   }
 
   return body as T;

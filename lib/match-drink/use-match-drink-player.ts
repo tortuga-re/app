@@ -5,6 +5,7 @@ import {
   MatchDrinkPlayer, 
   MatchDrinkSession 
 } from "./types";
+import { getSupabase } from "./supabase";
 
 const STORAGE_KEY_SESSION_ID = "match-drink.sessionId";
 const STORAGE_KEY_PLAYER_ID = "match-drink.playerId";
@@ -17,8 +18,7 @@ export function useMatchDrinkPlayer() {
   const [myAnswers, setMyAnswers] = useState<MatchDrinkAnswer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Per l'auto-completamento se devono ri-registrarsi
+  const lastUpdatedAtRef = useRef<string>("");
   const [savedProfile, setSavedProfile] = useState<{
     nickname: string;
     tableNumber: string;
@@ -26,37 +26,46 @@ export function useMatchDrinkPlayer() {
     gender: MatchDrinkPlayer["gender"];
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
+    avatarUrl?: string;
   } | null>(() => {
     if (typeof window !== "undefined") {
-      const data = localStorage.getItem(STORAGE_KEY_PROFILE);
-      return data ? JSON.parse(data) : null;
+      const stored = localStorage.getItem(STORAGE_KEY_PROFILE);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("Error parsing saved profile", e);
+        }
+      }
     }
     return null;
   });
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
   const refresh = useCallback(async () => {
-    const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
-    const storedPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
+    const currentSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+    const currentPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
 
-    if (!storedSessionId || !storedPlayerId) {
-      // Prova a scoprire una sessione attiva
-      try {
-        const activeRes = await fetch("/api/match-drink/active-session");
-        if (activeRes.ok) {
-          const activeSess = await activeRes.json();
-          if (activeSess) setSession(activeSess);
+    if (!currentSessionId || !currentPlayerId) {
+      if (!currentSessionId) {
+        // Proviamo a recuperare la sessione attiva se non ne abbiamo una
+        try {
+          const activeRes = await fetch("/api/match-drink/session/active", { cache: "no-store" });
+          if (activeRes.ok) {
+            const activeData = await activeRes.json();
+            if (activeData.session) {
+              setSession(activeData.session);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching active session", e);
         }
-      } catch (err) {
-        console.error("Discovery error:", err);
       }
       setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`/api/match-drink/session/${storedSessionId}/status/${storedPlayerId}`);
+      const res = await fetch(`/api/match-drink/session/${currentSessionId}/status/${currentPlayerId}`, { cache: "no-store" });
       if (!res.ok) {
         if (res.status === 404) {
           localStorage.removeItem(STORAGE_KEY_SESSION_ID);
@@ -69,110 +78,177 @@ export function useMatchDrinkPlayer() {
       }
 
       const data = await res.json();
-      setSession(data.session);
-      setPlayer(data.player);
-      setMyAnswers(data.answers);
-      setMyMatch(data.match);
+      if (data.session) {
+        if (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current) {
+          if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+          setSession(data.session);
+        }
+        setPlayer(data.player);
+        setMyAnswers(data.answers);
+        setMyMatch(data.match);
+      }
       setError(null);
     } catch (err) {
-      console.error("Poll error:", err);
+      console.error("Match & Drink refresh error:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const sessionRef = useRef<MatchDrinkSession | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   useEffect(() => {
     let mounted = true;
-    
-    const initialRefresh = async () => {
+    const supabase = getSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null;
+
+    const init = async () => {
       await refresh();
-      if (mounted) {
-        pollingRef.current = setInterval(refresh, 1000);
+      if (!mounted) return;
+
+      const currentSessionId = session?.id || localStorage.getItem(STORAGE_KEY_SESSION_ID);
+
+      if (currentSessionId) {
+        channel = supabase
+          .channel(`match-drink-${currentSessionId}`)
+          .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+            if (mounted && payload) {
+              if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
+                if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
+                setSession(prev => prev ? { ...prev, ...payload } : prev);
+              }
+            }
+          })
+          .on("broadcast", { event: "match_updated" }, () => {
+            if (mounted) refresh();
+          })
+          .on("broadcast", { event: "matches_stored" }, () => {
+            if (mounted) refresh();
+          })
+          .subscribe();
       }
     };
 
-    initialRefresh();
+    init();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       mounted = false;
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (channel) supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [refresh]);
+  }, [refresh, session?.id]);
 
-  const join = async (
-    nickname: string, 
-    details: {
-      tableNumber: string;
-      ageRange: MatchDrinkPlayer["ageRange"];
-      gender: MatchDrinkPlayer["gender"];
-      relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
-      lookingFor: MatchDrinkPlayer["lookingFor"];
-      publicConsent: boolean;
-      avatarUrl?: string;
-    },
-    joinCode?: string
-  ) => {
+  const join = async (nickname: string, details: {
+    tableNumber: string;
+    ageRange: MatchDrinkPlayer["ageRange"];
+    gender: MatchDrinkPlayer["gender"];
+    relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
+    lookingFor: MatchDrinkPlayer["lookingFor"];
+    email?: string;
+    phone?: string;
+    publicConsent: boolean;
+    avatarUrl?: string;
+  }) => {
+    const activeSessionId = sessionRef.current?.id ?? session?.id;
+    if (!activeSessionId) {
+      const message = "Nessuna sessione attiva trovata";
+      setError(message);
+      throw new Error(message);
+    }
+
     try {
-      let sessionId = session?.id;
-
-      // Se viene passato un codice, usiamo quello (legacy/overrule)
-      if (joinCode) {
-        const sessRes = await fetch(`/api/match-drink/session/by-code/${joinCode.toUpperCase()}`);
-        if (!sessRes.ok) throw new Error("Codice sessione non valido");
-        const sessData = await sessRes.json();
-        sessionId = sessData.id;
-        setSession(sessData);
-      }
-
-      if (!sessionId) throw new Error("Nessuna sessione attiva trovata");
-
-      // 2. Join
-      const joinRes = await fetch(`/api/match-drink/session/${sessionId}/join`, {
+      const res = await fetch(`/api/match-drink/session/${activeSessionId}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname, ...details }),
+        body: JSON.stringify({
+          sessionId: activeSessionId,
+          nickname,
+          ...details
+        }),
       });
-      if (!joinRes.ok) throw new Error("Errore durante l'ingresso");
-      const playerData = await joinRes.json();
 
-      localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
-      localStorage.setItem(STORAGE_KEY_PLAYER_ID, playerData.id);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Errore durante l'accesso");
+      }
+
+      const data = await res.json();
+      localStorage.setItem(STORAGE_KEY_SESSION_ID, activeSessionId);
+      localStorage.setItem(STORAGE_KEY_PLAYER_ID, data.id);
       localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify({ nickname, ...details }));
       
-      setPlayer(playerData);
+      setPlayer(data);
       setSavedProfile({ nickname, ...details });
+      setError(null);
+      await refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Errore durante l'ingresso";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Errore sconosciuto");
       throw err;
     }
   };
 
   const submitAnswer = async (questionId: string, optionId: string) => {
-    if (!session || !player) return;
+    if (!player) return;
     try {
-      const res = await fetch(`/api/match-drink/session/${session.id}/answer`, {
+      const res = await fetch(`/api/match-drink/session/${player.sessionId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sessionId: player.sessionId,
           playerId: player.id,
           questionId,
           selectedOptionId: optionId,
         }),
       });
-      if (!res.ok) throw new Error("Errore nell'invio della risposta");
-      const answer = await res.json();
-      setMyAnswers(prev => [...prev.filter(a => a.questionId !== questionId), answer]);
+      if (!res.ok) throw new Error("Errore nel salvataggio");
+
+      const data = await res.json();
+      setMyAnswers(prev => {
+        const other = prev.filter(a => a.questionId !== questionId);
+        return [...other, data];
+      });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Errore nell'invio della risposta";
-      setError(message);
+      console.error("Answer error:", err);
+    }
+  };
+
+  const sendMessage = async (message: string, displayMode: "public" | "anonymous" | "nickname" = "public") => {
+    if (!player) return;
+    try {
+      const res = await fetch(`/api/match-drink/session/${player.sessionId}/message/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: player.sessionId,
+          playerId: player.id,
+          message,
+          displayMode: displayMode === "nickname" ? "public" : displayMode,
+        }),
+      });
+      if (!res.ok) throw new Error("Errore nell'invio");
+    } catch (err) {
+      console.error("Message error:", err);
+      throw err;
     }
   };
 
   const respondToMatch = async (accepted: boolean) => {
-    if (!session || !player || !myMatch) return;
+    if (!player || !myMatch) return;
     try {
-      const res = await fetch(`/api/match-drink/session/${session.id}/accept-match`, {
+      const res = await fetch(`/api/match-drink/session/${player.sessionId}/accept-match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -181,31 +257,10 @@ export function useMatchDrinkPlayer() {
           accepted,
         }),
       });
-      if (!res.ok) throw new Error("Errore nell'invio della scelta");
-      refresh();
+      if (!res.ok) throw new Error("Errore nell'accettazione");
+      await refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Errore nell'invio della scelta";
-      setError(message);
-    }
-  };
-
-  const sendMessage = async (text: string, displayMode: "anonymous" | "nickname") => {
-    if (!session || !player) return;
-    try {
-      const res = await fetch(`/api/match-drink/session/${session.id}/message/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerId: player.id,
-          message: text,
-          displayMode,
-        }),
-      });
-      if (!res.ok) throw new Error("Errore nell'invio del messaggio");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Errore nell'invio del messaggio";
-      setError(message);
-      throw err;
+      console.error("Accept error:", err);
     }
   };
 
@@ -219,7 +274,9 @@ export function useMatchDrinkPlayer() {
     savedProfile,
     join,
     submitAnswer,
-    respondToMatch,
     sendMessage,
+    respondToMatch,
+    refresh,
+    setSavedProfile
   };
 }

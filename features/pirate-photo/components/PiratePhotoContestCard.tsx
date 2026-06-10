@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import {
@@ -11,10 +11,16 @@ import {
 import { triggerHaptic } from "@/lib/haptics";
 import { piratePhotoPublicConfig } from "@/lib/pirate-photo/config";
 import type { PiratePhotoUploadResponse } from "@/lib/pirate-photo/types";
+import {
+  italianPhoneValidationError,
+  normalizeItalianPhone,
+  validateItalianPhone,
+} from "@/lib/validation/phone";
 
 type PiratePhotoContestCardProps = {
   contact: ProfileResponse["contact"] | null;
   onProfileResolved?: (profile: ProfileResponse) => void;
+  onVisitTrigger?: () => void;
 };
 
 type PiratePhotoFormState = {
@@ -31,7 +37,8 @@ const buildInitialForm = (
   firstName: contact?.Nome?.trim() || identity.firstName,
   lastName: contact?.Cognome?.trim() || identity.lastName,
   email: normalizeCustomerEmail(contact?.Email || identity.email),
-  phone: contact?.Telefono?.trim() || identity.phone,
+  phone:
+    normalizeItalianPhone(contact?.Telefono?.trim() || identity.phone)?.normalizedE164 ?? "",
 });
 
 const allowedMonthPhotoMimeTypes = new Set([
@@ -45,9 +52,9 @@ const allowedMonthPhotoMimeTypes = new Set([
 const getFileExtension = (file: File) =>
   file.name.split(".").pop()?.trim().toLowerCase() ?? "";
 
-const isRenderablePreview = (file: File) =>
+/* const isRenderablePreview = (file: File) =>
   ["jpg", "jpeg", "png", "webp"].includes(getFileExtension(file)) &&
-  (!file.type || ["image/jpeg", "image/png", "image/webp"].includes(file.type));
+  (!file.type || ["image/jpeg", "image/png", "image/webp"].includes(file.type)); */
 
 const validatePhoto = (file: File) => {
   const extension = getFileExtension(file);
@@ -86,10 +93,14 @@ const formatFileSize = (size: number) => {
 export function PiratePhotoContestCard({
   contact,
   onProfileResolved,
+  onVisitTrigger,
 }: PiratePhotoContestCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { identity, updateIdentity } = useCustomerIdentity();
   const isKnownCustomer = Boolean(contact?.CodiceContatto?.trim());
+  const hasFullIdentity = Boolean(identity.email && identity.firstName && identity.lastName);
+  const shouldHideFields = isKnownCustomer || hasFullIdentity;
+
   const [form, setForm] = useState<PiratePhotoFormState>(() =>
     buildInitialForm(contact, identity),
   );
@@ -98,18 +109,6 @@ export function PiratePhotoContestCard({
   const [success, setSuccess] = useState("");
   const [notificationWarning, setNotificationWarning] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const previewUrl = useMemo(
-    () => (photo && isRenderablePreview(photo) ? URL.createObjectURL(photo) : ""),
-    [photo],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   const selectedPhotoLabel = useMemo(() => {
     if (!photo) {
@@ -156,13 +155,19 @@ export function PiratePhotoContestCard({
     }
 
     if (!form.phone.trim()) {
-      return "Inserisci un numero di telefono valido.";
+      return italianPhoneValidationError;
+    }
+
+    const normalizedPhone = validateItalianPhone(form.phone);
+    if (!normalizedPhone.ok) {
+      return normalizedPhone.error;
     }
 
     return "";
   };
 
   const submitPhoto = async () => {
+    onVisitTrigger?.();
     const validationError = validateForm();
 
     if (validationError) {
@@ -180,7 +185,12 @@ export function PiratePhotoContestCard({
     formData.set("firstName", contact?.Nome?.trim() || form.firstName.trim());
     formData.set("lastName", contact?.Cognome?.trim() || form.lastName.trim());
     formData.set("email", normalizeCustomerEmail(contact?.Email || form.email));
-    formData.set("phone", contact?.Telefono?.trim() || form.phone.trim());
+    formData.set(
+      "phone",
+      contact?.Telefono?.trim() ||
+        normalizeItalianPhone(form.phone)?.normalizedE164 ||
+        form.phone.trim(),
+    );
 
     setSubmitting(true);
     setError("");
@@ -233,14 +243,22 @@ export function PiratePhotoContestCard({
   };
 
   return (
-    <div className="panel rounded-[2rem] p-5">
+    <div className="panel rounded-[2rem] p-5 border-2 border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/5">
       <div className="space-y-2">
-        <p className="eyebrow">Scatto del Mese</p>
+        <div className="flex items-center gap-2">
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--accent-strong)]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M3 17l6-6 4 4 8-8" />
+            <path d="M17 7h4v4" />
+            <path d="M2 20h20" opacity="0.3" />
+            <circle cx="12" cy="12" r="9" opacity="0.1" />
+          </svg>
+          <p className="eyebrow text-[var(--accent-strong)]">Bottino del Mese</p>
+        </div>
         <h2 className="text-2xl font-semibold text-white">
           Mandaci la tua foto piu pirata.
         </h2>
         <p className="text-sm leading-6 text-[var(--text-muted)]">
-          Ogni mese la ciurma sceglie la migliore: cena omaggio per 2 persone.
+          Ogni mese la ciurma sceglie la migliore: <span className="text-[var(--accent-strong)] font-bold italic">cena omaggio per 2 persone.</span>
         </p>
       </div>
 
@@ -258,7 +276,7 @@ export function PiratePhotoContestCard({
         </div>
       ) : null}
 
-      {!isKnownCustomer ? (
+      {!shouldHideFields ? (
         <div className="mt-4 grid gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-2 text-sm text-[var(--text-muted)]">
@@ -326,38 +344,23 @@ export function PiratePhotoContestCard({
           className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
           onClick={() => {
             triggerHaptic();
+            onVisitTrigger?.();
             fileInputRef.current?.click();
           }}
         >
           Scegli foto
         </button>
 
-        <div className="overflow-hidden rounded-[1.55rem] border border-[rgba(216,176,106,0.2)] bg-black/22">
-          {photo && previewUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={previewUrl}
-              alt="Anteprima Scatto del Mese"
-              className="max-h-72 w-full object-cover"
-            />
-          ) : (
-            <div className="flex min-h-44 items-center justify-center px-5 text-center">
-              <div>
-                <p className="text-base font-semibold text-white">
-                  {photo ? "Foto selezionata" : "Anteprima foto"}
-                </p>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  {photo ? "Anteprima file" : "Scegli una foto per vederla qui"}
-                </p>
-              </div>
-            </div>
-          )}
-          {photo ? (
-            <p className="border-t border-[rgba(216,176,106,0.16)] px-4 py-3 text-xs leading-5 text-[var(--text-muted)]">
+        {photo ? (
+          <div className="rounded-[1.2rem] border border-[rgba(216,176,106,0.2)] bg-black/22 px-4 py-3">
+            <p className="text-xs leading-5 text-[var(--accent-strong)]">
+              Foto selezionata:
+            </p>
+            <p className="text-sm font-medium text-white truncate">
               {selectedPhotoLabel}
             </p>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <p className="text-xs leading-5 text-[var(--text-muted)]">
           Inviando la foto accetti che venga valutata dallo staff Tortuga.

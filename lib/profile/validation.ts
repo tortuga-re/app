@@ -1,4 +1,9 @@
 import type { ProfileUpdateInput } from "@/lib/cooperto/types";
+import {
+  italianPhoneValidationError,
+  isValidItalianPhone,
+  normalizeItalianPhone,
+} from "@/lib/validation/phone";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -14,6 +19,15 @@ export const normalizeProfileEmail = (value?: string) =>
 export const isValidProfileEmail = (value?: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeProfileEmail(value));
 
+export const isValidItalianMobileNumber = (value?: string) =>
+  isValidItalianPhone(value ?? "");
+
+export const normalizePhoneNumber = (value?: string) =>
+  normalizeItalianPhone(value ?? "")?.normalizedE164 ?? "";
+
+export const normalizeItalianMobileForCooperto = (value?: string) =>
+  normalizeItalianPhone(value ?? "")?.nationalNumber ?? "";
+
 export const normalizeProfileUpdateInput = (
   payload: unknown,
 ): ProfileUpdateInput => {
@@ -23,7 +37,7 @@ export const normalizeProfileUpdateInput = (
   return {
     firstName: readString(source, "firstName"),
     lastName: readString(source, "lastName"),
-    phone: readString(source, "phone"),
+    phone: normalizePhoneNumber(readString(source, "phone")),
     email: normalizeProfileEmail(readString(source, "email")),
     ...(birthDate ? { birthDate } : {}),
     marketingConsent: source.marketingConsent === true,
@@ -41,8 +55,8 @@ export const validateProfileUpdateInput = (
     return "Inserisci un indirizzo email valido.";
   }
 
-  if (!payload.phone.trim()) {
-    return "Inserisci un numero di telefono valido.";
+  if (payload.phone && !isValidItalianMobileNumber(payload.phone)) {
+    return italianPhoneValidationError;
   }
 
   if (payload.birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(payload.birthDate)) {

@@ -1,15 +1,26 @@
-"use client";
+﻿"use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useMatchDrinkPlayer } from "@/lib/match-drink/use-match-drink-player";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { MatchDrinkShell } from "./MatchDrinkShell";
 import { MatchDrinkCard } from "./MatchDrinkCard";
 import { MatchDrinkButton } from "./MatchDrinkButton";
+import { MatchDrinkRevealCard } from "./MatchDrinkRevealCard";
 import { MatchDrinkPlayer } from "@/lib/match-drink/types";
+import { getMainCategoryPluralLabel } from "@/lib/match-drink/profile";
 import { LocalPirateAvatar } from "@/features/pirate-photo/components/LocalPirateAvatar";
+import { QRScanner } from "@/components/QRScanner";
+import { useCustomerIdentity, normalizeCustomerEmail } from "@/lib/customer-identity";
+import { scrollToFormField } from "@/lib/form-focus";
 
 export function MatchDrinkPlayerController() {
-  
+  const { identity } = useCustomerIdentity();
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState("");
+  const [profileFullName, setProfileFullName] = useState("");
+  const [avatarZoomOpen, setAvatarZoomOpen] = useState(false);
   const {
     session,
     player,
@@ -22,7 +33,76 @@ export function MatchDrinkPlayerController() {
     submitAnswer,
     respondToMatch,
     sendMessage,
+    setSavedProfile,
   } = useMatchDrinkPlayer();
+  const { hasAccess: isPresent } = useOnPremiseAccess();
+
+  useEffect(() => {
+    const email = normalizeCustomerEmail(identity.email);
+
+    if (!email || (profileAvatarUrl && profileFullName)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAvatar = async () => {
+      try {
+        const response = await fetch(`/api/profile?mode=email&query=${encodeURIComponent(email)}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        const avatarUrl = typeof data?.avatarUrl === "string" ? data.avatarUrl.trim() : "";
+        const firstName = typeof data?.contact?.Nome === "string" ? data.contact.Nome.trim() : "";
+        const lastName = typeof data?.contact?.Cognome === "string" ? data.contact.Cognome.trim() : "";
+        const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+        if (!cancelled && (avatarUrl || fullName)) {
+          if (avatarUrl) {
+            setProfileAvatarUrl(avatarUrl);
+          }
+          if (fullName) {
+            setProfileFullName(fullName);
+          }
+          setSavedProfile((current) => {
+            const currentNickname = current?.nickname?.trim() || "";
+            const nextNickname = currentNickname || fullName;
+
+            if (current) {
+              return {
+                ...current,
+                nickname: nextNickname || current.nickname,
+                avatarUrl: avatarUrl || current.avatarUrl,
+              };
+            }
+
+            return {
+              nickname: nextNickname || "",
+              tableNumber: "",
+              ageRange: "25-34",
+              gender: "donna",
+              relationshipStatus: "single",
+              lookingFor: "entrambi",
+              avatarUrl: avatarUrl || undefined,
+            };
+          });
+        }
+      } catch (error) {
+        console.error("Error loading Match & Drink avatar", error);
+      }
+    };
+
+    void loadAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [identity.email, profileAvatarUrl, profileFullName, setSavedProfile]);
 
   if (loading) {
     return (
@@ -56,7 +136,89 @@ export function MatchDrinkPlayerController() {
   }
 
   if (!player) {
-    return <JoinForm onJoin={join} error={error} savedProfile={savedProfile} />;
+    if (!isPresent) {
+      return (
+        <MatchDrinkShell>
+          <div className="flex flex-1 items-center justify-center p-6">
+            <MatchDrinkCard className="text-center space-y-6">
+              {showQRScanner ? (
+                <QRScanner
+                  onSuccess={(table) => {
+                    if (table) {
+                      setSavedProfile(prev => ({
+                        nickname: prev?.nickname || "",
+                        ageRange: prev?.ageRange || "25-34",
+                        gender: prev?.gender || "donna",
+                        relationshipStatus: prev?.relationshipStatus || "single",
+                        lookingFor: prev?.lookingFor || "entrambi",
+                        ...prev,
+                        tableNumber: table
+                      }));
+                    }
+                    setShowQRScanner(false);
+                  }}
+                  onCancel={() => setShowQRScanner(false)}
+                />
+              ) : (
+                <>
+                  <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
+                    <span className="text-3xl">ðŸ“</span>
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black text-white uppercase italic">Sei al Tortuga?</h2>
+                    <p className="text-sm text-[var(--text-muted)] uppercase font-bold">Accesso limitato ai presenti</p>
+                  </div>
+                  <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                    Per partecipare al Match & Drink devi essere fisicamente nel locale.
+                    Scannerizza il QR code sul tuo tavolo per sbloccare l&apos;accesso!
+                  </p>
+                  <div className="pt-2 flex flex-col gap-3">
+                    <MatchDrinkButton
+                      size="lg"
+                      className="w-full"
+                      onClick={() => setShowQRScanner(true)}
+                    >
+                      ðŸ“· Scannerizza QR Tavolo
+                    </MatchDrinkButton>
+                    <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
+                      Torna alla Ciurma
+                    </Link>
+                  </div>
+                </>
+              )}
+            </MatchDrinkCard>
+          </div>
+        </MatchDrinkShell>
+      );
+    }
+    if (session.status !== "lobby") {
+      return (
+        <MatchDrinkShell>
+          <div className="flex flex-1 items-center justify-center p-6 text-center">
+            <MatchDrinkCard className="space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 flex items-center justify-center">
+                <span className="text-3xl">â›”</span>
+              </div>
+              <h2 className="text-2xl font-black text-white uppercase italic">Iscrizioni Chiuse</h2>
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed uppercase font-bold">
+                Il Capitano ha già  levato l&apos;ancora!<br />
+                Non puoi pià¹ unirti a questa sfida, ma resta nei paraggi per la prossima.
+              </p>
+              <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase mt-4">
+                Torna alla Ciurma
+              </Link>
+            </MatchDrinkCard>
+          </div>
+        </MatchDrinkShell>
+      );
+    }
+    return (
+      <JoinForm
+        onJoin={join}
+        error={error}
+        savedProfile={savedProfile}
+      />
+    );
   }
 
   // Lobby
@@ -68,11 +230,21 @@ export function MatchDrinkPlayerController() {
             <p className="eyebrow mb-2">Sei a bordo</p>
             <h1 className="text-3xl font-bold text-white uppercase">{session.title}</h1>
             <p className="mt-4 text-sm text-[var(--text-muted)]">
-              La vergogna inizierà tra poco. Tieni il telefono acceso.
+              Sei nella lista del Capitano: tra poco partono le domande, i brindisi
+              e gli abbinamenti. Tieni il telefono pronto e giocatela bene.
             </p>
           </MatchDrinkCard>
           
-          <BottleMessageForm onSend={sendMessage} />
+          {session.bottleMessagesEnabled ? (
+            <BottleMessageForm
+              onSend={sendMessage}
+              draftKey={`match-drink.bottleMessage.${player.id}`}
+            />
+          ) : (
+            <MatchDrinkCard variant="muted" className="py-4 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">I messaggi in bottiglia sono attualmente chiusi</p>
+            </MatchDrinkCard>
+          )}
         </div>
       </MatchDrinkShell>
     );
@@ -127,7 +299,16 @@ export function MatchDrinkPlayerController() {
             </div>
           )}
           
-          <BottleMessageForm onSend={sendMessage} />
+          {session.bottleMessagesEnabled ? (
+            <BottleMessageForm
+              onSend={sendMessage}
+              draftKey={`match-drink.bottleMessage.${player.id}`}
+            />
+          ) : (
+            <MatchDrinkCard variant="muted" className="py-4 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">I messaggi in bottiglia sono attualmente chiusi</p>
+            </MatchDrinkCard>
+          )}
         </div>
       </MatchDrinkShell>
     );
@@ -141,7 +322,7 @@ export function MatchDrinkPlayerController() {
           <div className="space-y-4">
             <div className="h-16 w-16 mx-auto rounded-full border-2 border-[var(--accent-strong)] animate-spin border-t-transparent" />
             <p className="text-lg font-bold text-white uppercase tracking-tight">
-              Il sistema sta incrociando risposte, traumi e pessime decisioni…
+              Il sistema sta incrociando risposte, traumi e pessime decisioniâ€¦
             </p>
           </div>
         </div>
@@ -157,7 +338,7 @@ export function MatchDrinkPlayerController() {
           <div className="flex flex-1 items-center justify-center p-4">
             <MatchDrinkCard className="text-center py-16 space-y-6">
               <div className="w-20 h-20 mx-auto rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-                <span className="text-4xl italic">☠️</span>
+                <span className="text-4xl italic">â˜ ï¸</span>
               </div>
               <div className="space-y-2">
                 <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">Nessun Match sicuro</h2>
@@ -180,66 +361,96 @@ export function MatchDrinkPlayerController() {
 
     const isPlayerA = myMatch.playerAId === player.id;
     const iAccepted = isPlayerA ? myMatch.acceptedByA : myMatch.acceptedByB;
+    const matchedNickname =
+      myMatch.matchedPlayerNickname ||
+      (isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname) ||
+      "il tuo match";
+    const meetingTableNumber = myMatch.meetingTableNumber || "?";
+    const meetingTableArea = myMatch.meetingTableArea || "";
+    const meetingTableLabel =
+      myMatch.meetingTableLabel ||
+      (meetingTableArea ? `${meetingTableNumber} in ${meetingTableArea}` : meetingTableNumber);
+    const matchedAvatar = isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar;
+    const categoryKey = (myMatch.sharedMainCategory || myMatch.ownMainCategory || "romantico") as
+      | "romantico"
+      | "passionale"
+      | "piccante"
+      | "energico";
+    const categorySummary = myMatch.sharedMainCategoryLabel
+      ? `Siete entrambi ${myMatch.sharedMainCategoryLabel}.`
+      : myMatch.ownMainCategoryLabel
+        ? `Siete entrambi ${getMainCategoryPluralLabel(myMatch.ownMainCategory!).toUpperCase()}.`
+        : null;
+
+    let mainReason = myMatch.reason;
+    let spicyQ: string | null = null;
+    let spicyA: string | null = null;
+
+    if (myMatch.reason.includes("|SPICY_Q|")) {
+      const parts = myMatch.reason.split("|SPICY_Q|");
+      mainReason = parts[0];
+      const spicyParts = parts[1].split("|SPICY_A|");
+      if (spicyParts.length === 2) {
+        spicyQ = spicyParts[0];
+        spicyA = spicyParts[1];
+      }
+    }
 
     if (myMatch.drinkUnlocked) {
       return (
         <MatchDrinkShell>
-          <MatchDrinkCard variant="accent" className="text-center">
-            <h2 className="text-3xl font-bold text-white mb-6 uppercase tracking-tighter italic">DRINK DEL MATCH SBLOCCATO!</h2>
-            
-            <div className="panel-muted rounded-xl p-8 mb-6 border-2 border-[var(--accent-strong)] bg-black/60 shadow-[0_0_50px_rgba(216,176,106,0.2)] flex flex-col items-center">
-              <p className="text-[10px] uppercase tracking-[0.4em] text-[var(--accent-strong)] mb-6 font-black opacity-80">
-                Incontro al Tavolo {isPlayerA ? (myMatch.playerBTable || "?") : (myMatch.playerATable || "?")}
-              </p>
-              
-              <div className="relative mb-6">
-                <div className="w-24 h-24 rounded-full border-2 border-[var(--accent-strong)] flex items-center justify-center shadow-[0_0_30px_rgba(216,176,106,0.3)] animate-in zoom-in duration-700 overflow-hidden bg-black/40">
-                   {(isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar) ? (
-                     /* eslint-disable-next-line @next/next/no-img-element */
-                     <img 
-                       src={isPlayerA ? myMatch.playerBAvatar : myMatch.playerAAvatar} 
-                       alt="Partner avatar"
-                       className="w-full h-full object-cover"
-                     />
-                   ) : (
-                     <span className="text-5xl font-black gold-gradient italic uppercase">
-                       {(isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname)?.[0] || "?"}
-                     </span>
-                   )}
-                </div>
-                <div className="absolute -bottom-1 -right-1 bg-[var(--accent-strong)] text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                  Match
-                </div>
+          <MatchDrinkRevealCard
+            nickname={matchedNickname}
+            avatarUrl={matchedAvatar}
+            avatarInitial={matchedNickname[0] || "?"}
+            tableNumber={meetingTableNumber}
+            tableArea={meetingTableArea}
+            categoryKey={categoryKey}
+            categorySummary={categorySummary}
+            secondaryTraitLabel={myMatch.matchedPlayerSecondaryTraitLabel || "misterioso"}
+            approachAdvice={
+              myMatch.matchedPlayerApproachAdvice ||
+              "Fai il primo passo con leggerezza e lascia che il brindisi faccia il resto."
+            }
+            rewardText={
+              myMatch.rewardText ||
+              `Accomodati al tavolo ${meetingTableLabel} e richiedi il tuo drink omaggio.`
+            }
+            onAvatarClick={() => setAvatarZoomOpen(true)}
+          />
+
+          {avatarZoomOpen ? (
+            <button
+              type="button"
+              onClick={() => setAvatarZoomOpen(false)}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+              aria-label="Chiudi avatar ingrandito"
+            >
+              <div className="flex h-[min(80vw,28rem)] w-[min(80vw,28rem)] items-center justify-center overflow-hidden rounded-full border-4 border-[var(--accent-strong)] bg-black shadow-[0_0_60px_rgba(216,176,106,0.35)]">
+                {matchedAvatar ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={matchedAvatar}
+                    alt="Avatar del match ingrandito"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[8rem] font-black uppercase italic gold-gradient">
+                    {matchedNickname[0] || "?"}
+                  </span>
+                )}
               </div>
-
-              <p className="text-3xl md:text-4xl font-black tracking-tighter text-white uppercase italic mb-2">
-                {isPlayerA ? myMatch.playerBNickname : myMatch.playerANickname}
-              </p>
-              <div className="h-px w-12 bg-[var(--accent-strong)] opacity-50 mb-4" />
-              <p className="text-[10px] text-[var(--text-muted)] uppercase font-black tracking-widest text-center leading-relaxed">
-                Compatibilit&agrave;: {myMatch.score}% <br />
-                {myMatch.commonCriterion}
-              </p>
-            </div>
-
-            <div className="space-y-4 px-2">
-              <p className="text-sm uppercase font-bold leading-relaxed text-center">
-                Mostrate questa schermata allo staff per avere <br />
-                <span className="text-xl gold-gradient font-black">1 DRINK × 2 PERSONE</span><br />
-                al prezzo di uno!
-              </p>
-            </div>
-          </MatchDrinkCard>
+            </button>
+          ) : null}
         </MatchDrinkShell>
       );
     }
-
     if (iAccepted === false) {
-       return (
+      return (
         <MatchDrinkShell>
           <MatchDrinkCard className="text-center">
             <h2 className="text-xl font-bold text-white uppercase">Va bene così.</h2>
-            <p className="mt-4 text-[var(--text-muted)]">Il Capitano rispetta la fuga. Il tuo match rester&agrave; nell&apos;ombra.</p>
+            <p className="mt-4 text-[var(--text-muted)]">Il Capitano rispetta la fuga.</p>
           </MatchDrinkCard>
         </MatchDrinkShell>
       );
@@ -251,7 +462,7 @@ export function MatchDrinkPlayerController() {
           <MatchDrinkCard className="text-center">
             <h2 className="text-xl font-bold text-white uppercase tracking-tight">Tu hai accettato.</h2>
             <p className="mt-4 text-[var(--text-muted)]">
-              Ora aspettiamo l&apos;altra met&agrave; del naufragio. Se accetta anche lei/lui, sbloccherete il Drink del Match.
+              Ora aspettiamo l&apos;altra metà del naufragio. Se accetta anche lei/lui, sbloccherete i drink omaggio del match.
             </p>
           </MatchDrinkCard>
         </MatchDrinkShell>
@@ -261,23 +472,34 @@ export function MatchDrinkPlayerController() {
     return (
       <MatchDrinkShell>
         <div className="space-y-6">
-          <MatchDrinkCard variant="accent">
+          <MatchDrinkCard variant="accent" className="text-center">
             <p className="eyebrow mb-2">Hai un abbinamento!</p>
-            <h2 className="text-2xl font-bold text-white mb-4 uppercase tracking-tighter">Il Capitano ha parlato.</h2>
-            
+            <h2 className="text-2xl font-bold text-white mb-4 uppercase tracking-tighter">
+              Il Capitano ha parlato.
+            </h2>
+
             <div className="space-y-4 text-sm">
-              <div className="flex justify-between border-b border-[var(--border)] pb-2">
-                <span className="text-[var(--text-muted)] uppercase font-bold">Compatibilità</span>
-                <span className="font-bold text-[var(--accent-strong)]">{myMatch.score}%</span>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Compatibilità</p>
+                <p className="mt-1 text-white font-bold">
+                  {myMatch?.score}% - {myMatch?.commonCriterion}
+                </p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[var(--text-muted)] uppercase font-bold">Siete entrambi:</p>
-                <p className="font-bold text-white uppercase">{myMatch.commonCriterion}</p>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Cosa vi unisce</p>
+                <p className="mt-1 text-white italic">&quot;{mainReason}&quot;</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[var(--text-muted)] uppercase font-bold">Perché:</p>
-                <p className="italic uppercase text-xs">{myMatch.reason}</p>
-              </div>
+
+              {spicyQ ? (
+                <div className="rounded-2xl border border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/10 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--accent-strong)] font-black flex items-center justify-center gap-2">
+                    <span>🌶️</span> Avete dato la stessa risposta
+                  </p>
+                  <p className="mt-2 text-white font-bold">{spicyQ}</p>
+                  <p className="text-[var(--accent-strong)] italic">&quot;{spicyA}&quot;</p>
+                </div>
+              ) : null}
             </div>
           </MatchDrinkCard>
 
@@ -289,9 +511,9 @@ export function MatchDrinkPlayerController() {
               NO, RESTO NELL&apos;OMBRA
             </MatchDrinkButton>
           </div>
-          
+
           <p className="text-center text-[10px] text-[var(--text-muted)] px-4 uppercase font-bold tracking-widest leading-relaxed">
-            Se entrambi accettate, sbloccate il Drink del Match (2 al prezzo di 1).
+            Se entrambi accettate, sbloccate i drink omaggio del vostro match.
           </p>
         </div>
       </MatchDrinkShell>
@@ -319,6 +541,8 @@ function JoinForm({
     gender: MatchDrinkPlayer["gender"];
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
+    email?: string;
+    phone?: string;
     publicConsent: boolean;
     avatarUrl?: string;
   }) => Promise<void>, 
@@ -330,20 +554,63 @@ function JoinForm({
     gender: MatchDrinkPlayer["gender"];
     relationshipStatus: MatchDrinkPlayer["relationshipStatus"];
     lookingFor: MatchDrinkPlayer["lookingFor"];
+    avatarUrl?: string;
   } | null
 }) {
-  const [nickname, setNickname] = useState(savedProfile?.nickname || "");
-  const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
+  const { identity } = useCustomerIdentity();
+    const [nickname, setNickname] = useState(savedProfile?.nickname || "");
+    const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
   const [ageRange, setAgeRange] = useState<MatchDrinkPlayer["ageRange"]>(savedProfile?.ageRange || "25-34");
-  const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "preferisco_non_dirlo");
+  const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "donna");
   const [relationshipStatus, setRelationshipStatus] = useState<MatchDrinkPlayer["relationshipStatus"]>(savedProfile?.relationshipStatus || "single");
   const [lookingFor, setLookingFor] = useState<MatchDrinkPlayer["lookingFor"]>(savedProfile?.lookingFor || "entrambi");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>(savedProfile?.avatarUrl || "");
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<"nickname" | "tableNumber", string>>
+  >({});
+  const userEditedRef = React.useRef(false);
+  const nicknameFieldRef = React.useRef<HTMLInputElement | null>(null);
+  const tableNumberFieldRef = React.useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!savedProfile || userEditedRef.current) return;
+
+    setNickname((current) => current || savedProfile.nickname || "");
+    setTableNumber((current) => current || savedProfile.tableNumber || "");
+    setAgeRange(savedProfile.ageRange || "25-34");
+    setGender(savedProfile.gender || "donna");
+    setRelationshipStatus(savedProfile.relationshipStatus || "single");
+    setLookingFor(savedProfile.lookingFor || "entrambi");
+    setAvatarUrl((current) => current || savedProfile.avatarUrl || "");
+  }, [savedProfile]);
+
+  const markUserEdited = () => {
+    userEditedRef.current = true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nextFieldErrors: Partial<Record<"nickname" | "tableNumber", string>> = {};
+
+    if (!nickname.trim()) {
+      nextFieldErrors.nickname = "Inserisci il tuo nickname.";
+    }
+
+    if (!tableNumber.trim()) {
+      nextFieldErrors.tableNumber = "Inserisci il numero del tavolo.";
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      scrollToFormField(
+        nextFieldErrors.nickname ? nicknameFieldRef.current : tableNumberFieldRef.current,
+      );
+      return;
+    }
+
     setSubmitting(true);
+    setFieldErrors({});
     try {
       await onJoin(nickname, {
         tableNumber,
@@ -351,6 +618,8 @@ function JoinForm({
         gender,
         relationshipStatus,
         lookingFor,
+        email: identity.email,
+        phone: identity.phone,
         avatarUrl,
         publicConsent: true
       });
@@ -364,12 +633,19 @@ function JoinForm({
       <div className="space-y-6 pb-12">
         <div className="text-center">
           <h1 className="hero-title text-4xl font-black gold-gradient uppercase">Match & Drink</h1>
-          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">Il gioco live più pericolosamente social</p>
+          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">Il gioco live pià¹ pericolosamente social</p>
         </div>
 
-        <MatchDrinkCard className="max-w-md w-full">
-          <div className="flex flex-col items-center mb-8">
-            <LocalPirateAvatar customerKey={nickname || "ospite"} label={nickname || "Nuovo Pirata"} onUpload={setAvatarUrl} />
+            <MatchDrinkCard className="max-w-md w-full">
+              <div className="flex flex-col items-center mb-8">
+            <LocalPirateAvatar
+              customerKey={nickname || savedProfile?.nickname || "ospite"}
+              label={nickname || "Nuovo Pirata"}
+              onUpload={(url) => {
+                markUserEdited();
+                setAvatarUrl(url);
+              }}
+            />
             <p className="text-xs uppercase tracking-widest text-[var(--accent-strong)] mt-3 font-black">Scatta la tua foto</p>
           </div>
 
@@ -377,30 +653,53 @@ function JoinForm({
             <div>
               <label className="eyebrow mb-2 block">Il tuo Nickname</label>
               <input 
+                ref={nicknameFieldRef}
                 value={nickname} 
-                onChange={e => setNickname(e.target.value)}
+                onChange={e => {
+                  markUserEdited();
+                  setFieldErrors((current) => ({ ...current, nickname: undefined }));
+                  setNickname(e.target.value);
+                }}
                 placeholder="Nome da battaglia..." 
                 className="field font-bold uppercase tracking-widest"
                 required
               />
+              {fieldErrors.nickname ? (
+                <p className="mt-2 text-xs font-semibold text-red-400">
+                  {fieldErrors.nickname}
+                </p>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                <div>
                 <label className="eyebrow mb-2 block">Tavolo</label>
                 <input 
+                  ref={tableNumberFieldRef}
                   value={tableNumber} 
-                  onChange={e => setTableNumber(e.target.value)}
+                  onChange={e => {
+                    markUserEdited();
+                    setFieldErrors((current) => ({ ...current, tableNumber: undefined }));
+                    setTableNumber(e.target.value);
+                  }}
                   placeholder="Es. 12" 
                   className="field font-bold"
                   required
                 />
+                {fieldErrors.tableNumber ? (
+                  <p className="mt-2 text-xs font-semibold text-red-400">
+                    {fieldErrors.tableNumber}
+                  </p>
+                ) : null}
               </div>
               <div>
-                <label className="eyebrow mb-2 block">Età</label>
+                <label className="eyebrow mb-2 block">Età </label>
                 <select 
                   value={ageRange} 
-                  onChange={e => setAgeRange(e.target.value as MatchDrinkPlayer["ageRange"])} 
+                  onChange={e => {
+                    markUserEdited();
+                    setAgeRange(e.target.value as MatchDrinkPlayer["ageRange"]);
+                  }}
                   className="field font-bold"
                 >
                   <option value="18-24">18-24</option>
@@ -416,19 +715,24 @@ function JoinForm({
                 <label className="eyebrow mb-2 block">Sei</label>
                 <select 
                   value={gender} 
-                  onChange={e => setGender(e.target.value as MatchDrinkPlayer["gender"])} 
+                  onChange={e => {
+                    markUserEdited();
+                    setGender(e.target.value as MatchDrinkPlayer["gender"]);
+                  }}
                   className="field font-bold"
                 >
                   <option value="donna">Donna</option>
                   <option value="uomo">Uomo</option>
-                  <option value="preferisco_non_dirlo">Altro/Privacy</option>
                 </select>
               </div>
               <div>
                 <label className="eyebrow mb-2 block">Stato</label>
                 <select 
                   value={relationshipStatus} 
-                  onChange={e => setRelationshipStatus(e.target.value as MatchDrinkPlayer["relationshipStatus"])} 
+                  onChange={e => {
+                    markUserEdited();
+                    setRelationshipStatus(e.target.value as MatchDrinkPlayer["relationshipStatus"]);
+                  }}
                   className="field font-bold"
                 >
                   <option value="single">Single</option>
@@ -443,7 +747,10 @@ function JoinForm({
               <label className="eyebrow mb-2 block">Cosa cerchi stasera?</label>
               <select 
                 value={lookingFor} 
-                onChange={e => setLookingFor(e.target.value as MatchDrinkPlayer["lookingFor"])} 
+                onChange={e => {
+                  markUserEdited();
+                  setLookingFor(e.target.value as MatchDrinkPlayer["lookingFor"]);
+                }}
                 className="field font-bold"
               >
                 <option value="donna">Una Donna</option>
@@ -467,26 +774,53 @@ function JoinForm({
 }
 
 function BottleMessageForm({ 
-  onSend 
+  onSend,
+  draftKey
 }: { 
-  onSend: (text: string, displayMode: "anonymous" | "nickname") => Promise<void> 
+  onSend: (text: string, displayMode: "anonymous" | "nickname") => Promise<void>,
+  draftKey?: string
 }) {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => {
+    if (typeof window === "undefined" || !draftKey) return "";
+    return localStorage.getItem(draftKey) ?? "";
+  });
   const [anon, setAnon] = useState(false);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !draftKey) return;
+
+    setMessage(localStorage.getItem(draftKey) ?? "");
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !draftKey) return;
+
+    if (message.trim()) {
+      localStorage.setItem(draftKey, message);
+    } else {
+      localStorage.removeItem(draftKey);
+    }
+  }, [draftKey, message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
     setSending(true);
+    setError("");
     try {
       await onSend(message, anon ? "anonymous" : "nickname");
+      if (typeof window !== "undefined" && draftKey) {
+        localStorage.removeItem(draftKey);
+      }
       setMessage("");
       setSent(true);
       setTimeout(() => setSent(false), 3000);
-    } catch {
-      // handled in hook
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nell'invio");
+      setTimeout(() => setError(""), 5000);
     } finally {
       setSending(false);
     }
@@ -504,6 +838,7 @@ function BottleMessageForm({
             {sent && <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Inviato!</span>}
           </div>
         </div>
+        {error && <p className="text-[10px] text-red-400 font-bold uppercase animate-pulse">{error}</p>}
         <textarea
           value={message}
           onChange={e => setMessage(e.target.value)}

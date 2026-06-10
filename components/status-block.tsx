@@ -11,7 +11,7 @@ export function StatusBlock({
   title: string;
   description: string;
   action?: ReactNode;
-  variant?: "info" | "loading" | "empty" | "error";
+  variant?: "info" | "loading" | "empty" | "error" | "success";
 }) {
   return (
     <div
@@ -34,6 +34,7 @@ export function StatusBlock({
               variant === "error" && "bg-[var(--danger)]",
               variant === "empty" && "bg-white/30",
               variant === "info" && "bg-[var(--accent-strong)]",
+              variant === "success" && "bg-emerald-500",
             )}
           />
         </div>

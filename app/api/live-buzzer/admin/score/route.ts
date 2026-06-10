@@ -1,14 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { assignScore } from "@/lib/live-buzzer/store";
-import { getCustomerSession } from "@/lib/session/customer-session";
-import { isAdmin } from "@/lib/live-buzzer/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const session = getCustomerSession(request);
-  if (!session || !isAdmin(session.email)) {
-    return NextResponse.json({ error: "Non autorizzato" }, { status: 403 });
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
     }
 
-    assignScore(email, points, result);
+    await assignScore(email, points, result);
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Payload non valido" }, { status: 400 });

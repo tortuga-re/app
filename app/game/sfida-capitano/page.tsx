@@ -1,12 +1,7 @@
-import { CaptainChallenge } from "@/features/game/components/CaptainChallenge";
+import { redirect } from "next/navigation";
 
-export default async function CaptainChallengePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ ref?: string | string[] }>;
-}) {
-  const params = await searchParams;
-  const referralCode = Array.isArray(params.ref) ? params.ref[0] : params.ref;
+import { scratchAndWinConfig } from "@/lib/scratch-and-win";
 
-  return <CaptainChallenge incomingReferralCode={referralCode ?? ""} />;
+export default function ScratchAndWinRedirectPage() {
+  redirect(scratchAndWinConfig.url);
 }

@@ -12,8 +12,14 @@ export type MatchDrinkTrait =
   | "investigatore"
   | "orgoglioso";
 
+export type MatchDrinkMainCategory =
+  | "romantico"
+  | "passionale"
+  | "piccante"
+  | "energico";
+
 export interface MatchDrinkQuestionOption {
-  id: "A" | "B" | "C" | "D" | "E";
+  id: "A" | "B" | "C" | "D";
   text: string;
   traits?: Partial<Record<MatchDrinkTrait, number>>;
   comment?: string;
@@ -23,6 +29,7 @@ export interface MatchDrinkQuestion {
   id: string;
   text: string;
   category: "light" | "ironic" | "spicy";
+  spicyIntensity?: "standard" | "adult";
   options: MatchDrinkQuestionOption[];
 }
 
@@ -32,11 +39,43 @@ export interface MatchDrinkSession {
   title: string;
   status: "lobby" | "playing" | "matching" | "reveal" | "ended";
   stageMode: "lobby" | "intro" | "question" | "question_results" | "message" | "matching" | "reveal" | "ended";
+  secondaryTraitMode?: "macro_category" | "absolute";
   currentQuestionIndex: number;
   currentStageMessageId?: string | null;
   questionIds?: string[] | null;
   questions?: MatchDrinkQuestion[];
+  bottleMessagesEnabled?: boolean;
+  excludedMeetingTables?: string[];
+  analytics?: MatchDrinkSessionAnalytics;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface MatchDrinkMeetingTableOption {
+  key: string;
+  area: string;
+  number: string;
+  seats: number;
+  zone: "romance" | "friendship";
+  slots: number;
+  label: string;
+}
+
+export interface MatchDrinkForecastSummary {
+  romancePairs: number;
+  friendshipPairs: number;
+  unmatchedPlayers: number;
+  romanceCapacity: number;
+  friendshipCapacity: number;
+}
+
+export interface MatchDrinkSessionAnalytics {
+  signups: number;
+  matchesCalculated: number;
+  acceptedMatches: number;
+  drinksUnlocked: number;
+  drinksRedeemed: number;
+  lastCalculatedAt?: string | null;
   updatedAt: string;
 }
 
@@ -45,6 +84,7 @@ export interface MatchDrinkPlayer {
   sessionId: string;
   nickname: string;
   tableNumber?: string;
+  phone?: string;
   ageRange: "18-24" | "25-34" | "35-45" | "46-plus" | "preferisco_non_dirlo";
   gender: "uomo" | "donna" | "preferisco_non_dirlo";
   relationshipStatus: "single" | "in_coppia" | "complicato" | "solo_per_ridere";
@@ -59,7 +99,7 @@ export interface MatchDrinkAnswer {
   sessionId: string;
   playerId: string;
   questionId: string;
-  selectedOptionId: "A" | "B" | "C" | "D" | "E";
+  selectedOptionId: "A" | "B" | "C" | "D";
   createdAt: string;
 }
 
@@ -95,6 +135,24 @@ export interface MatchDrinkMatch {
   playerBTable?: string;
   playerAAvatar?: string;
   playerBAvatar?: string;
+  playerAPhone?: string;
+  playerBPhone?: string;
+  ownMainCategory?: MatchDrinkMainCategory;
+  ownMainCategoryLabel?: string;
+  matchedPlayerNickname?: string;
+  matchedPlayerTable?: string;
+  matchedPlayerPhone?: string;
+  matchedPlayerMainCategory?: MatchDrinkMainCategory;
+  matchedPlayerMainCategoryLabel?: string;
+  matchedPlayerSecondaryTrait?: MatchDrinkTrait;
+  matchedPlayerSecondaryTraitLabel?: string;
+  matchedPlayerApproachAdvice?: string;
+  sharedMainCategory?: MatchDrinkMainCategory | null;
+  sharedMainCategoryLabel?: string | null;
+  rewardText?: string;
+  meetingTableNumber?: string;
+  meetingTableArea?: string;
+  meetingTableLabel?: string;
 }
 
 export interface MatchDrinkBottleMessage {
@@ -114,6 +172,10 @@ export interface MatchDrinkProfile {
   playerId: string;
   traits: Record<MatchDrinkTrait, number>;
   dominantTrait: MatchDrinkTrait;
+  mainCategory: MatchDrinkMainCategory;
+  mainCategoryLabel: string;
+  secondaryTrait: MatchDrinkTrait;
+  secondaryTraitLabel: string;
   profileLabel: string;
   profileDescription: string;
 }

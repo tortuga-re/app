@@ -1,21 +1,22 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import "server-only";
+
 import path from "node:path";
 
 import { pwaConfig } from "@/lib/config";
+import { createPersistentJsonStore } from "@/lib/server/persistent-json-store";
 import type {
   SavePushSubscriptionInput,
   StoredPushSubscription,
 } from "@/lib/push/types";
 
-const redisRestUrl = process.env.UPSTASH_REDIS_REST_URL?.trim() ?? "";
-const redisRestToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim() ?? "";
-const redisSubscriptionsKey = "tortuga:push-subscriptions";
-const isRedisConfigured = Boolean(redisRestUrl && redisRestToken);
-
 const DEFAULT_SUBSCRIPTIONS_PATH = path.join(
-  /* turbopackIgnore: true */ process.cwd(),
   ".data",
   "push-subscriptions.json",
+);
+
+const DEFAULT_VISITS_PATH = path.join(
+  ".data",
+  "visit-storage.json",
 );
 
 const resolveSubscriptionsFile = () => {
@@ -23,95 +24,32 @@ const resolveSubscriptionsFile = () => {
     return DEFAULT_SUBSCRIPTIONS_PATH;
   }
 
-  return path.isAbsolute(pwaConfig.pushSubscriptionsFile)
-    ? pwaConfig.pushSubscriptionsFile
-    : path.join(
-        /* turbopackIgnore: true */ process.cwd(),
-        pwaConfig.pushSubscriptionsFile,
-      );
+  return pwaConfig.pushSubscriptionsFile;
 };
 
-const ensureSubscriptionsFile = async () => {
-  const filePath = resolveSubscriptionsFile();
-  await mkdir(path.dirname(filePath), { recursive: true });
+const subscriptionsStore = createPersistentJsonStore<StoredPushSubscription[]>({
+  key: "tortuga:push-subscriptions",
+  localFile: resolveSubscriptionsFile(),
+  initialState: () => [],
+  requireRedisInProduction: true,
+});
 
-  try {
-    await readFile(filePath, "utf8");
-  } catch {
-    await writeFile(filePath, "[]", "utf8");
-  }
+const visitStore = createPersistentJsonStore<Record<string, StoredVisit[]>>({
+  key: "tortuga:visits:index",
+  localFile: DEFAULT_VISITS_PATH,
+  initialState: () => ({}),
+  requireRedisInProduction: true,
+});
 
-  return filePath;
-};
+const normalizeSubscriptionRecords = (records?: StoredPushSubscription[]) =>
+  Array.isArray(records) ? records : [];
 
-const redisCommand = async <T>(command: Array<string | number>) => {
-  const response = await fetch(redisRestUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${redisRestToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(command),
-    cache: "no-store",
-  });
-
-  const body = (await response.json().catch(() => null)) as
-    | { result?: T; error?: string }
-    | null;
-
-  if (!response.ok || body?.error) {
-    throw new Error(body?.error || "Storage push non disponibile.");
-  }
-
-  return body?.result ?? null;
-};
-
-export const listPushSubscriptions = async (): Promise<StoredPushSubscription[]> => {
-  if (isRedisConfigured) {
-    const raw = await redisCommand<string>(["GET", redisSubscriptionsKey]);
-
-    if (!raw) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as StoredPushSubscription[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      await redisCommand<string>(["SET", redisSubscriptionsKey, "[]"]);
-      return [];
-    }
-  }
-
-  const filePath = await ensureSubscriptionsFile();
-
-  try {
-    const raw = await readFile(filePath, "utf8");
-    const parsed = JSON.parse(raw) as StoredPushSubscription[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const writePushSubscriptions = async (records: StoredPushSubscription[]) => {
-  if (isRedisConfigured) {
-    await redisCommand<string>([
-      "SET",
-      redisSubscriptionsKey,
-      JSON.stringify(records),
-    ]);
-    return;
-  }
-
-  const filePath = await ensureSubscriptionsFile();
-  await writeFile(filePath, JSON.stringify(records, null, 2), "utf8");
-};
+export const listPushSubscriptions = async (): Promise<StoredPushSubscription[]> =>
+  normalizeSubscriptionRecords(await subscriptionsStore.read());
 
 export const savePushSubscription = async (
   input: SavePushSubscriptionInput,
-): Promise<StoredPushSubscription> => {
-  const records = await listPushSubscriptions();
+): Promise<{ record: StoredPushSubscription; isNew: boolean }> => {
   const now = new Date().toISOString();
 
   const nextRecord: StoredPushSubscription = {
@@ -125,29 +63,41 @@ export const savePushSubscription = async (
     permission: input.permission,
     userAgent: input.userAgent?.trim() || undefined,
     installed: Boolean(input.installed),
+    venueAccessExpiresAt: input.venueAccessExpiresAt,
     createdAt: now,
     updatedAt: now,
   };
 
-  const existingIndex = records.findIndex(
-    (record) => record.endpoint === nextRecord.endpoint,
-  );
+  let savedRecord = nextRecord;
+  let isNew = false;
 
-  if (existingIndex >= 0) {
-    const existingRecord = records[existingIndex];
-    records[existingIndex] = {
-      ...existingRecord,
-      ...nextRecord,
-      createdAt: existingRecord.createdAt,
-      updatedAt: now,
-    };
-  } else {
+  await subscriptionsStore.update((currentRecords) => {
+    const records = normalizeSubscriptionRecords(currentRecords);
+    const existingIndex = records.findIndex(
+      (record) => record.endpoint === nextRecord.endpoint,
+    );
+
+    isNew = existingIndex < 0;
+
+    if (existingIndex >= 0) {
+      const existingRecord = records[existingIndex];
+      const mergedRecord = {
+        ...existingRecord,
+        ...nextRecord,
+        createdAt: existingRecord.createdAt,
+        updatedAt: now,
+      };
+      records[existingIndex] = mergedRecord;
+      savedRecord = mergedRecord;
+      return records;
+    }
+
     records.push(nextRecord);
-  }
+    savedRecord = nextRecord;
+    return records;
+  });
 
-  await writePushSubscriptions(records);
-
-  return existingIndex >= 0 ? records[existingIndex] : nextRecord;
+  return { record: savedRecord, isNew };
 };
 
 export const deletePushSubscription = async (endpoint: string) => {
@@ -157,15 +107,83 @@ export const deletePushSubscription = async (endpoint: string) => {
     return false;
   }
 
-  const records = await listPushSubscriptions();
-  const nextRecords = records.filter(
-    (record) => record.endpoint !== normalizedEndpoint,
-  );
+  let removed = false;
 
-  if (nextRecords.length === records.length) {
-    return false;
-  }
+  await subscriptionsStore.update((currentRecords) => {
+    const records = normalizeSubscriptionRecords(currentRecords);
+    const nextRecords = records.filter(
+      (record) => record.endpoint !== normalizedEndpoint,
+    );
+    removed = nextRecords.length !== records.length;
+    return nextRecords;
+  });
 
-  await writePushSubscriptions(nextRecords);
-  return true;
+  return removed;
 };
+
+export interface StoredVisit {
+  contactCode: string;
+  email?: string;
+  timestamp: string;
+  surveySent: boolean;
+}
+
+const normalizeVisitStore = (store?: Record<string, StoredVisit[]>) => store ?? {};
+
+export const saveVisitToStorage = async (contactCode: string, email?: string) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  try {
+    await visitStore.update((rawStore) => {
+      const store = normalizeVisitStore(rawStore);
+      const visits = [...(store[today] ?? [])];
+
+      if (!visits.find((visit) => visit.contactCode === contactCode)) {
+        visits.push({
+          contactCode,
+          email: email?.trim().toLowerCase(),
+          timestamp: new Date().toISOString(),
+          surveySent: false,
+        });
+      }
+
+      store[today] = visits;
+      return store;
+    });
+  } catch (error) {
+    console.error("[Visit Storage] Errore salvataggio visita:", error);
+  }
+};
+
+export const listVisitsForDate = async (dateIso: string): Promise<StoredVisit[]> => {
+  const store = normalizeVisitStore(await visitStore.read());
+  return store[dateIso] ?? [];
+};
+
+export const updateVisitSurveyStatus = async (
+  dateIso: string,
+  contactCode: string,
+) => {
+  try {
+    await visitStore.update((rawStore) => {
+      const store = normalizeVisitStore(rawStore);
+      const visits = [...(store[dateIso] ?? [])];
+      const index = visits.findIndex((visit) => visit.contactCode === contactCode);
+
+      if (index >= 0) {
+        visits[index] = {
+          ...visits[index],
+          surveySent: true,
+        };
+        store[dateIso] = visits;
+      }
+
+      return store;
+    });
+  } catch (error) {
+    console.error("[Visit Storage] Errore update status:", error);
+  }
+};
+
+export const isPushSubscriptionRedisConfigured = () =>
+  subscriptionsStore.isRedisConfigured;

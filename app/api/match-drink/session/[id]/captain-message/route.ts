@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { validateAdminPin } from "@/lib/match-drink/storage";
+import { createBottleMessage, updateStageMode } from "@/lib/match-drink/storage";
+import { expectString, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(
   req: NextRequest,
@@ -8,14 +11,16 @@ export async function POST(
 ) {
   try {
     const { id: sessionId } = await params;
-    const { pin, message } = await req.json();
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
+    const payload = await readJsonBody<{ message?: string }>(req);
+    const message = expectString(payload.message, "Messaggio Capitano", {
+      minLength: 1,
+      maxLength: 500,
+    });
 
-    if (!message) {
-      return NextResponse.json({ error: "Messaggio vuoto" }, { status: 400 });
-    }
 
     const supabase = getSupabaseAdmin();
 
@@ -53,29 +58,19 @@ export async function POST(
     const playerId = players[0].id;
     const isCountdown = message.startsWith("COUNTDOWN:");
 
-    const { data: msgData, error: msgError } = await supabase.from("match_drink_bottle_messages").insert({
-      session_id: sessionId,
-      player_id: playerId,
+    const newMessage = await createBottleMessage({
+      sessionId,
+      playerId,
       message,
-      display_mode: "captain",
+      displayMode: "captain",
       status: "approved",
-    }).select().single();
-
-    if (msgError) throw msgError;
+    });
 
     if (!isCountdown) {
-      const { error: sessionError } = await supabase
-        .from("match_drink_sessions")
-        .update({
-          current_stage_message_id: msgData.id,
-          stage_mode: "message",
-        })
-        .eq("id", sessionId);
-
-      if (sessionError) throw sessionError;
+      await updateStageMode(sessionId, "message", newMessage.id);
     }
 
-    return NextResponse.json({ success: true, messageId: msgData.id });
+    return NextResponse.json({ success: true, messageId: newMessage.id });
   } catch (error) {
     console.error("Captain message error:", error);
     return NextResponse.json({ error: "Errore invio messaggio capitano" }, { status: 500 });

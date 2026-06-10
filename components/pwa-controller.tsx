@@ -1,23 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { requestJson } from "@/lib/client";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { pwaConfig, storageKeys } from "@/lib/config";
 import type {
-  DeletePushSubscriptionResponse,
   SavePushSubscriptionResponse,
 } from "@/lib/push/types";
-import { cn } from "@/lib/utils";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 
 type DeferredPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
-type PushCardMode = "invite" | "retry" | "denied" | "enabled";
+
 
 const readTimestamp = (key: string) => {
   if (typeof window === "undefined") {
@@ -33,13 +31,7 @@ const readTimestamp = (key: string) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const writeTimestamp = (key: string, value: number) => {
-  if (typeof window === "undefined") {
-    return;
-  }
 
-  window.localStorage.setItem(key, String(value));
-};
 
 const clearTimestamp = (key: string) => {
   if (typeof window === "undefined") {
@@ -63,24 +55,7 @@ const isStandaloneDisplayMode = () => {
   return standaloneMatch || iosStandalone;
 };
 
-const isProbablyMobileDevice = () => {
-  if (typeof window === "undefined") {
-    return false;
-  }
 
-  return (
-    window.matchMedia?.("(max-width: 820px)").matches ||
-    /android|iphone|ipad|ipod/i.test(window.navigator.userAgent)
-  );
-};
-
-const isIosDevice = () => {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-};
 
 const isPushSupported = () =>
   typeof window !== "undefined" &&
@@ -98,22 +73,19 @@ const base64ToUint8Array = (value: string) => {
 
 export function PwaController() {
   const { identity } = useCustomerIdentity();
+  const { expiresAt: venueExpiresAt } = useOnPremiseAccess();
   const [clientReady, setClientReady] = useState(false);
-  const [installDismissedAt, setInstallDismissedAt] = useState<number | null>(null);
   const [pushDismissedAt, setPushDismissedAt] = useState<number | null>(null);
-  const [promptEvent, setPromptEvent] = useState<DeferredPromptEvent | null>(null);
-  const [installFallbackReady, setInstallFallbackReady] = useState(false);
+  const [, setPromptEvent] = useState<DeferredPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isProbablyMobile, setIsProbablyMobile] = useState(false);
-  const [isIos, setIsIos] = useState(false);
   const [serviceWorkerRegistration, setServiceWorkerRegistration] =
     useState<ServiceWorkerRegistration | null>(null);
   const [pushPermission, setPushPermission] = useState<
     NotificationPermission | "unsupported"
   >("default");
   const [pushEnabled, setPushEnabled] = useState(false);
-  const [pushBusy, setPushBusy] = useState(false);
-  const [pushError, setPushError] = useState("");
+  const [, setPushBusy] = useState(false);
+  const [, setPushError] = useState("");
   const [evaluationNow, setEvaluationNow] = useState(0);
 
   useEffect(() => {
@@ -124,20 +96,11 @@ export function PwaController() {
       }
 
       setClientReady(true);
-      setInstallDismissedAt(readTimestamp(storageKeys.installPromptDismissedAt));
       setPushDismissedAt(readTimestamp(storageKeys.pushPromptDismissedAt));
       setIsInstalled(isStandaloneDisplayMode());
-      setIsProbablyMobile(isProbablyMobileDevice());
-      setIsIos(isIosDevice());
       setPushPermission(isPushSupported() ? Notification.permission : "unsupported");
       setEvaluationNow(Date.now());
     });
-
-    const installFallbackTimer = window.setTimeout(() => {
-      if (!cancelled) {
-        setInstallFallbackReady(true);
-      }
-    }, 1600);
 
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault();
@@ -152,7 +115,6 @@ export function PwaController() {
       }
 
       clearTimestamp(storageKeys.installPromptDismissedAt);
-      setInstallDismissedAt(null);
       setPromptEvent(null);
       setIsInstalled(true);
       setEvaluationNow(Date.now());
@@ -170,6 +132,42 @@ export function PwaController() {
         const registration = await navigator.serviceWorker.register("/sw.js");
         if (cancelled) {
           return;
+        }
+
+        // Force an update check on registration
+        void registration.update();
+
+        // Listen for updates – reload ONCE when a new SW takes control.
+        // We use sessionStorage to prevent infinite reload loops: if the new
+        // SW is installed but the page keeps erroring, we stop reloading.
+        registration.onupdatefound = () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.onstatechange = () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              const RELOAD_KEY = "tortuga.sw-reload-at";
+              const lastReload = Number(sessionStorage.getItem(RELOAD_KEY) ?? "0");
+              const now = Date.now();
+
+              // Guard: non ricaricare più di una volta ogni 30 secondi
+              if (now - lastReload < 30_000) {
+                console.log("SW update trovato ma reload troppo recente – skip.");
+                return;
+              }
+
+              console.log("Nuova versione trovata. Ricarico l'app...");
+              sessionStorage.setItem(RELOAD_KEY, String(now));
+              window.location.reload();
+            }
+          };
+        };
+
+        // Forza il nuovo SW in attesa a prendere controllo immediatamente
+        // (evita che rimanga bloccato in "waiting" per sempre)
+        const waitingWorker = registration.waiting;
+        if (waitingWorker) {
+          waitingWorker.postMessage({ type: "SKIP_WAITING" });
         }
 
         setServiceWorkerRegistration(registration);
@@ -200,24 +198,9 @@ export function PwaController() {
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(initFrame);
-      window.clearTimeout(installFallbackTimer);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleInstalled);
     };
-  }, []);
-
-  const dismissInstallPrompt = useCallback(() => {
-    const timestamp = Date.now();
-    writeTimestamp(storageKeys.installPromptDismissedAt, timestamp);
-    setInstallDismissedAt(timestamp);
-    setEvaluationNow(timestamp);
-  }, []);
-
-  const dismissPushPrompt = useCallback(() => {
-    const timestamp = Date.now();
-    writeTimestamp(storageKeys.pushPromptDismissedAt, timestamp);
-    setPushDismissedAt(timestamp);
-    setEvaluationNow(timestamp);
   }, []);
 
   const persistSubscription = useCallback(
@@ -236,10 +219,11 @@ export function PwaController() {
           permission: Notification.permission,
           userAgent: navigator.userAgent,
           installed: isInstalled,
+          venueAccessExpiresAt: venueExpiresAt,
         }),
       });
     },
-    [identity.email, isInstalled],
+    [identity.email, isInstalled, venueExpiresAt],
   );
 
   const ensurePushSubscription = useCallback(
@@ -309,46 +293,6 @@ export function PwaController() {
     [persistSubscription, serviceWorkerRegistration],
   );
 
-  const disablePushSubscription = useCallback(async () => {
-    if (!serviceWorkerRegistration || !isPushSupported()) {
-      setPushEnabled(false);
-      return;
-    }
-
-    setPushBusy(true);
-    setPushError("");
-
-    try {
-      const readyRegistration = await navigator.serviceWorker.ready;
-      const subscription = await readyRegistration.pushManager
-        .getSubscription()
-        .catch(() => null);
-
-      if (subscription) {
-        const endpoint = subscription.endpoint;
-        await subscription.unsubscribe().catch(() => false);
-        await requestJson<DeletePushSubscriptionResponse>(
-          "/api/push/subscriptions",
-          {
-            method: "DELETE",
-            body: JSON.stringify({ endpoint }),
-          },
-        );
-      }
-
-      setPushEnabled(false);
-      setEvaluationNow(Date.now());
-    } catch (error) {
-      setPushError(
-        error instanceof Error
-          ? error.message
-          : "Non sono riuscito a disattivare le notifiche.",
-      );
-    } finally {
-      setPushBusy(false);
-    }
-  }, [serviceWorkerRegistration]);
-
   useEffect(() => {
     if (!clientReady || !serviceWorkerRegistration || pushPermission !== "granted") {
       return;
@@ -369,42 +313,13 @@ export function PwaController() {
     return () => {
       cancelled = true;
     };
-  }, [clientReady, ensurePushSubscription, pushPermission, serviceWorkerRegistration]);
+  }, [clientReady, ensurePushSubscription, pushPermission, serviceWorkerRegistration, venueExpiresAt]);
 
-  const installSnoozed =
-    installDismissedAt !== null &&
-    evaluationNow - installDismissedAt < pwaConfig.installReminderWindowMs;
   const pushSnoozed =
     pushDismissedAt !== null &&
     evaluationNow - pushDismissedAt < pwaConfig.pushReminderWindowMs;
 
-  const installCardMode = useMemo<InstallCardMode | null>(() => {
-    if (
-      !clientReady ||
-      !isProbablyMobile ||
-      isInstalled ||
-      installSnoozed ||
-      !installFallbackReady
-    ) {
-      return null;
-    }
-
-    if (promptEvent) {
-      return "prompt";
-    }
-
-    return isIos ? "fallback-ios" : "fallback-browser";
-  }, [
-    clientReady,
-    installFallbackReady,
-    installSnoozed,
-    isInstalled,
-    isIos,
-    isProbablyMobile,
-    promptEvent,
-  ]);
-
-  const pushCardMode = useMemo<PushCardMode | null>(() => {
+  const pushCardMode = (() => {
     if (clientReady && pushEnabled && !pushSnoozed) {
       return "enabled";
     }
@@ -428,160 +343,11 @@ export function PwaController() {
     }
 
     return "invite";
-  }, [
-    clientReady,
-    pushEnabled,
-    pushPermission,
-    pushSnoozed,
-    serviceWorkerRegistration,
-  ]);
+  })();
 
-  if (!installCardMode && !pushCardMode) {
+  if (pushCardMode === "enabled" || !pushCardMode) {
     return null;
   }
 
-  return (
-    <div className="space-y-3">
-      {installCardMode ? (
-        <div className="panel rounded-[1.9rem] px-5 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <p className="eyebrow">Aggiungi alla Home</p>
-              <h2 className="hero-title text-[1.45rem] font-semibold text-white">
-                Aggiungi Tortuga alla Home
-              </h2>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                {installCardMode === "prompt"
-                  ? "Apri Tortuga con un tap e tieni la tua area cliente sempre a portata di mano."
-                  : installCardMode === "fallback-ios"
-                    ? "Su iPhone apri Condividi in Safari e scegli Aggiungi a Home."
-                    : "Dal menu del browser scegli Installa app oppure Aggiungi alla schermata Home."}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="button-secondary inline-flex min-h-10 items-center justify-center px-4 text-sm"
-              onClick={dismissInstallPrompt}
-            >
-              Dopo
-            </button>
-          </div>
-
-          {installCardMode === "prompt" ? (
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-                onClick={async () => {
-                  if (!promptEvent) {
-                    return;
-                  }
-
-                  await promptEvent.prompt();
-                  const choice = await promptEvent.userChoice;
-
-                  if (choice.outcome === "accepted") {
-                    setIsInstalled(true);
-                  } else {
-                    dismissInstallPrompt();
-                  }
-
-                  setPromptEvent(null);
-                }}
-              >
-                Aggiungi
-              </button>
-            </div>
-          ) : (
-            <div className="mt-4 rounded-[1.4rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
-              Un passaggio rapido, nessun popup finto: usi il comando nativo del tuo browser.
-            </div>
-          )}
-        </div>
-      ) : null}
-
-      {pushCardMode ? (
-        <div
-          className={cn(
-            "panel rounded-[1.9rem] px-5 py-5",
-            pushCardMode === "denied" &&
-              "border-[rgba(255,216,156,0.12)] bg-[linear-gradient(180deg,rgba(57,43,30,0.94),rgba(17,13,11,0.98))]",
-          )}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <p className="eyebrow">Notifiche Tortuga</p>
-              <h2 className="hero-title text-[1.45rem] font-semibold text-white">
-                {pushCardMode === "denied"
-                  ? "Notifiche disattivate"
-                  : pushCardMode === "enabled"
-                    ? "Notifiche attive"
-                  : "Attiva le notifiche"}
-              </h2>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                {pushCardMode === "denied"
-                  ? "Puoi riattivarle dalle impostazioni del browser quando vuoi ricevere promemoria, coupon e disponibilita."
-                  : pushCardMode === "enabled"
-                    ? "Tortuga puo mandarti promemoria, coupon e aggiornamenti quando serve."
-                  : "Attiva le notifiche per non perdere aggiornamenti, coupon e disponibilita."}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="button-secondary inline-flex min-h-10 items-center justify-center px-4 text-sm"
-              onClick={dismissPushPrompt}
-            >
-              Dopo
-            </button>
-          </div>
-
-          {pushError ? (
-            <div className="mt-4 rounded-[1.4rem] border border-[rgba(240,139,117,0.24)] bg-[rgba(240,139,117,0.08)] px-4 py-3 text-sm leading-6 text-[var(--danger)]">
-              {pushError}
-            </div>
-          ) : null}
-
-          {pushCardMode === "enabled" ? (
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-                onClick={() => {
-                  void disablePushSubscription();
-                }}
-                disabled={pushBusy}
-              >
-                {pushBusy ? "Disattivo..." : "Disattiva notifiche"}
-              </button>
-            </div>
-          ) : pushCardMode !== "denied" ? (
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-                onClick={async () => {
-                  setPushBusy(true);
-                  await ensurePushSubscription(true);
-                  setPushBusy(false);
-                }}
-                disabled={pushBusy}
-              >
-                {pushBusy
-                  ? "Attivo le notifiche..."
-                  : pushCardMode === "retry"
-                    ? "Riprova"
-                    : "Attiva notifiche"}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-4 rounded-[1.4rem] border border-[rgba(255,216,156,0.12)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
-                  Su alcuni browser mobile serve HTTPS e, su iPhone, la web app deve essere aggiunta alla Home prima di poter ricevere push.
-            </div>
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
+  return null;
 }

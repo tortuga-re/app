@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateSessionStatus, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { updateSessionStatus } from "@/lib/match-drink/storage";
+import { expectEnum, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(
   req: NextRequest,
@@ -7,15 +10,18 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { pin, status } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
-
-    if (!status) {
-      return NextResponse.json({ error: "Status mancante" }, { status: 400 });
-    }
+    const payload = await readJsonBody<{ status?: string }>(req);
+    const status = expectEnum(payload.status, "Stato sessione", [
+      "lobby",
+      "playing",
+      "matching",
+      "reveal",
+      "ended",
+    ] as const);
 
     await updateSessionStatus(id, status);
 

@@ -1,68 +1,92 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { logServerEvent, measureServerOperation } from "@/lib/observability";
 import { sendPushNotification } from "@/lib/push/send";
-import type { PushSendPayload } from "@/lib/push/types";
+import type { PushAudienceSegment, PushSendPayload } from "@/lib/push/types";
+import {
+  expectEnum,
+  expectOptionalString,
+  expectString,
+  readJsonBody,
+  RequestValidationError,
+} from "@/lib/validation/request";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const getBearerToken = (request: Request) => {
-  const authorization = request.headers.get("authorization") ?? "";
-  const [scheme, token] = authorization.split(" ");
+const allowedSegments = [
+  "all",
+  "venue_present",
+  "installed_app",
+  "identified_customers",
+  "recent_visitors_30d",
+  "birthday_soon_14d",
+  "vip_inactive_60d",
+  "specific_email",
+] as const satisfies readonly PushAudienceSegment[];
 
-  if (scheme.toLowerCase() === "bearer" && token) {
-    return token.trim();
-  }
-
-  return request.headers.get("x-push-admin-token")?.trim() ?? "";
-};
-
-const isAuthorized = (request: Request) => {
-  const configuredToken = process.env.PUSH_ADMIN_TOKEN?.trim() ?? "";
-
-  if (!configuredToken) {
-    return false;
-  }
-
-  return getBearerToken(request) === configuredToken;
-};
-
-export async function POST(request: Request) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json(
-      { error: "Invio push non autorizzato." },
-      { status: 401 },
-    );
-  }
-
-  let payload: Partial<PushSendPayload>;
-
-  try {
-    payload = (await request.json()) as Partial<PushSendPayload>;
-  } catch {
-    return NextResponse.json(
-      { error: "Payload push non valido." },
-      { status: 400 },
-    );
-  }
-
-  if (!payload.title?.trim() || !payload.body?.trim()) {
-    return NextResponse.json(
-      { error: "Titolo e testo notifica sono obbligatori." },
-      { status: 400 },
-    );
+export async function POST(request: NextRequest) {
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
   try {
-    const response = await sendPushNotification({
-      title: payload.title.trim(),
-      body: payload.body.trim(),
-      url: payload.url?.trim() || "/ciurma",
-      tag: payload.tag?.trim() || "tortuga-update",
-      email: payload.email?.trim().toLowerCase() || undefined,
-      icon: payload.icon?.trim() || undefined,
-      badge: payload.badge?.trim() || undefined,
-      renotify: Boolean(payload.renotify),
+    const payload = await readJsonBody<Partial<PushSendPayload>>(request);
+    const segment = expectEnum(
+      payload.segment ?? "all",
+      "Segmento push",
+      allowedSegments,
+    );
+    const response = await measureServerOperation(
+      "admin_push_send",
+      async () =>
+        sendPushNotification({
+          title: expectString(payload.title, "Titolo notifica", {
+            minLength: 2,
+            maxLength: 80,
+          }),
+          body: expectString(payload.body, "Testo notifica", {
+            minLength: 2,
+            maxLength: 240,
+          }),
+          url:
+            expectOptionalString(payload.url, "URL destinazione", {
+              maxLength: 120,
+            }) || "/ciurma",
+          tag:
+            expectOptionalString(payload.tag, "Tag notifica", {
+              maxLength: 60,
+            }) || "tortuga-update",
+          email:
+            segment === "specific_email"
+              ? expectString(payload.email, "Email destinatario", {
+                  minLength: 5,
+                  maxLength: 120,
+                }).toLowerCase()
+              : expectOptionalString(payload.email, "Email destinatario", {
+                  maxLength: 120,
+                })?.toLowerCase(),
+          icon: expectOptionalString(payload.icon, "Icona", { maxLength: 120 }),
+          badge: expectOptionalString(payload.badge, "Badge", { maxLength: 120 }),
+          renotify: Boolean(payload.renotify),
+          onlyVenuePresent: segment === "venue_present",
+          segment,
+        }),
+      {
+        adminRole: adminRequest.session.role,
+        segment,
+      },
+    );
+
+    logServerEvent("info", "admin_push_send_completed", {
+      adminRole: adminRequest.session.role,
+      segment,
+      sent: response.sent,
+      failed: response.failed,
+      removed: response.removed,
+      total: response.total,
     });
 
     return NextResponse.json(response);
@@ -70,11 +94,13 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error
+          error instanceof RequestValidationError
             ? error.message
-            : "Invio push non disponibile.",
+            : error instanceof Error
+              ? error.message
+              : "Invio push non disponibile.",
       },
-      { status: 500 },
+      { status: error instanceof RequestValidationError ? error.status : 500 },
     );
   }
 }

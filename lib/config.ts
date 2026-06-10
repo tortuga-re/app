@@ -28,6 +28,8 @@ export const siteConfig = {
   productionUrl: "https://app.tortugabay.it",
   accent: "#b58a4d",
   accentSoft: "#f1d8a1",
+  logoUrl: "https://tortugabay.it/wp-content/uploads/2025/08/cropped-TORTUGA-FAVICON-SMALL.png",
+  ogImageUrl: "https://tortugabay.it/wp-content/uploads/2026/05/LOGO-TORTUGA-2.png",
 };
 
 export const analyticsConfig = {
@@ -55,9 +57,9 @@ export const tortugaInfoConfig = {
     },
     {
       day: "GIOVEDÌ",
-      title: "The Love Game",
+      title: "Match & Drink",
       description:
-        "Prossimamente. Con chi hai più affinità? Scoprilo con il nostro gioco.",
+        "Vuoi conoscere persone con i tuoi stessi interessi? Tra una risposta e l'altra, potrebbe nascere anche qualcosa di romantico.",
     },
     {
       day: "VENERDÌ",
@@ -85,6 +87,26 @@ export const tortugaInfoConfig = {
     { label: "Facebook", href: "https://www.facebook.com/tortuga.re" },
     { label: "TikTok", href: "https://www.tiktok.com/@tortugare" },
   ],
+  reviews: [
+    {
+      author: "Andrea M.",
+      source: "Google",
+      rating: 5,
+      text: "Atmosfera fantastica e personale super accogliente! Gli hamburger sono spettacolari e le serate a tema con il karaoke rendono ogni cena un'esperienza divertente. Il posto perfetto per festeggiare con gli amici!",
+    },
+    {
+      author: "Simona R.",
+      source: "TripAdvisor",
+      rating: 5,
+      text: "Locale originale e molto curato. Ci siamo stati per una festa di compleanno e siamo rimasti colpiti dalla cortesia dello staff e dalla qualità del cibo (pinse ottime!). Divertimento assicurato.",
+    },
+    {
+      author: "Marco P.",
+      source: "Google",
+      rating: 5,
+      text: "Un punto di riferimento a Reggio Emilia per chi cerca una serata diversa. Ottimo cibo, musica e tanta allegria. Consigliatissimo per chi vuole staccare la spina e farsi due risate in compagnia.",
+    },
+  ],
 } as const;
 
 export const localExperiencePublicConfig = {
@@ -108,18 +130,7 @@ export const localExperiencePublicConfig = {
   },
 } as const;
 
-export const ciurmaRoadmapFeatures = [
-  {
-    title: "Arruola un Pirata",
-    description:
-      "Invita un amico nella tua ciurma e sblocca vantaggi extra quando torna a bordo.",
-  },
-  {
-    title: "Esperienze solo in locale",
-    description:
-      "Alcune rotte si aprono solo quando sei davvero a bordo.",
-  },
-] as const;
+export const ciurmaRoadmapFeatures = [] as const;
 
 export const pwaConfig = {
   vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? "",
@@ -131,7 +142,7 @@ export const pwaConfig = {
 export const tortugaRooms: Record<string, string> = {
   "da1d57f0-e0d5-4d7e-86be-9f8300f388b8": "Sala Centrale",
   "b7f34310-195e-4c03-ac05-a660e79dc1ce": "Soppalco",
-  "32986b6b-4f7f-4924-a9de-c76445e1031e": "Cabina di Poppa",
+  "32986b6b-4f7f-4924-a9de-c76445e1031e": "Galeone",
   "2a2cda28-9466-4a9d-b2d0-5a0294b2fd0c": "Area Family",
 };
 
@@ -144,5 +155,7 @@ export const storageKeys = {
   menuAccessExpiresAt: "tortuga.menu-access-expires-at",
   installPromptDismissedAt: "tortuga.install-prompt-dismissed-at",
   pushPromptDismissedAt: "tortuga.push-prompt-dismissed-at",
+  surveyPushSentAt: "tortuga.survey-push-sent-at",
   customerAvatarPrefix: "tortuga.customer-avatar",
+  lastVisitAt: "tortuga.last-visit-at",
 } as const;

@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import { 
+  getMatches,
+  getPlayers,
   getPlayer, 
   getPlayerAnswers, 
   getPlayerMatch, 
   getSession,
   getSessionQuestions
 } from "@/lib/match-drink/storage";
+import { assignMatchDrinkMeetingTables } from "@/lib/match-drink/meeting-tables";
+import { calculatePlayerProfile } from "@/lib/match-drink/scoring";
+import {
+  getApproachAdviceForTrait,
+  getMainCategoryPluralLabel,
+  getMatchDrinkRewardText,
+  getSharedMainCategory,
+} from "@/lib/match-drink/profile";
 
 export async function GET(
   req: NextRequest,
@@ -15,11 +25,13 @@ export async function GET(
   try {
     const { id, playerId } = await params;
 
-    const [session, player, answers, match, questions] = await Promise.all([
+    const [session, players, player, answers, match, matches, questions] = await Promise.all([
       getSession(id),
+      getPlayers(id),
       getPlayer(playerId),
       getPlayerAnswers(id, playerId),
       getPlayerMatch(id, playerId),
+      getMatches(id),
       getSessionQuestions(id),
     ]);
 
@@ -33,14 +45,68 @@ export async function GET(
         getPlayer(match.playerAId),
         getPlayer(match.playerBId),
       ]);
+
+      const currentPlayerIsA = match.playerAId === player.id;
+      const matchedPlayer = currentPlayerIsA ? pB : pA;
+
+      const [answersA, answersB] = await Promise.all([
+        getPlayerAnswers(id, match.playerAId),
+        getPlayerAnswers(id, match.playerBId),
+      ]);
+
+      const profileA = pA ? calculatePlayerProfile(pA, answersA, questions) : null;
+      const profileB = pB ? calculatePlayerProfile(pB, answersB, questions) : null;
+      const ownProfile = currentPlayerIsA ? profileA : profileB;
+      const matchedProfile = currentPlayerIsA ? profileB : profileA;
+      const meetingAssignment = assignMatchDrinkMeetingTables(
+        matches,
+        players,
+        answers,
+        questions,
+        session.secondaryTraitMode ?? "absolute",
+        session.excludedMeetingTables ?? [],
+      ).get(match.id);
+      const sharedMainCategory =
+        ownProfile && matchedProfile
+          ? getSharedMainCategory(ownProfile, matchedProfile)
+          : null;
+
       enrichedMatch = {
         ...match,
         playerANickname: pA?.nickname,
         playerATable: pA?.tableNumber,
         playerAAvatar: pA?.avatarUrl,
+        playerAPhone: pA?.phone,
         playerBNickname: pB?.nickname,
         playerBTable: pB?.tableNumber,
         playerBAvatar: pB?.avatarUrl,
+        playerBPhone: pB?.phone,
+        ownMainCategory: ownProfile?.mainCategory,
+        ownMainCategoryLabel: ownProfile?.mainCategoryLabel,
+        matchedPlayerNickname: matchedPlayer?.nickname,
+        matchedPlayerTable: matchedPlayer?.tableNumber,
+        matchedPlayerPhone: matchedPlayer?.phone,
+        matchedPlayerMainCategory: matchedProfile?.mainCategory,
+        matchedPlayerMainCategoryLabel: matchedProfile?.mainCategoryLabel,
+        matchedPlayerSecondaryTrait: matchedProfile?.secondaryTrait,
+        matchedPlayerSecondaryTraitLabel: matchedProfile?.secondaryTraitLabel,
+        matchedPlayerApproachAdvice: matchedProfile
+          ? getApproachAdviceForTrait(
+              matchedProfile.secondaryTrait,
+              matchedPlayer?.gender,
+            )
+          : undefined,
+        meetingTableNumber: meetingAssignment?.tableNumber,
+        meetingTableArea: meetingAssignment?.tableArea,
+        meetingTableLabel: meetingAssignment?.tableLabel,
+        sharedMainCategory,
+        sharedMainCategoryLabel: sharedMainCategory
+          ? getMainCategoryPluralLabel(sharedMainCategory)
+          : null,
+        rewardText: getMatchDrinkRewardText(
+          sharedMainCategory,
+          meetingAssignment?.tableLabel,
+        ),
       };
     }
 

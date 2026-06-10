@@ -2,65 +2,71 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { 
   MatchDrinkAnswer, 
   MatchDrinkBottleMessage, 
+  MatchDrinkForecastSummary,
   MatchDrinkMatch, 
+  MatchDrinkMeetingTableOption,
   MatchDrinkPlayer, 
   MatchDrinkSession 
 } from "./types";
-
-const STORAGE_KEY_ADMIN_PIN = "match-drink.adminPin";
+import { getSupabase } from "./supabase";
+import {
+  applyModeratedMessage,
+  mergeMessages,
+  upsertMessage,
+  type MatchDrinkMessageModeratedPayload
+} from "./message-state";
 
 export function useMatchDrinkAdmin(sessionId?: string) {
-  const [pin, setPin] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY_ADMIN_PIN) || "";
-    }
-    return "";
-  });
   const [session, setSession] = useState<MatchDrinkSession | null>(null);
   const [players, setPlayers] = useState<MatchDrinkPlayer[]>([]);
   const [messages, setMessages] = useState<MatchDrinkBottleMessage[]>([]);
   const [matches, setMatches] = useState<MatchDrinkMatch[]>([]);
   const [answers, setAnswers] = useState<MatchDrinkAnswer[]>([]);
+  const [forecast, setForecast] = useState<MatchDrinkForecastSummary | null>(null);
+  const [meetingTableOptions, setMeetingTableOptions] = useState<MatchDrinkMeetingTableOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const savePin = (newPin: string) => {
-    setPin(newPin);
-    localStorage.setItem(STORAGE_KEY_ADMIN_PIN, newPin);
-  };
-
+  const lastUpdatedAtRef = useRef<string>("");
   const refresh = useCallback(async () => {
     if (!sessionId) return;
     try {
-      // Consolidated status for admin too? Yes, let's create it.
-      const res = await fetch(`/api/match-drink/session/${sessionId}/admin-status?pin=${pin}`);
+      const res = await fetch(`/api/match-drink/session/${sessionId}/admin-status?t=${Date.now()}`);
       if (!res.ok) {
-        if (res.status === 401) setError("PIN non valido");
+        if (res.status === 401) setError("Sessione admin scaduta");
         return;
       }
       const data = await res.json();
-      setSession(data.session);
-      setPlayers(data.players);
-      setMessages(data.messages);
-      setMatches(data.matches);
-      setAnswers(data.answers);
-      setLoading(false);
-      setError(null);
+      if (data.session) {
+        if (!lastUpdatedAtRef.current || data.session.updatedAt >= lastUpdatedAtRef.current) {
+          if (data.session.updatedAt) lastUpdatedAtRef.current = data.session.updatedAt;
+          setSession(data.session);
+        }
+        setPlayers(data.players);
+        setMessages(prev => mergeMessages(prev, data.messages || []));
+        setMatches(data.matches);
+        setAnswers(data.answers);
+        setForecast(data.forecast ?? null);
+        setMeetingTableOptions(data.meetingTableOptions ?? []);
+        setLoading(false);
+        setError(null);
+      }
     } catch (err) {
       console.error("Admin poll error:", err);
     }
-  }, [sessionId, pin]);
+  }, [sessionId]);
 
   useEffect(() => {
     let mounted = true;
+    const supabase = getSupabase();
 
     const initialRefresh = async () => {
-      if (sessionId && pin) {
+      if (sessionId) {
         await refresh();
         if (mounted) {
-          pollingRef.current = setInterval(refresh, 2000);
+          pollingRef.current = setInterval(refresh, 3000); // 3s backup
         }
       } else {
         setLoading(false);
@@ -69,18 +75,51 @@ export function useMatchDrinkAdmin(sessionId?: string) {
 
     initialRefresh();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null;
+    if (sessionId) {
+      channel = supabase
+        .channel(`match-drink-${sessionId}`)
+        .on("broadcast", { event: "new_answer" }, () => void refresh())
+        .on("broadcast", { event: "new_message" }, ({ payload }) => {
+          if (mounted && payload) {
+            setMessages(prev => upsertMessage(prev, payload));
+          }
+          void refresh();
+        })
+        .on("broadcast", { event: "message_moderated" }, ({ payload }: { payload: MatchDrinkMessageModeratedPayload }) => {
+          if (mounted && payload) {
+            setMessages(prev => applyModeratedMessage(prev, payload));
+          }
+          void refresh();
+        })
+        .on("broadcast", { event: "match_updated" }, () => void refresh())
+        .on("broadcast", { event: "player_joined" }, () => void refresh())
+        .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          if (mounted && payload) {
+            if (!lastUpdatedAtRef.current || !payload.updatedAt || payload.updatedAt >= lastUpdatedAtRef.current) {
+              if (payload.updatedAt) lastUpdatedAtRef.current = payload.updatedAt;
+              setSession(prev => prev ? { ...prev, ...payload } : prev);
+              void refresh(); // Forza aggiornamento completo per catturare messaggi evidenziati ecc
+            }
+          }
+        })
+        .subscribe();
+    }
+
     return () => {
       mounted = false;
       if (pollingRef.current) clearInterval(pollingRef.current);
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [sessionId, pin, refresh]);
+  }, [sessionId, refresh]);
 
   const apiCall = async (endpoint: string, body: Record<string, unknown> = {}) => {
     try {
       const res = await fetch(`/api/match-drink/session/${sessionId}/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, ...body }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -97,13 +136,13 @@ export function useMatchDrinkAdmin(sessionId?: string) {
   };
 
   return {
-    pin,
-    savePin,
     session,
     players,
     messages,
     matches,
     answers,
+    forecast,
+    meetingTableOptions,
     loading,
     error,
     refresh,
@@ -117,5 +156,10 @@ export function useMatchDrinkAdmin(sessionId?: string) {
     redeemDrink: (matchId: string) => apiCall("redeem-drink", { matchId }),
     deleteSession: () => apiCall("delete"),
     updateStatus: (status: string) => apiCall("status", { status }),
+    toggleMessages: (enabled: boolean) => apiCall("settings", { bottleMessagesEnabled: enabled }),
+    updateExcludedMeetingTables: (excludedMeetingTables: string[]) =>
+      apiCall("settings", { excludedMeetingTables }),
+    updateSecondaryTraitMode: (secondaryTraitMode: "macro_category" | "absolute") =>
+      apiCall("settings", { secondaryTraitMode }),
   };
 }

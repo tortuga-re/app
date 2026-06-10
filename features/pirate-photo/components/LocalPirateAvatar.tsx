@@ -134,7 +134,10 @@ export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateA
       const res = await fetch("/api/match-drink/upload-avatar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base64: dataUrl }),
+        body: JSON.stringify({ 
+          base64: dataUrl,
+          email: customerKey.includes("@") ? customerKey : undefined 
+        }),
       });
       if (res.ok) {
         const { url } = await res.json();
@@ -174,7 +177,7 @@ export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateA
   };
 
   return (
-    <div className={`relative shrink-0 ${menuOpen ? "z-[60]" : "z-10"}`}>
+    <div className={`relative shrink-0 ${menuOpen ? "z-[120]" : "z-20"}`}>
       <button
         type="button"
         className="group flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[rgba(216,176,106,0.45)] bg-[radial-gradient(circle_at_35%_25%,rgba(242,215,165,0.2),rgba(40,20,12,0.94)_62%)] shadow-[0_18px_42px_rgba(0,0,0,0.42)] transition active:scale-[0.98]"
@@ -196,7 +199,7 @@ export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateA
       </button>
 
       {menuOpen ? (
-        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-50 w-52 rounded-[1.25rem] border border-[rgba(216,176,106,0.26)] bg-[rgba(18,11,8,0.98)] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.48)]">
+        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[130] w-52 rounded-[1.25rem] border border-[rgba(216,176,106,0.26)] bg-[rgba(18,11,8,0.98)] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.48)]">
           {avatar ? (
             <button
               type="button"
@@ -250,7 +253,7 @@ export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateA
       ) : null}
 
       {error ? (
-        <p className="absolute left-0 top-[calc(100%+0.55rem)] z-10 min-w-64 rounded-[1rem] border border-[rgba(240,139,117,0.24)] bg-[rgba(30,10,8,0.98)] px-3 py-2 text-xs leading-5 text-[var(--danger)]">
+        <p className="absolute left-0 top-[calc(100%+0.55rem)] z-[125] min-w-64 rounded-[1rem] border border-[rgba(240,139,117,0.24)] bg-[rgba(30,10,8,0.98)] px-3 py-2 text-xs leading-5 text-[var(--danger)]">
           {error}
         </p>
       ) : null}
@@ -277,7 +280,7 @@ export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateA
 
       {previewOpen && avatar ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/82 px-6"
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-black/82 px-6"
           role="dialog"
           aria-modal="true"
           onClick={() => setPreviewOpen(false)}

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
-import { validateAdminPin } from "@/lib/match-drink/storage";
+import { createBottleMessage } from "@/lib/match-drink/storage";
 
 const SEED_MESSAGES = [
   "Qualcuno ha del rum extra? Chiedo per un amico al tavolo 5.",
@@ -15,6 +17,9 @@ const SEED_MESSAGES = [
   "Cercasi compagno/a di scorribande per il resto della serata. Requisiti: fegato d'acciaio.",
   "Se stasera non finisce in un arrembaggio, non sono contento.",
   "Il tavolo 3 sta cercando di battere il record di shot? Chiedo per unirmi.",
+  "Stasera il vento soffia dalla parte giusta per un incontro galante...",
+  "Ho perso la bussola, ma i tuoi occhi mi indicano la rotta.",
+  "Un brindisi a chi non ha ancora trovato il suo match, la serata è lunga!"
 ];
 
 export async function POST(
@@ -23,9 +28,9 @@ export async function POST(
 ) {
   try {
     const { id: sessionId } = await params;
-    const { pin } = await req.json();
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
 
     const message = SEED_MESSAGES[Math.floor(Math.random() * SEED_MESSAGES.length)];
@@ -42,21 +47,47 @@ export async function POST(
       ? players[Math.floor(Math.random() * players.length)].id 
       : null;
 
-    if (!randomPlayerId) {
-       return NextResponse.json({ error: "Nessun naufrago a bordo per generare messaggi" }, { status: 400 });
+    let targetPlayerId = randomPlayerId;
+
+    if (!targetPlayerId) {
+      // Create or get system player
+      const { data: sysPlayer } = await supabase
+        .from("match_drink_players")
+        .select("id")
+        .eq("session_id", sessionId)
+        .eq("nickname", "_SYSTEM_")
+        .maybeSingle();
+      
+      if (!sysPlayer) {
+        const { data: newSys, error: newSysError } = await supabase
+          .from("match_drink_players")
+          .insert({
+            session_id: sessionId,
+            nickname: "_SYSTEM_",
+            age_range: "preferisco_non_dirlo",
+            gender: "preferisco_non_dirlo",
+            relationship_status: "solo_per_ridere",
+            looking_for: "amicizie",
+            public_consent: false,
+          })
+          .select()
+          .single();
+        if (newSysError) throw newSysError;
+        targetPlayerId = newSys.id;
+      } else {
+        targetPlayerId = sysPlayer.id;
+      }
     }
 
-    const { error } = await supabase.from("match_drink_bottle_messages").insert({
-      session_id: sessionId,
-      player_id: randomPlayerId,
+    const newMessage = await createBottleMessage({
+      sessionId,
+      playerId: targetPlayerId,
       message,
-      display_mode: "anonymous",
+      displayMode: "anonymous",
       status: "pending",
     });
 
-    if (error) throw error;
-
-    return NextResponse.json({ success: true, message });
+    return NextResponse.json({ success: true, message: newMessage });
   } catch (error) {
     console.error("Seed message error:", error);
     return NextResponse.json({ error: "Errore generazione messaggio" }, { status: 500 });

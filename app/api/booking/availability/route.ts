@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const date = searchParams.get("date") ?? "";
   const pax = Number(searchParams.get("pax") ?? "0");
   const roomCode = searchParams.get("roomCode") ?? undefined;
+  const moduleCode = searchParams.get("moduleCode") ?? undefined;
 
   if (!isIsoDate(date)) {
     return NextResponse.json(
@@ -27,15 +28,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await getBookingAvailability(date, pax, roomCode);
+    const data = await getBookingAvailability(date, pax, roomCode, moduleCode);
     return NextResponse.json(data);
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("SALA_NON_SELEZIONABILE_MODULO")) {
+      return NextResponse.json(
+        { error: "SALA_NON_SELEZIONABILE_MODULO" },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Disponibilita non recuperabile.",
+        error: message,
       },
       { status: 500 },
     );

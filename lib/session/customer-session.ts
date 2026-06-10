@@ -5,6 +5,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 
 import type { CustomerSessionIdentity } from "@/lib/session/types";
+import { normalizeItalianPhone } from "@/lib/validation/phone";
 
 export const customerSessionCookieName = "tortuga_customer_session";
 export const customerSessionMaxAgeSeconds = 60 * 60 * 24 * 90;
@@ -56,7 +57,7 @@ export const normalizeCustomerSessionIdentity = (
     email,
     firstName: cleanText(value.firstName),
     lastName: cleanText(value.lastName),
-    phone: cleanText(value.phone),
+    phone: normalizeItalianPhone(value.phone ?? "")?.normalizedE164 ?? "",
     marketingConsent:
       typeof value.marketingConsent === "boolean"
         ? value.marketingConsent

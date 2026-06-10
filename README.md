@@ -1,134 +1,103 @@
 # Tortuga Client App
 
-Web app clienti mobile-first per Tortuga Bay, costruita con Next.js App Router, TypeScript e Tailwind CSS v4. L'integrazione Cooperto e interamente server-side, con PWA installabile, shell mobile, fallback mock leggibili e rotte pronte per home cliente, prenotazione, ciurma fidelity e info locale.
+Web app mobile-first per i pirati del **Tortuga Bay**, progettata per offrire un'esperienza immersiva nel locale: dalle prenotazioni ai giochi interattivi, fino alla gestione della fedeltà ("Ciurma").
 
-## Stack
+Costruita con **Next.js (App Router)**, **TypeScript** e **Tailwind CSS v4**, l'applicazione è una PWA (Progressive Web App) installabile con supporto alle notifiche push e integrazione server-side con il sistema **Cooperto**.
 
-- Next.js App Router
-- TypeScript
-- Tailwind CSS v4
-- PWA base senza dipendenze extra
-- Route handlers server-side per Cooperto
+---
 
-## Setup locale
+## 🚀 Funzionalità Principali
 
-1. Copia `.env.example` in `.env`.
-2. Installa le dipendenze:
+### 🏴‍☠️ Dashboard "La Ciurma"
+*   **Profilo Dinamico**: Visualizzazione saldo punti, livello fedeltà e QR code per il riconoscimento rapido in cassa.
+*   **Azioni Rapide**: Accesso immediato a prenotazioni, giochi e coupon attivi.
+*   **Stato Prenotazioni**: Riepilogo delle prenotazioni imminenti direttamente in Home.
 
-```bash
-npm install
+### 📅 Sistema di Prenotazione Avanzato
+*   **Integrazione Real-time**: Sincronizzazione completa con le API di Cooperto per disponibilità e sale.
+*   **Ingresso Dopo Cena**: Opzione dedicata per prenotazioni dalle 22:30, gestita con logiche di overbooking flessibile.
+*   **Area Family**: Supporto specifico per famiglie con inserimento obbligatorio del numero di bambini per la sala dedicata.
+*   **Mappa Interattiva**: Piantina del locale integrata per visualizzare la posizione della sala scelta.
+
+### 🎮 Giochi e Intrattenimento
+*   **Match & Drink**: Gioco multiplayer per animare i tavoli, con gestione sessioni via Supabase.
+*   **Kantaquiz**: Quiz a tema musicale/karaoke per sfidare la propria conoscenza.
+*   **Sfida il Capitano**: Gioco di riflessi con validazione server-side e sistema di referral.
+*   **Pirate Photo**: Contest fotografico con upload diretto delle immagini per partecipare alle iniziative del locale.
+
+### 📱 PWA & Esperienza Locale
+*   **PWA Installabile**: Prompt personalizzato "Aggiungi a Home" per iOS e Android.
+*   **Notifiche Push**: Infrastruttura pronta per l'invio di avvisi e comunicazioni marketing.
+*   **Registrazione Visite**: Sistema di check-in via QR code locale per accumulare punti e sbloccare premi.
+*   **Survey Post-Visita**: Funnel automatico per la raccolta feedback dopo l'esperienza al locale.
+
+---
+
+## 🛠 Stack Tecnologico
+
+*   **Framework**: [Next.js](https://nextjs.org/) (App Router)
+*   **Linguaggio**: [TypeScript](https://www.typescriptlang.org/)
+*   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+*   **Database & Backend**:
+    *   **Supabase**: Gestione dati per giochi (domande, sessioni) e contest fotografici.
+    *   **Redis**: Tracking delle visite, gestione lock e rate limiting.
+*   **Integrazioni**: API Cooperto (Booking & Fidelity).
+*   **PWA**: Service Workers nativi per gestione offline e installazione.
+
+---
+
+## 📂 Struttura del Progetto
+
+```text
+app/
+├── api/                # Route handlers (Cooperto proxy, Push, Games, Visits)
+├── components/         # Componenti UI condivisi (BookingFlow, Layout, MapViewer)
+├── features/           # Moduli verticali (Match&Drink, PiratePhoto, Kantaquiz)
+├── lib/                # Logica di business, configurazioni e client (Supabase, Redis, Cooperto)
+├── (pages)/            # Pagine dell'applicazione (Home, Prenota, Profilo, Info)
+└── public/             # Asset statici, icone PWA e piantine
 ```
 
-3. Avvia il progetto:
+---
 
-```bash
-npm run dev
-```
+## ⚙️ Configurazione (Variabili Ambiente)
 
-4. Verifica lint e build:
+L'app richiede diverse variabili per il pieno funzionamento. Copia `.env.example` in `.env` e configura:
 
-```bash
-npm run lint
-npm run build
-```
+### Cooperto & Fidelity
+- `COOPERTO_API_KEY`: Chiave API fornita da Cooperto.
+- `COOPERTO_SEDE_CODE`: Codice identificativo della sede.
+- `COOPERTO_BOOKING_MODULE_CODE`: Codice del modulo prenotazioni attivo.
 
-## Variabili ambiente
+### Supabase & Redis
+- `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`: Per giochi e contest.
+- `REDIS_URL`: Per il tracking delle visite e survey.
 
-Le variabili richieste sono:
+### PWA & Push
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`: Per le notifiche push.
 
-- `COOPERTO_API_KEY`
-- `COOPERTO_SEDE_CODE`
-- `COOPERTO_BOOKING_MODULE_CODE`
-- `COOPERTO_BOOKING_ROOM_CODES`
-- `COOPERTO_DEFAULT_FIDELITY_CARD_CODE` opzionale: usarla solo se Cooperto fornisce un codice template fidelity. Non inserire codici card personali gia assegnati a clienti; se non conosci il template corretto, lascia vuoto.
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
-- `PUSH_SUBSCRIPTIONS_FILE`
-- `WIN_WINDOW_MS` (default `250`)
-- `GAME_MIN_DELAY_MS` (default `2000`)
-- `GAME_MAX_DELAY_MS` (default `6000`)
-- `GAME_WIN_OFFER_DURATION_SECONDS` (default `600`)
-- `GAME_LOSE_OFFER_DURATION_SECONDS` (default `300`)
+---
 
-Se una o piu variabili mancassero, le route interne passano automaticamente a mock locale o fallback mock per mantenere l'app navigabile.
+## 🛠 Setup Locale
 
-## Flussi implementati
+1.  **Installazione**:
+    ```bash
+    npm install
+    ```
+2.  **Sviluppo**:
+    ```bash
+    npm run dev
+    ```
+3.  **Qualità & Build**:
+    ```bash
+    npm run lint       # Controllo stile e errori
+    npm run typecheck  # Controllo tipi TypeScript
+    npm run build      # Build di produzione
+    ```
 
-- `/`
-  - dashboard cliente con priorita dinamica tra prossima prenotazione, compleanno vicino, coupon attivo e prenotazione rapida
-  - riepilogo punti, fidelity, coupon, visite e azioni rapide
-- `/prenota`
-  - bootstrap modulo con `GET /api/Prenotazioni/ElencoModuliPrenotazione`
-  - disponibilita con `GET /api/Prenotazioni/OrariModulo`
-  - creazione prenotazione reale con `POST /api/Prenotazioni/Crea`
-- `/ciurma`
-  - dettagli contatto via email o codice contatto
-  - saldo punti
-  - coupon contatto
-  - elenco fidelity card
-- `/info`
-  - elenco sedi
-  - orari e eccezioni per sede
-  - indicazioni, programmazione, contatti e social predisposti
-- `/game/sfida-capitano`
-  - gioco riflessi con round creato e validato server-side
-  - vite MVP via cookie player + store in-memory
-  - referral link `/game/sfida-capitano?ref=CODICE_UNIVOCO`
-  - `POST /api/game/start` genera `gameId` sicuro e delay miccia
-  - `POST /api/game/tap` calcola false start, win o lose usando solo timestamp server
-  - `GET /api/game/lives` restituisce vite disponibili
-  - `POST /api/game/referral/create` crea o recupera il codice referral
-  - `POST /api/game/referral/claim` registra apertura unica per browser/player
+---
 
-## Note Sfida il Capitano
+## 🚢 Deploy
 
-- Il frontend usa `explosionDelayMs` restituito dal backend solo per schedulare il segnale GO.
-- La UI non mostra barre, countdown o indicatori del tempo residuo prima del GO.
-- Il reaction time non arriva mai dal client: viene calcolato da `/api/game/tap`.
-- Ogni player cookie parte con 1 vita. Il round consuma 1 vita quando viene completato.
-- Lo storage round, vite e referral e in-memory per MVP locale. In produzione multi-instance/serverless va sostituito con Redis o database con TTL e update atomico one-shot legato a cliente autenticato/email.
-
-## Note Cooperto
-
-- La API key non viene mai esposta al browser.
-- `RequestCreaPrenotazione` segue la Swagger reale:
-  - richiesti `CodiceSede`, `DataPrenotazione`, `CodiceStato`, `Pax`
-  - non viene inviato `CodiceModuloPrenotazione`
-  - non viene inviato `CodiceContatto`
-- `DataPrenotazione` viene costruita in timezone Europe/Rome.
-- L'attivazione automatica della Ciurma Card prova prima `POST /api/Contatti/AggiornaFidelityCard` con solo `codiceContatto`. Se Cooperto richiede un `codiceCard`, l'app usa `COOPERTO_DEFAULT_FIDELITY_CARD_CODE` solo se configurato esplicitamente; non usa piu la prima card restituita da `FidelityCard/Elenco`.
-
-## Deploy
-
-Target richiesto:
-
-- `app.tortugabay.it`
-- Hostinger directory: `/home/u421648830/domains/tortugabay.it/public_html/app`
-
-Per il deploy serve un runtime Node compatibile con Next.js e accesso alle stesse variabili ambiente presenti in locale.
-
-## PWA e Push
-
-- L'app registra un service worker e mostra una card discreta per `Aggiungi Tortuga alla Home` solo quando la web app e installabile e non risulta gia installata.
-- Se il browser non espone `beforeinstallprompt`, la UI mostra istruzioni semplici per aggiungere la web app alla Home usando il comando nativo del browser.
-- Le notifiche push vengono richieste solo dopo click esplicito su `Attiva notifiche`.
-- Quando il permesso e `granted`, la subscription viene salvata nella route interna `/api/push/subscriptions`.
-- Per default le subscription vengono memorizzate su file in `.data/push-subscriptions.json`. Se vuoi spostarle altrove puoi configurare `PUSH_SUBSCRIPTIONS_FILE`.
-- Per creare davvero la push subscription su browser compatibili serve una chiave pubblica VAPID in `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
-
-### Test rapido installazione
-
-1. Avvia `npm run dev`.
-2. Apri l'app da mobile o dal device emulation del browser.
-3. Verifica la card `Aggiungi Tortuga alla Home`.
-4. Su Chrome/Edge compatibili il bottone `Aggiungi` apre il prompt nativo.
-5. Su Safari iPhone compare il fallback con istruzioni `Condividi -> Aggiungi a Home`.
-
-### Test rapido notifiche push
-
-1. Imposta una `NEXT_PUBLIC_VAPID_PUBLIC_KEY` valida.
-2. Apri l'app in HTTPS o in locale su `localhost`.
-3. Premi `Attiva notifiche`.
-4. Se il permesso e concesso, verifica la creazione del file `.data/push-subscriptions.json`.
-5. In DevTools puoi simulare una push dal Service Worker e verificare il rendering della notifica.
-
-Nota: l'invio reale delle notifiche ai device non e ancora attivo. La base attuale prepara service worker, subscription e salvataggio server-side, pronta per un successivo sender backend.
+L'applicazione è ottimizzata per il deploy su ambienti **Node.js** o **Cloud Run**.
+In produzione, assicurarsi che le variabili ambiente siano correttamente popolate e che il Service Worker sia servito via HTTPS.

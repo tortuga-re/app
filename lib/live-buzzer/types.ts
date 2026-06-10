@@ -1,6 +1,6 @@
-export type GameStatus = "idle" | "open" | "paused" | "closed" | "ended";
+export type GameStatus = "idle" | "open" | "paused" | "closed" | "ended" | "result_screen" | "countdown";
 
-export type BuzzerResult = "perfect" | "partial2" | "partial1" | "wrong";
+export type BuzzerResult = "correct" | "wrong";
 
 export type Team = {
   email: string;
@@ -30,6 +30,7 @@ export type BuzzerState = {
   status: GameStatus;
   currentRound: number;
   roundOpenedAt: number | null;
+  accumulatedTimeMs: number;
   entries: BuzzerEntry[];
   leaderboard: Team[];
   userEntry?: BuzzerEntry | null;
@@ -37,7 +38,21 @@ export type BuzzerState = {
   // Advanced Features
   currentResponderEntryId: string | null;
   leaderboardVisible: boolean;
+  leaderboardRevealStep: number | null;
   frozenLeaderboard: Team[] | null;
   roundEnded: boolean;
-  lastUpdateId: string; // Unique ID to help client detect changes
+  leaderboardRevealFinished?: boolean;
+  lastUpdateId: string | number; // Unique ID to help client detect changes
+  countdownStart?: number | null;
+  lastScoredEntry?: BuzzerEntry | null;
+  isLive?: boolean;
+
+  // YouTube Integration
+  youtubePlaylistId: string | null;
+  youtubePlaylistName?: string;
+  youtubeStatus: "playing" | "paused" | "stopped";
+  youtubeCurrentIndex: number;
+  youtubeCommandId: number;
+  youtubeCommandType?: "next" | "prev" | "shuffle" | null;
+  youtubeVideoTitle?: string;
 };

@@ -1,16 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { resetGame } from "@/lib/live-buzzer/store";
-import { getCustomerSession } from "@/lib/session/customer-session";
-import { isAdmin } from "@/lib/live-buzzer/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const session = getCustomerSession(request);
-  if (!session || !isAdmin(session.email)) {
-    return NextResponse.json({ error: "Non autorizzato" }, { status: 403 });
+  const adminRequest = requireAdminRequest(request);
+  if (!adminRequest.ok) {
+    return adminRequest.response;
   }
 
-  resetGame();
+  await resetGame();
   return NextResponse.json({ success: true });
 }

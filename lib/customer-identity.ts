@@ -11,6 +11,7 @@ import type {
   CustomerSessionIdentity,
   CustomerSessionResponse,
 } from "@/lib/session/types";
+import { normalizeItalianPhone } from "@/lib/validation/phone";
 
 export type CustomerIdentity = {
   email: string;
@@ -53,7 +54,7 @@ const toCustomerSessionIdentity = (
     email,
     firstName: cleanText(identity.firstName),
     lastName: cleanText(identity.lastName),
-    phone: cleanText(identity.phone),
+    phone: normalizeItalianPhone(identity.phone)?.normalizedE164 ?? "",
     marketingConsent: identity.marketingConsent,
   };
 };
@@ -120,7 +121,8 @@ const parseStoredCustomerIdentity = (raw: string): CustomerIdentity | null => {
       typeof parsed.email === "string" ? normalizeCustomerEmail(parsed.email) : "",
     firstName: typeof parsed.firstName === "string" ? cleanText(parsed.firstName) : "",
     lastName: typeof parsed.lastName === "string" ? cleanText(parsed.lastName) : "",
-    phone: typeof parsed.phone === "string" ? cleanText(parsed.phone) : "",
+    phone:
+      typeof parsed.phone === "string" ? parsed.phone : "",
     marketingConsent:
       typeof parsed.marketingConsent === "boolean"
         ? parsed.marketingConsent
@@ -142,7 +144,8 @@ const mergeCustomerIdentity = (
       : current.firstName,
   lastName:
     updates.lastName !== undefined ? cleanText(updates.lastName) : current.lastName,
-  phone: updates.phone !== undefined ? cleanText(updates.phone) : current.phone,
+  phone:
+    updates.phone !== undefined ? updates.phone : current.phone,
   marketingConsent:
     updates.marketingConsent !== undefined
       ? updates.marketingConsent
@@ -197,11 +200,12 @@ export function useCustomerIdentity() {
 
   const updateIdentity = useCallback(
     (updates: Partial<CustomerIdentity>) => {
-      const nextIdentity = mergeCustomerIdentity(identity, updates);
-      setIdentityState(nextIdentity);
-      void persistCustomerSession(nextIdentity);
+      setIdentityState((current) => {
+        const next = mergeCustomerIdentity(current, updates);
+        return next;
+      });
     },
-    [identity, setIdentityState],
+    [setIdentityState],
   );
 
   const setIdentityFromEmail = useCallback(
@@ -212,17 +216,17 @@ export function useCustomerIdentity() {
         return false;
       }
 
-      const nextIdentity = mergeCustomerIdentity(identity, {
-        email: normalizedEmail,
-        ...extra,
+      setIdentityState((current) => {
+        const next = mergeCustomerIdentity(current, {
+          email: normalizedEmail,
+          ...extra,
+        });
+        return next;
       });
-
-      setIdentityState(nextIdentity);
-      void persistCustomerSession(nextIdentity);
 
       return true;
     },
-    [identity, setIdentityState],
+    [setIdentityState],
   );
 
   const clearIdentity = useCallback(() => {

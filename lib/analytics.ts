@@ -8,7 +8,17 @@ export type AppAnalyticsEventName =
   | "start_booking"
   | "booking_request_submit"
   | "view_fidelity_qr"
-  | "app_page_view";
+  | "app_page_view"
+  | "admin_console_view"
+  | "admin_console_navigate"
+  | "admin_push_sent"
+  | "home_context_view"
+  | "profile_loot_view"
+  | "live_mode_view"
+  | "match_drink_signup"
+  | "match_drink_matches_calculated"
+  | "match_drink_match_confirmed"
+  | "match_drink_drink_redeemed";
 
 export type AppAnalyticsPayload = Record<
   string,
@@ -56,10 +66,6 @@ export const getAppSection = (pathname?: string) => {
 
   if (path.startsWith("/info") || path.startsWith("/sedi")) {
     return "info";
-  }
-
-  if (path.startsWith("/game/sfida-capitano")) {
-    return "sfida_capitano";
   }
 
   if (path.startsWith("/esperienze-locale")) {

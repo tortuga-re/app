@@ -1,4 +1,11 @@
 import { getSupabaseAdmin } from "./supabase";
+import { broadcastActiveGamesStatus } from "@/lib/game/active-games-realtime";
+import {
+  getMatchDrinkAnalytics,
+  recordMatchDrinkMatchesCalculated,
+  recordMatchDrinkSignup,
+  syncMatchDrinkOutcomeMetrics,
+} from "./analytics";
 import {
   MatchDrinkAnswer,
   MatchDrinkBottleMessage,
@@ -9,24 +16,75 @@ import {
 } from "./types";
 
 const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
+const ADULT_SPICY_QUESTIONS_PER_SESSION = 3;
+
+type QuestionPickRow = {
+  id: string;
+  spicy_intensity?: "standard" | "adult" | null;
+};
+const MATCH_DRINK_OPTION_IDS = new Set(["A", "B", "C", "D"]);
 
 export const validateAdminPin = (pin: string) => pin === ADMIN_PIN;
+const getSessionExcludedTablesKey = (sessionId: string) =>
+  `match_drink_excluded_tables:${sessionId}`;
+const getSessionSecondaryTraitModeKey = (sessionId: string) =>
+  `match_drink_secondary_trait_mode:${sessionId}`;
 
-export const createSession = async (title: string): Promise<MatchDrinkSession> => {
+const shuffle = <T>(items: T[] | null | undefined): T[] => {
+  const result = [...(items ?? [])];
+
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+
+  return result;
+};
+
+const pickSpicyQuestionIds = (questions: QuestionPickRow[], count: number) => {
+  const adultQuestions = shuffle(
+    questions.filter((question) => question.spicy_intensity === "adult"),
+  );
+  const standardQuestions = shuffle(
+    questions.filter((question) => question.spicy_intensity !== "adult"),
+  );
+  const requiredAdultCount = Math.min(
+    ADULT_SPICY_QUESTIONS_PER_SESSION,
+    count,
+    adultQuestions.length,
+  );
+  const selectedAdults = adultQuestions.slice(0, requiredAdultCount);
+  const selectedStandard = standardQuestions.slice(0, count - selectedAdults.length);
+  const selected = [...selectedAdults, ...selectedStandard];
+
+  if (selected.length < count) {
+    selected.push(...adultQuestions.slice(selectedAdults.length, count));
+  }
+
+  return shuffle(selected).slice(0, count).map((question) => question.id);
+};
+
+export const createSession = async (title: string, questionCount: number = 20): Promise<MatchDrinkSession> => {
   const admin = getSupabaseAdmin();
   const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  
-  // Pesca 20 domande casuali suddivise per categoria
-  const { data: qLight } = await admin.from("match_drink_questions").select("id").eq("category", "light");
-  const { data: qIronic } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
-  const { data: qSpicy } = await admin.from("match_drink_questions").select("id").eq("category", "spicy");
 
-  const shuffle = <T>(array: T[]): T[] => array?.sort(() => Math.random() - 0.5) || [];
-  
+  // Pesca domande casuali suddivise per categoria proporzionalmente
+  const { data: qLight, error: qLightError } = await admin.from("match_drink_questions").select("id").eq("category", "light");
+  const { data: qIronic, error: qIronicError } = await admin.from("match_drink_questions").select("id").eq("category", "ironic");
+  const { data: qSpicy, error: qSpicyError } = await admin.from("match_drink_questions").select("id, spicy_intensity").eq("category", "spicy");
+
+  if (qLightError) throw qLightError;
+  if (qIronicError) throw qIronicError;
+  if (qSpicyError) throw qSpicyError;
+
+  const countLight = Math.floor(questionCount * 0.30);
+  const countIronic = Math.floor(questionCount * 0.35);
+  const countSpicy = questionCount - countLight - countIronic;
+
   const selectedIds = [
-    ...shuffle(qLight || []).slice(0, 6).map((q) => q.id),
-    ...shuffle(qIronic || []).slice(0, 7).map((q) => q.id),
-    ...shuffle(qSpicy || []).slice(0, 7).map((q) => q.id)
+    ...shuffle(qLight || []).slice(0, countLight).map((q) => q.id),
+    ...shuffle(qIronic || []).slice(0, countIronic).map((q) => q.id),
+    ...pickSpicyQuestionIds((qSpicy ?? []) as QuestionPickRow[], countSpicy)
   ];
 
   const { data, error } = await admin
@@ -37,13 +95,14 @@ export const createSession = async (title: string): Promise<MatchDrinkSession> =
       status: "lobby",
       stage_mode: "lobby",
       current_question_index: 0,
-      question_ids: selectedIds
+      question_ids: selectedIds,
+      bottle_messages_enabled: false
     })
     .select()
     .single();
 
   if (error) throw error;
-  
+
   // Create a hidden system player for technical reasons (messages/countdown)
   await admin.from("match_drink_players").insert({
     session_id: data.id,
@@ -55,7 +114,61 @@ export const createSession = async (title: string): Promise<MatchDrinkSession> =
     public_consent: false,
   });
 
-  return mapSession(data);
+  const session = mapSession(data);
+  session.analytics = await getMatchDrinkAnalytics(session.id);
+  void broadcastActiveGamesStatus({ matchDrink: true });
+  return session;
+};
+
+export const updateSession = async (id: string, updates: Partial<MatchDrinkSession>) => {
+  const admin = getSupabaseAdmin();
+  const dbUpdates: Record<string, string | number | boolean | string[] | null | undefined> = {};
+
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+  if (updates.stageMode !== undefined) dbUpdates.stage_mode = updates.stageMode;
+  if (updates.currentQuestionIndex !== undefined) dbUpdates.current_question_index = updates.currentQuestionIndex;
+  if (updates.currentStageMessageId !== undefined) dbUpdates.current_stage_message_id = updates.currentStageMessageId;
+  if (updates.bottleMessagesEnabled !== undefined) dbUpdates.bottle_messages_enabled = updates.bottleMessagesEnabled;
+
+  if (updates.excludedMeetingTables !== undefined) {
+    const { error: settingsError } = await admin
+      .from("app_state")
+      .upsert(
+        {
+          key: getSessionExcludedTablesKey(id),
+          value: JSON.stringify(updates.excludedMeetingTables),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+
+    if (settingsError) throw settingsError;
+  }
+
+  if (updates.secondaryTraitMode !== undefined) {
+    const { error: settingsError } = await admin
+      .from("app_state")
+      .upsert(
+        {
+          key: getSessionSecondaryTraitModeKey(id),
+          value: JSON.stringify(updates.secondaryTraitMode),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+
+    if (settingsError) throw settingsError;
+  }
+
+  if (Object.keys(dbUpdates).length > 0) {
+    const { error } = await admin
+      .from("match_drink_sessions")
+      .update(dbUpdates)
+      .eq("id", id);
+
+    if (error) throw error;
+  }
+  void broadcastMatchDrinkUpdate(id, "session_update", { ...updates, updatedAt: new Date().toISOString() });
 };
 
 export const getSession = async (id: string): Promise<MatchDrinkSession | null> => {
@@ -67,7 +180,11 @@ export const getSession = async (id: string): Promise<MatchDrinkSession | null> 
     .single();
 
   if (error || !data) return null;
-  return mapSession(data);
+  const session = mapSession(data);
+  session.excludedMeetingTables = await getSessionExcludedMeetingTables(id);
+  session.secondaryTraitMode = await getSessionSecondaryTraitMode(id);
+  session.analytics = await getMatchDrinkAnalytics(id);
+  return session;
 };
 
 export const getSessionByJoinCode = async (code: string): Promise<MatchDrinkSession | null> => {
@@ -79,7 +196,10 @@ export const getSessionByJoinCode = async (code: string): Promise<MatchDrinkSess
     .single();
 
   if (error || !data) return null;
-  return mapSession(data);
+  const session = mapSession(data);
+  session.excludedMeetingTables = await getSessionExcludedMeetingTables(session.id);
+  session.secondaryTraitMode = await getSessionSecondaryTraitMode(session.id);
+  return session;
 };
 
 export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
@@ -93,7 +213,21 @@ export const getActiveSession = async (): Promise<MatchDrinkSession | null> => {
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapSession(data);
+  const session = mapSession(data);
+  session.analytics = await getMatchDrinkAnalytics(session.id);
+  session.excludedMeetingTables = await getSessionExcludedMeetingTables(session.id);
+  session.secondaryTraitMode = await getSessionSecondaryTraitMode(session.id);
+  return session;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const broadcastMatchDrinkUpdate = async (sessionId: string, event: string, payload: any = {}) => {
+  try {
+    const admin = getSupabaseAdmin();
+    await admin.channel(`match-drink-${sessionId}`).httpSend(event, payload);
+  } catch (e) {
+    console.error("MatchDrink Broadcast error:", e);
+  }
 };
 
 export const updateSessionStatus = async (
@@ -107,6 +241,9 @@ export const updateSessionStatus = async (
     .eq("id", id);
 
   if (error) throw error;
+  void broadcastMatchDrinkUpdate(id, "session_update", { status, updatedAt: new Date().toISOString() });
+  const matchDrinkActive = status === "ended" ? Boolean(await getActiveSession()) : true;
+  void broadcastActiveGamesStatus({ matchDrink: matchDrinkActive });
 };
 
 export const updateStageMode = async (
@@ -115,9 +252,9 @@ export const updateStageMode = async (
   current_stage_message_id?: string | null
 ) => {
   const admin = getSupabaseAdmin();
-  const updateData: Record<string, string | null | number> = { 
-    stage_mode, 
-    updated_at: new Date().toISOString() 
+  const updateData: Record<string, string | null | number> = {
+    stage_mode,
+    updated_at: new Date().toISOString()
   };
   if (current_stage_message_id !== undefined) {
     updateData.current_stage_message_id = current_stage_message_id;
@@ -129,6 +266,11 @@ export const updateStageMode = async (
     .eq("id", id);
 
   if (error) throw error;
+  void broadcastMatchDrinkUpdate(id, "session_update", {
+    stageMode: stage_mode,
+    currentStageMessageId: current_stage_message_id,
+    updatedAt: new Date().toISOString()
+  });
 };
 
 export const updateQuestionIndex = async (id: string, index: number) => {
@@ -139,6 +281,10 @@ export const updateQuestionIndex = async (id: string, index: number) => {
     .eq("id", id);
 
   if (error) throw error;
+  void broadcastMatchDrinkUpdate(id, "session_update", {
+    currentQuestionIndex: index,
+    updatedAt: new Date().toISOString()
+  });
 };
 
 export const joinSession = async (
@@ -151,6 +297,7 @@ export const joinSession = async (
       session_id: player.sessionId,
       nickname: player.nickname,
       table_number: player.tableNumber,
+      phone: player.phone,
       age_range: player.ageRange,
       gender: player.gender,
       relationship_status: player.relationshipStatus,
@@ -162,7 +309,12 @@ export const joinSession = async (
     .single();
 
   if (error) throw error;
-  return mapPlayer(data);
+  const result = mapPlayer(data);
+  if (result.nickname !== "_SYSTEM_") {
+    await recordMatchDrinkSignup(player.sessionId);
+  }
+  void broadcastMatchDrinkUpdate(player.sessionId, "player_joined", result);
+  return result;
 };
 
 export const getPlayer = async (id: string): Promise<MatchDrinkPlayer | null> => {
@@ -207,7 +359,9 @@ export const saveAnswer = async (
     .single();
 
   if (error) throw error;
-  return mapAnswer(data);
+  const result = mapAnswer(data);
+  void broadcastMatchDrinkUpdate(answer.sessionId, "new_answer", result);
+  return result;
 };
 
 export const getAnswers = async (sessionId: string): Promise<MatchDrinkAnswer[]> => {
@@ -237,7 +391,7 @@ export const getPlayerAnswers = async (
 };
 
 export const createBottleMessage = async (
-  message: Omit<MatchDrinkBottleMessage, "id" | "status" | "createdAt">
+  message: Omit<MatchDrinkBottleMessage, "id" | "createdAt">
 ): Promise<MatchDrinkBottleMessage> => {
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
@@ -247,13 +401,15 @@ export const createBottleMessage = async (
       player_id: message.playerId,
       message: message.message,
       display_mode: message.displayMode,
-      status: "pending",
+      status: message.status || "pending",
     })
     .select()
     .single();
 
   if (error) throw error;
-  return mapMessage(data);
+  const result = mapMessage(data);
+  void broadcastMatchDrinkUpdate(message.sessionId, "new_message", result);
+  return result;
 };
 
 export const getMessages = async (
@@ -285,6 +441,17 @@ export const moderateMessage = async (
     .eq("id", messageId);
 
   if (error) throw error;
+
+  const msg = await getBottleMessage(messageId);
+  if (msg) {
+    void broadcastMatchDrinkUpdate(msg.sessionId, "message_moderated", {
+      messageId: msg.id,
+      status: msg.status,
+      approvedText: msg.approvedText,
+      moderatedAt: msg.moderatedAt,
+      message: msg,
+    });
+  }
 };
 
 export const getBottleMessage = async (id: string): Promise<MatchDrinkBottleMessage | null> => {
@@ -323,7 +490,7 @@ export const getPlayerMatch = async (
     .maybeSingle();
 
   if (error) throw error;
-  return data ? mapMatch(data) : null;
+  return data ? mapMatch(data as Record<string, unknown>) : null;
 };
 
 export const acceptMatch = async (
@@ -342,7 +509,7 @@ export const acceptMatch = async (
 
   const isPlayerA = match.data.player_a_id === playerId;
   const updateData: Record<string, string | boolean | null> = {};
-  
+
   if (isPlayerA) {
     updateData.accepted_by_a = accepted;
     updateData.accepted_at_a = accepted ? new Date().toISOString() : null;
@@ -352,8 +519,8 @@ export const acceptMatch = async (
   }
 
   // Se entrambi hanno accettato, sblocca il drink
-  const bothAccepted = 
-    (isPlayerA ? accepted : match.data.accepted_by_a) && 
+  const bothAccepted =
+    (isPlayerA ? accepted : match.data.accepted_by_a) &&
     (!isPlayerA ? accepted : match.data.accepted_by_b);
 
   if (bothAccepted) {
@@ -367,10 +534,36 @@ export const acceptMatch = async (
     .eq("id", matchId);
 
   if (error) throw error;
+
+  const { data: sessionMetricsRows } = await admin
+    .from("match_drink_matches")
+    .select("id, drink_unlocked, drink_redeemed, accepted_by_a, accepted_by_b")
+    .eq("session_id", match.data.session_id);
+
+  if (Array.isArray(sessionMetricsRows)) {
+    const acceptedMatches = sessionMetricsRows.filter(
+      (row) => row.accepted_by_a && row.accepted_by_b,
+    ).length;
+    const drinksUnlocked = sessionMetricsRows.filter((row) => row.drink_unlocked).length;
+    const drinksRedeemed = sessionMetricsRows.filter((row) => row.drink_redeemed).length;
+
+    await syncMatchDrinkOutcomeMetrics(match.data.session_id, {
+      acceptedMatches,
+      drinksUnlocked,
+      drinksRedeemed,
+    });
+  }
+
+  void broadcastMatchDrinkUpdate(match.data.session_id, "match_updated", { matchId, playerId, drinkUnlocked: !!updateData.drink_unlocked });
 };
 
 export const redeemDrink = async (matchId: string) => {
   const admin = getSupabaseAdmin();
+  const { data: matchRow } = await admin
+    .from("match_drink_matches")
+    .select("session_id")
+    .eq("id", matchId)
+    .maybeSingle();
   const { error } = await admin
     .from("match_drink_matches")
     .update({
@@ -380,16 +573,45 @@ export const redeemDrink = async (matchId: string) => {
     .eq("id", matchId);
 
   if (error) throw error;
+
+  if (matchRow?.session_id) {
+    const { data: sessionMetricsRows } = await admin
+      .from("match_drink_matches")
+      .select("drink_unlocked, drink_redeemed, accepted_by_a, accepted_by_b")
+      .eq("session_id", matchRow.session_id);
+
+    if (Array.isArray(sessionMetricsRows)) {
+      const acceptedMatches = sessionMetricsRows.filter(
+        (row) => row.accepted_by_a && row.accepted_by_b,
+      ).length;
+      const drinksUnlocked = sessionMetricsRows.filter((row) => row.drink_unlocked).length;
+      const drinksRedeemed = sessionMetricsRows.filter((row) => row.drink_redeemed).length;
+
+      await syncMatchDrinkOutcomeMetrics(matchRow.session_id, {
+        acceptedMatches,
+        drinksUnlocked,
+        drinksRedeemed,
+      });
+    }
+  }
 };
 
 export const deleteSessionData = async (sessionId: string) => {
   const admin = getSupabaseAdmin();
+
+  // Eliminiamo tutto ciò che è collegato alla sessione in ordine logico per evitare errori di vincolo
+  await admin.from("match_drink_matches").delete().eq("session_id", sessionId);
+  await admin.from("match_drink_answers").delete().eq("session_id", sessionId);
+  await admin.from("match_drink_bottle_messages").delete().eq("session_id", sessionId);
+  await admin.from("match_drink_players").delete().eq("session_id", sessionId);
+
   const { error } = await admin
     .from("match_drink_sessions")
     .delete()
     .eq("id", sessionId);
 
   if (error) throw error;
+  void broadcastActiveGamesStatus({ matchDrink: Boolean(await getActiveSession()) });
 };
 
 export const storeMatches = async (matches: Omit<MatchDrinkMatch, "id" | "createdAt">[]) => {
@@ -409,6 +631,11 @@ export const storeMatches = async (matches: Omit<MatchDrinkMatch, "id" | "create
     })));
 
   if (error) throw error;
+
+  if (matches.length > 0) {
+    await recordMatchDrinkMatchesCalculated(matches[0].sessionId, matches.length);
+    void broadcastMatchDrinkUpdate(matches[0].sessionId, "matches_stored");
+  }
 };
 
 // Mappers
@@ -421,15 +648,59 @@ const mapSession = (row: Record<string, unknown>): MatchDrinkSession => ({
   currentQuestionIndex: row.current_question_index as number,
   currentStageMessageId: row.current_stage_message_id as string | null,
   questionIds: row.question_ids as string[] | null,
+  bottleMessagesEnabled: !!row.bottle_messages_enabled,
   createdAt: row.created_at as string,
   updatedAt: row.updated_at as string,
 });
+
+export const getSessionExcludedMeetingTables = async (sessionId: string): Promise<string[]> => {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("app_state")
+    .select("value")
+    .eq("key", getSessionExcludedTablesKey(sessionId))
+    .maybeSingle();
+
+  if (error || !data?.value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(data.value) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+export const getSessionSecondaryTraitMode = async (
+  sessionId: string,
+): Promise<MatchDrinkSession["secondaryTraitMode"]> => {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("app_state")
+    .select("value")
+    .eq("key", getSessionSecondaryTraitModeKey(sessionId))
+    .maybeSingle();
+
+  if (error || !data?.value) {
+    return "absolute";
+  }
+
+  try {
+    const parsed = JSON.parse(data.value) as unknown;
+    return parsed === "macro_category" ? "macro_category" : "absolute";
+  } catch {
+    return "absolute";
+  }
+};
 
 const mapPlayer = (row: Record<string, unknown>): MatchDrinkPlayer => ({
   id: row.id as string,
   sessionId: row.session_id as string,
   nickname: row.nickname as string,
   tableNumber: row.table_number as string,
+  phone: row.phone as string,
   ageRange: row.age_range as MatchDrinkPlayer["ageRange"],
   gender: row.gender as MatchDrinkPlayer["gender"],
   relationshipStatus: row.relationship_status as MatchDrinkPlayer["relationshipStatus"],
@@ -484,7 +755,13 @@ const mapMessage = (row: Record<string, unknown>): MatchDrinkBottleMessage => ({
 
 export const seedQuestions = async (questions: Partial<MatchDrinkQuestion>[]) => {
   const admin = getSupabaseAdmin();
-  const { error } = await admin.from("match_drink_questions").insert(questions);
+  const rows = questions.map((question) => ({
+    category: question.category,
+    text: question.text,
+    options: question.options,
+    spicy_intensity: question.spicyIntensity ?? "standard",
+  }));
+  const { error } = await admin.from("match_drink_questions").insert(rows);
   if (error) throw error;
 };
 
@@ -492,7 +769,7 @@ export const getSessionQuestions = async (sessionId: string) => {
   const admin = getSupabaseAdmin();
   const { data: session } = await admin.from("match_drink_sessions").select("question_ids").eq("id", sessionId).single();
   if (!session?.question_ids) return [];
-  
+
   const { data: questions } = await admin.from("match_drink_questions").select("*").in("id", session.question_ids);
   if (!questions) return [];
 
@@ -504,7 +781,10 @@ export const getSessionQuestions = async (sessionId: string) => {
       id: q.id,
       category: q.category,
       text: q.text,
-      options: q.options
+      options: (q.options ?? []).filter((option: MatchDrinkQuestion["options"][number]) =>
+        MATCH_DRINK_OPTION_IDS.has(option.id),
+      ),
+      spicyIntensity: q.spicy_intensity ?? "standard"
     };
   }).filter(Boolean);
 };

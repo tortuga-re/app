@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,10 +14,44 @@ export function FidelityQrCode({
   variant?: "default" | "vip" | "coupon";
 }) {
   const [svgMarkup, setSvgMarkup] = useState("");
+  const [shouldRenderQr, setShouldRenderQr] = useState(false);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const isVip = variant === "vip";
   const isCoupon = variant === "coupon";
 
   useEffect(() => {
+    const element = viewportRef.current;
+
+    if (!element || shouldRenderQr) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+          setShouldRenderQr(true);
+          observer.disconnect();
+        }
+      },
+      {
+        threshold: [0.55],
+        rootMargin: "-18% 0px -18% 0px",
+      },
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [shouldRenderQr, value]);
+
+  useEffect(() => {
+    if (!shouldRenderQr) {
+      return;
+    }
+
     let cancelled = false;
 
     void import("qrcode")
@@ -46,13 +80,16 @@ export function FidelityQrCode({
     return () => {
       cancelled = true;
     };
-  }, [isCoupon, isVip, value]);
+  }, [isCoupon, isVip, shouldRenderQr, value]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[248px] flex-col items-center justify-center gap-2">
+    <div
+      ref={viewportRef}
+      className="mx-auto flex w-full max-w-[248px] flex-col items-center justify-center gap-2"
+    >
       <div
         className={cn(
-          "relative w-full overflow-hidden p-[10px] shadow-[0_20px_46px_rgba(0,0,0,0.34)]",
+          "relative w-full overflow-hidden p-[10px] shadow-[0_20px_46px_rgba(0,0,0,0.34)] seal-animation",
           isVip
             ? "rounded-[2rem] border border-[rgba(226,194,122,0.5)] bg-[linear-gradient(145deg,#edd28d_0%,#b67c34_30%,#2c1c0e_37%,#090705_100%)]"
             : isCoupon
@@ -67,7 +104,7 @@ export function FidelityQrCode({
             isCoupon ? "rounded-[1.1rem]" : "rounded-[1.6rem]",
           )}
         >
-          {svgMarkup ? (
+          {svgMarkup && shouldRenderQr ? (
             <div
               aria-label={label}
               className={cn(
@@ -89,7 +126,7 @@ export function FidelityQrCode({
                     : "bg-[#f2ede3] text-[#6f5b38]",
               )}
             >
-              QR in preparazione
+              {shouldRenderQr ? "QR in preparazione" : "Avvicinati per svelare il sigillo"}
             </div>
           )}
         </div>

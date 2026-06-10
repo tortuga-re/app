@@ -1,10 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 
 import { StatusBlock } from "@/components/status-block";
-import { TortugaMapViewer } from "@/components/tortuga-map-viewer";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TortugaMapViewer = dynamic<any>(
+  () =>
+    import("@/components/tortuga-map-viewer")
+      .then((mod) => mod.TortugaMapViewer)
+      .catch(() => {
+        if (typeof window !== "undefined") window.location.reload();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return { default: () => null } as any;
+      }),
+  {
+    loading: () => <div className="h-48 w-full animate-pulse rounded-[2rem] bg-white/5" />,
+    ssr: false,
+  },
+);
 import { trackAppEvent } from "@/lib/analytics";
 import { storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
@@ -13,7 +27,6 @@ import type {
   BookingBootstrapResponse,
   BookingCreateInput,
   BookingCreateResponse,
-  BookingSlot,
   ProfileResponse,
   WaitlistCreateInput,
   WaitlistCreateResponse,
@@ -27,32 +40,27 @@ import {
   useHydratedLocalStorageState,
   writeLocalStorageValue,
 } from "@/lib/local-storage-state";
+import { scrollToFormField } from "@/lib/form-focus";
 import { useHashScroll } from "@/lib/hash-scroll";
-import { triggerHaptic } from "@/lib/haptics";
-import { cn, formatDateTime, formatLongDate, safeNumber, todayIso } from "@/lib/utils";
+import { formatLongDate, formatTime, todayIso } from "@/lib/utils";
+import {
+  italianPhoneValidationError,
+  normalizeItalianPhone,
+  validateItalianPhone,
+} from "@/lib/validation/phone";
 
-type BookingDraft = {
-  date: string;
-  pax: number;
-  roomCode: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  note: string;
-  privacyAccepted: boolean;
-  marketingAccepted: boolean;
-};
-
-type DecoratedSlot = BookingSlot & {
-  bandLabel: string;
-  date: string;
-};
+import type { BookingDraft, BookingFieldErrors, BookingFieldName, DecoratedSlot } from "./booking/types";
+import { BookingSuccessView } from "./booking/BookingSuccessView";
+import { BookingParamsSelector } from "./booking/BookingParamsSelector";
+import { TimeSlotSelector } from "./booking/TimeSlotSelector";
+import { CustomerDetailsForm } from "./booking/CustomerDetailsForm";
 
 const baseDraft: BookingDraft = {
   date: todayIso(),
-  pax: 2,
+  pax: "",
   roomCode: "",
+  isAfterDinner: false,
+  childrenCount: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -63,6 +71,32 @@ const baseDraft: BookingDraft = {
 };
 
 const SALA_CENTRALE_ROOM_CODE = "da1d57f0-e0d5-4d7e-86be-9f8300f388b8";
+const AREA_FAMILY_ROOM_CODE = "2a2cda28-9466-4a9d-b2d0-5a0294b2fd0c";
+
+const parsePositiveInteger = (value: string) => {
+  if (!/^\d+$/.test(value.trim())) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const formatReservationDateLabel = (value?: string) => {
+  if (!value || Number.isNaN(Date.parse(value))) {
+    return "";
+  }
+
+  return formatLongDate(value);
+};
+
+const formatReservationTimeLabel = (value?: string) => {
+  if (!value || Number.isNaN(Date.parse(value))) {
+    return "";
+  }
+
+  return formatTime(value);
+};
 
 const buildDraftFallback = (
   firstName?: string,
@@ -70,14 +104,19 @@ const buildDraftFallback = (
   email?: string,
   phone?: string,
   marketingConsent?: boolean,
-): BookingDraft => ({
-  ...baseDraft,
-  firstName: firstName?.trim() ?? "",
-  lastName: lastName?.trim() ?? "",
-  email: normalizeCustomerEmail(email),
-  phone: phone?.trim() ?? "",
-  marketingAccepted: marketingConsent === true ? true : baseDraft.marketingAccepted,
-});
+): BookingDraft => {
+  const rawPhone = (phone ?? "").replace(/\D/g, "");
+  const phoneWithPrefix = rawPhone ? (rawPhone.startsWith("39") ? `+${rawPhone}` : `+39${rawPhone}`) : "";
+
+  return {
+    ...baseDraft,
+    firstName: firstName?.trim() ?? "",
+    lastName: lastName?.trim() ?? "",
+    email: normalizeCustomerEmail(email),
+    phone: phoneWithPrefix,
+    marketingAccepted: marketingConsent === true ? true : baseDraft.marketingAccepted,
+  };
+};
 
 const cleanText = (value?: string) => {
   if (!value) {
@@ -103,13 +142,20 @@ const getVisibleBands = (availability: BookingAvailabilityResponse | null) => {
   }));
 };
 
-const getEnabledSlots = (
+const getVisibleSlots = (
   availabilityDays: BookingAvailabilityResponse["days"],
+  isAfterDinner?: boolean,
 ): DecoratedSlot[] => {
   return availabilityDays.flatMap((day) =>
     day.bands.flatMap((band) =>
       band.slots
-        .filter((slot) => slot.enabled)
+        .filter((slot) => {
+          if (isAfterDinner) {
+            return slot.time >= "22:30";
+          }
+
+          return true;
+        })
         .map((slot) => ({
           ...slot,
           bandLabel: band.label,
@@ -119,20 +165,46 @@ const getEnabledSlots = (
   );
 };
 
+const fallbackWaitlistSlots = [
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00",
+];
+
+const timeToMinutes = (time: string) => {
+  const [hours, minutes] = time.split(":").map((part) => Number.parseInt(part, 10));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+};
+
 const parseStoredDraft = (
   raw: string,
   fallbackDraft: BookingDraft,
   marketingConsent?: boolean,
 ): BookingDraft | null => {
   const parsed = JSON.parse(raw) as Partial<BookingDraft>;
+  const currentDate =
+    typeof parsed.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)
+      ? parsed.date
+      : fallbackDraft.date;
 
   return {
-    date:
-      typeof parsed.date === "string" && parsed.date
-        ? parsed.date
-        : fallbackDraft.date,
-    pax: Math.max(1, safeNumber(parsed.pax, fallbackDraft.pax)),
+    date: currentDate,
+    pax: typeof parsed.pax === "string" ? parsed.pax : fallbackDraft.pax,
     roomCode: typeof parsed.roomCode === "string" ? parsed.roomCode : "",
+    isAfterDinner: typeof parsed.isAfterDinner === "boolean" ? parsed.isAfterDinner : false,
+    childrenCount:
+      typeof parsed.childrenCount === "string"
+        ? parsed.childrenCount
+        : fallbackDraft.childrenCount,
     firstName:
       typeof parsed.firstName === "string" && parsed.firstName.trim()
         ? parsed.firstName
@@ -150,7 +222,7 @@ const parseStoredDraft = (
       return normalizedEmail || fallbackDraft.email;
     })(),
     phone:
-      typeof parsed.phone === "string" && parsed.phone.trim()
+      typeof parsed.phone === "string"
         ? parsed.phone
         : fallbackDraft.phone,
     note: typeof parsed.note === "string" ? parsed.note : "",
@@ -197,12 +269,189 @@ export function BookingFlow() {
     useState<WaitlistCreateResponse | null>(null);
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
   const [waitlistContextKey, setWaitlistContextKey] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<BookingFieldErrors>({});
+
+  const [customModuleCode, setCustomModuleCode] = useState("");
+  const [isRoomSelectionDisabled, setIsRoomSelectionDisabled] = useState(false);
+  const [matchDrinkMen, setMatchDrinkMen] = useState("0");
+  const [matchDrinkWomen, setMatchDrinkWomen] = useState("0");
+  const [matchDrinkAgeGroup, setMatchDrinkAgeGroup] = useState("");
+
   const customerDetailsStepRef = useRef<HTMLDivElement | null>(null);
   const hasAutoScrolledToCustomerStepRef = useRef(false);
   const pendingInitialSlotScrollRef = useRef(false);
   const seededCustomerEmailRef = useRef("");
   const marketingFirstUntickBlockedRef = useRef(false);
   const trackedStartBookingRef = useRef(false);
+  const dateFieldRef = useRef<HTMLInputElement | null>(null);
+  const paxFieldRef = useRef<HTMLInputElement | null>(null);
+  const selectedTimeFieldRef = useRef<HTMLDivElement | null>(null);
+  const childrenCountFieldRef = useRef<HTMLInputElement | null>(null);
+  const firstNameFieldRef = useRef<HTMLInputElement | null>(null);
+  const lastNameFieldRef = useRef<HTMLInputElement | null>(null);
+  const emailFieldRef = useRef<HTMLInputElement | null>(null);
+  const phoneFieldRef = useRef<HTMLInputElement | null>(null);
+  const privacyAcceptedFieldRef = useRef<HTMLParagraphElement | null>(null);
+  const minimumBookingDate = todayIso();
+  const paxCount = parsePositiveInteger(draft.pax);
+
+  const clearFieldErrors = (...fields: BookingFieldName[]) => {
+    setFieldErrors((current) => {
+      let hasChanged = false;
+      const next = { ...current };
+
+      for (const field of fields) {
+        if (next[field]) {
+          delete next[field];
+          hasChanged = true;
+        }
+      }
+
+      return hasChanged ? next : current;
+    });
+  };
+
+  const scrollToFirstBookingError = (errors: BookingFieldErrors) => {
+    const fieldOrder: BookingFieldName[] = [
+      "date",
+      "pax",
+      "matchDrinkMen",
+      "matchDrinkWomen",
+      "matchDrinkAgeGroup",
+      "selectedTime",
+      "childrenCount",
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "privacyAccepted",
+    ];
+
+    const firstInvalidField = fieldOrder.find((field) => errors[field]);
+    if (firstInvalidField) {
+      const fieldMap: Record<BookingFieldName, HTMLElement | null> = {
+        date: dateFieldRef.current,
+        pax: paxFieldRef.current,
+        matchDrinkMen: dateFieldRef.current,
+        matchDrinkWomen: dateFieldRef.current,
+        matchDrinkAgeGroup: dateFieldRef.current,
+        selectedTime: selectedTimeFieldRef.current,
+        childrenCount: childrenCountFieldRef.current,
+        firstName: firstNameFieldRef.current,
+        lastName: lastNameFieldRef.current,
+        email: emailFieldRef.current,
+        phone: phoneFieldRef.current,
+        privacyAccepted: privacyAcceptedFieldRef.current,
+      };
+
+      scrollToFormField(fieldMap[firstInvalidField]);
+    }
+  };
+
+  const validateDraftFields = ({
+    requireSelectedSlot,
+    requireEmail,
+  }: {
+    requireSelectedSlot: boolean;
+    requireEmail: boolean;
+  }) => {
+    const errors: BookingFieldErrors = {};
+
+    if (!draft.date) {
+      errors.date = "Seleziona una data.";
+    } else if (draft.date < minimumBookingDate) {
+      errors.date = "Non puoi selezionare una data precedente a oggi.";
+    }
+
+    if (!draft.pax.trim()) {
+      errors.pax = "Inserisci il numero di persone.";
+    } else if (!paxCount) {
+      errors.pax = "Inserisci un numero di persone valido.";
+    }
+
+    if (requireSelectedSlot && !selectedSlot) {
+      errors.selectedTime = "Scegli un orario disponibile prima di confermare.";
+    }
+
+    if (isAreaFamily) {
+      const childrenCount = parsePositiveInteger(draft.childrenCount);
+
+      if (!draft.childrenCount.trim()) {
+        errors.childrenCount = "Inserisci il numero di bambini.";
+      } else if (!childrenCount) {
+        errors.childrenCount = "Inserisci un numero di bambini valido.";
+      }
+    }
+
+    if (isMatchDrinkActive) {
+      if (!matchDrinkAgeGroup) {
+        errors.matchDrinkAgeGroup = "Seleziona almeno una fascia d'età.";
+      }
+      const men = parseInt(matchDrinkMen, 10);
+      const women = parseInt(matchDrinkWomen, 10);
+      let hasMenError = false;
+      let hasWomenError = false;
+
+      if (isNaN(men) || men < 0) {
+        errors.matchDrinkMen = "Inserisci un numero valido di uomini.";
+        hasMenError = true;
+      }
+      if (isNaN(women) || women < 0) {
+        errors.matchDrinkWomen = "Inserisci un numero valido di donne.";
+        hasWomenError = true;
+      }
+
+      if (!hasMenError && !hasWomenError && men === 0 && women === 0) {
+        errors.matchDrinkMen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
+        errors.matchDrinkWomen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
+      }
+    }
+
+    if (!draft.firstName.trim()) {
+      errors.firstName = "Inserisci il nome.";
+    }
+
+    if (!draft.lastName.trim()) {
+      errors.lastName = "Inserisci il cognome.";
+    }
+
+    if (requireEmail) {
+      if (!draft.email.trim()) {
+        errors.email = "Inserisci l'email del cliente.";
+      } else if (!isValidCustomerEmail(draft.email)) {
+        errors.email = "Inserisci un indirizzo email valido.";
+      }
+    } else if (draft.email.trim() && !isValidCustomerEmail(draft.email)) {
+      errors.email = "Inserisci un indirizzo email valido.";
+    }
+
+    if (!draft.phone.trim()) {
+      errors.phone = italianPhoneValidationError;
+    } else {
+      const normalizedPhone = validateItalianPhone(draft.phone);
+      if (!normalizedPhone.ok) {
+        errors.phone = normalizedPhone.error;
+      }
+    }
+
+    if (!draft.privacyAccepted) {
+      errors.privacyAccepted = "Devi accettare il consenso privacy per continuare.";
+    }
+
+    return errors;
+  };
+
+  const handlePhoneBlur = () => {
+    if (!draft.phone.trim()) return;
+    const normalized = normalizeItalianPhone(draft.phone);
+    if (normalized) {
+      const nextPhone = normalized.normalizedE164;
+      setDraft((current) => ({ ...current, phone: nextPhone }));
+      if (draft.email && isValidCustomerEmail(draft.email)) {
+        updateIdentity({ phone: nextPhone });
+      }
+    }
+  };
 
   useEffect(() => {
     if (trackedStartBookingRef.current) {
@@ -212,10 +461,10 @@ export function BookingFlow() {
     trackedStartBookingRef.current = true;
     trackAppEvent("start_booking", {
       app_section: "prenota",
-      default_pax: draft.pax,
+      default_pax: paxCount,
       has_prefilled_email: Boolean(draft.email),
     });
-  }, [draft.email, draft.pax]);
+  }, [draft.email, paxCount]);
 
   useEffect(() => {
     const loadBootstrap = async () => {
@@ -247,38 +496,132 @@ export function BookingFlow() {
     bootstrap?.rooms[0]?.code ||
     "";
   const activeRoomCode = draft.roomCode || defaultActiveRoomCode;
+  const isAreaFamily = activeRoomCode === AREA_FAMILY_ROOM_CODE;
   const selectedRoom =
     bootstrap?.rooms.find((room) => room.code === activeRoomCode) ?? null;
-  const composedCustomerNote = draft.note.trim() || undefined;
-  const showRoomDropdown = requiresRoomSelection;
+  const isThursdaySelected = Boolean(
+    draft.date &&
+      !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) &&
+      new Date(`${draft.date}T00:00:00`).getDay() === 4,
+  );
+  const isMatchDrinkActive = Boolean(isThursdaySelected && customModuleCode);
+  const matchDrinkNote = isMatchDrinkActive
+    ? `Uomini: ${matchDrinkMen} | Donne: ${matchDrinkWomen} | Fascia età: ${matchDrinkAgeGroup}`
+    : "";
+  const composedCustomerNote = [
+    draft.isAfterDinner ? "INGRESSO DOPO CENA" : "",
+    isAreaFamily && draft.childrenCount ? `Bambini: ${draft.childrenCount}` : "",
+    matchDrinkNote,
+    draft.note.trim(),
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .trim() || undefined;
+  const showRoomDropdown = requiresRoomSelection && !isRoomSelectionDisabled;
   const canLoadAvailability = Boolean(
     bootstrap &&
       draft.date &&
-      draft.pax > 0 &&
+      draft.date >= minimumBookingDate &&
+      paxCount &&
       (!requiresRoomSelection || activeRoomCode),
   );
   const visibleDays = canLoadAvailability ? getVisibleBands(availability) : [];
-  const enabledSlots = getEnabledSlots(visibleDays);
+  const visibleSlots = getVisibleSlots(visibleDays, draft.isAfterDinner);
+  const enabledSlots = visibleSlots.filter((slot) => slot.enabled);
   const selectedSlot = canLoadAvailability
     ? enabledSlots.find((slot) => slot.time === selectedTime) ?? null
     : null;
+  const selectedVisibleSlot = canLoadAvailability
+    ? visibleSlots.find((slot) => slot.time === selectedTime) ?? null
+    : null;
+  const isSundaySelected = Boolean(
+    draft.date && !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) && new Date(`${draft.date}T00:00:00`).getDay() === 0,
+  );
+  const unavailableMessage = availability?.days[0]?.unavailableMessage || (availability && visibleSlots.length === 0 ? "Giorno di chiusura" : undefined);
+  const displayedSlots = visibleSlots.length > 0
+    ? visibleSlots
+    : (!availability
+        ? fallbackWaitlistSlots.map((time) => ({
+            time,
+            enabled: false,
+            statusCode: 1,
+            beyondMidnight: false,
+            bandLabel: "",
+            date: draft.date,
+          } as DecoratedSlot))
+        : []);
+  const displayedSlotGroups = Array.from(
+    displayedSlots.reduce((groups, slot) => {
+      if (isSundaySelected) {
+        const minutes = timeToMinutes(slot.time);
+        if (minutes === null) {
+          return groups;
+        }
+
+        if (minutes >= 900 && minutes <= 1140) {
+          return groups;
+        }
+
+        const sundayLabel = minutes < 900 ? "PRANZO" : "CENA";
+        const sundaySlots = groups.get(sundayLabel) ?? [];
+        sundaySlots.push(slot);
+        groups.set(sundayLabel, sundaySlots);
+        return groups;
+      }
+
+      const groupLabel = slot.bandLabel || "ORARI";
+      const groupSlots = groups.get(groupLabel) ?? [];
+      groupSlots.push(slot);
+      groups.set(groupLabel, groupSlots);
+      return groups;
+    }, new Map<string, DecoratedSlot[]>()),
+  ).map(([groupLabel, groupSlots]) => ({
+    groupLabel,
+    slots: groupSlots,
+  }));
+  const selectedUnavailableSlot = canLoadAvailability
+    ? selectedVisibleSlot && !selectedVisibleSlot.enabled
+      ? selectedVisibleSlot
+      : selectedTime && fallbackWaitlistSlots.includes(selectedTime) && !selectedSlot
+        ? ({
+            time: selectedTime,
+            enabled: false,
+            statusCode: selectedStatusCode,
+            beyondMidnight: false,
+            bandLabel: "",
+            date: draft.date,
+          } as DecoratedSlot)
+        : null
+    : null;
+  const successDateLabel = success?.reservation.DataPrenotazione
+    ? formatReservationDateLabel(success.reservation.DataPrenotazione)
+    : selectedSlot
+      ? formatLongDate(selectedSlot.date)
+      : "-";
+  const successTimeLabel =
+    formatReservationTimeLabel(success?.reservation.DataPrenotazione) ||
+    selectedSlot?.time ||
+    "-";
   const availabilityKey = canLoadAvailability
-    ? `${draft.date}|${draft.pax}|${activeRoomCode}`
+    ? `${draft.date}|${paxCount}|${activeRoomCode}|${customModuleCode}|${isRoomSelectionDisabled}`
     : "";
   const hasNoAvailableSlots = Boolean(
     canLoadAvailability &&
       availability &&
       !loadingAvailability &&
+      visibleSlots.length > 0 &&
       enabledSlots.length === 0,
   );
+  const hasWaitlistContext =
+    hasNoAvailableSlots || Boolean(selectedUnavailableSlot);
   const isWaitlistContextActive = waitlistContextKey === availabilityKey;
   const visibleWaitlistSuccess =
     hasNoAvailableSlots && isWaitlistContextActive ? waitlistSuccess : null;
   const showVisibleWaitlistForm =
-    hasNoAvailableSlots && isWaitlistContextActive && showWaitlistForm;
+    hasWaitlistContext && isWaitlistContextActive && showWaitlistForm;
   const shouldHideMarketingConsent = identity.marketingConsent === true;
   useHashScroll(
-    `${loadingBootstrap}:${availabilityKey}:${Boolean(selectedSlot)}:${Boolean(success)}:${showVisibleWaitlistForm}`,
+    `${loadingBootstrap}:${availabilityKey}:${Boolean(selectedSlot)}:${Boolean(success)}:${showVisibleWaitlistForm}:${Boolean(error)}:${Boolean(waitlistError)}`,
   );
 
   useEffect(() => {
@@ -295,11 +638,15 @@ export function BookingFlow() {
 
       const params = new URLSearchParams({
         date: draft.date,
-        pax: String(draft.pax),
+        pax: String(paxCount),
       });
 
-      if (activeRoomCode) {
+      if (activeRoomCode && !isRoomSelectionDisabled) {
         params.set("roomCode", activeRoomCode);
+      }
+
+      if (customModuleCode) {
+        params.set("moduleCode", customModuleCode);
       }
 
       try {
@@ -312,8 +659,22 @@ export function BookingFlow() {
         }
 
         setAvailability(response);
+
+        if (response.days[0]?.redirectOnEvent && response.days[0]?.redirectUrl) {
+          const redirectUrl = response.days[0].redirectUrl;
+          const match = redirectUrl.match(/\/in\/([a-zA-Z0-9-]+)/);
+          if (match && match[1] && customModuleCode !== match[1]) {
+            setCustomModuleCode(match[1]);
+          }
+        }
       } catch (availabilityError) {
         if (cancelled) {
+          return;
+        }
+
+        const msg = availabilityError instanceof Error ? availabilityError.message : String(availabilityError);
+        if (msg.includes("SALA_NON_SELEZIONABILE_MODULO")) {
+          setIsRoomSelectionDisabled(true);
           return;
         }
 
@@ -335,7 +696,7 @@ export function BookingFlow() {
     return () => {
       cancelled = true;
     };
-  }, [availabilityKey, activeRoomCode, draft.date, draft.pax]);
+  }, [availabilityKey, activeRoomCode, draft.date, paxCount, customModuleCode, isRoomSelectionDisabled]);
 
   useEffect(() => {
     if (
@@ -430,52 +791,50 @@ export function BookingFlow() {
   ]);
 
   const submitBooking = async () => {
+    const errors = validateDraftFields({
+      requireSelectedSlot: true,
+      requireEmail: true,
+    });
+
+    if (Object.keys(errors).length > 0 || !paxCount) {
+      setFieldErrors(errors);
+      setError("");
+      scrollToFirstBookingError(errors);
+      return;
+    }
+
     if (!selectedSlot) {
-      setError("Scegli uno slot disponibile prima di confermare.");
       return;
     }
 
-    if (!draft.firstName.trim() || !draft.lastName.trim()) {
-      setError("Inserisci nome e cognome del cliente.");
-      return;
-    }
+    const confirmedPax = paxCount;
 
-    if (!draft.email.trim()) {
-      setError("Inserisci l'email del cliente.");
-      return;
-    }
-
-    if (!isValidCustomerEmail(draft.email)) {
-      setError("Inserisci un indirizzo email valido.");
-      return;
-    }
-
-    if (!draft.phone.trim()) {
-      setError("Inserisci il telefono del cliente.");
-      return;
-    }
-
-    if (!draft.privacyAccepted) {
-      setError("Il consenso privacy e richiesto per inviare la prenotazione.");
+    const normalizedPhone = validateItalianPhone(draft.phone);
+    if (!normalizedPhone.ok) {
+      const errors = { phone: normalizedPhone.error } satisfies BookingFieldErrors;
+      setFieldErrors(errors);
+      scrollToFirstBookingError(errors);
       return;
     }
 
     setSubmitting(true);
     setError("");
+    setFieldErrors({});
 
     const payload: BookingCreateInput = {
       date: draft.date,
       time: selectedSlot.time,
-      pax: draft.pax,
-      roomCode: activeRoomCode || undefined,
+      pax: confirmedPax,
+      roomCode: isRoomSelectionDisabled ? undefined : (activeRoomCode || undefined),
       statusCode: selectedStatusCode,
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
       email: draft.email.trim() || undefined,
-      phone: draft.phone.trim() || undefined,
+      phone: normalizedPhone.normalizedE164,
       note: composedCustomerNote,
       privacyAccepted: draft.privacyAccepted,
       marketingAccepted: draft.marketingAccepted,
+      moduleCode: customModuleCode || undefined,
     };
 
     trackAppEvent("booking_request_submit", {
@@ -515,12 +874,14 @@ export function BookingFlow() {
         storageKeys.lastReservation,
         response.reservation,
       );
+      window.location.hash = "#prenotazione-completata";
     } catch (submitError) {
       setError(
         submitError instanceof Error
           ? submitError.message
           : "La prenotazione non e stata completata.",
       );
+      window.location.hash = "#booking-form";
     } finally {
       setSubmitting(false);
     }
@@ -534,35 +895,47 @@ export function BookingFlow() {
   };
 
   const submitWaitlist = async () => {
-    if (!draft.firstName.trim() || !draft.lastName.trim()) {
-      setWaitlistError("Inserisci nome e cognome per entrare in lista d'attesa.");
+    const errors = validateDraftFields({
+      requireSelectedSlot: false,
+      requireEmail: false,
+    });
+
+    if (Object.keys(errors).length > 0 || !paxCount) {
+      setFieldErrors(errors);
+      setWaitlistError("");
+      scrollToFirstBookingError(errors);
       return;
     }
 
-    if (!draft.phone.trim()) {
-      setWaitlistError("Inserisci un numero di telefono valido.");
-      return;
-    }
+    const confirmedPax = paxCount;
 
-    if (!draft.privacyAccepted) {
-      setWaitlistError("Il consenso privacy e richiesto per la lista d'attesa.");
+    const normalizedPhone = validateItalianPhone(draft.phone);
+    if (!normalizedPhone.ok) {
+      const errors = { phone: normalizedPhone.error } satisfies BookingFieldErrors;
+      setFieldErrors(errors);
+      scrollToFirstBookingError(errors);
       return;
     }
 
     setSubmittingWaitlist(true);
     setWaitlistError("");
+    setFieldErrors({});
 
     const payload: WaitlistCreateInput = {
       date: draft.date,
-      pax: draft.pax,
-      roomCode: activeRoomCode || undefined,
+      requestedTime: draft.isAfterDinner
+        ? "Dopo cena"
+        : selectedTime || undefined,
+      pax: confirmedPax,
+      roomCode: isRoomSelectionDisabled ? undefined : (activeRoomCode || undefined),
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
-      phone: draft.phone.trim(),
+      phone: normalizedPhone.normalizedE164,
       email: draft.email.trim() || undefined,
       note: composedCustomerNote,
       privacyAccepted: draft.privacyAccepted,
       marketingAccepted: draft.marketingAccepted,
+      moduleCode: customModuleCode || undefined,
     };
 
     try {
@@ -577,6 +950,7 @@ export function BookingFlow() {
       setWaitlistContextKey(availabilityKey);
       setWaitlistSuccess(response);
       setShowWaitlistForm(false);
+      window.location.hash = "#waitlist-success";
     } catch (submitError) {
       setWaitlistError(
         submitError instanceof Error
@@ -600,273 +974,19 @@ export function BookingFlow() {
     }));
   };
 
-  const renderAvailabilityContent = (spacingClass = "mt-4") => (
-    <>
-      {loadingAvailability ? (
-        <div className={spacingClass}>
-          <StatusBlock
-            variant="loading"
-            title="Sto rileggendo la rotta"
-            description="Gli orari si aggiornano da soli quando cambi data, persone o sala."
-          />
-        </div>
-      ) : null}
-
-      {!loadingAvailability && availability ? (
-        <>
-          {hasNoAvailableSlots ? (
-            <div className={`${spacingClass} space-y-4`}>
-              <StatusBlock
-                variant="empty"
-                title="Nessun orario disponibile per questa selezione."
-                description={
-                  availability.days[0]?.unavailableMessage ||
-                  "Puoi lasciare i tuoi dati ed entrare in lista d'attesa per questa richiesta."
-                }
-                action={
-                  <button
-                    type="button"
-                    className="button-secondary inline-flex min-h-11 items-center justify-center px-5"
-                    onClick={() => {
-                      triggerHaptic();
-                      openWaitlistForm();
-                    }}
-                  >
-                    Entra in lista d&apos;attesa
-                  </button>
-                }
-              />
-
-              {showVisibleWaitlistForm ? (
-                <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                  <div className="space-y-2">
-                    <p className="eyebrow">Lista d&apos;attesa</p>
-                    <p className="text-sm leading-6 text-[var(--text-muted)]">
-                      Lascia i tuoi dati e la ciurma ti ricontattera&apos; se si
-                      libera un tavolo per questa richiesta.
-                    </p>
-                  </div>
-
-                  {waitlistError ? (
-                    <div className="mt-4">
-                      <StatusBlock
-                        variant="error"
-                        title="Richiesta non completa"
-                        description={waitlistError}
-                      />
-                    </div>
-                  ) : null}
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Nome</span>
-                      <input
-                        className="field"
-                        value={draft.firstName}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            firstName: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Cognome</span>
-                      <input
-                        className="field"
-                        value={draft.lastName}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            lastName: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Telefono</span>
-                      <input
-                        className="field"
-                        type="tel"
-                        placeholder="+39..."
-                        value={draft.phone}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            phone: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                      <span>Email</span>
-                      <input
-                        className="field"
-                        type="email"
-                        value={draft.email}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            email: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                  </div>
-
-                  <label className="mt-3 block space-y-2 text-sm text-[var(--text-muted)]">
-                    <span>Note facoltative</span>
-                    <textarea
-                      className="field min-h-28 resize-none"
-                      value={draft.note}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          note: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <div className="mt-4 space-y-3">
-                    <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                      <input
-                        type="checkbox"
-                        checked={draft.privacyAccepted}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            privacyAccepted: event.target.checked,
-                          }))
-                        }
-                      />
-                      <span>
-                        Accetto il trattamento privacy per inviare la richiesta in
-                        lista d&apos;attesa.
-                      </span>
-                    </label>
-                    {!shouldHideMarketingConsent ? (
-                      <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                        <input
-                          type="checkbox"
-                          checked={draft.marketingAccepted}
-                          onChange={(event) =>
-                            handleMarketingConsentChange(event.target.checked)
-                          }
-                        />
-                        <span>
-                          Accetto comunicazioni marketing future di Tortuga.
-                        </span>
-                      </label>
-                    ) : null}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                    onClick={() => {
-                      triggerHaptic();
-                      void submitWaitlist();
-                    }}
-                    disabled={submittingWaitlist}
-                  >
-                    {submittingWaitlist
-                      ? "Invio la lista d'attesa..."
-                      : "Conferma lista d'attesa"}
-                  </button>
-                </div>
-              ) : null}
-
-              {visibleWaitlistSuccess ? (
-                <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/4 p-4">
-                  <p className="eyebrow">Lista d&apos;attesa registrata</p>
-                  <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-muted)]">
-                    <p className="text-white">
-                      La tua richiesta e&apos; stata inserita correttamente.
-                    </p>
-                    <p>
-                      Qualora si dovessero liberare dei posti sarai contattato/a
-                      per confermare la prenotazione.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className={`${spacingClass} space-y-4`}>
-              {visibleDays.map((day) => (
-                <div key={day.date} className="space-y-3">
-                  <p className="text-sm font-semibold text-white">
-                    {formatLongDate(day.date)}
-                  </p>
-
-                  {day.bands.map((band) => {
-                    const availableSlots = band.slots.filter((slot) => slot.enabled);
-                    const cleanedWarning = cleanText(band.warning);
-
-                    if (availableSlots.length === 0) {
-                      return null;
-                    }
-
-                    return (
-                      <div key={band.code} className="space-y-3">
-                        <div className="space-y-1">
-                          <p className="text-sm text-[var(--accent-strong)]">
-                            {band.label}
-                          </p>
-                          {band.durationMinutes ? (
-                            <p className="text-xs text-[var(--text-muted)]">
-                              Tempo di permanenza: {band.durationMinutes} min
-                            </p>
-                          ) : null}
-                        </div>
-
-                        {cleanedWarning ? (
-                          <p className="rounded-2xl border border-[var(--border)] bg-white/4 px-4 py-3 text-xs leading-5 text-[var(--text-muted)]">
-                            {cleanedWarning}
-                          </p>
-                        ) : null}
-
-                        <div className="grid grid-cols-4 gap-2">
-                          {availableSlots.map((slot) => {
-                            const isActive = selectedTime === slot.time;
-
-                            return (
-                              <button
-                                key={`${band.code}-${slot.time}`}
-                                type="button"
-                                className={cn(
-                                  "panel-muted flex min-h-[72px] w-full items-center justify-center rounded-[1.25rem] px-1.5 py-5 text-center transition",
-                                  isActive &&
-                                    "border border-[var(--border-strong)] bg-white/8",
-                                )}
-                                onClick={() => {
-                                  if (!hasAutoScrolledToCustomerStepRef.current) {
-                                    pendingInitialSlotScrollRef.current = true;
-                                  }
-                                  setSelectedTime(slot.time);
-                                  setSelectedStatusCode(slot.statusCode);
-                                }}
-                              >
-                                <p className="text-base font-semibold leading-none text-white">
-                                  {slot.time}
-                                </p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      ) : null}
-    </>
-  );
+  const handleSelectSlot = (time: string, statusCode: number) => {
+    if (time) {
+      if (!hasAutoScrolledToCustomerStepRef.current) {
+        pendingInitialSlotScrollRef.current = true;
+      }
+      clearFieldErrors("selectedTime");
+      setSelectedTime(time);
+      setSelectedStatusCode(statusCode);
+      window.location.hash = "#dati-cliente";
+    } else {
+      setSelectedTime("");
+    }
+  };
 
   return (
     <section className="space-y-5">
@@ -888,285 +1008,120 @@ export function BookingFlow() {
 
       {bootstrap ? (
         <>
-          <div id="booking-form" className="panel hash-scroll-target rounded-[2rem] p-5">
-            <div className="space-y-2">
-              <p className="eyebrow">Data e Persone</p>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                Scegli quando vuoi salpare e quanti sarete a bordo.
-              </p>
-            </div>
+          {success ? (
+            <BookingSuccessView
+              success={success}
+              successDateLabel={successDateLabel}
+              successTimeLabel={successTimeLabel}
+              onReset={() => {
+                setSuccess(null);
+                setSelectedTime("");
+                setFieldErrors({});
+                setDraft(fallbackDraft);
+              }}
+            />
+          ) : (
+            <>
+              <BookingParamsSelector
+                draft={draft}
+                setDraft={setDraft}
+                fieldErrors={fieldErrors}
+                clearFieldErrors={clearFieldErrors}
+                dateFieldRef={dateFieldRef}
+                paxFieldRef={paxFieldRef}
+                minimumBookingDate={minimumBookingDate}
+                bootstrap={bootstrap}
+                showRoomDropdown={showRoomDropdown}
+                activeRoomCode={activeRoomCode}
+                isMatchDrinkActive={isMatchDrinkActive}
+                matchDrinkMen={matchDrinkMen}
+                setMatchDrinkMen={setMatchDrinkMen}
+                matchDrinkWomen={matchDrinkWomen}
+                setMatchDrinkWomen={setMatchDrinkWomen}
+                matchDrinkAgeGroup={matchDrinkAgeGroup}
+                setMatchDrinkAgeGroup={setMatchDrinkAgeGroup}
+                setSelectedTime={setSelectedTime}
+                setCustomModuleCode={setCustomModuleCode}
+                setIsRoomSelectionDisabled={setIsRoomSelectionDisabled}
+                AREA_FAMILY_ROOM_CODE={AREA_FAMILY_ROOM_CODE}
+              />
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Data</span>
-                <input
-                  className="field min-w-0"
-                  type="date"
-                  min={baseDraft.date}
-                  value={draft.date}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, date: event.target.value }))
-                  }
-                />
-              </label>
-
-              <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Numero persone</span>
-                <input
-                  className="field min-w-0"
-                  type="number"
-                  min={1}
-                  max={16}
-                  value={draft.pax}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      pax: Number(event.target.value) || 1,
-                    }))
-                  }
-                />
-              </label>
-            </div>
-
-            {showRoomDropdown ? (
-              <label className="mt-4 block space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Sala</span>
-                <select
-                  className="field"
-                  value={activeRoomCode}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      roomCode: event.target.value,
-                    }))
-                  }
-                >
-                  {bootstrap.rooms.map((room) => (
-                    <option key={room.code} value={room.code}>
-                      {room.publicName || room.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-
-            {canLoadAvailability ? (
-              <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
-                <div className="space-y-2">
-                  <p className="eyebrow">Slot Cena</p>
+              {requiresRoomSelection && !activeRoomCode && !isRoomSelectionDisabled ? (
+                <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    Gli slot si aggiornano in base alla data, alle persone e
-                    alla sala che hai scelto.
+                    Scegli prima la sala richiesta per vedere gli orari disponibili.
                   </p>
                 </div>
+              ) : null}
 
-                {renderAvailabilityContent("mt-5")}
-              </div>
-            ) : null}
-
-            {requiresRoomSelection && !activeRoomCode ? (
-              <div className="mt-5 border-t border-[rgba(255,216,156,0.08)] pt-5">
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Scegli prima la sala dal menu per vedere gli orari disponibili e
-                  orientarti meglio con la mappa del locale.
-                </p>
-              </div>
-            ) : null}
-          </div>
-
-          {activeRoomCode && selectedRoom ? (
-            <TortugaMapViewer
-              roomCode={activeRoomCode}
-              roomName={selectedRoom.publicName || selectedRoom.name}
-            />
-          ) : null}
-
-          {selectedSlot ? (
-            <div
-              id="dati-cliente"
-              ref={customerDetailsStepRef}
-              className="panel hash-scroll-target rounded-[2rem] p-5"
-            >
-              <div className="space-y-2">
-                <p className="eyebrow">Dati Cliente</p>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  Ultimo passo: inserisci i tuoi dati e conferma la prenotazione.
-                </p>
-              </div>
-
-              <div className="mt-4 rounded-[1.4rem] border border-[var(--border)] bg-white/4 px-4 py-3">
-                <p className="text-sm font-semibold text-white">
-                  Slot scelto: {selectedSlot.time}
-                </p>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {formatLongDate(selectedSlot.date)} - {selectedSlot.bandLabel}
-                </p>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Nome</span>
-                  <input
-                    className="field"
-                    required
-                    value={draft.firstName}
-                    onChange={(event) => {
-                      const nextFirstName = event.target.value;
-                      setDraft((current) => ({
-                        ...current,
-                        firstName: nextFirstName,
-                      }));
-
-                      if (draft.email && isValidCustomerEmail(draft.email)) {
-                        updateIdentity({ firstName: nextFirstName });
-                      }
-                    }}
-                  />
-                </label>
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Cognome</span>
-                  <input
-                    className="field"
-                    required
-                    value={draft.lastName}
-                    onChange={(event) => {
-                      const nextLastName = event.target.value;
-                      setDraft((current) => ({
-                        ...current,
-                        lastName: nextLastName,
-                      }));
-
-                      if (draft.email && isValidCustomerEmail(draft.email)) {
-                        updateIdentity({ lastName: nextLastName });
-                      }
-                    }}
-                  />
-                </label>
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Email</span>
-                  <input
-                    className="field"
-                    type="email"
-                    required
-                    value={draft.email}
-                    onChange={(event) => {
-                      const nextEmail = normalizeCustomerEmail(event.target.value);
-
-                      setDraft((current) => ({ ...current, email: nextEmail }));
-
-                      if (isValidCustomerEmail(nextEmail)) {
-                        setIdentityFromEmail(nextEmail, {
-                          firstName: draft.firstName,
-                          lastName: draft.lastName,
-                          phone: draft.phone,
-                          marketingConsent: identity.marketingConsent,
-                        });
-                      }
-                    }}
-                  />
-                </label>
-                <label className="space-y-2 text-sm text-[var(--text-muted)]">
-                  <span>Telefono</span>
-                  <input
-                    className="field"
-                    type="tel"
-                    required
-                    placeholder="+39..."
-                    value={draft.phone}
-                    onChange={(event) => {
-                      const nextPhone = event.target.value;
-
-                      setDraft((current) => ({ ...current, phone: nextPhone }));
-
-                      if (draft.email && isValidCustomerEmail(draft.email)) {
-                        updateIdentity({ phone: nextPhone });
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-
-              <label className="mt-3 block space-y-2 text-sm text-[var(--text-muted)]">
-                <span>Note</span>
-                <textarea
-                  className="field min-h-28 resize-none"
-                  value={draft.note}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, note: event.target.value }))
-                  }
+              {activeRoomCode && selectedRoom && !isRoomSelectionDisabled ? (
+                <TortugaMapViewer
+                  roomCode={activeRoomCode}
+                  roomName={selectedRoom.publicName || selectedRoom.name}
                 />
-              </label>
+              ) : null}
 
-              <div className="mt-4 space-y-3">
-                <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                  <input
-                    type="checkbox"
-                    checked={draft.privacyAccepted}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        privacyAccepted: event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>Accetto il trattamento privacy per inviare la prenotazione.</span>
-                </label>
-                {!shouldHideMarketingConsent ? (
-                  <label className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={draft.marketingAccepted}
-                      onChange={(event) =>
-                        handleMarketingConsentChange(event.target.checked)
-                      }
-                    />
-                    <span>Accetto comunicazioni marketing future di Tortuga.</span>
-                  </label>
-                ) : null}
-              </div>
+              {canLoadAvailability ? (
+                <TimeSlotSelector
+                  draft={draft}
+                  setDraft={setDraft}
+                  fieldErrors={fieldErrors}
+                  clearFieldErrors={clearFieldErrors}
+                  loadingAvailability={loadingAvailability}
+                  availability={availability}
+                  unavailableMessage={unavailableMessage}
+                  displayedSlotGroups={displayedSlotGroups}
+                  selectedTime={selectedTime}
+                  onSelectSlot={handleSelectSlot}
+                  isSundaySelected={isSundaySelected}
+                  hasWaitlistContext={hasWaitlistContext}
+                  openWaitlistForm={openWaitlistForm}
+                  showVisibleWaitlistForm={showVisibleWaitlistForm}
+                  submitWaitlist={submitWaitlist}
+                  submittingWaitlist={submittingWaitlist}
+                  waitlistError={waitlistError}
+                  visibleWaitlistSuccess={!!visibleWaitlistSuccess}
+                  isAreaFamily={isAreaFamily}
+                  childrenCountFieldRef={childrenCountFieldRef}
+                  selectedTimeFieldRef={selectedTimeFieldRef}
+                  firstNameFieldRef={firstNameFieldRef}
+                  lastNameFieldRef={lastNameFieldRef}
+                  phoneFieldRef={phoneFieldRef}
+                  emailFieldRef={emailFieldRef}
+                  privacyAcceptedFieldRef={privacyAcceptedFieldRef}
+                  shouldHideMarketingConsent={shouldHideMarketingConsent}
+                  handleMarketingConsentChange={handleMarketingConsentChange}
+                  handlePhoneBlur={handlePhoneBlur}
+                />
+              ) : null}
 
-              <div id="conferma" className="hash-scroll-target">
-                <button
-                  type="button"
-                  className="button-primary mt-5 flex min-h-12 w-full items-center justify-center px-4"
-                  onClick={() => {
-                    triggerHaptic();
-                    void submitBooking();
-                  }}
-                  disabled={submitting}
-                >
-                  {submitting ? "Creo la prenotazione..." : "Conferma prenotazione"}
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {success ? (
-            <div id="prenotazione-completata" className="panel hash-scroll-target rounded-[2rem] p-5">
-              <div className="space-y-2">
-                <p className="eyebrow">Prenotazione registrata</p>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  La tua richiesta e&apos; arrivata a destinazione.
-                </p>
-              </div>
-              <div className="mt-4 space-y-3">
-                <h2 className="text-2xl font-semibold text-white">
-                  {success.reservation.LabelStato || "Ci vediamo al Tortuga"}
-                </h2>
-                {success.reservation.DataPrenotazione ? (
-                  <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    Data e ora: {formatDateTime(success.reservation.DataPrenotazione)}
-                  </p>
-                ) : null}
-              </div>
-              <Link
-                href="/ciurma#riconoscimento"
-                className="button-secondary mt-5 inline-flex min-h-11 items-center justify-center px-5"
-              >
-                Apri la tua ciurma
-              </Link>
-            </div>
-          ) : null}
+              {selectedSlot ? (
+                <CustomerDetailsForm
+                  draft={draft}
+                  setDraft={setDraft}
+                  fieldErrors={fieldErrors}
+                  clearFieldErrors={clearFieldErrors}
+                  selectedSlot={selectedSlot}
+                  selectedRoom={selectedRoom}
+                  paxCount={paxCount}
+                  firstNameFieldRef={firstNameFieldRef}
+                  lastNameFieldRef={lastNameFieldRef}
+                  emailFieldRef={emailFieldRef}
+                  phoneFieldRef={phoneFieldRef}
+                  privacyAcceptedFieldRef={privacyAcceptedFieldRef}
+                  shouldHideMarketingConsent={shouldHideMarketingConsent}
+                  handleMarketingConsentChange={handleMarketingConsentChange}
+                  handlePhoneBlur={handlePhoneBlur}
+                  updateIdentity={updateIdentity}
+                  setIdentityFromEmail={setIdentityFromEmail}
+                  identity={identity}
+                  submitBooking={submitBooking}
+                  submitting={submitting}
+                  customerDetailsStepRef={customerDetailsStepRef}
+                />
+              ) : null}
+            </>
+          )}
         </>
       ) : null}
     </section>

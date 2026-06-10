@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMatchDrinkAdmin } from "@/lib/match-drink/use-match-drink-admin";
 import { MatchDrinkShell } from "@/components/match-drink/MatchDrinkShell";
 import { MatchDrinkCard } from "@/components/match-drink/MatchDrinkCard";
 import { MatchDrinkButton } from "@/components/match-drink/MatchDrinkButton";
 import { triggerHaptic } from "@/lib/haptics";
+import { ChevronLeft } from "lucide-react";
 
 export default function MatchDrinkSessionAdminPage() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +19,8 @@ export default function MatchDrinkSessionAdminPage() {
     messages,
     matches,
     answers,
+    forecast,
+    meetingTableOptions,
     loading,
     start,
     nextQuestion,
@@ -28,9 +32,13 @@ export default function MatchDrinkSessionAdminPage() {
     redeemDrink,
     deleteSession,
     updateStatus,
+    toggleMessages,
+    updateExcludedMeetingTables,
+    updateSecondaryTraitMode,
   } = useMatchDrinkAdmin(id);
 
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAdvancingStage, setIsAdvancingStage] = useState(false);
   const [countdownMinutes, setCountdownMinutes] = useState(5);
 
   if (loading) return null;
@@ -40,6 +48,86 @@ export default function MatchDrinkSessionAdminPage() {
   const currentQuestion = questions[session.currentQuestionIndex];
   const totalAnswers = answers.filter(a => a.questionId === currentQuestion?.id).length;
   const confirmedMatches = matches.filter(m => m.drinkUnlocked);
+  const redeemedDrinks = confirmedMatches.filter((match) => match.drinkRedeemed).length;
+  const excludedMeetingTables = session.excludedMeetingTables || [];
+  const secondaryTraitMode = session.secondaryTraitMode ?? "absolute";
+  const realPlayers = players.filter((player) => player.nickname !== "_SYSTEM_");
+  const peopleWaiting = Math.max(realPlayers.length - confirmedMatches.length * 2, 0);
+  const revealReady = session.status === "matching" && matches.length > 0;
+  const analytics = session.analytics;
+  const lastQuestionIndex = Math.max(questions.length - 1, 0);
+  const isLastQuestion = session.currentQuestionIndex >= lastQuestionIndex;
+
+  const getAdvanceButtonLabel = () => {
+    if (session.status === "matching") {
+      return "REVEAL MATCH";
+    }
+
+    if (session.status !== "playing") {
+      return null;
+    }
+
+    if (session.stageMode === "question") {
+      return "MOSTRA RISULTATI";
+    }
+
+    if (session.stageMode === "question_results") {
+      return isLastQuestion ? "CALCOLA MATCH" : "PROSSIMA DOMANDA";
+    }
+
+    return "MOSTRA DOMANDA";
+  };
+
+  const advanceButtonLabel = getAdvanceButtonLabel();
+
+  const handleAdvanceStage = async () => {
+    if (isAdvancingStage) {
+      return;
+    }
+
+    setIsAdvancingStage(true);
+
+    try {
+      triggerHaptic();
+
+      if (session.status === "matching") {
+        await updateStatus("reveal");
+        await updateStageMode("reveal");
+        return;
+      }
+
+      if (session.status !== "playing") {
+        return;
+      }
+
+      if (session.stageMode === "question") {
+        await updateStageMode("question_results");
+        return;
+      }
+
+      if (session.stageMode === "question_results") {
+        if (isLastQuestion) {
+          await calculateMatches();
+          return;
+        }
+
+        await nextQuestion(session.currentQuestionIndex + 1);
+        return;
+      }
+
+      await updateStageMode("question");
+    } finally {
+      setIsAdvancingStage(false);
+    }
+  };
+
+  const handleToggleExcludedTable = async (tableKey: string) => {
+    const nextExcluded = excludedMeetingTables.includes(tableKey)
+      ? excludedMeetingTables.filter((key) => key !== tableKey)
+      : [...excludedMeetingTables, tableKey];
+
+    await updateExcludedMeetingTables(nextExcluded);
+  };
 
   const handleDelete = async () => {
     if (confirm("Sei sicuro? Questa operazione cancella definitivamente tutti i dati della serata.")) {
@@ -47,14 +135,21 @@ export default function MatchDrinkSessionAdminPage() {
       try {
         await deleteSession();
         router.push("/admin/match-drink");
-      } catch {
+      } catch (err) {
         setIsDeleting(false);
+        alert("Errore durante l'eliminazione: " + (err instanceof Error ? err.message : "Errore sconosciuto"));
       }
     }
   };
 
   return (
     <MatchDrinkShell maxWidth="max-w-5xl">
+      <Link 
+        href="/ciurma" 
+        className="flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline mb-6"
+      >
+        <ChevronLeft className="w-3 h-3" /> Torna alla Ciurma
+      </Link>
       <div className="space-y-6 pb-20">
         <div className="flex items-center justify-between">
           <div>
@@ -62,8 +157,8 @@ export default function MatchDrinkSessionAdminPage() {
             <p className="font-mono text-[var(--accent-strong)]">CODE: {session.joinCode}</p>
           </div>
           <div className="flex gap-2">
-            <a href={`/stage/match-drink/${session.id}`} target="_blank" rel="noreferrer">
-              <MatchDrinkButton variant="secondary" size="md">STAGE SCREEN</MatchDrinkButton>
+            <a href="/stage" target="_blank" rel="noreferrer">
+              <MatchDrinkButton variant="secondary" size="md">SMART STAGE</MatchDrinkButton>
             </a>
             <MatchDrinkButton variant="danger" size="md" onClick={handleDelete} loading={isDeleting}>ELIMINA</MatchDrinkButton>
           </div>
@@ -86,34 +181,24 @@ export default function MatchDrinkSessionAdminPage() {
                       onClick={() => updateStageMode("intro")}
                       disabled={session.stageMode === "intro"}
                     >MOSTRA STATISTICHE</MatchDrinkButton>
-                    <MatchDrinkButton 
-                      variant="secondary" 
-                      onClick={() => updateStageMode("question")}
-                      disabled={session.stageMode === "question"}
-                    >MOSTRA DOMANDA</MatchDrinkButton>
-                    <MatchDrinkButton 
-                      variant="secondary" 
-                      onClick={() => updateStageMode("question_results")}
-                      disabled={session.stageMode === "question_results"}
-                    >MOSTRA RISULTATI</MatchDrinkButton>
-                    {session.currentQuestionIndex < (session.questions?.length || 0) - 1 ? (
-                      <MatchDrinkButton onClick={() => nextQuestion(session.currentQuestionIndex + 1)}>
-                        PROSSIMA DOMANDA
+                    {advanceButtonLabel && (
+                      <MatchDrinkButton
+                        onClick={() => void handleAdvanceStage()}
+                        variant="primary"
+                        loading={isAdvancingStage}
+                      >
+                        {advanceButtonLabel}
                       </MatchDrinkButton>
-                    ) : (
-                      <MatchDrinkButton onClick={calculateMatches} variant="primary">CALCOLA MATCH</MatchDrinkButton>
                     )}
                   </>
                 )}
                 {session.status === "matching" && (
-                   <MatchDrinkButton 
-                     onClick={() => {
-                       updateStatus("reveal");
-                       updateStageMode("reveal");
-                     }}
-                   >
-                     REVEAL MATCH
-                   </MatchDrinkButton>
+                  <MatchDrinkButton
+                    onClick={() => void handleAdvanceStage()}
+                    loading={isAdvancingStage}
+                  >
+                    REVEAL MATCH
+                  </MatchDrinkButton>
                 )}
               </div>
 
@@ -133,6 +218,107 @@ export default function MatchDrinkSessionAdminPage() {
                    })()}
                 </div>
               )}
+            </MatchDrinkCard>
+
+            <MatchDrinkCard>
+              <h2 className="eyebrow mb-4">Quadro Operativo</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className={`panel-muted rounded-xl p-4 ${revealReady ? "border border-[var(--accent-strong)] bg-[var(--accent-soft)]/10" : ""}`}>
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Reveal pronto</p>
+                  <p className="mt-2 text-2xl font-black text-white">{revealReady ? "SI" : "NO"}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    {matches.length} match calcolati
+                  </p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Match confermati</p>
+                  <p className="mt-2 text-2xl font-black text-white">{analytics?.acceptedMatches ?? confirmedMatches.length}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Drink sbloccati: {analytics?.drinksUnlocked ?? confirmedMatches.length}
+                  </p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Drink serviti</p>
+                  <p className="mt-2 text-2xl font-black text-white">{analytics?.drinksRedeemed ?? redeemedDrinks}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Iscrizioni: {analytics?.signups ?? realPlayers.length}
+                  </p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Persone in attesa</p>
+                  <p className="mt-2 text-2xl font-black text-white">{peopleWaiting}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    In attesa di conferma o senza drink servito
+                  </p>
+                </div>
+              </div>
+            </MatchDrinkCard>
+
+            <MatchDrinkCard>
+              <h2 className="eyebrow mb-4">Previsione Match e Tavoli</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Coppie Romance previste</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.romancePairs ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Capienza attuale: {forecast?.romanceCapacity ?? 0}</p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Coppie Friendship previste</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.friendshipPairs ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Capienza attuale: {forecast?.friendshipCapacity ?? 0}</p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Persone senza match</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.unmatchedPlayers ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Stima sui tavoli e compatibilita attuali</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--accent-strong)]">Tavoli Romance disponibili</p>
+                  <div className="mt-3 space-y-2">
+                    {meetingTableOptions.filter((table) => table.zone === "romance").map((table) => {
+                      const checked = !excludedMeetingTables.includes(table.key);
+                      return (
+                        <label key={table.key} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2 text-xs text-white">
+                          <span>
+                            {table.label} · {table.seats} posti · {table.slots} match
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => void handleToggleExcludedTable(table.key)}
+                            className="h-4 w-4 accent-[var(--accent-strong)]"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--accent-strong)]">Tavoli Friendship disponibili</p>
+                  <div className="mt-3 space-y-2">
+                    {meetingTableOptions.filter((table) => table.zone === "friendship").map((table) => {
+                      const checked = !excludedMeetingTables.includes(table.key);
+                      return (
+                        <label key={table.key} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2 text-xs text-white">
+                          <span>
+                            {table.label} · {table.seats} posti · {table.slots} match
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => void handleToggleExcludedTable(table.key)}
+                            className="h-4 w-4 accent-[var(--accent-strong)]"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </MatchDrinkCard>
 
             {/* Registration & Countdown Management */}
@@ -208,6 +394,40 @@ export default function MatchDrinkSessionAdminPage() {
               </div>
             </MatchDrinkCard>
 
+            <MatchDrinkCard>
+              <h2 className="eyebrow mb-4">Approccio profili</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => void updateSecondaryTraitMode("macro_category")}
+                  className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                    secondaryTraitMode === "macro_category"
+                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 text-white"
+                      : "border-white/10 bg-white/5 text-[var(--text-muted)]"
+                  }`}
+                >
+                  <p className="text-sm font-black uppercase tracking-widest">Secondario in Macrocategoria</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Il tratto secondario viene scelto dentro la stessa famiglia del dominante.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void updateSecondaryTraitMode("absolute")}
+                  className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                    secondaryTraitMode === "absolute"
+                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]/10 text-white"
+                      : "border-white/10 bg-white/5 text-[var(--text-muted)]"
+                  }`}
+                >
+                  <p className="text-sm font-black uppercase tracking-widest">Secondario assoluto</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Il tratto secondario è il secondo più forte in assoluto, anche fuori macro-categoria.
+                  </p>
+                </button>
+              </div>
+            </MatchDrinkCard>
+
             {/* Confirmed Matches */}
             <MatchDrinkCard>
               <h2 className="eyebrow mb-4">Abbinamenti Confermati ({confirmedMatches.length})</h2>
@@ -240,9 +460,9 @@ export default function MatchDrinkSessionAdminPage() {
           <div className="space-y-6">
              {/* Player List */}
              <MatchDrinkCard variant="muted">
-              <h2 className="eyebrow mb-4">Ciurma ({players.filter(p => p.nickname !== "_SYSTEM_").length})</h2>
+              <h2 className="eyebrow mb-4">Ciurma ({realPlayers.length})</h2>
               <div className="max-h-60 overflow-y-auto space-y-2 scrollbar-hidden">
-                {players.filter(p => p.nickname !== "_SYSTEM_").map(p => (
+                {realPlayers.map(p => (
                   <div key={p.id} className="flex items-center justify-between text-xs py-1 border-b border-[var(--border)] last:border-0">
                     <span className="text-white font-medium">{p.nickname}</span>
                     <span className="text-[var(--text-muted)]">Tavolo {p.tableNumber}</span>
@@ -251,10 +471,35 @@ export default function MatchDrinkSessionAdminPage() {
               </div>
             </MatchDrinkCard>
 
-            {/* Moderation */}
+              {/* Moderation */}
             <MatchDrinkCard variant="muted">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="eyebrow">Moderazione Messaggi</h2>
+              <div className="space-y-4 mb-6">
+                <h2 className="eyebrow">Gestione Messaggi</h2>
+                <div className="flex gap-2">
+                  <MatchDrinkButton 
+                    className="flex-1" 
+                    variant={session.bottleMessagesEnabled ? "primary" : "secondary"}
+                    onClick={() => toggleMessages(true)}
+                  >
+                    ABILITA
+                  </MatchDrinkButton>
+                  <MatchDrinkButton 
+                    className="flex-1" 
+                    variant={!session.bottleMessagesEnabled ? "danger" : "secondary"}
+                    onClick={() => toggleMessages(false)}
+                  >
+                    DISABILITA
+                  </MatchDrinkButton>
+                </div>
+                <div className={`p-2 rounded-lg text-center text-[10px] font-black uppercase tracking-widest ${
+                  session.bottleMessagesEnabled ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                }`}>
+                  I messaggi sono {session.bottleMessagesEnabled ? "ATTIVI" : "DISATTIVATI"} sui telefoni
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-4 pt-4 border-t border-white/10">
+                <h2 className="eyebrow">Moderazione Manuale</h2>
                 <MatchDrinkButton 
                   variant="secondary" 
                   size="md" 
@@ -298,7 +543,9 @@ export default function MatchDrinkSessionAdminPage() {
                   <div key={msg.id} className={`p-3 rounded-lg border ${msg.status === "shown" ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]" : "border-[var(--border)] bg-black/20"}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-bold text-[var(--accent-strong)] uppercase">
-                        {msg.displayMode === "captain" ? "Capitano" : (msg.displayMode === "anonymous" ? "Anonimo" : players.find(p => p.id === msg.playerId)?.nickname)}
+                        {msg.displayMode === "captain" ? "Capitano" : (
+                          `${players.find(p => p.id === msg.playerId)?.nickname || "Sconosciuto"}${msg.displayMode === "anonymous" ? " (Anonimo)" : ""}`
+                        )}
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)]">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
@@ -306,15 +553,20 @@ export default function MatchDrinkSessionAdminPage() {
                     <div className="flex flex-wrap gap-1">
                       {msg.status === "pending" && (
                         <>
-                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "approve")}>OK</MatchDrinkButton>
-                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" variant="secondary" onClick={() => moderateMessage(msg.id, "reject")}>NO</MatchDrinkButton>
+                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "approved")}>APPROVA</MatchDrinkButton>
+                          <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" variant="secondary" onClick={() => moderateMessage(msg.id, "rejected")}>RIFIUTA</MatchDrinkButton>
                         </>
                       )}
-                      {msg.status === "approved" && (
-                        <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "show")}>MOSTRA IN STAGE</MatchDrinkButton>
+                      {(msg.status === "approved" || msg.status === "shown") && (
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded uppercase">In Rotazione</span>
+                          {msg.status !== "shown" && (
+                             <MatchDrinkButton size="md" className="py-1 min-h-0 text-[10px]" onClick={() => moderateMessage(msg.id, "shown")}>EVIDENZIA</MatchDrinkButton>
+                          )}
+                        </div>
                       )}
                       {msg.status === "shown" && (
-                        <span className="text-[10px] font-bold text-[var(--accent-strong)] ml-auto">LIVE</span>
+                        <span className="text-[10px] font-bold text-[var(--accent-strong)] ml-auto animate-pulse">LIVE ORA</span>
                       )}
                     </div>
                   </div>

@@ -6,44 +6,26 @@ import { MatchDrinkShell } from "@/components/match-drink/MatchDrinkShell";
 import { MatchDrinkCard } from "@/components/match-drink/MatchDrinkCard";
 import { MatchDrinkButton } from "@/components/match-drink/MatchDrinkButton";
 import { MatchDrinkSession } from "@/lib/match-drink/types";
+import { ChevronLeft } from "lucide-react";
 
 export default function MatchDrinkAdminPage() {
-  const [pin, setPin] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("match-drink.adminPin") || "";
-    }
-    return "";
-  });
-  const [isAuthorized, setIsAuthorized] = useState(false);
   const [sessions, setSessions] = useState<MatchDrinkSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [questionCount, setQuestionCount] = useState<number>(20);
 
-  const fetchSessions = useCallback(async (p: string) => {
+  const fetchSessions = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      // Prima validiamo il PIN con l'endpoint centralizzato
-      const valRes = await fetch("/api/admin/validate-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: p }),
-      });
-      
-      if (!valRes.ok) throw new Error("PIN non valido");
-
-      // Se valido, carichiamo le sessioni
-      const res = await fetch(`/api/match-drink/sessions?pin=${p}`);
+      const res = await fetch("/api/match-drink/sessions", { cache: "no-store" });
       if (!res.ok) throw new Error("Errore nel caricamento sessioni");
       
       const data = await res.json();
       setSessions(data);
-      setIsAuthorized(true);
-      localStorage.setItem("match-drink.adminPin", p);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore di accesso");
-      setIsAuthorized(false);
     } finally {
       setLoading(false);
     }
@@ -52,11 +34,14 @@ export default function MatchDrinkAdminPage() {
   const initialFetchDone = useRef(false);
 
   useEffect(() => {
-    if (pin && !initialFetchDone.current) {
+    if (!initialFetchDone.current) {
       initialFetchDone.current = true;
-      fetchSessions(pin);
+      fetchSessions().then(() => {
+        // Attivazione automatica e push quando entriamo nella plancia
+        void fetch("/api/match-drink/admin/activate", { method: "POST" });
+      });
     }
-  }, [pin, fetchSessions]);
+  }, [fetchSessions]);
 
   const handleCreate = async () => {
     if (!newTitle) return;
@@ -65,11 +50,11 @@ export default function MatchDrinkAdminPage() {
       const res = await fetch("/api/match-drink/session/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle, pin }),
+        body: JSON.stringify({ title: newTitle, questionCount }),
       });
       if (!res.ok) throw new Error("Errore nella creazione");
       setNewTitle("");
-      await fetchSessions(pin);
+      await fetchSessions();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore nella creazione");
     } finally {
@@ -77,58 +62,48 @@ export default function MatchDrinkAdminPage() {
     }
   };
 
-  if (!isAuthorized) {
-    return (
-      <MatchDrinkShell>
-        <div className="flex flex-1 items-center justify-center">
-          <MatchDrinkCard className="w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold text-white mb-6">Admin Match & Drink</h1>
-            <div className="space-y-4">
-              <input
-                type="password"
-                value={pin}
-                onChange={e => setPin(e.target.value)}
-                placeholder="Inserisci PIN Admin"
-                className="field text-center text-2xl tracking-[0.5em]"
-              />
-              {error && <p className="text-red-400 text-sm">{error}</p>}
-              <MatchDrinkButton 
-                className="w-full" 
-                onClick={() => fetchSessions(pin)}
-                loading={loading}
-              >
-                ACCEDI
-              </MatchDrinkButton>
-            </div>
-          </MatchDrinkCard>
-        </div>
-      </MatchDrinkShell>
-    );
-  }
-
   return (
     <MatchDrinkShell maxWidth="max-w-4xl">
+      <Link 
+        href="/ciurma" 
+        className="flex items-center gap-1 text-xs uppercase tracking-widest text-[var(--accent-strong)] hover:underline mb-6"
+      >
+        <ChevronLeft className="w-3 h-3" /> Torna alla Ciurma
+      </Link>
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-white">Dashboard Match & Drink</h1>
-          <MatchDrinkButton variant="secondary" size="md" onClick={() => {
-            localStorage.removeItem("match-drink.adminPin");
-            setIsAuthorized(false);
-            setPin("");
-          }}>
-            LOGOUT
+          <MatchDrinkButton variant="secondary" size="md" onClick={() => void fetchSessions()}>
+            AGGIORNA
           </MatchDrinkButton>
         </div>
 
+        {error ? (
+          <MatchDrinkCard variant="muted">
+            <p className="text-sm text-[var(--danger)]">{error}</p>
+          </MatchDrinkCard>
+        ) : null}
+
         <MatchDrinkCard variant="accent">
           <h2 className="eyebrow mb-4">Crea Nuova Sessione</h2>
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <input
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               placeholder="Titolo serata (es. Sabato 29 Aprile)"
-              className="field flex-1"
+              className="field flex-[2]"
             />
+            <div className="flex items-center gap-2 flex-1">
+              <label className="text-xs uppercase font-bold text-[var(--text-muted)] whitespace-nowrap">Domande:</label>
+              <input
+                type="number"
+                value={questionCount}
+                onChange={e => setQuestionCount(parseInt(e.target.value) || 20)}
+                min={5}
+                max={40}
+                className="field w-20 text-center"
+              />
+            </div>
             <MatchDrinkButton onClick={handleCreate} loading={loading} disabled={!newTitle}>
               CREA
             </MatchDrinkButton>

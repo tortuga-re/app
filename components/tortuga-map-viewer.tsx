@@ -193,7 +193,7 @@ export function TortugaMapViewer({
     () => getFocusedRoomViewBox(roomCode),
     [roomCode],
   );
-  const [viewBox, setViewBox] = useState<ViewBoxState>(focusedRoomViewBox);
+  const [viewBox, setViewBox] = useState<ViewBoxState>(getFullViewBox());
 
   useEffect(() => {
     const roomChanged = previousRoomCodeRef.current !== roomCode;
@@ -413,11 +413,11 @@ export function TortugaMapViewer({
         </span>
       </div>
 
-      <div className="relative mt-4 overflow-hidden rounded-[1.75rem] border border-[rgba(255,216,156,0.14)] bg-[linear-gradient(180deg,rgba(33,23,16,0.98),rgba(15,10,8,1))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <div className="pointer-events-none absolute right-5 top-5 z-10 flex flex-col gap-2">
+      <div className="relative mt-5">
+        <div className="pointer-events-none absolute right-4 top-4 z-10 flex flex-col gap-2">
           <button
             type="button"
-            className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-[rgba(255,216,156,0.16)] bg-[rgba(15,12,10,0.8)] text-lg font-semibold text-[var(--accent-strong)] shadow-[0_8px_24px_rgba(0,0,0,0.24)] backdrop-blur"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(255,216,156,0.16)] bg-[rgba(15,12,10,0.8)] text-lg font-semibold text-[var(--accent-strong)] shadow-lg backdrop-blur"
             onClick={() => zoomFromCenter(ZOOM_STEP)}
             aria-label="Ingrandisci mappa"
           >
@@ -425,7 +425,7 @@ export function TortugaMapViewer({
           </button>
           <button
             type="button"
-            className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-[rgba(255,216,156,0.16)] bg-[rgba(15,12,10,0.8)] text-lg font-semibold text-[var(--accent-strong)] shadow-[0_8px_24px_rgba(0,0,0,0.24)] backdrop-blur"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(255,216,156,0.16)] bg-[rgba(15,12,10,0.8)] text-lg font-semibold text-[var(--accent-strong)] shadow-lg backdrop-blur"
             onClick={() => zoomFromCenter(1 / ZOOM_STEP)}
             aria-label="Riduci mappa"
           >
@@ -435,7 +435,7 @@ export function TortugaMapViewer({
 
         <div
           ref={viewportRef}
-          className="touch-none select-none overflow-hidden rounded-[1.45rem] border border-[rgba(255,216,156,0.1)] bg-[rgba(10,8,6,0.55)] p-2"
+          className="touch-none select-none overflow-hidden rounded-[1.5rem] border border-[rgba(255,216,156,0.14)] bg-[rgba(10,8,6,0.3)]"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -454,7 +454,7 @@ export function TortugaMapViewer({
         >
           <svg
             viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-            className="block h-auto w-full overflow-hidden rounded-[1.15rem]"
+            className="block h-auto w-full"
             role="img"
             aria-label={`Piantina del Tortuga con focus su ${roomName}`}
           >

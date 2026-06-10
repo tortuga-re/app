@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { moderateMessage, updateStageMode, validateAdminPin } from "@/lib/match-drink/storage";
+
+import { requireAdminRequest } from "@/lib/admin/server-auth";
+import { moderateMessage, updateStageMode } from "@/lib/match-drink/storage";
+import { expectOptionalString, expectString, readJsonBody } from "@/lib/validation/request";
 
 export async function POST(
   req: NextRequest,
@@ -7,19 +10,30 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { pin, messageId, action, approvedText } = await req.json();
-
-    if (!validateAdminPin(pin)) {
-      return NextResponse.json({ error: "PIN non valido" }, { status: 401 });
+    const adminRequest = requireAdminRequest(req);
+    if (!adminRequest.ok) {
+      return adminRequest.response;
     }
+    const payload = await readJsonBody<{
+      messageId?: string;
+      action?: string;
+      approvedText?: string;
+    }>(req);
+    const messageId = expectString(payload.messageId, "Messaggio");
+    const action = expectString(payload.action, "Azione moderazione");
+    const approvedText = expectOptionalString(payload.approvedText, "Testo approvato", {
+      maxLength: 500,
+    });
 
-    if (action === "approve") {
-      await moderateMessage(messageId, "approved", approvedText);
-    } else if (action === "reject") {
-      await moderateMessage(messageId, "rejected");
-    } else if (action === "show") {
-      await moderateMessage(messageId, "shown");
-      await updateStageMode(id, "message", messageId);
+    const status = (action === "approved" || action === "approve") ? "approved" : 
+                   (action === "rejected" || action === "reject") ? "rejected" : 
+                   (action === "shown" || action === "show") ? "shown" : null;
+
+    if (status) {
+      await moderateMessage(messageId, status as any, approvedText); // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (status === "shown") {
+        await updateStageMode(id, "message", messageId);
+      }
     }
 
     return NextResponse.json({ ok: true });
