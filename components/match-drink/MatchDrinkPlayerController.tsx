@@ -214,7 +214,6 @@ export function MatchDrinkPlayerController() {
     }
     return (
       <JoinForm
-        key={`${savedProfile?.nickname ?? ""}:${savedProfile?.avatarUrl ?? ""}:${savedProfile?.tableNumber ?? ""}`}
         onJoin={join}
         error={error}
         savedProfile={savedProfile}
@@ -744,8 +743,8 @@ function JoinForm({
     avatarUrl?: string;
   } | null
 }) {
-    const [nickname, setNickname] = useState(savedProfile?.nickname || "");
-    const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
+  const [nickname, setNickname] = useState(savedProfile?.nickname || "");
+  const [tableNumber, setTableNumber] = useState(savedProfile?.tableNumber || "");
   const [ageRange, setAgeRange] = useState<MatchDrinkPlayer["ageRange"]>(savedProfile?.ageRange || "25-34");
   const [gender, setGender] = useState<MatchDrinkPlayer["gender"]>(savedProfile?.gender || "donna");
   const [relationshipStatus, setRelationshipStatus] = useState<MatchDrinkPlayer["relationshipStatus"]>(savedProfile?.relationshipStatus || "single");
@@ -757,6 +756,20 @@ function JoinForm({
   >({});
   const nicknameFieldRef = React.useRef<HTMLInputElement | null>(null);
   const tableNumberFieldRef = React.useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!savedProfile) {
+      return;
+    }
+
+    setNickname((current) => current || savedProfile.nickname || "");
+    setTableNumber((current) => current || savedProfile.tableNumber || "");
+    setAgeRange((current) => current || savedProfile.ageRange || "25-34");
+    setGender((current) => current || savedProfile.gender || "donna");
+    setRelationshipStatus((current) => current || savedProfile.relationshipStatus || "single");
+    setLookingFor((current) => current || savedProfile.lookingFor || "entrambi");
+    setAvatarUrl((current) => current || savedProfile.avatarUrl || "");
+  }, [savedProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
