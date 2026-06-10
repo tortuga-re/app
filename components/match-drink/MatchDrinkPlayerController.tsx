@@ -223,16 +223,53 @@ export function MatchDrinkPlayerController() {
 
   // Lobby
   if (session.status === "lobby") {
+    const participantCount = session.participantCount ?? 1;
+    const departureHint =
+      participantCount < 5
+        ? "Mancano pochi pirati alla partenza"
+        : "La ciurma è quasi pronta alla partenza";
+
     return (
       <MatchDrinkShell>
         <div className="space-y-6">
-          <MatchDrinkCard className="text-center">
-            <p className="eyebrow mb-2">Sei a bordo</p>
-            <h1 className="text-3xl font-bold text-white uppercase">{session.title}</h1>
-            <p className="mt-4 text-sm text-[var(--text-muted)]">
-              Sei nella lista del Capitano: tra poco partono le domande, i brindisi
-              e gli abbinamenti. Tieni il telefono pronto e giocatela bene.
-            </p>
+          <MatchDrinkCard variant="accent" className="overflow-hidden text-center">
+            <div className="space-y-5 animate-in fade-in zoom-in duration-700">
+              <div className="space-y-2">
+                <p className="eyebrow">Sei nella lista del Capitano</p>
+                <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+                  {session.title}
+                </h1>
+                <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent-strong)]">
+                  {departureHint}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-2xl border border-white/10 bg-black/35 px-3 py-4">
+                  <p className="text-3xl font-black gold-gradient">{participantCount}</p>
+                  <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    a bordo
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-4">
+                  <p className="text-lg font-black text-white">OK</p>
+                  <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    iscrizione
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-4">
+                  <p className="text-lg font-black text-white">LIVE</p>
+                  <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    domande
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                Il Capitano sta formando la ciurma: tra poco partono domande,
+                brindisi e abbinamenti. Tieni il telefono pronto.
+              </p>
+            </div>
           </MatchDrinkCard>
           
           {session.bottleMessagesEnabled ? (
@@ -396,7 +433,65 @@ export function MatchDrinkPlayerController() {
       }
     }
 
-    if (myMatch.drinkUnlocked) {
+    const isFriendshipGroup = Boolean(myMatch.isFriendshipGroup);
+    const groupMembers = myMatch.friendshipGroupMembers ?? [];
+    const otherGroupMembers = groupMembers.filter((member) => member.id !== player.id);
+    const groupSize = myMatch.friendshipGroupSize ?? groupMembers.length;
+
+    if (isFriendshipGroup && myMatch.drinkUnlocked) {
+      return (
+        <MatchDrinkShell>
+          <div className="space-y-6 animate-in fade-in zoom-in duration-700">
+            <MatchDrinkCard variant="accent" className="overflow-hidden text-center">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <p className="eyebrow">Ciurma confermata.</p>
+                  <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+                    Il tavolo friendship è tuo
+                  </h2>
+                  <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent-strong)]">
+                    Tavolo {meetingTableLabel}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-3">
+                  {groupMembers.map((member) => (
+                    <div key={member.id} className="flex w-24 flex-col items-center gap-2">
+                      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-[var(--accent-strong)] bg-black/40 shadow-[0_0_25px_rgba(216,176,106,0.22)]">
+                        {member.avatarUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-3xl font-black uppercase italic gold-gradient">
+                            {member.nickname[0] || "?"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="w-full truncate text-xs font-black uppercase text-white">
+                        {member.id === player.id ? "Tu" : member.nickname}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
+                  <p className="eyebrow mb-2">Motivo del tavolo</p>
+                  <p className="text-sm leading-relaxed text-white">&quot;{mainReason}&quot;</p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[var(--accent-strong)]/30 bg-[var(--accent-strong)]/10 px-5 py-4">
+                  <p className="text-sm font-bold leading-relaxed text-[var(--accent-strong)]">
+                    {myMatch.rewardText || `Raggiungi il tavolo ${meetingTableLabel} e richiedi il drink della ciurma.`}
+                  </p>
+                </div>
+              </div>
+            </MatchDrinkCard>
+          </div>
+        </MatchDrinkShell>
+      );
+    }
+
+    if (!isFriendshipGroup && myMatch.drinkUnlocked) {
       return (
         <MatchDrinkShell>
           <MatchDrinkRevealCard
@@ -445,12 +540,28 @@ export function MatchDrinkPlayerController() {
         </MatchDrinkShell>
       );
     }
+
     if (iAccepted === false) {
       return (
         <MatchDrinkShell>
           <MatchDrinkCard className="text-center">
             <h2 className="text-xl font-bold text-white uppercase">Va bene così.</h2>
             <p className="mt-4 text-[var(--text-muted)]">Il Capitano rispetta la fuga.</p>
+          </MatchDrinkCard>
+        </MatchDrinkShell>
+      );
+    }
+
+    if (isFriendshipGroup && iAccepted === true) {
+      return (
+        <MatchDrinkShell>
+          <MatchDrinkCard className="text-center">
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight">
+              Ciurma accettata.
+            </h2>
+            <p className="mt-4 text-[var(--text-muted)]">
+              Stiamo preparando il tavolo friendship e il drink sbloccato.
+            </p>
           </MatchDrinkCard>
         </MatchDrinkShell>
       );
@@ -465,6 +576,88 @@ export function MatchDrinkPlayerController() {
               Ora aspettiamo l&apos;altra metà del naufragio. Se accetta anche lei/lui, sbloccherete i drink omaggio del match.
             </p>
           </MatchDrinkCard>
+        </MatchDrinkShell>
+      );
+    }
+
+    if (isFriendshipGroup) {
+      return (
+        <MatchDrinkShell>
+          <div className="space-y-6 animate-in fade-in zoom-in duration-700">
+            <MatchDrinkCard variant="accent" className="overflow-hidden text-center">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <p className="eyebrow">Hai una ciurma!</p>
+                  <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+                    Il Capitano ti manda al tavolo friendship
+                  </h2>
+                  <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent-strong)]">
+                    {groupSize || 3} persone · Tavolo {meetingTableLabel}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-3">
+                  {groupMembers.map((member, index) => (
+                    <div
+                      key={member.id}
+                      className="flex w-24 flex-col items-center gap-2"
+                      style={{ animationDelay: `${index * 120}ms` }}
+                    >
+                      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/15 bg-black/40 shadow-[0_0_22px_rgba(0,0,0,0.35)]">
+                        {member.avatarUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-3xl font-black uppercase italic gold-gradient">
+                            {member.nickname[0] || "?"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="w-full truncate text-xs font-black uppercase text-white">
+                        {member.id === player.id ? "Tu" : member.nickname}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 text-left">
+                  <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
+                    <p className="eyebrow mb-2">Compatibilità gruppo</p>
+                    <p className="text-sm font-bold text-white">
+                      {myMatch.score}% - {myMatch.commonCriterion}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
+                    <p className="eyebrow mb-2">Motivo del match</p>
+                    <p className="text-sm leading-relaxed text-white">&quot;{mainReason}&quot;</p>
+                  </div>
+
+                  {otherGroupMembers.length > 0 ? (
+                    <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
+                      <p className="eyebrow mb-2">Ti aspettano</p>
+                      <p className="text-sm font-bold uppercase tracking-wide text-white">
+                        {otherGroupMembers.map((member) => member.nickname).join(", ")}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </MatchDrinkCard>
+
+            <div className="flex flex-col gap-3">
+              <MatchDrinkButton size="lg" onClick={() => respondToMatch(true)}>
+                ACCETTO IL TAVOLO
+              </MatchDrinkButton>
+              <MatchDrinkButton variant="secondary" size="lg" onClick={() => respondToMatch(false)}>
+                PASSO
+              </MatchDrinkButton>
+            </div>
+
+            <p className="text-center text-[10px] text-[var(--text-muted)] px-4 uppercase font-bold tracking-widest leading-relaxed">
+              Se accetti, sblocchi il drink e raggiungi la tua ciurma al tavolo friendship.
+            </p>
+          </div>
         </MatchDrinkShell>
       );
     }

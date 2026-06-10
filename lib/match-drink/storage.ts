@@ -14,6 +14,7 @@ import {
   MatchDrinkSession,
   MatchDrinkQuestion,
 } from "./types";
+import { parseFriendshipGroupReason } from "./friendship-groups";
 
 const ADMIN_PIN = process.env.MATCH_DRINK_ADMIN_PIN || "2809";
 const ADULT_SPICY_QUESTIONS_PER_SESSION = 3;
@@ -508,9 +509,24 @@ export const acceptMatch = async (
   if (match.error || !match.data) throw new Error("Match not found");
 
   const isPlayerA = match.data.player_a_id === playerId;
+  const friendshipGroup = parseFriendshipGroupReason(match.data.reason as string | null);
+  const isFriendshipGroupSelfMatch =
+    !!friendshipGroup &&
+    match.data.player_a_id === playerId &&
+    match.data.player_b_id === playerId &&
+    friendshipGroup.memberIds.includes(playerId);
   const updateData: Record<string, string | boolean | null> = {};
 
-  if (isPlayerA) {
+  if (isFriendshipGroupSelfMatch) {
+    updateData.accepted_by_a = accepted;
+    updateData.accepted_by_b = accepted;
+    updateData.accepted_at_a = accepted ? new Date().toISOString() : null;
+    updateData.accepted_at_b = accepted ? new Date().toISOString() : null;
+    updateData.drink_unlocked = accepted;
+    updateData.drink_code = accepted
+      ? `FRIEND-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+      : null;
+  } else if (isPlayerA) {
     updateData.accepted_by_a = accepted;
     updateData.accepted_at_a = accepted ? new Date().toISOString() : null;
   } else {
@@ -520,6 +536,7 @@ export const acceptMatch = async (
 
   // Se entrambi hanno accettato, sblocca il drink
   const bothAccepted =
+    !isFriendshipGroupSelfMatch &&
     (isPlayerA ? accepted : match.data.accepted_by_a) &&
     (!isPlayerA ? accepted : match.data.accepted_by_b);
 
@@ -719,26 +736,35 @@ const mapAnswer = (row: Record<string, unknown>): MatchDrinkAnswer => ({
   createdAt: row.created_at as string,
 });
 
-const mapMatch = (row: Record<string, unknown>): MatchDrinkMatch => ({
-  id: row.id as string,
-  sessionId: row.session_id as string,
-  playerAId: row.player_a_id as string,
-  playerBId: row.player_b_id as string,
-  score: row.score as number,
-  matchType: row.match_type as MatchDrinkMatch["matchType"],
-  label: row.label as string,
-  commonCriterion: row.common_criterion as string,
-  reason: row.reason as string,
-  acceptedByA: row.accepted_by_a as boolean | null,
-  acceptedByB: row.accepted_by_b as boolean | null,
-  acceptedAtA: row.accepted_at_a as string | null,
-  acceptedAtB: row.accepted_at_b as string | null,
-  drinkUnlocked: row.drink_unlocked as boolean,
-  drinkRedeemed: row.drink_redeemed as boolean,
-  drinkRedeemedAt: row.drink_redeemed_at as string | null,
-  drinkCode: row.drink_code as string | null,
-  createdAt: row.created_at as string,
-});
+const mapMatch = (row: Record<string, unknown>): MatchDrinkMatch => {
+  const friendshipGroup = parseFriendshipGroupReason(row.reason as string | null);
+
+  return {
+    id: row.id as string,
+    sessionId: row.session_id as string,
+    playerAId: row.player_a_id as string,
+    playerBId: row.player_b_id as string,
+    score: row.score as number,
+    matchType: row.match_type as MatchDrinkMatch["matchType"],
+    label: row.label as string,
+    commonCriterion: row.common_criterion as string,
+    reason: row.reason as string,
+    acceptedByA: row.accepted_by_a as boolean | null,
+    acceptedByB: row.accepted_by_b as boolean | null,
+    acceptedAtA: row.accepted_at_a as string | null,
+    acceptedAtB: row.accepted_at_b as string | null,
+    drinkUnlocked: row.drink_unlocked as boolean,
+    drinkRedeemed: row.drink_redeemed as boolean,
+    drinkRedeemedAt: row.drink_redeemed_at as string | null,
+    drinkCode: row.drink_code as string | null,
+    createdAt: row.created_at as string,
+    isFriendshipGroup: !!friendshipGroup,
+    friendshipGroupId: friendshipGroup?.groupId,
+    friendshipGroupSize: friendshipGroup?.memberIds.length,
+    friendshipGroupMemberIds: friendshipGroup?.memberIds,
+    friendshipGroupMembers: friendshipGroup?.members,
+  };
+};
 
 const mapMessage = (row: Record<string, unknown>): MatchDrinkBottleMessage => ({
   id: row.id as string,

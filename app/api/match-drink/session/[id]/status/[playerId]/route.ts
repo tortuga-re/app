@@ -17,6 +17,10 @@ import {
   getMatchDrinkRewardText,
   getSharedMainCategory,
 } from "@/lib/match-drink/profile";
+import {
+  parseFriendshipGroupReason,
+  stripFriendshipGroupReason,
+} from "@/lib/match-drink/friendship-groups";
 
 export async function GET(
   req: NextRequest,
@@ -41,6 +45,7 @@ export async function GET(
 
     let enrichedMatch = match;
     if (match) {
+      const friendshipGroup = parseFriendshipGroupReason(match.reason);
       const [pA, pB] = await Promise.all([
         getPlayer(match.playerAId),
         getPlayer(match.playerBId),
@@ -67,12 +72,26 @@ export async function GET(
         session.excludedMeetingTables ?? [],
       ).get(match.id);
       const sharedMainCategory =
-        ownProfile && matchedProfile
+        !friendshipGroup && ownProfile && matchedProfile
           ? getSharedMainCategory(ownProfile, matchedProfile)
           : null;
+      const friendshipGroupMembers = friendshipGroup
+        ? friendshipGroup.memberIds.map((memberId) => {
+            const livePlayer = players.find((candidate) => candidate.id === memberId);
+            const savedMember = friendshipGroup.members.find((candidate) => candidate.id === memberId);
+
+            return {
+              id: memberId,
+              nickname: livePlayer?.nickname ?? savedMember?.nickname ?? "Pirata",
+              avatarUrl: livePlayer?.avatarUrl ?? savedMember?.avatarUrl,
+              tableNumber: livePlayer?.tableNumber ?? savedMember?.tableNumber,
+            };
+          })
+        : undefined;
 
       enrichedMatch = {
         ...match,
+        reason: friendshipGroup ? stripFriendshipGroupReason(match.reason) : match.reason,
         playerANickname: pA?.nickname,
         playerATable: pA?.tableNumber,
         playerAAvatar: pA?.avatarUrl,
@@ -83,14 +102,16 @@ export async function GET(
         playerBPhone: pB?.phone,
         ownMainCategory: ownProfile?.mainCategory,
         ownMainCategoryLabel: ownProfile?.mainCategoryLabel,
-        matchedPlayerNickname: matchedPlayer?.nickname,
-        matchedPlayerTable: matchedPlayer?.tableNumber,
-        matchedPlayerPhone: matchedPlayer?.phone,
-        matchedPlayerMainCategory: matchedProfile?.mainCategory,
-        matchedPlayerMainCategoryLabel: matchedProfile?.mainCategoryLabel,
-        matchedPlayerSecondaryTrait: matchedProfile?.secondaryTrait,
-        matchedPlayerSecondaryTraitLabel: matchedProfile?.secondaryTraitLabel,
-        matchedPlayerApproachAdvice: matchedProfile
+        matchedPlayerNickname: friendshipGroup ? "la tua ciurma friendship" : matchedPlayer?.nickname,
+        matchedPlayerTable: friendshipGroup ? meetingAssignment?.tableNumber : matchedPlayer?.tableNumber,
+        matchedPlayerPhone: friendshipGroup ? undefined : matchedPlayer?.phone,
+        matchedPlayerMainCategory: friendshipGroup ? undefined : matchedProfile?.mainCategory,
+        matchedPlayerMainCategoryLabel: friendshipGroup ? undefined : matchedProfile?.mainCategoryLabel,
+        matchedPlayerSecondaryTrait: friendshipGroup ? undefined : matchedProfile?.secondaryTrait,
+        matchedPlayerSecondaryTraitLabel: friendshipGroup ? "tavolo friendship" : matchedProfile?.secondaryTraitLabel,
+        matchedPlayerApproachAdvice: friendshipGroup
+          ? "Presentati con leggerezza, scegli un brindisi semplice e lascia che il gruppo faccia il resto."
+          : matchedProfile
           ? getApproachAdviceForTrait(
               matchedProfile.secondaryTrait,
               matchedPlayer?.gender,
@@ -103,14 +124,22 @@ export async function GET(
         sharedMainCategoryLabel: sharedMainCategory
           ? getMainCategoryPluralLabel(sharedMainCategory)
           : null,
-        rewardText: getMatchDrinkRewardText(
-          sharedMainCategory,
-          meetingAssignment?.tableLabel,
-        ),
+        rewardText: friendshipGroup
+          ? `Raggiungi il tavolo friendship ${meetingAssignment?.tableLabel ?? ""} e sblocca il drink della ciurma.`
+          : getMatchDrinkRewardText(
+              sharedMainCategory,
+              meetingAssignment?.tableLabel,
+            ),
+        isFriendshipGroup: !!friendshipGroup,
+        friendshipGroupId: friendshipGroup?.groupId,
+        friendshipGroupSize: friendshipGroupMembers?.length,
+        friendshipGroupMemberIds: friendshipGroup?.memberIds,
+        friendshipGroupMembers,
       };
     }
 
-    const sessionWithQuestions = session ? { ...session, questions } : null;
+    const participantCount = players.filter((candidate) => candidate.nickname !== "_SYSTEM_").length;
+    const sessionWithQuestions = session ? { ...session, questions, participantCount } : null;
 
     return NextResponse.json({
       session: sessionWithQuestions,
