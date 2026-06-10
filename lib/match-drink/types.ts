@@ -44,6 +44,7 @@ export interface MatchDrinkSession {
   currentStageMessageId?: string | null;
   questionIds?: string[] | null;
   questions?: MatchDrinkQuestion[];
+  participantCount?: number;
   bottleMessagesEnabled?: boolean;
   excludedMeetingTables?: string[];
   analytics?: MatchDrinkSessionAnalytics;
@@ -64,6 +65,8 @@ export interface MatchDrinkMeetingTableOption {
 export interface MatchDrinkForecastSummary {
   romancePairs: number;
   friendshipPairs: number;
+  friendshipGroups?: number;
+  friendshipPeople?: number;
   unmatchedPlayers: number;
   romanceCapacity: number;
   friendshipCapacity: number;
@@ -153,6 +156,16 @@ export interface MatchDrinkMatch {
   meetingTableNumber?: string;
   meetingTableArea?: string;
   meetingTableLabel?: string;
+  isFriendshipGroup?: boolean;
+  friendshipGroupId?: string;
+  friendshipGroupSize?: number;
+  friendshipGroupMemberIds?: string[];
+  friendshipGroupMembers?: Array<{
+    id: string;
+    nickname: string;
+    avatarUrl?: string;
+    tableNumber?: string;
+  }>;
 }
 
 export interface MatchDrinkBottleMessage {

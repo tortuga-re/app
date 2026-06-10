@@ -23,6 +23,10 @@ import {
   getTraitMainCategory,
   type MatchDrinkMainCategoryNormalizer,
 } from "./profile";
+import {
+  buildFriendshipGroupMetadata,
+  encodeFriendshipGroupReason,
+} from "./friendship-groups";
 
 const createEmptyTraitScores = (): Record<MatchDrinkTrait, number> => ({
   romantico: 0,
@@ -170,6 +174,20 @@ type MatchingResult = {
   pairs: ScoredPotentialPair[];
 };
 
+type FriendshipGroupCandidate = {
+  indexes: number[];
+  score: number;
+  type: MatchDrinkMatch["matchType"];
+  criterion: string;
+  reason: string;
+};
+
+type FriendshipGroupingResult = {
+  memberCount: number;
+  score: number;
+  groups: FriendshipGroupCandidate[];
+};
+
 const getPairKey = (aIdx: number, bIdx: number) =>
   aIdx < bIdx ? `${aIdx}:${bIdx}` : `${bIdx}:${aIdx}`;
 
@@ -251,6 +269,345 @@ const findMaximumWeightMatching = (
   return solve(fullMask).pairs;
 };
 
+const EXACT_FRIENDSHIP_GROUP_LIMIT = 16;
+
+const getFriendshipPairKey = (leftId: string, rightId: string) =>
+  leftId < rightId ? `${leftId}:${rightId}` : `${rightId}:${leftId}`;
+
+const getCombinationIndexes = (
+  indexes: number[],
+  size: number,
+): number[][] => {
+  if (size <= 0) {
+    return [[]];
+  }
+
+  if (indexes.length < size) {
+    return [];
+  }
+
+  const result: number[][] = [];
+  const build = (startIndex: number, current: number[]) => {
+    if (current.length === size) {
+      result.push([...current]);
+      return;
+    }
+
+    for (let index = startIndex; index < indexes.length; index += 1) {
+      current.push(indexes[index]);
+      build(index + 1, current);
+      current.pop();
+    }
+  };
+
+  build(0, []);
+  return result;
+};
+
+const getFriendshipGroupSizes = (playerCount: number) => {
+  if (playerCount <= 1) {
+    return [];
+  }
+
+  if (playerCount === 2) {
+    return [2];
+  }
+
+  const sizes: number[] = [];
+  let remaining = playerCount;
+
+  while (remaining > 0) {
+    if (remaining === 3 || remaining === 4 || remaining === 5) {
+      sizes.push(remaining);
+      break;
+    }
+
+    if (remaining === 6) {
+      sizes.push(3, 3);
+      break;
+    }
+
+    if (remaining === 7) {
+      sizes.push(4, 3);
+      break;
+    }
+
+    if (remaining === 8) {
+      sizes.push(4, 4);
+      break;
+    }
+
+    sizes.push(5);
+    remaining -= 5;
+  }
+
+  return sizes;
+};
+
+const getFriendshipGroupScore = (
+  groupIndexes: number[],
+  friendshipPlayers: MatchDrinkPlayer[],
+  pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+) => {
+  let totalScore = 0;
+  let pairCount = 0;
+
+  for (let i = 0; i < groupIndexes.length; i += 1) {
+    for (let j = i + 1; j < groupIndexes.length; j += 1) {
+      const playerA = friendshipPlayers[groupIndexes[i]];
+      const playerB = friendshipPlayers[groupIndexes[j]];
+      const pairScore = pairScores.get(getFriendshipPairKey(playerA.id, playerB.id));
+
+      if (!pairScore) {
+        continue;
+      }
+
+      totalScore += pairScore.score;
+      pairCount += 1;
+    }
+  }
+
+  return pairCount > 0 ? Math.round(totalScore / pairCount) : 50;
+};
+
+const buildFriendshipGroupCandidate = (
+  groupIndexes: number[],
+  friendshipPlayers: MatchDrinkPlayer[],
+  pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+): FriendshipGroupCandidate => {
+  const groupScore = getFriendshipGroupScore(groupIndexes, friendshipPlayers, pairScores);
+  const groupSize = groupIndexes.length;
+  const names = groupIndexes
+    .map((index) => friendshipPlayers[index]?.nickname)
+    .filter(Boolean)
+    .join(", ");
+
+  return {
+    indexes: groupIndexes,
+    score: groupScore,
+    type: getMatchTypeFromScore(groupScore),
+    criterion: `Gruppo amicizia da ${groupSize} persone`,
+    reason:
+      `Il Capitano vi ha messo nello stesso tavolo friendship perché le vostre risposte creano una media compatibile. ` +
+      `Con ${names} c'e abbastanza terreno comune per rompere il ghiaccio e abbastanza differenza per non annoiarvi dopo due minuti.`,
+  };
+};
+
+const isBetterFriendshipGrouping = (
+  candidate: FriendshipGroupingResult,
+  current: FriendshipGroupingResult,
+) =>
+  candidate.memberCount > current.memberCount ||
+  (candidate.memberCount === current.memberCount && candidate.score > current.score);
+
+const findExactFriendshipGroups = (
+  friendshipPlayers: MatchDrinkPlayer[],
+  pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+) => {
+  const playerCount = friendshipPlayers.length;
+  const fullMask = (BIGINT_ONE << BigInt(playerCount)) - BIGINT_ONE;
+  const memo = new Map<string, FriendshipGroupingResult>();
+
+  const solve = (mask: bigint): FriendshipGroupingResult => {
+    if (mask === BIGINT_ZERO) {
+      return { memberCount: 0, score: 0, groups: [] };
+    }
+
+    const key = mask.toString();
+    const cached = memo.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const firstIdx = getFirstSetBitIndex(mask, playerCount);
+    const maskWithoutFirst = mask & ~getBit(firstIdx);
+    let best = solve(maskWithoutFirst);
+    const availableIndexes: number[] = [];
+
+    for (let index = firstIdx + 1; index < playerCount; index += 1) {
+      if ((maskWithoutFirst & getBit(index)) !== BIGINT_ZERO) {
+        availableIndexes.push(index);
+      }
+    }
+
+    [3, 4, 5].forEach((groupSize) => {
+      getCombinationIndexes(availableIndexes, groupSize - 1).forEach((combination) => {
+        const groupIndexes = [firstIdx, ...combination];
+        const groupMask = groupIndexes.reduce(
+          (currentMask, index) => currentMask | getBit(index),
+          BIGINT_ZERO,
+        );
+        const rest = solve(mask & ~groupMask);
+        const group = buildFriendshipGroupCandidate(groupIndexes, friendshipPlayers, pairScores);
+        const candidate = {
+          memberCount: rest.memberCount + groupSize,
+          score: rest.score + group.score * groupSize,
+          groups: [group, ...rest.groups],
+        };
+
+        if (isBetterFriendshipGrouping(candidate, best)) {
+          best = candidate;
+        }
+      });
+    });
+
+    memo.set(key, best);
+    return best;
+  };
+
+  return solve(fullMask).groups;
+};
+
+const selectGreedyFriendshipGroup = (
+  availableIndexes: number[],
+  groupSize: number,
+  friendshipPlayers: MatchDrinkPlayer[],
+  pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+) => {
+  if (availableIndexes.length <= groupSize) {
+    return availableIndexes;
+  }
+
+  let bestGroup = availableIndexes.slice(0, groupSize);
+  let bestScore = -Infinity;
+
+  for (let i = 0; i < availableIndexes.length; i += 1) {
+    for (let j = i + 1; j < availableIndexes.length; j += 1) {
+      const group = [availableIndexes[i], availableIndexes[j]];
+
+      while (group.length < groupSize) {
+        const nextIndex = availableIndexes
+          .filter((candidateIndex) => !group.includes(candidateIndex))
+          .map((candidateIndex) => ({
+            index: candidateIndex,
+            score: getFriendshipGroupScore(
+              [...group, candidateIndex],
+              friendshipPlayers,
+              pairScores,
+            ),
+          }))
+          .sort((left, right) => right.score - left.score)[0]?.index;
+
+        if (typeof nextIndex !== "number") {
+          break;
+        }
+
+        group.push(nextIndex);
+      }
+
+      const score = getFriendshipGroupScore(group, friendshipPlayers, pairScores);
+      if (group.length === groupSize && score > bestScore) {
+        bestScore = score;
+        bestGroup = group;
+      }
+    }
+  }
+
+  return bestGroup;
+};
+
+const findGreedyFriendshipGroups = (
+  friendshipPlayers: MatchDrinkPlayer[],
+  pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+) => {
+  const groupSizes = getFriendshipGroupSizes(friendshipPlayers.length);
+  let availableIndexes = friendshipPlayers.map((_, index) => index);
+
+  return groupSizes.flatMap((groupSize) => {
+    if (groupSize < 3 || availableIndexes.length < groupSize) {
+      return [];
+    }
+
+    const selectedIndexes = selectGreedyFriendshipGroup(
+      availableIndexes,
+      groupSize,
+      friendshipPlayers,
+      pairScores,
+    );
+    const selectedSet = new Set(selectedIndexes);
+    availableIndexes = availableIndexes.filter((index) => !selectedSet.has(index));
+
+    return [buildFriendshipGroupCandidate(selectedIndexes, friendshipPlayers, pairScores)];
+  });
+};
+
+const calculateFriendshipMatches = (
+  session: MatchDrinkSession,
+  friendshipPlayers: MatchDrinkPlayer[],
+  answersByPlayer: Map<string, MatchDrinkAnswer[]>,
+  profilesByPlayerId: Map<string, MatchDrinkProfile>,
+  questionsBank: MatchDrinkQuestion[],
+): Omit<MatchDrinkMatch, "id" | "createdAt">[] => {
+  if (friendshipPlayers.length < 2) {
+    return [];
+  }
+
+  const pairScores = new Map<string, ReturnType<typeof calculateMatchScore>>();
+
+  for (let i = 0; i < friendshipPlayers.length; i += 1) {
+    for (let j = i + 1; j < friendshipPlayers.length; j += 1) {
+      const playerA = friendshipPlayers[i];
+      const playerB = friendshipPlayers[j];
+
+      pairScores.set(
+        getFriendshipPairKey(playerA.id, playerB.id),
+        calculateMatchScore(
+          playerA,
+          playerB,
+          profilesByPlayerId.get(playerA.id)!,
+          profilesByPlayerId.get(playerB.id)!,
+          answersByPlayer.get(playerA.id) ?? [],
+          answersByPlayer.get(playerB.id) ?? [],
+          questionsBank,
+        ),
+      );
+    }
+  }
+
+  if (friendshipPlayers.length === 2) {
+    const [playerA, playerB] = friendshipPlayers;
+    const scoreInfo = pairScores.get(getFriendshipPairKey(playerA.id, playerB.id))!;
+
+    return [{
+      sessionId: session.id,
+      playerAId: playerA.id,
+      playerBId: playerB.id,
+      score: scoreInfo.score,
+      matchType: scoreInfo.type,
+      label: getMatchTypeLabel(scoreInfo.type),
+      commonCriterion: "Coppia friendship",
+      reason: scoreInfo.reason,
+      drinkUnlocked: false,
+    }];
+  }
+
+  const groups =
+    friendshipPlayers.length <= EXACT_FRIENDSHIP_GROUP_LIMIT
+      ? findExactFriendshipGroups(friendshipPlayers, pairScores)
+      : findGreedyFriendshipGroups(friendshipPlayers, pairScores);
+
+  return groups.flatMap((group, groupIndex) => {
+    const groupPlayers = group.indexes.map((index) => friendshipPlayers[index]);
+    const metadata = buildFriendshipGroupMetadata(
+      `${session.id}-friendship-${groupIndex + 1}`,
+      groupPlayers,
+    );
+    const encodedReason = encodeFriendshipGroupReason(group.reason, metadata);
+
+    return groupPlayers.map((player) => ({
+      sessionId: session.id,
+      playerAId: player.id,
+      playerBId: player.id,
+      score: group.score,
+      matchType: group.type,
+      label: "Tavolo Friendship",
+      commonCriterion: group.criterion,
+      reason: encodedReason,
+      drinkUnlocked: false,
+    }));
+  });
+};
+
 export const calculateMatches = (
   session: MatchDrinkSession,
   players: MatchDrinkPlayer[],
@@ -284,12 +641,14 @@ export const calculateMatches = (
       );
   });
 
+  const romancePlayers = eligiblePlayers.filter((player) => player.lookingFor !== "amicizie");
+  const friendshipPlayers = eligiblePlayers.filter((player) => player.lookingFor === "amicizie");
   const allPotentialPairs: ScoredPotentialPair[] = [];
 
-  for (let i = 0; i < eligiblePlayers.length; i += 1) {
-    for (let j = i + 1; j < eligiblePlayers.length; j += 1) {
-      const playerA = eligiblePlayers[i];
-      const playerB = eligiblePlayers[j];
+  for (let i = 0; i < romancePlayers.length; i += 1) {
+    for (let j = i + 1; j < romancePlayers.length; j += 1) {
+      const playerA = romancePlayers[i];
+      const playerB = romancePlayers[j];
 
       if (!isGenderCompatible(playerA, playerB)) {
         continue;
@@ -326,9 +685,9 @@ export const calculateMatches = (
     }
   }
 
-  return findMaximumWeightMatching(eligiblePlayers.length, allPotentialPairs).map((pair) => {
-    const playerA = eligiblePlayers[pair.aIdx];
-    const playerB = eligiblePlayers[pair.bIdx];
+  const romanceMatches = findMaximumWeightMatching(romancePlayers.length, allPotentialPairs).map((pair) => {
+    const playerA = romancePlayers[pair.aIdx];
+    const playerB = romancePlayers[pair.bIdx];
 
     return {
       sessionId: session.id,
@@ -342,6 +701,17 @@ export const calculateMatches = (
       drinkUnlocked: false,
     };
   });
+
+  return [
+    ...romanceMatches,
+    ...calculateFriendshipMatches(
+      session,
+      friendshipPlayers,
+      answersByPlayer,
+      profilesByPlayerId,
+      questionsBank,
+    ),
+  ];
 };
 
 const getAgeRangeBounds = (ageRange: MatchDrinkPlayer["ageRange"]) => {
