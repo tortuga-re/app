@@ -313,6 +313,11 @@ export const assignMatchDrinkMeetingTables = (
   const romanceMatches: MatchDrinkMatch[] = [];
 
   sortedMatches.forEach((match) => {
+    if (parseFriendshipGroupReason(match.reason)) {
+      friendshipMatches.push(match);
+      return;
+    }
+
     const playerA = playersById.get(match.playerAId);
     const playerB = playersById.get(match.playerBId);
 
@@ -585,6 +590,15 @@ export const forecastMatchDrinkPairs = (
     compatiblePairs,
   );
   const romancePairs = forecastPairs.length;
+  const matchedRomanceIndexes = new Set<number>();
+  forecastPairs.forEach((pair) => {
+    matchedRomanceIndexes.add(pair.aIdx);
+    matchedRomanceIndexes.add(pair.bIdx);
+  });
+  const unmatchedRomanceCount = romancePlayers.length - matchedRomanceIndexes.size;
+  const romanceRecoveryGroupSizes = buildFriendshipTableGroupSizes(unmatchedRomanceCount);
+  const romanceRecoveryPeople = romanceRecoveryGroupSizes.reduce((total, size) => total + size, 0);
+  const romanceRecoveryGroups = romanceRecoveryGroupSizes.length;
   const friendshipGroupSizes = buildFriendshipTableGroupSizes(friendshipPlayers.length);
   const friendshipPeople = friendshipGroupSizes.reduce((total, size) => total + size, 0);
   const friendshipGroups = friendshipGroupSizes.length;
@@ -596,8 +610,10 @@ export const forecastMatchDrinkPairs = (
     friendshipPairs: friendshipGroups,
     friendshipGroups,
     friendshipPeople,
+    romanceRecoveryGroups,
+    romanceRecoveryPeople,
     unmatchedPlayers:
-      romancePlayers.length - forecastPairs.length * 2 +
+      unmatchedRomanceCount - romanceRecoveryPeople +
       friendshipPlayers.length - friendshipPeople,
     romanceCapacity: capacities.romanceCapacity,
     friendshipCapacity: capacities.friendshipCapacity,

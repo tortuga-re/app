@@ -182,6 +182,15 @@ type FriendshipGroupCandidate = {
   reason: string;
 };
 
+type FriendshipGroupKind = "friendship" | "romance_recovery";
+
+type FriendshipMatchOptions = {
+  groupIdPrefix?: string;
+  groupKind?: FriendshipGroupKind;
+  label?: string;
+  pairAsGroup?: boolean;
+};
+
 type FriendshipGroupingResult = {
   memberCount: number;
   score: number;
@@ -374,6 +383,7 @@ const buildFriendshipGroupCandidate = (
   groupIndexes: number[],
   friendshipPlayers: MatchDrinkPlayer[],
   pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+  groupKind: FriendshipGroupKind = "friendship",
 ): FriendshipGroupCandidate => {
   const groupScore = getFriendshipGroupScore(groupIndexes, friendshipPlayers, pairScores);
   const groupSize = groupIndexes.length;
@@ -381,6 +391,18 @@ const buildFriendshipGroupCandidate = (
     .map((index) => friendshipPlayers[index]?.nickname)
     .filter(Boolean)
     .join(", ");
+
+  if (groupKind === "romance_recovery") {
+    return {
+      indexes: groupIndexes,
+      score: groupScore,
+      type: getMatchTypeFromScore(groupScore),
+      criterion: `Tavolo social da ${groupSize} persone`,
+      reason:
+        "Non è uscito un match romantico abbastanza solido, ma il Capitano non lascia nessuno in rada. " +
+        `Con ${names} c'e un tavolo friendship per continuare la serata, conoscere gente nuova e brindare senza pressione romantica.`,
+    };
+  }
 
   return {
     indexes: groupIndexes,
@@ -403,6 +425,7 @@ const isBetterFriendshipGrouping = (
 const findExactFriendshipGroups = (
   friendshipPlayers: MatchDrinkPlayer[],
   pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+  groupKind: FriendshipGroupKind = "friendship",
 ) => {
   const playerCount = friendshipPlayers.length;
   const fullMask = (BIGINT_ONE << BigInt(playerCount)) - BIGINT_ONE;
@@ -438,7 +461,7 @@ const findExactFriendshipGroups = (
           BIGINT_ZERO,
         );
         const rest = solve(mask & ~groupMask);
-        const group = buildFriendshipGroupCandidate(groupIndexes, friendshipPlayers, pairScores);
+        const group = buildFriendshipGroupCandidate(groupIndexes, friendshipPlayers, pairScores, groupKind);
         const candidate = {
           memberCount: rest.memberCount + groupSize,
           score: rest.score + group.score * groupSize,
@@ -509,6 +532,7 @@ const selectGreedyFriendshipGroup = (
 const findGreedyFriendshipGroups = (
   friendshipPlayers: MatchDrinkPlayer[],
   pairScores: Map<string, ReturnType<typeof calculateMatchScore>>,
+  groupKind: FriendshipGroupKind = "friendship",
 ) => {
   const groupSizes = getFriendshipGroupSizes(friendshipPlayers.length);
   let availableIndexes = friendshipPlayers.map((_, index) => index);
@@ -527,7 +551,7 @@ const findGreedyFriendshipGroups = (
     const selectedSet = new Set(selectedIndexes);
     availableIndexes = availableIndexes.filter((index) => !selectedSet.has(index));
 
-    return [buildFriendshipGroupCandidate(selectedIndexes, friendshipPlayers, pairScores)];
+    return [buildFriendshipGroupCandidate(selectedIndexes, friendshipPlayers, pairScores, groupKind)];
   });
 };
 
@@ -537,6 +561,7 @@ const calculateFriendshipMatches = (
   answersByPlayer: Map<string, MatchDrinkAnswer[]>,
   profilesByPlayerId: Map<string, MatchDrinkProfile>,
   questionsBank: MatchDrinkQuestion[],
+  options: FriendshipMatchOptions = {},
 ): Omit<MatchDrinkMatch, "id" | "createdAt">[] => {
   if (friendshipPlayers.length < 2) {
     return [];
@@ -564,7 +589,7 @@ const calculateFriendshipMatches = (
     }
   }
 
-  if (friendshipPlayers.length === 2) {
+  if (friendshipPlayers.length === 2 && !options.pairAsGroup) {
     const [playerA, playerB] = friendshipPlayers;
     const scoreInfo = pairScores.get(getFriendshipPairKey(playerA.id, playerB.id))!;
 
@@ -581,16 +606,44 @@ const calculateFriendshipMatches = (
     }];
   }
 
+  if (friendshipPlayers.length === 2 && options.pairAsGroup) {
+    const group = buildFriendshipGroupCandidate(
+      [0, 1],
+      friendshipPlayers,
+      pairScores,
+      options.groupKind ?? "friendship",
+    );
+    const metadata = buildFriendshipGroupMetadata(
+      `${session.id}-${options.groupIdPrefix ?? "friendship"}-1`,
+      friendshipPlayers,
+      options.groupKind ?? "friendship",
+    );
+    const encodedReason = encodeFriendshipGroupReason(group.reason, metadata);
+
+    return friendshipPlayers.map((player) => ({
+      sessionId: session.id,
+      playerAId: player.id,
+      playerBId: player.id,
+      score: group.score,
+      matchType: group.type,
+      label: options.label ?? "Tavolo Friendship",
+      commonCriterion: group.criterion,
+      reason: encodedReason,
+      drinkUnlocked: false,
+    }));
+  }
+
   const groups =
     friendshipPlayers.length <= EXACT_FRIENDSHIP_GROUP_LIMIT
-      ? findExactFriendshipGroups(friendshipPlayers, pairScores)
-      : findGreedyFriendshipGroups(friendshipPlayers, pairScores);
+      ? findExactFriendshipGroups(friendshipPlayers, pairScores, options.groupKind ?? "friendship")
+      : findGreedyFriendshipGroups(friendshipPlayers, pairScores, options.groupKind ?? "friendship");
 
   return groups.flatMap((group, groupIndex) => {
     const groupPlayers = group.indexes.map((index) => friendshipPlayers[index]);
     const metadata = buildFriendshipGroupMetadata(
-      `${session.id}-friendship-${groupIndex + 1}`,
+      `${session.id}-${options.groupIdPrefix ?? "friendship"}-${groupIndex + 1}`,
       groupPlayers,
+      options.groupKind ?? "friendship",
     );
     const encodedReason = encodeFriendshipGroupReason(group.reason, metadata);
 
@@ -600,7 +653,7 @@ const calculateFriendshipMatches = (
       playerBId: player.id,
       score: group.score,
       matchType: group.type,
-      label: "Tavolo Friendship",
+      label: options.label ?? "Tavolo Friendship",
       commonCriterion: group.criterion,
       reason: encodedReason,
       drinkUnlocked: false,
@@ -685,7 +738,8 @@ export const calculateMatches = (
     }
   }
 
-  const romanceMatches = findMaximumWeightMatching(romancePlayers.length, allPotentialPairs).map((pair) => {
+  const selectedRomancePairs = findMaximumWeightMatching(romancePlayers.length, allPotentialPairs);
+  const romanceMatches = selectedRomancePairs.map((pair) => {
     const playerA = romancePlayers[pair.aIdx];
     const playerB = romancePlayers[pair.bIdx];
 
@@ -701,6 +755,14 @@ export const calculateMatches = (
       drinkUnlocked: false,
     };
   });
+  const romanticallyMatchedPlayerIds = new Set<string>();
+  selectedRomancePairs.forEach((pair) => {
+    romanticallyMatchedPlayerIds.add(romancePlayers[pair.aIdx].id);
+    romanticallyMatchedPlayerIds.add(romancePlayers[pair.bIdx].id);
+  });
+  const unmatchedRomancePlayers = romancePlayers.filter(
+    (player) => !romanticallyMatchedPlayerIds.has(player.id),
+  );
 
   return [
     ...romanceMatches,
@@ -710,6 +772,19 @@ export const calculateMatches = (
       answersByPlayer,
       profilesByPlayerId,
       questionsBank,
+    ),
+    ...calculateFriendshipMatches(
+      session,
+      unmatchedRomancePlayers,
+      answersByPlayer,
+      profilesByPlayerId,
+      questionsBank,
+      {
+        groupIdPrefix: "romance-recovery",
+        groupKind: "romance_recovery",
+        label: "Tavolo Social",
+        pairAsGroup: true,
+      },
     ),
   ];
 };
