@@ -7,6 +7,7 @@ import type {
   MatchDrinkQuestion,
 } from "./types";
 import { calculateMatchScore, calculatePlayerProfile } from "./scoring";
+import { parseFriendshipGroupReason } from "./friendship-groups";
 
 type MatchDrinkMeetingZone = "romance" | "friendship";
 
@@ -72,7 +73,10 @@ const expandTableSlots = (tables: MatchDrinkTableDefinition[]) =>
   );
 
 const ROMANCE_SLOTS = expandTableSlots(ROMANCE_TABLES);
-const FRIENDSHIP_SLOTS = expandTableSlots(FRIENDSHIP_TABLES);
+const FRIENDSHIP_SLOTS = FRIENDSHIP_TABLES.map((table) => ({
+  ...table,
+  slotIndex: 0,
+}));
 
 const getFilteredSlots = (
   slots: MatchDrinkTableSlot[],
@@ -125,6 +129,46 @@ const buildFriendshipMatchGroups = (matchCount: number) => {
   }
 
   return [...Array.from({ length: base }, () => 3), 2];
+};
+
+const buildFriendshipTableGroupSizes = (playerCount: number) => {
+  if (playerCount <= 1) {
+    return [];
+  }
+
+  if (playerCount === 2) {
+    return [2];
+  }
+
+  const sizes: number[] = [];
+  let remaining = playerCount;
+
+  while (remaining > 0) {
+    if (remaining === 3 || remaining === 4 || remaining === 5) {
+      sizes.push(remaining);
+      break;
+    }
+
+    if (remaining === 6) {
+      sizes.push(3, 3);
+      break;
+    }
+
+    if (remaining === 7) {
+      sizes.push(4, 3);
+      break;
+    }
+
+    if (remaining === 8) {
+      sizes.push(4, 4);
+      break;
+    }
+
+    sizes.push(5);
+    remaining -= 5;
+  }
+
+  return sizes;
 };
 
 const isFriendshipMatch = (
@@ -311,8 +355,39 @@ export const assignMatchDrinkMeetingTables = (
     }
   });
 
-  const friendshipGroups = buildFriendshipMatchGroups(friendshipMatches.length);
-  let remainingFriendshipMatches = [...friendshipMatches];
+  const friendshipGroupMatchesById = new Map<string, MatchDrinkMatch[]>();
+  let remainingFriendshipMatches: MatchDrinkMatch[] = [];
+
+  friendshipMatches.forEach((match) => {
+    const friendshipGroup = parseFriendshipGroupReason(match.reason);
+
+    if (!friendshipGroup) {
+      remainingFriendshipMatches.push(match);
+      return;
+    }
+
+    const currentMatches = friendshipGroupMatchesById.get(friendshipGroup.groupId) ?? [];
+    currentMatches.push(match);
+    friendshipGroupMatchesById.set(friendshipGroup.groupId, currentMatches);
+  });
+
+  let friendshipSlotIndex = 0;
+
+  [...friendshipGroupMatchesById.entries()]
+    .sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
+    .forEach(([, groupMatches]) => {
+      const slot = friendshipSlots[friendshipSlotIndex] ?? friendshipSlots[friendshipSlots.length - 1];
+      if (!slot) {
+        return;
+      }
+
+      groupMatches.forEach((match) => {
+        assignments.set(match.id, buildAssignment("friendship", slot));
+      });
+      friendshipSlotIndex += 1;
+    });
+
+  const friendshipGroups = buildFriendshipMatchGroups(remainingFriendshipMatches.length);
   const friendshipContext: FriendshipScoringContext = {
     playersById,
     profilesByPlayerId,
@@ -321,7 +396,7 @@ export const assignMatchDrinkMeetingTables = (
   };
 
   friendshipGroups.forEach((groupSize, groupIndex) => {
-    const slot = friendshipSlots[groupIndex] ?? friendshipSlots[friendshipSlots.length - 1];
+    const slot = friendshipSlots[friendshipSlotIndex + groupIndex] ?? friendshipSlots[friendshipSlots.length - 1];
     if (!slot || remainingFriendshipMatches.length === 0) {
       return;
     }
@@ -353,7 +428,7 @@ export const getMatchDrinkMeetingTableOptions = (): MatchDrinkMeetingTableOption
     number: table.number,
     seats: table.seats,
     zone,
-    slots: Math.max(1, Math.floor(table.seats / 2)),
+    slots: zone === "friendship" ? 1 : Math.max(1, Math.floor(table.seats / 2)),
     label: `${table.number} in ${table.area}`,
   });
 
@@ -369,10 +444,12 @@ export const getMatchDrinkCapacitySummary = (excludedTableKeys: string[] = []) =
     tables
       .filter((table) => !excluded.has(getTableKey(table)))
       .reduce((total, table) => total + Math.max(1, Math.floor(table.seats / 2)), 0);
+  const countTables = (tables: MatchDrinkTableDefinition[]) =>
+    tables.filter((table) => !excluded.has(getTableKey(table))).length;
 
   return {
     romanceCapacity: countSlots(ROMANCE_TABLES),
-    friendshipCapacity: countSlots(FRIENDSHIP_TABLES),
+    friendshipCapacity: countTables(FRIENDSHIP_TABLES),
   };
 };
 
@@ -491,31 +568,37 @@ export const forecastMatchDrinkPairs = (
   excludedTableKeys: string[] = [],
 ): MatchDrinkForecastSummary => {
   const eligiblePlayers = players.filter((player) => player.nickname !== "_SYSTEM_");
+  const romancePlayers = eligiblePlayers.filter((player) => player.lookingFor !== "amicizie");
+  const friendshipPlayers = eligiblePlayers.filter((player) => player.lookingFor === "amicizie");
   const compatiblePairs: ForecastPair[] = [];
 
-  for (let i = 0; i < eligiblePlayers.length; i += 1) {
-    for (let j = i + 1; j < eligiblePlayers.length; j += 1) {
-      if (isGenderCompatible(eligiblePlayers[i], eligiblePlayers[j])) {
+  for (let i = 0; i < romancePlayers.length; i += 1) {
+    for (let j = i + 1; j < romancePlayers.length; j += 1) {
+      if (isGenderCompatible(romancePlayers[i], romancePlayers[j])) {
         compatiblePairs.push({ aIdx: i, bIdx: j });
       }
     }
   }
 
   const forecastPairs = findMaximumCompatibleForecastPairs(
-    eligiblePlayers.length,
+    romancePlayers.length,
     compatiblePairs,
   );
-  const friendshipPairs = forecastPairs.filter((pair) =>
-    isFriendshipMatch(eligiblePlayers[pair.aIdx], eligiblePlayers[pair.bIdx]),
-  ).length;
-  const romancePairs = forecastPairs.length - friendshipPairs;
+  const romancePairs = forecastPairs.length;
+  const friendshipGroupSizes = buildFriendshipTableGroupSizes(friendshipPlayers.length);
+  const friendshipPeople = friendshipGroupSizes.reduce((total, size) => total + size, 0);
+  const friendshipGroups = friendshipGroupSizes.length;
 
   const capacities = getMatchDrinkCapacitySummary(excludedTableKeys);
 
   return {
     romancePairs,
-    friendshipPairs,
-    unmatchedPlayers: eligiblePlayers.length - forecastPairs.length * 2,
+    friendshipPairs: friendshipGroups,
+    friendshipGroups,
+    friendshipPeople,
+    unmatchedPlayers:
+      romancePlayers.length - forecastPairs.length * 2 +
+      friendshipPlayers.length - friendshipPeople,
     romanceCapacity: capacities.romanceCapacity,
     friendshipCapacity: capacities.friendshipCapacity,
   };

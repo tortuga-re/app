@@ -52,7 +52,23 @@ export default function MatchDrinkSessionAdminPage() {
   const excludedMeetingTables = session.excludedMeetingTables || [];
   const secondaryTraitMode = session.secondaryTraitMode ?? "absolute";
   const realPlayers = players.filter((player) => player.nickname !== "_SYSTEM_");
-  const peopleWaiting = Math.max(realPlayers.length - confirmedMatches.length * 2, 0);
+  const romanticWomen = realPlayers.filter(
+    (player) => player.gender === "donna" && player.lookingFor !== "amicizie",
+  ).length;
+  const romanticMen = realPlayers.filter(
+    (player) => player.gender === "uomo" && player.lookingFor !== "amicizie",
+  ).length;
+  const friendshipSeekers = realPlayers.filter(
+    (player) => player.lookingFor === "amicizie",
+  ).length;
+  const confirmedPlayerIds = new Set<string>();
+  confirmedMatches.forEach((match) => {
+    confirmedPlayerIds.add(match.playerAId);
+    if (!match.isFriendshipGroup) {
+      confirmedPlayerIds.add(match.playerBId);
+    }
+  });
+  const peopleWaiting = Math.max(realPlayers.length - confirmedPlayerIds.size, 0);
   const revealReady = session.status === "matching" && matches.length > 0;
   const analytics = session.analytics;
   const lastQuestionIndex = Math.max(questions.length - 1, 0);
@@ -258,14 +274,31 @@ export default function MatchDrinkSessionAdminPage() {
               <h2 className="eyebrow mb-4">Previsione Match e Tavoli</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Donne ricerca romantica</p>
+                  <p className="mt-2 text-3xl font-black text-white">{romanticWomen}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Cercano uomo, donna o entrambi</p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Uomini ricerca romantica</p>
+                  <p className="mt-2 text-3xl font-black text-white">{romanticMen}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Cercano uomo, donna o entrambi</p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Persone ricerca amicizia</p>
+                  <p className="mt-2 text-3xl font-black text-white">{friendshipSeekers}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Selezione: solo nuove amicizie</p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
                   <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Coppie Romance previste</p>
                   <p className="mt-2 text-3xl font-black text-white">{forecast?.romancePairs ?? 0}</p>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">Capienza attuale: {forecast?.romanceCapacity ?? 0}</p>
                 </div>
                 <div className="panel-muted rounded-xl p-4">
-                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Coppie Friendship previste</p>
-                  <p className="mt-2 text-3xl font-black text-white">{forecast?.friendshipPairs ?? 0}</p>
-                  <p className="mt-1 text-xs text-[var(--text-muted)]">Capienza attuale: {forecast?.friendshipCapacity ?? 0}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Tavoli Friendship previsti</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.friendshipGroups ?? forecast?.friendshipPairs ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Persone incluse: {forecast?.friendshipPeople ?? 0} · Capienza tavoli: {forecast?.friendshipCapacity ?? 0}
+                  </p>
                 </div>
                 <div className="panel-muted rounded-xl p-4">
                   <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Persone senza match</p>
@@ -435,11 +468,22 @@ export default function MatchDrinkSessionAdminPage() {
                 {confirmedMatches.map(m => (
                   <div key={m.id} className="panel-muted rounded-xl p-4 flex items-center justify-between gap-4">
                     <div className="flex-1">
-                      <p className="text-white font-bold">
-                        {players.find(p => p.id === m.playerAId)?.nickname} (T{players.find(p => p.id === m.playerAId)?.tableNumber}) 
-                        <span className="mx-2 text-[var(--accent-strong)]">❤️</span>
-                        {players.find(p => p.id === m.playerBId)?.nickname} (T{players.find(p => p.id === m.playerBId)?.tableNumber})
-                      </p>
+                      {m.isFriendshipGroup ? (
+                        <p className="text-white font-bold">
+                          {players.find(p => p.id === m.playerAId)?.nickname}
+                          <span className="mx-2 text-[var(--accent-strong)]">·</span>
+                          Tavolo friendship con {(m.friendshipGroupMembers ?? [])
+                            .filter(member => member.id !== m.playerAId)
+                            .map(member => member.nickname)
+                            .join(", ")}
+                        </p>
+                      ) : (
+                        <p className="text-white font-bold">
+                          {players.find(p => p.id === m.playerAId)?.nickname} (T{players.find(p => p.id === m.playerAId)?.tableNumber}) 
+                          <span className="mx-2 text-[var(--accent-strong)]">❤️</span>
+                          {players.find(p => p.id === m.playerBId)?.nickname} (T{players.find(p => p.id === m.playerBId)?.tableNumber})
+                        </p>
+                      )}
                       <p className="text-xs text-[var(--text-muted)]">{m.commonCriterion} - {m.drinkCode}</p>
                     </div>
                     {m.drinkRedeemed ? (
