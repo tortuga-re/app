@@ -67,6 +67,8 @@ export interface MatchDrinkForecastSummary {
   friendshipPairs: number;
   friendshipGroups?: number;
   friendshipPeople?: number;
+  romanceRecoveryGroups?: number;
+  romanceRecoveryPeople?: number;
   unmatchedPlayers: number;
   romanceCapacity: number;
   friendshipCapacity: number;
@@ -157,7 +159,9 @@ export interface MatchDrinkMatch {
   meetingTableArea?: string;
   meetingTableLabel?: string;
   isFriendshipGroup?: boolean;
+  isRomanceFallbackGroup?: boolean;
   friendshipGroupId?: string;
+  friendshipGroupKind?: "friendship" | "romance_recovery";
   friendshipGroupSize?: number;
   friendshipGroupMemberIds?: string[];
   friendshipGroupMembers?: Array<{

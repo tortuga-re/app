@@ -11,6 +11,7 @@ export type MatchDrinkFriendshipGroupMember = {
 
 export type MatchDrinkFriendshipGroupMetadata = {
   groupId: string;
+  groupKind?: "friendship" | "romance_recovery";
   memberIds: string[];
   members: MatchDrinkFriendshipGroupMember[];
 };
@@ -18,8 +19,10 @@ export type MatchDrinkFriendshipGroupMetadata = {
 export const buildFriendshipGroupMetadata = (
   groupId: string,
   members: MatchDrinkPlayer[],
+  groupKind: MatchDrinkFriendshipGroupMetadata["groupKind"] = "friendship",
 ): MatchDrinkFriendshipGroupMetadata => ({
   groupId,
+  groupKind,
   memberIds: members.map((member) => member.id),
   members: members.map((member) => ({
     id: member.id,
@@ -63,6 +66,7 @@ export const parseFriendshipGroupReason = (
 
     return {
       groupId: parsed.groupId,
+      groupKind: parsed.groupKind === "romance_recovery" ? "romance_recovery" : "friendship",
       memberIds,
       members,
     };

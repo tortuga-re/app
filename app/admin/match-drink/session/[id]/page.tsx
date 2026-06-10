@@ -301,6 +301,13 @@ export default function MatchDrinkSessionAdminPage() {
                   </p>
                 </div>
                 <div className="panel-muted rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Tavoli social recupero</p>
+                  <p className="mt-2 text-3xl font-black text-white">{forecast?.romanceRecoveryGroups ?? 0}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Romantici recuperati: {forecast?.romanceRecoveryPeople ?? 0}
+                  </p>
+                </div>
+                <div className="panel-muted rounded-xl p-4">
                   <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Persone senza match</p>
                   <p className="mt-2 text-3xl font-black text-white">{forecast?.unmatchedPlayers ?? 0}</p>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">Stima sui tavoli e compatibilita attuali</p>
@@ -472,7 +479,8 @@ export default function MatchDrinkSessionAdminPage() {
                         <p className="text-white font-bold">
                           {players.find(p => p.id === m.playerAId)?.nickname}
                           <span className="mx-2 text-[var(--accent-strong)]">·</span>
-                          Tavolo friendship con {(m.friendshipGroupMembers ?? [])
+                          {m.isRomanceFallbackGroup ? "Tavolo social con " : "Tavolo friendship con "}
+                          {(m.friendshipGroupMembers ?? [])
                             .filter(member => member.id !== m.playerAId)
                             .map(member => member.nickname)
                             .join(", ")}

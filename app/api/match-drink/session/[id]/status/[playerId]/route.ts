@@ -46,6 +46,7 @@ export async function GET(
     let enrichedMatch = match;
     if (match) {
       const friendshipGroup = parseFriendshipGroupReason(match.reason);
+      const isRomanceFallbackGroup = friendshipGroup?.groupKind === "romance_recovery";
       const [pA, pB] = await Promise.all([
         getPlayer(match.playerAId),
         getPlayer(match.playerBId),
@@ -102,15 +103,25 @@ export async function GET(
         playerBPhone: pB?.phone,
         ownMainCategory: ownProfile?.mainCategory,
         ownMainCategoryLabel: ownProfile?.mainCategoryLabel,
-        matchedPlayerNickname: friendshipGroup ? "la tua ciurma friendship" : matchedPlayer?.nickname,
+        matchedPlayerNickname: friendshipGroup
+          ? isRomanceFallbackGroup
+            ? "la tua ciurma social"
+            : "la tua ciurma friendship"
+          : matchedPlayer?.nickname,
         matchedPlayerTable: friendshipGroup ? meetingAssignment?.tableNumber : matchedPlayer?.tableNumber,
         matchedPlayerPhone: friendshipGroup ? undefined : matchedPlayer?.phone,
         matchedPlayerMainCategory: friendshipGroup ? undefined : matchedProfile?.mainCategory,
         matchedPlayerMainCategoryLabel: friendshipGroup ? undefined : matchedProfile?.mainCategoryLabel,
         matchedPlayerSecondaryTrait: friendshipGroup ? undefined : matchedProfile?.secondaryTrait,
-        matchedPlayerSecondaryTraitLabel: friendshipGroup ? "tavolo friendship" : matchedProfile?.secondaryTraitLabel,
+        matchedPlayerSecondaryTraitLabel: friendshipGroup
+          ? isRomanceFallbackGroup
+            ? "tavolo social"
+            : "tavolo friendship"
+          : matchedProfile?.secondaryTraitLabel,
         matchedPlayerApproachAdvice: friendshipGroup
-          ? "Presentati con leggerezza, scegli un brindisi semplice e lascia che il gruppo faccia il resto."
+          ? isRomanceFallbackGroup
+            ? "Non forzare il flirt: presentati, brinda e usa il tavolo come occasione per rimettere la serata in movimento."
+            : "Presentati con leggerezza, scegli un brindisi semplice e lascia che il gruppo faccia il resto."
           : matchedProfile
           ? getApproachAdviceForTrait(
               matchedProfile.secondaryTrait,
@@ -125,13 +136,17 @@ export async function GET(
           ? getMainCategoryPluralLabel(sharedMainCategory)
           : null,
         rewardText: friendshipGroup
-          ? `Raggiungi il tavolo friendship ${meetingAssignment?.tableLabel ?? ""} e sblocca il drink della ciurma.`
+          ? isRomanceFallbackGroup
+            ? `Raggiungi il tavolo social ${meetingAssignment?.tableLabel ?? ""}: il match romantico non è uscito, ma il brindisi della ciurma è salvo.`
+            : `Raggiungi il tavolo friendship ${meetingAssignment?.tableLabel ?? ""} e sblocca il drink della ciurma.`
           : getMatchDrinkRewardText(
               sharedMainCategory,
               meetingAssignment?.tableLabel,
             ),
         isFriendshipGroup: !!friendshipGroup,
+        isRomanceFallbackGroup,
         friendshipGroupId: friendshipGroup?.groupId,
+        friendshipGroupKind: friendshipGroup?.groupKind,
         friendshipGroupSize: friendshipGroupMembers?.length,
         friendshipGroupMemberIds: friendshipGroup?.memberIds,
         friendshipGroupMembers,

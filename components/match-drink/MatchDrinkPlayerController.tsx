@@ -428,9 +428,13 @@ export function MatchDrinkPlayerController() {
     }
 
     const isFriendshipGroup = Boolean(myMatch.isFriendshipGroup);
+    const isRomanceFallbackGroup =
+      Boolean(myMatch.isRomanceFallbackGroup) ||
+      myMatch.friendshipGroupKind === "romance_recovery";
     const groupMembers = myMatch.friendshipGroupMembers ?? [];
     const otherGroupMembers = groupMembers.filter((member) => member.id !== player.id);
     const groupSize = myMatch.friendshipGroupSize ?? groupMembers.length;
+    const groupTableLabel = isRomanceFallbackGroup ? "social" : "friendship";
 
     if (isFriendshipGroup && myMatch.drinkUnlocked) {
       return (
@@ -439,9 +443,9 @@ export function MatchDrinkPlayerController() {
             <MatchDrinkCard variant="accent" className="overflow-hidden text-center">
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <p className="eyebrow">Ciurma confermata.</p>
+                  <p className="eyebrow">{isRomanceFallbackGroup ? "Rotta social confermata." : "Ciurma confermata."}</p>
                   <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">
-                    Il tavolo friendship è tuo
+                    {isRomanceFallbackGroup ? "Il brindisi non resta in rada" : "Il tavolo friendship è tuo"}
                   </h2>
                   <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent-strong)]">
                     Tavolo {meetingTableLabel}
@@ -551,10 +555,10 @@ export function MatchDrinkPlayerController() {
         <MatchDrinkShell>
           <MatchDrinkCard className="text-center">
             <h2 className="text-xl font-bold text-white uppercase tracking-tight">
-              Ciurma accettata.
+              {isRomanceFallbackGroup ? "Tavolo social accettato." : "Ciurma accettata."}
             </h2>
             <p className="mt-4 text-[var(--text-muted)]">
-              Stiamo preparando il tavolo friendship e il drink sbloccato.
+              Stiamo preparando il tavolo {groupTableLabel} e il drink sbloccato.
             </p>
           </MatchDrinkCard>
         </MatchDrinkShell>
@@ -581,9 +585,13 @@ export function MatchDrinkPlayerController() {
             <MatchDrinkCard variant="accent" className="overflow-hidden text-center">
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <p className="eyebrow">Hai una ciurma!</p>
+                  <p className="eyebrow">
+                    {isRomanceFallbackGroup ? "Nessun match romantico perfetto" : "Hai una ciurma!"}
+                  </p>
                   <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">
-                    Il Capitano ti manda al tavolo friendship
+                    {isRomanceFallbackGroup
+                      ? "Il Capitano ti manda al tavolo social"
+                      : "Il Capitano ti manda al tavolo friendship"}
                   </h2>
                   <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent-strong)]">
                     {groupSize || 3} persone · Tavolo {meetingTableLabel}
@@ -616,14 +624,18 @@ export function MatchDrinkPlayerController() {
 
                 <div className="grid gap-3 text-left">
                   <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
-                    <p className="eyebrow mb-2">Compatibilità gruppo</p>
+                    <p className="eyebrow mb-2">
+                      {isRomanceFallbackGroup ? "Recupero social" : "Compatibilità gruppo"}
+                    </p>
                     <p className="text-sm font-bold text-white">
                       {myMatch.score}% - {myMatch.commonCriterion}
                     </p>
                   </div>
 
                   <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4">
-                    <p className="eyebrow mb-2">Motivo del match</p>
+                    <p className="eyebrow mb-2">
+                      {isRomanceFallbackGroup ? "Perché questo tavolo" : "Motivo del match"}
+                    </p>
                     <p className="text-sm leading-relaxed text-white">&quot;{mainReason}&quot;</p>
                   </div>
 
@@ -649,7 +661,7 @@ export function MatchDrinkPlayerController() {
             </div>
 
             <p className="text-center text-[10px] text-[var(--text-muted)] px-4 uppercase font-bold tracking-widest leading-relaxed">
-              Se accetti, sblocchi il drink e raggiungi la tua ciurma al tavolo friendship.
+              Se accetti, sblocchi il drink e raggiungi la tua ciurma al tavolo {groupTableLabel}.
             </p>
           </div>
         </MatchDrinkShell>
