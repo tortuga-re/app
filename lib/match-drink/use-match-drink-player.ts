@@ -19,6 +19,8 @@ export function useMatchDrinkPlayer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastUpdatedAtRef = useRef<string>("");
+  const sessionRef = useRef<MatchDrinkSession | null>(null);
+  const activeSessionFetchedRef = useRef(false);
   const [savedProfile, setSavedProfile] = useState<{
     nickname: string;
     tableNumber: string;
@@ -41,13 +43,22 @@ export function useMatchDrinkPlayer() {
     return null;
   });
 
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   const refresh = useCallback(async () => {
     const currentSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
     const currentPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
 
     if (!currentSessionId || !currentPlayerId) {
-      if (!currentSessionId) {
-        // Proviamo a recuperare la sessione attiva se non ne abbiamo una
+      if (currentSessionId || currentPlayerId) {
+        localStorage.removeItem(STORAGE_KEY_SESSION_ID);
+        localStorage.removeItem(STORAGE_KEY_PLAYER_ID);
+      }
+
+      if (!sessionRef.current && !activeSessionFetchedRef.current) {
+        activeSessionFetchedRef.current = true;
         try {
           const activeRes = await fetch("/api/match-drink/session/active", { cache: "no-store" });
           if (activeRes.ok) {
@@ -95,12 +106,6 @@ export function useMatchDrinkPlayer() {
     }
   }, []);
 
-  const sessionRef = useRef<MatchDrinkSession | null>(null);
-
-  useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
-
   useEffect(() => {
     let mounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
@@ -121,9 +126,10 @@ export function useMatchDrinkPlayer() {
       await refresh();
       if (!mounted) return;
 
-      const currentSessionId = session?.id || localStorage.getItem(STORAGE_KEY_SESSION_ID);
+      const currentSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+      const currentPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
       
-      if (currentSessionId) {
+      if (currentSessionId && currentPlayerId) {
         channel = supabase
           .channel(`match-drink-${currentSessionId}`)
           .on("broadcast", { event: "session_update" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -141,15 +147,18 @@ export function useMatchDrinkPlayer() {
             if (mounted) refresh();
           })
           .subscribe();
-      }
 
-      startPolling();
+        startPolling();
+      }
     };
 
     init();
 
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
+      const currentSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+      const currentPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
+
+      if (document.visibilityState === "visible" && currentSessionId && currentPlayerId) {
         refresh();
       }
     };
@@ -162,7 +171,7 @@ export function useMatchDrinkPlayer() {
       if (channel) supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [refresh, session?.id]);
+  }, [refresh, session?.id, player?.id]);
 
   const join = async (nickname: string, details: {
     tableNumber: string;
