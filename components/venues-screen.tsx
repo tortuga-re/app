@@ -292,9 +292,8 @@ function VenuesScreenContent() {
         </div>
 
         <div className="mt-4 grid gap-4">
-          {tortugaInfoConfig.eveningProgram.map((event, index) => {
+          {tortugaInfoConfig.eveningProgram.map((event) => {
             const imageUrl = event.imageUrl;
-            const isReversed = index % 2 === 1;
 
             return (
               <CollapsibleWrapper
@@ -303,33 +302,14 @@ function VenuesScreenContent() {
                 defaultOpen={false}
                 className="overflow-hidden rounded-[1.8rem] border border-[rgba(255,216,156,0.14)] bg-[linear-gradient(180deg,rgba(20,15,11,0.98),rgba(10,8,7,0.97))] shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
               >
-                <div
-                  className={`grid md:min-h-[280px] md:grid-cols-2 ${
-                    isReversed
-                      ? "md:[&>*:first-child]:order-2 md:[&>*:last-child]:order-1"
-                      : ""
-                  }`}
-                >
-                  <div className="relative min-h-[220px] md:min-h-0 rounded-[1.2rem] overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imageUrl}
-                      alt={event.title}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.18)_40%,rgba(0,0,0,0.72)_100%)]" />
-                    <div className="absolute left-4 top-4 rounded-full border border-[rgba(255,216,156,0.25)] bg-[rgba(12,9,7,0.72)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)] backdrop-blur-sm">
-                      {event.day}
-                    </div>
-                  </div>
-
-                  <div className="flex h-full flex-col justify-center p-5 md:p-7">
+                <div className="flex flex-col gap-4">
+                  {/* Testo sopra */}
+                  <div className="flex flex-col justify-center p-2">
                     <p className="eyebrow text-[var(--accent-strong)]">{event.day}</p>
-                    <h3 className="mt-2 text-2xl font-semibold text-white">
+                    <h3 className="mt-1 text-2xl font-semibold text-white">
                       {event.title}
                     </h3>
-                    <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                       {event.description}
                     </p>
 
@@ -347,6 +327,21 @@ function VenuesScreenContent() {
                         ) : null}
                       </>
                     ) : null}
+                  </div>
+
+                  {/* Immagine sotto */}
+                  <div className="relative min-h-[240px] md:min-h-[340px] rounded-[1.2rem] overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt={event.title}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.18)_40%,rgba(0,0,0,0.72)_100%)]" />
+                    <div className="absolute left-4 top-4 rounded-full border border-[rgba(255,216,156,0.25)] bg-[rgba(12,9,7,0.72)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)] backdrop-blur-sm">
+                      {event.day}
+                    </div>
                   </div>
                 </div>
               </CollapsibleWrapper>
