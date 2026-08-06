@@ -47,27 +47,6 @@ export function ProfileGamesAndAdmin({
         {/* Client-facing cards (Hidden for Admins) */}
         {!isAdmin(identityEmail) && (
           <>
-            {/* Match & Drink - GIOVEDÌ */}
-            {activeGames.matchDrink && (
-              <Link
-                href="/game/match-drink"
-                onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[#D8B06A] bg-[rgba(216,176,106,0.05)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🍸 Match & Drink - GIOVEDÌ</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      Nuove amicizie o anima gemella? Incontra persone che condividono i tuoi stessi interessi!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[#D8B06A] bg-[#D8B06A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#D8B06A]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </Link>
-            )}
-
             {/* Buzzer Card - Client */}
             {activeGames.buzzer && (
               <a
@@ -172,25 +151,7 @@ export function ProfileGamesAndAdmin({
           </a>
         )}
 
-        {/* Match & Drink Admin */}
-        {isLoggedAdmin && !showUnifiedCommandDeck && (
-          <Link
-            href="/admin/match-drink"
-            className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-blue-500 bg-blue-500/5"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-base font-semibold text-white uppercase italic">🍸 Plancia Match & Drink</p>
-                <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                  Avvia sessioni, gestisci domande e sblocca i drink del match.
-                </p>
-              </div>
-              <span className="rounded-full border border-blue-500 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
-                ADMIN
-              </span>
-            </div>
-          </Link>
-        )}
+        {/* Match & Drink Admin Removed */}
         {/* Kantaquiz Admin */}
         {isLoggedAdmin && !showUnifiedCommandDeck && (
           <button

@@ -73,18 +73,7 @@ export function VenueModeCard({
             <span className="text-center">Tortuga Music Quiz</span>
           </Link>
         ) : null}
-        {activeGames.matchDrink ? (
-          <Link
-            href="/ciurma#match-drink"
-            className="group relative flex min-h-16 items-center justify-center overflow-hidden rounded-full border border-[rgba(216,176,106,0.48)] bg-[linear-gradient(180deg,rgba(216,176,106,0.14),rgba(8,6,4,0.96))] px-5 text-sm font-semibold text-white shadow-[0_0_0_1px_rgba(216,176,106,0.08),0_16px_40px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,240,205,0.12)] transition hover:border-[rgba(242,215,165,0.72)] hover:bg-[linear-gradient(180deg,rgba(216,176,106,0.2),rgba(10,8,6,0.96))]"
-            onClick={() => triggerHaptic()}
-          >
-            <span className="absolute right-4 top-3 rounded-full border border-[rgba(255,222,157,0.42)] bg-[rgba(216,176,106,0.14)] px-2 py-1 text-[9px] font-black uppercase tracking-[0.24em] text-[var(--accent-strong)]">
-              Live
-            </span>
-            <span className="text-center">Apri Match &amp; Drink</span>
-          </Link>
-        ) : null}
+
       </div>
     </div>
   );

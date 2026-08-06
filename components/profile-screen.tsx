@@ -37,7 +37,7 @@ import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { isAdmin } from "@/lib/live-buzzer/admin";
-import { PwaPushCard } from "@/components/pwa-push-card";
+import { CollapsibleWrapper } from "@/components/collapsible-wrapper";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 import {
   italianPhoneValidationError,
@@ -1023,9 +1023,6 @@ export function CiurmaScreen() {
 
       {data?.contact ? (
         <>
-          <div className="mb-5">
-            <PwaPushCard />
-          </div>
           <ProfileDashboard
             data={data}
             loyaltyProgress={loyaltyProgress}
@@ -1035,12 +1032,18 @@ export function CiurmaScreen() {
             hasOnPremiseAccess={hasOnPremiseAccess}
           />
           <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
-            <PiratePhotoContestCard
-              key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
-              contact={data.contact}
-              onProfileResolved={handlePiratePhotoProfileResolved}
-              onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-            />
+            <CollapsibleWrapper
+              title="Lo Scatto del Mese"
+              subtitle="Partecipa al contest fotografico della ciurma"
+              defaultOpen={false}
+            >
+              <PiratePhotoContestCard
+                key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
+                contact={data.contact}
+                onProfileResolved={handlePiratePhotoProfileResolved}
+                onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
+              />
+            </CollapsibleWrapper>
           </div>
 
           <ProfileGamesAndAdmin

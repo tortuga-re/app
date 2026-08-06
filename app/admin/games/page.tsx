@@ -103,16 +103,6 @@ export default function GamesHubPage() {
           href="/admin/buzzer"
         />
 
-        {/* Match & Drink */}
-        <GameCard
-          icon={<Wine size={22} className="text-blue-400" />}
-          title="Match & Drink"
-          description="Avvia sessioni, gestisci le domande e sblocca i drink del match di giovedì."
-          badge="APRI PLANCIA"
-          badgeColor="border-blue-500/30 bg-blue-500/10 text-blue-400"
-          href="/admin/match-drink"
-        />
-
         {/* Kantaquiz */}
         <GameCard
           icon={<Mic2 size={22} className="text-orange-400" />}

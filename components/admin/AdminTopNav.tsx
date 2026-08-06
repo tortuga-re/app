@@ -8,9 +8,7 @@ import { cn } from "@/lib/utils";
 const ADMIN_NAV_ITEMS = [
   { href: "/admin/live-tv", label: "Plancia" },
   { href: "/admin/buzzer", label: "Buzzer" },
-  { href: "/admin/match-drink", label: "Match & Drink" },
   { href: "/admin/scontrini", label: "Scontrini" },
-  { href: "/admin/push", label: "Push" },
 ];
 
 export function AdminTopNav() {

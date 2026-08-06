@@ -489,7 +489,6 @@ export function HomeScreen() {
           {!hasMenuAccess ? (
             <>
               <BuzzerTeaser />
-              <MatchDrinkTeaser />
             </>
           ) : null}
           {showReservationCard ? (

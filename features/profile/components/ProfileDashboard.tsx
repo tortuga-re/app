@@ -31,7 +31,7 @@ export function ProfileDashboard({
             La tua ciurma prende forma
           </h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
-            Visite, bottino e progressi fedeltà raccolti in un colpo solo.
+            Visite e progressi fedeltà raccolti in un colpo solo.
           </p>
         </div>
         {hasOnPremiseAccess ? (

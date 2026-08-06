@@ -7,6 +7,7 @@ import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { trackAppEvent } from "@/lib/analytics";
 import { fidelityLoyaltyTiers } from "@/lib/fidelity-rewards.config";
 import { cn } from "@/lib/utils";
+import { CollapsibleWrapper } from "@/components/collapsible-wrapper";
 
 type FidelityStatusCardProps = {
   title: string;
@@ -68,76 +69,100 @@ export function FidelityStatusCard({
   );
 
   return (
-    <div
-      className={cn(
-        "panel parchment-texture rounded-[2rem] p-5",
-        isVip &&
-          "border-[rgba(194,148,74,0.42)] bg-[linear-gradient(160deg,rgba(141,103,46,0.28),rgba(0,0,0,0.98)_36%,rgba(45,31,14,0.9)_100%)] shadow-[0_26px_72px_rgba(0,0,0,0.48)]",
-        className,
-      )}
+    <CollapsibleWrapper
+      title={title}
+      subtitle={`${tierLabel} • ${points} Punti`}
+      defaultOpen={false}
+      className={className}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            {tierImage ? (
-              <div className="relative h-12 w-12 flex-shrink-0 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)] transition-transform duration-300 hover:scale-110">
-                <Image
-                  src={tierImage}
-                  alt={tierLabel}
-                  fill
-                  sizes="48px"
-                  className="object-contain"
-                />
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              {tierImage ? (
+                <div className="relative h-12 w-12 flex-shrink-0 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)]">
+                  <Image
+                    src={tierImage}
+                    alt={tierLabel}
+                    fill
+                    sizes="48px"
+                    className="object-contain"
+                  />
+                </div>
+              ) : null}
+              <div className="space-y-0.5">
+                <button
+                  type="button"
+                  className={chipClassName}
+                  onClick={() => setIsTierListOpen((prev) => !prev)}
+                >
+                  <span className={iconClassName}>{isVip ? "VIP" : "CRU"}</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.22em]">
+                    Livello {tierLabel}
+                  </span>
+                  <span className="ml-1 text-[9px] opacity-60">
+                    {isTierListOpen ? "▲" : "▼"}
+                  </span>
+                </button>
               </div>
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                className={cn("h-5 w-5", isVip ? "text-[#e6c27a]" : "text-[var(--accent-strong)]")}
-                fill="currentColor"
-              >
-                <path
-                  d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5z"
-                  opacity="0.4"
-                />
-                <circle cx="12" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M10 12l2-2 2 2M12 7v3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
-            )}
-            <div className="space-y-0.5">
-              <p className={cn("eyebrow leading-tight", isVip && "text-[#e6c27a]")}>{title}</p>
-              <button
-                type="button"
-                className={chipClassName}
-                onClick={() => setIsTierListOpen((value) => !value)}
-                aria-expanded={isTierListOpen}
-                aria-label={`Mostra i ranghi disponibili per ${tierLabel}`}
-              >
-                <span className={iconClassName}>✦</span>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">
-                  {tierLabel}
-                </span>
-              </button>
             </div>
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+              {tierDescription}
+            </p>
+          </div>
+
+          <div className="shrink-0 text-right">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+              Punti Card
+            </p>
+            <p className="mt-1 text-3xl font-black text-white">{points}</p>
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-            PTS.
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-white">{points}</p>
-        </div>
-      </div>
+        {/* Level List */}
+        {isTierListOpen && (
+          <div className="mt-3 rounded-[1.2rem] border border-white/10 bg-black/40 p-3 space-y-2 animate-in fade-in duration-200">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)] mb-2">
+              Livelli Ciurma
+            </p>
+            <div className="grid gap-2">
+              {fidelityLoyaltyTiers.map((tier) => {
+                const isCurrent = tier.label.toLowerCase() === tierLabel.toLowerCase();
+                return (
+                  <div
+                    key={tier.label}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg px-3 py-2 text-xs border",
+                      isCurrent
+                        ? "border-[var(--accent-strong)] bg-[var(--accent-soft)]/20 text-white font-bold"
+                        : "border-white/5 bg-white/5 text-[var(--text-muted)] opacity-80"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      {tier.image ? (
+                        <div className="relative h-6 w-6 shrink-0">
+                          <Image src={tier.image} alt={tier.label} fill sizes="24px" className="object-contain" />
+                        </div>
+                      ) : null}
+                      <span>{tier.label}</span>
+                    </div>
+                    <span className="text-[10px] font-mono">{tier.minPoints} punti</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-      <div className="mt-5 panel-muted rounded-[1.7rem] px-4 py-4">
-        <div className="space-y-3">
-          <div className="h-3 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.42)]">
+        {/* Progress Bar */}
+        <div className="mt-4 space-y-1.5">
+          <div className="flex justify-between text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+            <span>Progresso Livello</span>
+            <span>{progressPercent}%</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10 p-0.5">
             <div
-              className={cn(
-                "h-full rounded-full bg-[linear-gradient(90deg,#e3c37a_0%,#b98336_52%,#67431c_100%)] transition-[width] duration-200",
-                !nextRewardLabel &&
-                  "bg-[linear-gradient(90deg,#f1db9a_0%,#d8a24f_52%,#8a5923_100%)]",
-              )}
+              className="h-full rounded-full bg-gradient-to-r from-[var(--accent-soft)] to-[var(--accent-strong)] transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -183,12 +208,8 @@ export function FidelityStatusCard({
             label={qrLabel}
             variant={isVip ? "vip" : "default"}
           />
-        ) : (
-          <div className="flex min-h-[172px] items-center justify-center rounded-[1.45rem] px-4 py-4 text-center text-sm leading-6 text-[var(--text-muted)]">
-            Il medaglione compare appena la card viene agganciata al profilo.
-          </div>
-        )}
+        ) : null}
       </div>
-    </div>
+    </CollapsibleWrapper>
   );
 }

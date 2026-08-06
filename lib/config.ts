@@ -51,32 +51,42 @@ export const tortugaInfoConfig = {
   eveningProgram: [
     {
       day: "MERCOLEDÌ",
-      title: "Pirates Night",
+      title: "PERLA NERA DAY 2x1",
       description:
-        "Piatto + Bevanda Media a 15€, rompi la settimana come si deve.",
+        "Il più venduto del Tortuga, oltre 600 al mese, in formula 2x1.",
+      imageUrl:
+        "https://tortugabay.it/wp-content/uploads/2026/06/perla-nera-day-mercoledi-tortuga-reggio-emilia.png",
     },
     {
       day: "GIOVEDÌ",
-      title: "Match & Drink",
+      title: "THE SOCIAL GAME",
       description:
         "Vuoi conoscere persone con i tuoi stessi interessi? Tra una risposta e l'altra, potrebbe nascere anche qualcosa di romantico.",
+      imageUrl:
+        "https://tortugabay.it/wp-content/uploads/2026/06/giovedi-the-social-game-tortuga-nuove-amicizie-e-conoscenze-a-reggio-emilia.png",
     },
     {
       day: "VENERDÌ",
-      title: "Kantaquiz",
+      title: "KANTAQUIZ",
       description:
         "Quiz, musica, risate e gente che si scatena. Non è solo cena: è il venerdì del Tortuga.",
+      imageUrl:
+        "https://tortugabay.it/wp-content/uploads/2026/06/venerdi-kanta-quiz-tortuga-reggio-emilia.png",
     },
     {
       day: "SABATO",
-      title: "La Notte del Capitano",
+      title: "LA NOTTE DEL CAPITANO",
       description: "Atmosfera, gioco, musica e ciurma pronta a fare casino.",
+      imageUrl:
+        "https://tortugabay.it/wp-content/uploads/2026/06/sabato-notte-del-capitano-cena-con-spettacolo-karaoke-tortuga-reggio-emilia.png",
     },
     {
       day: "DOMENICA",
-      title: "Cervellone Day",
+      title: "CERVELLONE DAY",
       description:
         "La domenica si chiude con amici e famigliari: tavoli, sfide e cervelli messi alla prova fino all’ultima risposta.",
+      imageUrl:
+        "https://tortugabay.it/wp-content/uploads/2026/06/domenica-cervellone-day-quiz-sfida-amici-e-familiari-tortuga-reggio-emilia.png",
     },
   ],
   phoneNumber: "+39 379 359 3799",

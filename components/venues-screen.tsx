@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { StatusBlock } from "@/components/status-block";
 import { KantaquizTeaser } from "@/components/kantaquiz-teaser";
 import { BuzzerTeaser } from "@/components/buzzer-teaser";
+import { CollapsibleWrapper } from "@/components/collapsible-wrapper";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { CoopertoVenueHour, VenueResponse } from "@/lib/cooperto/types";
@@ -292,22 +293,14 @@ function VenuesScreenContent() {
 
         <div className="mt-4 grid gap-4">
           {tortugaInfoConfig.eveningProgram.map((event, index) => {
-            const imageUrl =
-              event.day === "MERCOLEDÌ"
-                ? "https://tortugabay.it/wp-content/uploads/2026/04/PIRATES-NIGHT-MERCOLEDI-AL-TORTUGA-REGGIO-EMILIA.jpg"
-                : event.day === "GIOVEDÌ"
-                  ? "https://tortugabay.it/wp-content/uploads/2026/05/GIOVEDI-MATCH-DRINK-TORTUGA-REGGIO-EMILIA.jpg"
-                  : event.day === "VENERDÌ"
-                    ? "https://tortugabay.it/wp-content/uploads/2026/04/VENERDI.jpg"
-                    : event.day === "SABATO"
-                      ? "https://tortugabay.it/wp-content/uploads/2026/04/NOTTE-DEL-CAPITANO-SABATO-AL-TORTUGA-REGGIO-EMILIA.jpg"
-                      : "https://tortugabay.it/wp-content/uploads/2026/04/CERVOLLONE-DAY-DOMENICA-AL-TORTUGA-REGGIO-EMILIA.jpg";
-
+            const imageUrl = event.imageUrl;
             const isReversed = index % 2 === 1;
 
             return (
-              <article
+              <CollapsibleWrapper
                 key={`${event.day}-${event.title}`}
+                title={`${event.day} - ${event.title}`}
+                defaultOpen={false}
                 className="overflow-hidden rounded-[1.8rem] border border-[rgba(255,216,156,0.14)] bg-[linear-gradient(180deg,rgba(20,15,11,0.98),rgba(10,8,7,0.97))] shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
               >
                 <div
@@ -317,7 +310,7 @@ function VenuesScreenContent() {
                       : ""
                   }`}
                 >
-                  <div className="relative min-h-[220px] md:min-h-0">
+                  <div className="relative min-h-[220px] md:min-h-0 rounded-[1.2rem] overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={imageUrl}
@@ -352,21 +345,11 @@ function VenuesScreenContent() {
                             </Link>
                           </div>
                         ) : null}
-                        {event.day === "GIOVEDÌ" && currentDay === 4 ? (
-                          <div className="mt-4">
-                            <Link
-                              href="/game/match-drink"
-                              className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
-                            >
-                              Accedi al gioco
-                            </Link>
-                          </div>
-                        ) : null}
                       </>
                     ) : null}
                   </div>
                 </div>
-              </article>
+              </CollapsibleWrapper>
             );
           })}
         </div>
