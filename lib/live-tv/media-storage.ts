@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { LiveTvMediaAsset } from "@/lib/live-tv/types";
@@ -18,6 +18,10 @@ const PUBLIC_MEDIA_BASE_URL =
   process.env.LIVE_TV_MEDIA_BASE_URL?.trim() ?? "/live-tv-media";
 
 const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
+
+const isSafeStoredFileName = (fileName: string) =>
+  /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}$/.test(fileName) &&
+  !fileName.includes("..");
 
 const getExtension = (file: File) => {
   const originalExt = file.name.split(".").pop()?.toLowerCase();
@@ -61,6 +65,24 @@ const getTargetDir = (
   return path.join(process.cwd(), "public", "live-tv-media", mediaKind);
 };
 
+const resolveTargetPath = (targetDir: string, fileName: string) => {
+  if (!isSafeStoredFileName(fileName)) {
+    return null;
+  }
+
+  const resolvedDir = path.resolve(targetDir);
+  const resolvedPath = path.resolve(resolvedDir, fileName);
+
+  if (
+    resolvedPath !== resolvedDir &&
+    !resolvedPath.startsWith(`${resolvedDir}${path.sep}`)
+  ) {
+    return null;
+  }
+
+  return resolvedPath;
+};
+
 export const saveLiveTvMediaFile = async (
   file: File,
   mediaKind: "image" | "video",
@@ -95,4 +117,31 @@ export const deleteLiveTvMediaFile = async (
   const targetPath = path.join(targetDir, asset.fileName);
 
   await rm(targetPath, { force: true });
+};
+
+export const findLiveTvMediaFilePath = async (
+  mediaKind: "image" | "video",
+  fileName: string,
+) => {
+  const targetDirs = [
+    EXTERNAL_MEDIA_DIR ? path.join(EXTERNAL_MEDIA_DIR, mediaKind) : null,
+    path.join(process.cwd(), "public", "live-tv-media", mediaKind),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const targetDir of targetDirs) {
+    const candidatePath = resolveTargetPath(targetDir, fileName);
+
+    if (!candidatePath) {
+      return null;
+    }
+
+    try {
+      await access(candidatePath);
+      return candidatePath;
+    } catch {
+      // Try the next configured storage location.
+    }
+  }
+
+  return null;
 };
