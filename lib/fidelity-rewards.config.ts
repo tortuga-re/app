@@ -16,7 +16,7 @@ export const fidelityRewardTiers: FidelityRewardTier[] = [
   { threshold: 30, label: "Tagliere di salumi" },
   { threshold: 40, label: "Tagliere della ciurma x2" },
   { threshold: 60, label: "Perla Nera + Bibita Media" },
-  { threshold: 100, label: "GOLD Fidelity Club" },
+  { threshold: 100, label: "25% Cashback ad ogni visita" },
 ];
 
 export const fidelityVipThreshold = 150;
