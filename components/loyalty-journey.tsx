@@ -190,11 +190,9 @@ function GuestLoyalty({ compact = false }: { compact?: boolean }) {
       <p className="minimal-eyebrow">Entra nella Ciurma</p>
       <h2>Inizia la tua scalata</h2>
       <p>Accedi o registrati per unirti alla Ciurma del Tortuga! Potrai accumulare Dobloni ad ogni visita, salire di rango e sbloccare premi e vantaggi esclusivi.</p>
-      {!compact ? (
-        <button type="button" className="minimal-primary" onClick={() => setRecognitionOpen(true)}>
-          Accedi o registrati
-        </button>
-      ) : null}
+      <button type="button" className="minimal-primary" onClick={() => setRecognitionOpen(true)}>
+        Accedi o registrati
+      </button>
     </section>
     {recognitionOpen ? <div className="recognition-overlay" role="dialog" aria-modal="true" aria-labelledby="recognition-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setRecognitionOpen(false); }}>
       <section className="recognition-modal">

@@ -99,17 +99,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
       <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
       {isUserRegistered ? (
         <p className="maintenance-note">Mantieni il rango con almeno 5 visite ogni anno. Il ciclo va dal 1 agosto al 31 luglio; i Dobloni Fidelity vengono azzerati il 31 luglio di ogni anno.</p>
-      ) : (
-        <div className="p-4 rounded-[1.25rem] border border-[rgba(216,176,106,0.25)] bg-[rgba(216,176,106,0.08)] text-center space-y-2.5 animate-in fade-in duration-300">
-          <h4 className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">Inizia la tua scalata</h4>
-          <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-            Accedi o registrati per unirti alla Ciurma del Tortuga! Potrai accumulare Dobloni ad ogni visita, salire di rango e sbloccare premi e vantaggi esclusivi.
-          </p>
-          <button type="button" className="minimal-primary inline-flex py-2 px-6 text-xs w-auto mx-auto mt-1 cursor-pointer" onClick={() => window.dispatchEvent(new Event("tortuga:open-recognition"))}>
-            Accedi o registrati
-          </button>
-        </div>
-      )}
+      ) : null}
     </div> : null}
 
     {tab === "achievements" ? <section id="imprese" className="achievements-section hash-scroll-target">
