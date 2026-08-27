@@ -28,7 +28,7 @@ export function MinimalHomeScreen() {
   const onPremise = scenario.enabled ? scenario.onPremise : hasOnPremiseAccess;
 
   return <section className="minimal-home space-y-5">
-    <LoyaltyJourney beforeHighlights={onPremise ? <button type="button" className="menu-context-button" onClick={openMenu}><BookOpen /><span>Apri menu</span><ChevronRight /></button> : null} />
+    <LoyaltyJourney beforeHighlights={onPremise ? <button type="button" className="menu-context-button" onClick={openMenu}><BookOpen /><div className="flex flex-col text-left py-0.5"><span className="font-serif text-[1.08rem] font-bold text-[var(--text)] leading-tight">Apri menu</span><span className="text-[10px] text-[var(--text-muted)] font-normal leading-normal mt-1 pr-2">Al momento del conto puoi richiederlo e pagare direttamente dal tavolo (con carte e bancomat).</span></div><ChevronRight /></button> : null} />
     {(hasReservation || coupon) ? <div className="home-context-list">
       {hasReservation ? <article><div className="context-icon"><CalendarDays /></div><div><p className="minimal-eyebrow">Prossima prenotazione</p><h2>La tua rotta è confermata</h2><span>Controlla i dettagli della serata.</span></div><ChevronRight /></article> : null}
       {coupon ? <button type="button" onClick={() => setCouponOpen(true)}><div className="context-icon"><Ticket /></div><div><p className="minimal-eyebrow">Premio disponibile</p><h2>Hai un coupon da utilizzare</h2><span>Mostra codice e QR del coupon.</span></div><ChevronRight /></button> : null}
