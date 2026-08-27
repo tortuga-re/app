@@ -143,9 +143,9 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     {tab === "ranks" ? <div id="ranghi" className="hash-scroll-target space-y-5">
       <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><ul className="my-3.5 space-y-1.5 text-left border-t border-[rgba(216,176,106,0.15)] pt-3">{rank.privileges.map((p, idx) => <li key={idx} className="flex items-start gap-1.5 text-[10px] text-[var(--text-muted)] leading-relaxed"><span className="text-[var(--accent-strong)] text-[8px] shrink-0 mt-0.5">⚔</span><span>{p}</span></li>)}</ul><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
       {/* Hall of Legends Section */}
-      <div className="hall-of-legends p-5 rounded-[1.75rem] border border-[rgba(216,176,106,0.22)] bg-[rgba(12,9,7,0.45)] backdrop-blur-sm space-y-4 mt-6 animate-in fade-in duration-300">
-        <div className="text-center space-y-1.5 pb-2 border-b border-[rgba(216,176,106,0.15)]">
-          <h3 className="text-sm font-black uppercase tracking-[0.25em] text-[var(--accent-strong)] flex items-center justify-center gap-1.5">
+      <div className="hall-of-legends p-5 rounded-[1.55rem] border border-[rgba(197,154,71,0.45)] bg-[#fffdf8] space-y-4 mt-6 animate-in fade-in duration-300">
+        <div className="text-center space-y-1.5 pb-2.5 border-b border-[rgba(197,154,71,0.15)]">
+          <h3 className="text-sm font-black uppercase tracking-[0.25em] text-[var(--accent)] flex items-center justify-center gap-1.5">
             <Trophy size={15} /> Hall of Legends
           </h3>
           <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
@@ -156,17 +156,17 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
         {displayLegends.length > 0 ? (
           <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
             {displayLegends.map((legend) => (
-              <div key={legend.legend_number} className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[rgba(216,176,106,0.03)] border border-[rgba(216,176,106,0.06)] hover:bg-[rgba(216,176,106,0.06)] transition-all duration-200">
+              <div key={legend.legend_number} className="flex items-center justify-between py-2.5 px-4 rounded-[0.8rem] bg-[#f0e9de] border border-[rgba(197,154,71,0.12)] hover:border-[rgba(197,154,71,0.35)] transition-all duration-200">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-7 w-12 shrink-0 items-center justify-center rounded-lg border border-[rgba(216,176,106,0.22)] bg-[rgba(216,176,106,0.08)] font-mono text-[10px] font-black text-[var(--accent-strong)]">
+                  <div className="flex h-7 w-12 shrink-0 items-center justify-center rounded-lg border border-[rgba(197,154,71,0.35)] bg-[#fffdf8] font-mono text-[10px] font-black text-[var(--accent)]">
                     #{String(legend.legend_number).padStart(4, "0")}
                   </div>
-                  <span className="text-xs font-black text-white">
+                  <span className="text-xs font-black text-black">
                     {legend.nickname}
                   </span>
                 </div>
                 {legend.real_name ? (
-                  <span className="text-[10px] font-medium text-[var(--text-muted)] bg-[rgba(255,255,255,0.03)] px-2.5 py-1 rounded-full border border-white/5 font-sans">
+                  <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[#fffdf8] px-2.5 py-1 rounded-full border border-[rgba(197,154,71,0.2)] font-sans">
                     {legend.real_name}
                   </span>
                 ) : null}
