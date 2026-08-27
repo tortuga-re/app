@@ -1,12 +1,17 @@
 export type TortugaRankId = "mozzo" | "corsaro" | "capitano" | "leggenda";
 
+export type TortugaRankPrivilege = {
+  text: string;
+  icon: string;
+};
+
 export type TortugaRank = {
   id: TortugaRankId;
   label: string;
   visits: number;
   points: number;
   description: string;
-  privileges: string[];
+  privileges: TortugaRankPrivilege[];
 };
 
 export const tortugaRanks: TortugaRank[] = [
@@ -17,11 +22,11 @@ export const tortugaRanks: TortugaRank[] = [
     points: 0, 
     description: "Il primo approdo nella Ciurma.",
     privileges: [
-      "+5 Dobloni bonus di arruolamento",
-      "Entra nella classifica della Ciurma",
-      "Inizia a conquistare le Imprese",
-      "Progressione e statistiche personali",
-      "Matricola pirata e data arruolamento"
+      { text: "+5 Dobloni bonus di arruolamento", icon: "🪙" },
+      { text: "Entra nella classifica della Ciurma", icon: "🏆" },
+      { text: "Inizia a conquistare le Imprese", icon: "🎯" },
+      { text: "Progressione e statistiche personali", icon: "📊" },
+      { text: "Matricola pirata e data arruolamento", icon: "📅" }
     ]
   },
   { 
@@ -31,11 +36,11 @@ export const tortugaRanks: TortugaRank[] = [
     points: 30, 
     description: "La tua rotta comincia a farsi rispettare.",
     privileges: [
-      "+5 Dobloni bonus di passaggio",
-      "Tutti i privilegi del Mozzo",
-      "Rotta Prioritaria (prenotazioni anticipate serate/eventi)",
-      "La Voce della Ciurma (sondaggi e votazioni riservate)",
-      "Accesso a imprese ed esperienze Corsaro+"
+      { text: "+5 Dobloni bonus di passaggio", icon: "🪙" },
+      { text: "Tutti i privilegi del Mozzo", icon: "⚔️" },
+      { text: "Rotta Prioritaria (prenotazioni anticipate serate/eventi)", icon: "🧭" },
+      { text: "La Voce della Ciurma (sondaggi e votazioni riservate)", icon: "🗳️" },
+      { text: "Accesso a imprese ed esperienze Corsaro+", icon: "🎯" }
     ]
   },
   { 
@@ -45,12 +50,12 @@ export const tortugaRanks: TortugaRank[] = [
     points: 60, 
     description: "Hai conquistato il comando della Ciurma.",
     privileges: [
-      "+5 Dobloni bonus di passaggio",
-      "Tutti i privilegi del Corsaro",
-      "Priorità d'imbarco (liste d'attesa prioritarie)",
-      "Il Tavolo del Capitano (zona di preferenza tavolo)",
-      "Parola al Capitano (proponi sfide, canzoni e domande)",
-      "Accesso a sfide e tornei Capitano+"
+      { text: "+5 Dobloni bonus di passaggio", icon: "🪙" },
+      { text: "Tutti i privilegi del Corsaro", icon: "⚔️" },
+      { text: "Priorità d'imbarco (liste d'attesa prioritarie)", icon: "🎟️" },
+      { text: "Il Tavolo del Capitano (zona di preferenza tavolo)", icon: "⚓" },
+      { text: "Parola al Capitano (proponi sfide, canzoni e domande)", icon: "🗣️" },
+      { text: "Accesso a sfide e tornei Capitano+", icon: "🎯" }
     ]
   },
   { 
@@ -60,13 +65,13 @@ export const tortugaRanks: TortugaRank[] = [
     points: 100, 
     description: "Il rango speciale riservato alle grandi rotte.",
     privileges: [
-      "+5 Dobloni bonus di passaggio",
-      "Tutti i privilegi del Capitano",
-      "Numero storico di Leggenda (es. #0047)",
-      "Inserimento nella Hall of Legends",
-      "Consiglio delle Leggende (scelta serate speciali)",
-      "Accesso alle anteprime assolute",
-      "Partecipazione al Raduno delle Leggende"
+      { text: "+5 Dobloni bonus di passaggio", icon: "🪙" },
+      { text: "Tutti i privilegi del Capitano", icon: "⚔️" },
+      { text: "Numero storico di Leggenda (es. #0047)", icon: "🏅" },
+      { text: "Inserimento nella Hall of Legends", icon: "📜" },
+      { text: "Consiglio delle Leggende (scelta serate speciali)", icon: "👑" },
+      { text: "Accesso alle anteprime assolute", icon: "✨" },
+      { text: "Partecipazione al Raduno delle Leggende", icon: "🍻" }
     ]
   },
 ];
