@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Award, Check, Gift, LockKeyhole, Trophy, X } from "lucide-react";
 
 import { DragCarousel } from "@/components/drag-carousel";
@@ -60,7 +60,7 @@ const buildDemoProfile = (visits: number, points: number, hasCoupon: boolean): P
 export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [selectedMission, setSelectedMission] = useState<DisplayMission | null>(null);
-  const [legends, setLegends] = useState<{ nickname: string; legend_number: number }[]>([]);
+  const [legends, setLegends] = useState<{ nickname: string; legend_number: number; real_name?: string }[]>([]);
   const { scenario } = useDemoScenario();
   const customer = useCurrentCustomerStatus();
   const points = scenario.enabled ? scenario.points : customer.points;
@@ -77,6 +77,21 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
   const unlockedMissionCount = displayMissions.filter((mission) => mission.unlocked).length;
   const hasRedeemableReward = fidelityRewardTiers.some((reward) => points >= reward.threshold);
 
+  const displayLegends = useMemo(() => {
+    const list = [...legends];
+    if (scenario.enabled) {
+      const demoNick = typeof window !== "undefined" ? sessionStorage.getItem("demo_legend_nickname") : null;
+      if (demoNick && !list.some((l) => l.nickname === demoNick)) {
+        list.push({
+          nickname: demoNick,
+          legend_number: list.length + 1,
+          real_name: "Demo Legend",
+        });
+      }
+    }
+    return list;
+  }, [legends, scenario.enabled]);
+
   useEffect(() => {
     if (!isUserRegistered) {
       setTab("ranks");
@@ -88,15 +103,29 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
       try {
         const response = await fetch("/api/profile/legends");
         const body = await response.json();
-        if (response.ok && body.legends) {
-          setLegends(body.legends);
+        let list = body.legends || [];
+        if (scenario.enabled && list.length === 0) {
+          list = [
+            { nickname: "Barbarossa", legend_number: 1, real_name: "Marco Rossi" },
+            { nickname: "Capitan Findus", legend_number: 2, real_name: "Luca Bianchi" },
+            { nickname: "Jack Sparrow", legend_number: 3, real_name: "Andrea Esposito" },
+            { nickname: "Henry Morgan", legend_number: 4, real_name: "Giovanni Verdi" },
+            { nickname: "Anne Bonny", legend_number: 5, real_name: "Giulia Neri" },
+            { nickname: "Blackbeard", legend_number: 6, real_name: "Francesco Bruno" },
+            { nickname: "L'Olandese Volante", legend_number: 7, real_name: "Matteo Fontana" },
+            { nickname: "Captain Hook", legend_number: 8, real_name: "Alessandro Ricci" },
+            { nickname: "Francis Drake", legend_number: 9, real_name: "Davide Marino" },
+            { nickname: "Lafitte", legend_number: 10, real_name: "Stefano Greco" },
+            { nickname: "Grace O'Malley", legend_number: 11, real_name: "Chiara Lupi" },
+          ];
         }
+        setLegends(list);
       } catch (err) {
         console.error("Error loading legends:", err);
       }
     };
     void loadLegends();
-  }, []);
+  }, [scenario.enabled]);
 
   return <div className="space-y-5">
     <LoyaltyJourney compact />
@@ -124,18 +153,42 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
           </p>
         </div>
 
-        {legends.length > 0 ? (
-          <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
-            {legends.map((legend) => (
-              <div key={legend.legend_number} className="flex items-center gap-2 p-2.5 rounded-xl bg-[rgba(216,176,106,0.05)] border border-[rgba(216,176,106,0.08)]">
-                <span className="text-[10px] font-black font-mono text-[var(--accent-strong)]">
-                  #{String(legend.legend_number).padStart(4, "0")}
-                </span>
-                <span className="text-xs font-bold text-white truncate">
-                  {legend.nickname}
-                </span>
+        {displayLegends.length > 0 ? (
+          <div className="space-y-3">
+            {/* Top 10 (Static Grid) */}
+            <div className="grid grid-cols-2 gap-2">
+              {displayLegends.slice(0, 10).map((legend) => (
+                <div key={legend.legend_number} className="flex items-center gap-2 p-2.5 rounded-xl bg-[rgba(216,176,106,0.05)] border border-[rgba(216,176,106,0.08)]">
+                  <span className="text-[10px] font-black font-mono text-[var(--accent-strong)] text-left shrink-0">
+                    #{String(legend.legend_number).padStart(4, "0")}
+                  </span>
+                  <span className="text-xs font-bold text-white truncate text-left">
+                    {legend.nickname} {legend.real_name ? <span className="text-[10px] font-normal text-[var(--text-muted)] font-sans">({legend.real_name})</span> : null}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Rest (Scrollable Grid) */}
+            {displayLegends.length > 10 ? (
+              <div className="space-y-2 pt-1">
+                <div className="text-center">
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-black">— Altre Leggende —</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
+                  {displayLegends.slice(10).map((legend) => (
+                    <div key={legend.legend_number} className="flex items-center gap-2 p-2.5 rounded-xl bg-[rgba(216,176,106,0.02)] border border-[rgba(216,176,106,0.05)]">
+                      <span className="text-[10px] font-black font-mono text-[var(--text-muted)] text-left shrink-0">
+                        #{String(legend.legend_number).padStart(4, "0")}
+                      </span>
+                      <span className="text-xs font-bold text-white/80 truncate text-left">
+                        {legend.nickname} {legend.real_name ? <span className="text-[10px] font-normal text-white/40 font-sans">({legend.real_name})</span> : null}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            ) : null}
           </div>
         ) : (
           <p className="text-[10px] text-[var(--text-muted)] text-center py-4 italic">

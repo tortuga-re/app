@@ -5,6 +5,7 @@ CREATE SEQUENCE IF NOT EXISTS public.legend_number_seq START WITH 1;
 CREATE TABLE IF NOT EXISTS public.legends_hall_of_fame (
     email TEXT PRIMARY KEY,
     nickname TEXT NOT NULL CHECK (char_length(nickname) >= 2 AND char_length(nickname) <= 25),
+    real_name TEXT,
     legend_number INT NOT NULL UNIQUE DEFAULT nextval('public.legend_number_seq'),
     unlocked_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

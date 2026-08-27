@@ -8,7 +8,7 @@ export async function GET() {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("legends_hall_of_fame")
-      .select("nickname, legend_number, unlocked_at")
+      .select("nickname, legend_number, unlocked_at, real_name")
       .order("legend_number", { ascending: true });
 
     if (error) {

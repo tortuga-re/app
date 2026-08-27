@@ -38,6 +38,9 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
   const activeRank = getActiveRank(visits, highestPoints, historicalRank, maintained);
   const nextRank = getNextRank(activeRank.id);
   const isLegend = activeRank.id === "leggenda";
+  const registeredLegendNickname = scenario.enabled
+    ? (typeof window !== "undefined" ? sessionStorage.getItem("demo_legend_nickname") : null)
+    : customer.profile?.legendNickname;
   const missingVisits = Math.max(0, nextRank.visits - visits);
   const missingPoints = Math.max(0, nextRank.points - highestPoints);
   const nextReward = fidelityRewardTiers.find((reward) => reward.threshold > points);
@@ -106,7 +109,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
         <div className="rank-track">{tortugaRanks.map((rank) => { const reached = getRankIndex(rank.id) <= getRankIndex(activeRank.id); return <div key={rank.id} className={reached ? "reached" : ""}><i /><span>{rank.label.replace(" del Tortuga", "")}</span></div>; })}</div>
       </div>
       <div className="mt-4 space-y-2">
-        {isLegend && !scenario.enabled && !customer.profile?.legendNickname ? (
+        {isLegend && !registeredLegendNickname ? (
           <div className="p-3 rounded-2xl border border-[rgba(216,176,106,0.3)] bg-[rgba(216,176,106,0.06)] text-center space-y-2 animate-in fade-in duration-300">
             <h4 className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)] flex items-center justify-center gap-1">
               <Award size={12} /> Sei una Leggenda!
@@ -182,7 +185,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
     </> : null}
     {cardOpen ? <div className="qr-modal" role="dialog" aria-modal="true" aria-label="Tessera Fidelity Tortuga" onClick={() => setCardOpen(false)}><div className={isVip ? "vip-qr-shell" : ""} onClick={(event) => event.stopPropagation()}><div className="fidelity-card-heading"><div><p className="minimal-eyebrow">La tua Fidelity</p><h2>Tessera Tortuga</h2></div>{isVip ? <span>VIP</span> : null}</div>{cardCode ? <FidelityQrCode value={cardCode} label={isVip ? "QR Ciurma VIP Tortuga" : "QR Ciurma Tortuga"} variant={isVip ? "vip" : "default"} /> : <p className="maintenance-note">Nessuna tessera Fidelity associata a questo profilo.</p>}<button type="button" className="minimal-primary w-full" onClick={() => setCardOpen(false)}>Chiudi tessera</button></div></div> : null}
     <ProfileEditModal open={profileOpen} onClose={() => setProfileOpen(false)} />
-    <LegendNicknameModal open={legendModalOpen} onClose={() => setLegendModalOpen(false)} email={customer.email} onSuccess={() => window.dispatchEvent(new Event("tortuga:profile-updated"))} />
+    <LegendNicknameModal open={legendModalOpen} onClose={() => setLegendModalOpen(false)} email={scenario.enabled ? "demo@tortugabay.it" : customer.email} onSuccess={() => window.dispatchEvent(new Event("tortuga:profile-updated"))} />
   </section>;
 }
 

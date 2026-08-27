@@ -28,6 +28,21 @@ export function LegendNicknameModal({ open, onClose, email, onSuccess }: LegendN
     setLoading(true);
     setError("");
 
+    if (email === "demo@tortugabay.it") {
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("demo_legend_nickname", trimmed);
+          sessionStorage.setItem("demo_legend_real_name", "Demo Legend");
+        }
+        setSuccess(true);
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 1000);
+      }, 500);
+      return;
+    }
+
     try {
       const response = await fetch("/api/profile/legends/register", {
         method: "POST",

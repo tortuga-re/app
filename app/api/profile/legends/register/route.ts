@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     const profile = await getProfileData("email", normalizedEmail);
     const visits = profile.contact?.NumeroVisite ?? 0;
     const points = profile.contact?.SaldoPuntiCard ?? 0;
+    const realName = `${profile.contact?.Nome ?? ""} ${profile.contact?.Cognome ?? ""}`.trim() || "Pirati del Tortuga";
 
     if (visits < 20 || points < 100) {
       return NextResponse.json(
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       .insert({
         email: normalizedEmail,
         nickname,
+        real_name: realName,
       })
       .select()
       .single();
