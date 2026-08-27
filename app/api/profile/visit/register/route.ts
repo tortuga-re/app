@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     const levelBefore = getRankLevel(visitsBefore, pointsBefore);
     const levelAfter = getRankLevel(visitsAfter, pointsAfter);
 
-    if (levelAfter > levelBefore && levelBefore >= 0) {
+    if (levelAfter > levelBefore) {
       const levelsClimbed = levelAfter - levelBefore;
       const pointsToAward = levelsClimbed * 5;
       const { addPointsToContact } = await import("@/lib/cooperto/service");

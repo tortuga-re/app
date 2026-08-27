@@ -17,6 +17,7 @@ export const tortugaRanks: TortugaRank[] = [
     points: 0, 
     description: "Il primo approdo nella Ciurma.",
     privileges: [
+      "+5 Dobloni bonus di arruolamento",
       "Entra nella classifica della Ciurma",
       "Inizia a conquistare le Imprese",
       "Progressione e statistiche personali",
@@ -30,6 +31,7 @@ export const tortugaRanks: TortugaRank[] = [
     points: 30, 
     description: "La tua rotta comincia a farsi rispettare.",
     privileges: [
+      "+5 Dobloni bonus di passaggio",
       "Tutti i privilegi del Mozzo",
       "Rotta Prioritaria (prenotazioni anticipate serate/eventi)",
       "La Voce della Ciurma (sondaggi e votazioni riservate)",
@@ -43,6 +45,7 @@ export const tortugaRanks: TortugaRank[] = [
     points: 60, 
     description: "Hai conquistato il comando della Ciurma.",
     privileges: [
+      "+5 Dobloni bonus di passaggio",
       "Tutti i privilegi del Corsaro",
       "Priorità d'imbarco (liste d'attesa prioritarie)",
       "Il Tavolo del Capitano (zona di preferenza tavolo)",
@@ -57,6 +60,7 @@ export const tortugaRanks: TortugaRank[] = [
     points: 100, 
     description: "Il rango speciale riservato alle grandi rotte.",
     privileges: [
+      "+5 Dobloni bonus di passaggio",
       "Tutti i privilegi del Capitano",
       "Numero storico di Leggenda (es. #0047)",
       "Inserimento nella Hall of Legends",
