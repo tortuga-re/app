@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Anchor, Award, CalendarCheck, ChevronRight, Gift, Pencil, QrCode, Shield, Sparkles, Cake } from "lucide-react";
+import { Anchor, Award, CalendarCheck, ChevronRight, Gift, Pencil, QrCode, Shield, Coins, Cake } from "lucide-react";
 import Link from "next/link";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { getActiveRank, getNextRank, getRankIndex, tortugaRanks } from "@/lib/loyalty-ranks";
@@ -101,7 +101,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
       </div>
       <div className="mt-5 grid grid-cols-3 gap-2">
         <Metric icon={<CalendarCheck />} value={visits} label="visite annuali" />
-        <Metric icon={<Sparkles />} value={highestPoints} label="massimo Dobloni" />
+        <Metric icon={<Coins />} value={highestPoints} label="massimo Dobloni" />
         <Metric icon={<Shield />} value={activeRank.label} label="rango attuale" />
       </div>
       <div className="rank-route">
