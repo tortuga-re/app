@@ -143,55 +143,38 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     {tab === "ranks" ? <div id="ranghi" className="hash-scroll-target space-y-5">
       <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><ul className="my-3.5 space-y-1.5 text-left border-t border-[rgba(216,176,106,0.15)] pt-3">{rank.privileges.map((p, idx) => <li key={idx} className="flex items-start gap-1.5 text-[10px] text-[var(--text-muted)] leading-relaxed"><span className="text-[var(--accent-strong)] text-[8px] shrink-0 mt-0.5">⚔</span><span>{p}</span></li>)}</ul><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
       {/* Hall of Legends Section */}
-      <div className="hall-of-legends p-4 rounded-[1.5rem] border border-[rgba(216,176,106,0.18)] bg-[rgba(12,9,7,0.4)] space-y-4 mt-6">
-        <div className="text-center space-y-1">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[var(--accent-strong)] flex items-center justify-center gap-1.5">
-            <Trophy size={14} /> Hall of Legends
+      <div className="hall-of-legends p-5 rounded-[1.75rem] border border-[rgba(216,176,106,0.22)] bg-[rgba(12,9,7,0.45)] backdrop-blur-sm space-y-4 mt-6 animate-in fade-in duration-300">
+        <div className="text-center space-y-1.5 pb-2 border-b border-[rgba(216,176,106,0.15)]">
+          <h3 className="text-sm font-black uppercase tracking-[0.25em] text-[var(--accent-strong)] flex items-center justify-center gap-1.5">
+            <Trophy size={15} /> Hall of Legends
           </h3>
           <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-            I leggendari pirati che hanno conquistato il massimo rango a bordo del Tortuga.
+            Il registro storico dei pirati leggendari del Tortuga
           </p>
         </div>
 
         {displayLegends.length > 0 ? (
-          <div className="space-y-3">
-            {/* Top 10 (Static Grid) */}
-            <div className="grid grid-cols-2 gap-2">
-              {displayLegends.slice(0, 10).map((legend) => (
-                <div key={legend.legend_number} className="flex items-center gap-2 p-2.5 rounded-xl bg-[rgba(216,176,106,0.05)] border border-[rgba(216,176,106,0.08)]">
-                  <span className="text-[10px] font-black font-mono text-[var(--accent-strong)] text-left shrink-0">
+          <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+            {displayLegends.map((legend) => (
+              <div key={legend.legend_number} className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[rgba(216,176,106,0.03)] border border-[rgba(216,176,106,0.06)] hover:bg-[rgba(216,176,106,0.06)] transition-all duration-200">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-12 shrink-0 items-center justify-center rounded-lg border border-[rgba(216,176,106,0.22)] bg-[rgba(216,176,106,0.08)] font-mono text-[10px] font-black text-[var(--accent-strong)]">
                     #{String(legend.legend_number).padStart(4, "0")}
+                  </div>
+                  <span className="text-xs font-black text-white">
+                    {legend.nickname}
                   </span>
-                  <span className="text-xs font-bold text-white truncate text-left">
-                    {legend.nickname} {legend.real_name ? <span className="text-[10px] font-normal text-[var(--text-muted)] font-sans">({legend.real_name})</span> : null}
+                </div>
+                {legend.real_name ? (
+                  <span className="text-[10px] font-medium text-[var(--text-muted)] bg-[rgba(255,255,255,0.03)] px-2.5 py-1 rounded-full border border-white/5 font-sans">
+                    {legend.real_name}
                   </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Rest (Scrollable Grid) */}
-            {displayLegends.length > 10 ? (
-              <div className="space-y-2 pt-1">
-                <div className="text-center">
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-black">— Altre Leggende —</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
-                  {displayLegends.slice(10).map((legend) => (
-                    <div key={legend.legend_number} className="flex items-center gap-2 p-2.5 rounded-xl bg-[rgba(216,176,106,0.02)] border border-[rgba(216,176,106,0.05)]">
-                      <span className="text-[10px] font-black font-mono text-[var(--text-muted)] text-left shrink-0">
-                        #{String(legend.legend_number).padStart(4, "0")}
-                      </span>
-                      <span className="text-xs font-bold text-white/80 truncate text-left">
-                        {legend.nickname} {legend.real_name ? <span className="text-[10px] font-normal text-white/40 font-sans">({legend.real_name})</span> : null}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                ) : null}
               </div>
-            ) : null}
+            ))}
           </div>
         ) : (
-          <p className="text-[10px] text-[var(--text-muted)] text-center py-4 italic">
+          <p className="text-[10px] text-[var(--text-muted)] text-center py-6 italic">
             Nessun pirata ha ancora inciso il proprio nome nella storia...
           </p>
         )}
