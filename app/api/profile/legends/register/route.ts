@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const profile = await getProfileData("email", normalizedEmail);
     const visits = profile.contact?.NumeroVisite ?? 0;
     const points = profile.contact?.SaldoPuntiCard ?? 0;
-    const realName = `${profile.contact?.Nome ?? ""} ${profile.contact?.Cognome ?? ""}`.trim() || "Pirati del Tortuga";
+    const realName = profile.contact?.Nome?.trim() || "Pirata";
 
     if (visits < 20 || points < 100) {
       return NextResponse.json(

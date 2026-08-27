@@ -106,17 +106,17 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
         let list = body.legends || [];
         if (scenario.enabled && list.length === 0) {
           list = [
-            { nickname: "Barbarossa", legend_number: 1, real_name: "Marco Rossi" },
-            { nickname: "Capitan Findus", legend_number: 2, real_name: "Luca Bianchi" },
-            { nickname: "Jack Sparrow", legend_number: 3, real_name: "Andrea Esposito" },
-            { nickname: "Henry Morgan", legend_number: 4, real_name: "Giovanni Verdi" },
-            { nickname: "Anne Bonny", legend_number: 5, real_name: "Giulia Neri" },
-            { nickname: "Blackbeard", legend_number: 6, real_name: "Francesco Bruno" },
-            { nickname: "L'Olandese Volante", legend_number: 7, real_name: "Matteo Fontana" },
-            { nickname: "Captain Hook", legend_number: 8, real_name: "Alessandro Ricci" },
-            { nickname: "Francis Drake", legend_number: 9, real_name: "Davide Marino" },
-            { nickname: "Lafitte", legend_number: 10, real_name: "Stefano Greco" },
-            { nickname: "Grace O'Malley", legend_number: 11, real_name: "Chiara Lupi" },
+            { nickname: "Barbarossa", legend_number: 1, real_name: "Marco" },
+            { nickname: "Capitan Findus", legend_number: 2, real_name: "Luca" },
+            { nickname: "Jack Sparrow", legend_number: 3, real_name: "Andrea" },
+            { nickname: "Henry Morgan", legend_number: 4, real_name: "Giovanni" },
+            { nickname: "Anne Bonny", legend_number: 5, real_name: "Giulia" },
+            { nickname: "Blackbeard", legend_number: 6, real_name: "Francesco" },
+            { nickname: "L'Olandese Volante", legend_number: 7, real_name: "Matteo" },
+            { nickname: "Captain Hook", legend_number: 8, real_name: "Alessandro" },
+            { nickname: "Francis Drake", legend_number: 9, real_name: "Davide" },
+            { nickname: "Lafitte", legend_number: 10, real_name: "Stefano" },
+            { nickname: "Grace O'Malley", legend_number: 11, real_name: "Chiara" },
           ];
         }
         setLegends(list);
@@ -141,7 +141,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     </div> : null}
 
     {tab === "ranks" ? <div id="ranghi" className="hash-scroll-target space-y-5">
-      <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
+      <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><ul className="my-3.5 space-y-1.5 text-left border-t border-[rgba(216,176,106,0.15)] pt-3">{rank.privileges.map((p, idx) => <li key={idx} className="flex items-start gap-1.5 text-[10px] text-[var(--text-muted)] leading-relaxed"><span className="text-[var(--accent-strong)] text-[8px] shrink-0 mt-0.5">⚔</span><span>{p}</span></li>)}</ul><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
       {/* Hall of Legends Section */}
       <div className="hall-of-legends p-4 rounded-[1.5rem] border border-[rgba(216,176,106,0.18)] bg-[rgba(12,9,7,0.4)] space-y-4 mt-6">
         <div className="text-center space-y-1">
