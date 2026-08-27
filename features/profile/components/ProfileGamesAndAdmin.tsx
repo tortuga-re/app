@@ -47,26 +47,6 @@ export function ProfileGamesAndAdmin({
         {/* Client-facing cards (Hidden for Admins) */}
         {!isAdmin(identityEmail) && (
           <>
-            {/* Buzzer Card - Client */}
-            {activeGames.buzzer && (
-              <a
-                href="/game/buzzer"
-                onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                className="panel-muted rounded-[1.5rem] px-4 py-4 block transition-all hover:scale-[1.02] active:scale-95 border-[var(--accent-strong)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-base font-semibold text-white uppercase italic">🎵 Tortuga Music Quiz</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                      La &quot;Sarabanda&quot; del Tortuga! Sei più Uomo Gatto o Tiramisù? Indovina il brano e prenota la risposta per primo!
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                    GIOCA ORA
-                  </span>
-                </div>
-              </a>
-            )}
             {hasOnPremiseAccess && (
               <>
                 <ScratchAndWinCard

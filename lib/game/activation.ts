@@ -7,13 +7,13 @@ export async function sendGameStartPush(gameType: GameType) {
     buzzer: {
       title: "🎵 Music Quiz al via! 🏴‍☠️",
       body: "Le iscrizioni sono aperte. Premi qui per prenotare il tuo tavolo e scalare la classifica!",
-      url: "/game/buzzer",
+      url: "/",
       tag: "buzzer-start",
     },
     matchDrink: {
       title: "🍸 Match & Drink al via! 🏴‍☠️",
       body: "Nuovi incontri e nuovi drink. Iscriviti subito per partecipare al gioco più social del Tortuga!",
-      url: "/game/match-drink",
+      url: "/",
       tag: "match-drink-start",
     }
   };

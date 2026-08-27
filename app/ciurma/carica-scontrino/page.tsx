@@ -74,7 +74,7 @@ export default function CaricaScontrinoPage() {
         <StatusBlock
           variant="info"
           title="Bottino Ricevuto! 🏴‍☠️"
-          description="Abbiamo preso in carico il tuo scontrino. Un capitano lo verificherà e i punti verranno accreditati a breve sulla tua card."
+          description="Abbiamo preso in carico il tuo scontrino. Un capitano lo verificherà e i Dobloni verranno accreditati a breve sulla tua card."
         />
         <div className="text-center pt-4">
           <CheckCircle2 className="w-20 h-20 text-[var(--accent-strong)] mx-auto mb-6 opacity-80" />
@@ -99,7 +99,7 @@ export default function CaricaScontrinoPage() {
           Carica Scontrino
         </h1>
         <p className="text-sm text-[var(--text-muted)]">
-          Invia la foto del tuo scontrino per accumulare punti sulla tua card fedeltà.
+          Invia la foto del tuo scontrino per accumulare Dobloni sulla tua card fedeltà.
         </p>
       </header>
 

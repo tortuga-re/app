@@ -605,6 +605,8 @@ export function CiurmaScreen() {
   };
 
   const saveContact = async () => {
+    const isNewRegistration = isRegistering;
+    const startTime = Date.now();
     const normalizedEmail = normalizeCustomerEmail(contactForm.email);
     const trimmedPhone = contactForm.phone.trim();
     const isPhoneRequired = isRegistering || didProfileStartWithPhone;
@@ -695,6 +697,31 @@ export function CiurmaScreen() {
       });
 
       applyProfileResponse(response);
+
+      if (isNewRegistration && response.contact?.CodiceContatto) {
+        const contactCode = response.contact.CodiceContatto;
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 1500) {
+          await new Promise((resolve) => setTimeout(resolve, 1500 - elapsed));
+        }
+
+        try {
+          const activationRes = await fetch("/api/profile/fidelity/activate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ contactCode }),
+          });
+          const activationBody = await activationRes.json().catch(() => null);
+          if (activationRes.ok && activationBody?.profile) {
+            applyProfileResponse(activationBody.profile);
+            window.dispatchEvent(new Event("tortuga:profile-updated"));
+          }
+        } catch (activationErr) {
+          console.error("Automatic fidelity activation failed:", activationErr);
+        }
+      }
       if (response.contact) {
         trackAppEvent("login_success", {
           app_section: "ciurma",

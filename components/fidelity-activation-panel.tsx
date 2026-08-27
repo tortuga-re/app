@@ -85,7 +85,7 @@ export function FidelityActivationPanel({
               Il tuo QR personale e pronto.
             </h3>
             <p className="text-sm leading-6 text-[var(--text-muted)]">
-              Mostralo quando serve per agganciare punti e riconoscimento.
+              Mostralo quando serve per agganciare Dobloni e riconoscimento.
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-[rgba(216,176,106,0.18)] bg-black/20 px-3 py-3">

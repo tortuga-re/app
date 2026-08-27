@@ -26,13 +26,15 @@ export const missions: Mission[] = [
   {
     id: "mozzo-di-bordo",
     label: "Mozzo di Bordo",
-    description: "Sbloccato alla seconda visita.",
+    description: "Sbloccato con 1 visita e Fidelity attiva.",
     icon: "🧹",
     image: "/badges/mozzo-di-bordo.png",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("mozzo-di-bordo") ||
-      (p.contact?.NumeroVisite ?? 0) >= 2,
+      ((p.contact?.NumeroVisite ?? 0) >= 1 && Boolean(
+        p.contact?.CodiceCard || p.contact?.CodiceCardAssegnata || p.fidelityCards.length,
+      )),
   },
   {
     id: "membro-ciurma",
@@ -47,7 +49,7 @@ export const missions: Mission[] = [
   },
   {
     id: "pirati-fiducia",
-    label: "Pirati di Fiducia",
+    label: "Corsaro di Fiducia",
     description: "Sbloccato dopo 5 visite.",
     icon: "⚔️",
     image: "/badges/pirati-fiducia.png",
@@ -59,24 +61,24 @@ export const missions: Mission[] = [
   {
     id: "leggenda-tortuga",
     label: "Leggenda del Tortuga",
-    description: "Sbloccato dopo 10 visite.",
+    description: "Sbloccato dopo 20 visite.",
     icon: "🏴‍☠️",
     image: "/badges/leggenda-tortuga.png",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("leggenda-tortuga") ||
-      (p.contact?.NumeroVisite ?? 0) >= 10,
+      (p.contact?.NumeroVisite ?? 0) >= 20,
   },
   {
-    id: "fantasma-bancone",
-    label: "Fantasma del Bancone",
-    description: "Sbloccato dopo 15 visite.",
+    id: "capitano",
+    label: "Capitano",
+    description: "Sbloccato dopo 10 visite.",
     icon: "👻",
-    image: "/badges/fantasma-bancone.png",
+    image: "/badges/loyalty-capitano.png",
     category: "navigazione",
     isUnlocked: (p) =>
-      p.unlockedAchievementIds?.includes("fantasma-bancone") ||
-      (p.contact?.NumeroVisite ?? 0) >= 15,
+      p.unlockedAchievementIds?.includes("capitano") ||
+      (p.contact?.NumeroVisite ?? 0) >= 10,
   },
 
   // Eventi
@@ -107,46 +109,9 @@ export const missions: Mission[] = [
     },
   },
   {
-    id: "assalto-buzzer",
-    label: "Tortuga Music Quiz",
-    description: "Partecipa a un round live del Tortuga Music Quiz.",
-    icon: "🎵",
-    image: "/badges/assalto-buzzer.png",
-    category: "eventi",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("assalto-buzzer") ?? false,
-  },
-  {
-    id: "mano-cannone",
-    label: "Mano sul Cannone",
-    description: "Premi il buzzer tra i primi 3 pirati.",
-    icon: "💣",
-    image: "/badges/mano-cannone.png",
-    category: "eventi",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("mano-cannone") ?? false,
-  },
-  {
-    id: "match-drink-complete",
-    label: "Scegli o Affonda",
-    description: "Rispondi a tutte le domande di Match & Drink.",
-    icon: "🍸",
-    image: "/badges/match-drink-complete.png",
-    category: "eventi",
-    isUnlocked: (p) =>
-      p.unlockedAchievementIds?.includes("match-drink-complete") ?? false,
-  },
-  {
-    id: "message-bottle",
-    label: "Message in a Bottle",
-    description: "Invia un messaggio anonimo durante Match & Drink.",
-    icon: "🍾",
-    image: "/badges/message-bottle.png",
-    category: "eventi",
-    isUnlocked: (p) => p.unlockedAchievementIds?.includes("message-bottle") ?? false,
-  },
-  {
     id: "mai-normale",
     label: "Mai una serata normale",
-    description: "Partecipa a 3 eventi diversi (Buzzer, Match&Drink, KantaQuiz, ecc).",
+    description: "Partecipa a 3 serate diverse.",
     icon: "🎭",
     image: "/badges/mai-normale.png",
     category: "eventi",
@@ -203,7 +168,7 @@ export const missions: Mission[] = [
   {
     id: "capitano-tavolata",
     label: "Capitano della Tavolata",
-    description: "Prenota da almeno 6 persone.",
+    description: "Prenotazione da almeno 6 persone.",
     icon: "👥",
     image: "/badges/capitano-tavolata.png",
     category: "ciurma",
@@ -214,7 +179,7 @@ export const missions: Mission[] = [
   {
     id: "grande-ammutinamento",
     label: "Grande Ammutinamento",
-    description: "Prenota da almeno 10 persone.",
+    description: "Prenotazione da almeno 10 persone.",
     icon: "📢",
     image: "/badges/grande-ammutinamento.png",
     category: "ciurma",
@@ -230,16 +195,6 @@ export const missions: Mission[] = [
     image: "/badges/fotografo-ciurma.png",
     category: "ciurma",
     isUnlocked: (p) => p.unlockedAchievementIds?.includes("fotografo-ciurma") ?? false,
-  },
-  {
-    id: "scatto-ricercato",
-    label: "Scatto da Ricercato",
-    description: "Carica la tua foto avatar nel profilo.",
-    icon: "🖼️",
-    image: "/badges/scatto-ricercato.png",
-    category: "ciurma",
-    isUnlocked: (p) =>
-      p.unlockedAchievementIds?.includes("scatto-ricercato") || Boolean(p.avatarUrl),
   },
   {
     id: "rotta-infrasettimanale",
@@ -283,11 +238,14 @@ export const missions: Mission[] = [
   {
     id: "naufragio-perfetto",
     label: "Il Naufragio Perfetto",
-    description: "Prenota, usa coupon, gioca e carica foto nella stessa settimana.",
+    description: "Completa tutte le altre imprese del Tortuga.",
     icon: "🌪️",
     image: "/badges/naufragio-perfetto.png",
     category: "ciurma",
     isUnlocked: (p) =>
-      p.unlockedAchievementIds?.includes("naufragio-perfetto") ?? false,
+      p.unlockedAchievementIds?.includes("naufragio-perfetto") ||
+      missions
+        .filter((mission) => mission.id !== "naufragio-perfetto" && mission.id !== "ritorno-naufragio")
+        .every((mission) => mission.isUnlocked(p)),
   },
 ];

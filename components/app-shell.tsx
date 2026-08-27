@@ -2,16 +2,20 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { ScanLine, X } from "lucide-react";
 
 import { AnalyticsTracker } from "@/components/analytics-tracker";
-import { AppGreeting } from "@/components/app-greeting";
 import { BottomNav } from "@/components/bottom-nav";
+import { BookingOverlayProvider } from "@/components/booking-overlay";
+import { DemoScenarioProvider, useDemoScenario } from "@/components/demo-scenario-provider";
 import { PwaController } from "@/components/pwa-controller";
 import { useCustomerIdentity } from "@/lib/customer-identity";
-import { triggerHaptic } from "@/lib/haptics";
 import { useCustomerStatus } from "@/lib/use-customer-status";
+import { CustomerStatusProvider } from "@/components/customer-status-context";
+import { QRScanner } from "@/components/QRScanner";
+import { MenuOverlayProvider, useMenuOverlay } from "@/components/menu-overlay";
 
 const RECOVERY_KEY = "tortuga.chunk-recovery-at";
 const RECOVERY_COOLDOWN_MS = 30_000;
@@ -118,6 +122,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <CustomerStatusProvider value={customerStatus}>
+    <DemoScenarioProvider>
+    <MenuOverlayProvider>
+    <BookingOverlayProvider>
     <div className="relative min-h-screen overflow-x-hidden">
       <AnalyticsTracker />
 
@@ -127,9 +135,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             src="/nautical-map.png"
             alt=""
             fill
-            className="object-cover opacity-50 mix-blend-screen"
+            className="object-cover opacity-[0.12] mix-blend-multiply"
             priority
-            quality={60}
+            quality={75}
           />
         </div>
         <div className="absolute inset-x-0 top-20 h-32 bg-[linear-gradient(180deg,rgba(216,176,106,0.06),transparent)]" />
@@ -137,28 +145,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="app-shell-content relative mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pt-5">
         {pathname === "/" && (
-          <header className="mb-6">
-            <div className="panel rounded-[2.15rem] px-5 py-4">
-              <div className="flex items-start justify-between gap-4">
-                <Link href="/" className="min-w-0 flex-1">
-                  <AppGreeting
-                    greeting={greeting}
-                    statusLabel={customerStatus.tierLabel}
-                    points={customerStatus.points}
-                  />
-                </Link>
-
-                <Link
-                  href="/ciurma#riconoscimento"
-                  className="rounded-full border border-[var(--border)] bg-[var(--accent-soft)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-strong)] transition hover:bg-[rgba(242,215,165,0.18)]"
-                  onClick={() => triggerHaptic()}
-                >
-                  Ciurma
-                </Link>
-              </div>
-            </div>
-          </header>
+          <AppHeader firstName={identity.firstName} fallbackGreeting={greeting} />
         )}
+        {pathname === "/ciurma" && <SectionHeader title="La tua Ciurma" />}
+        {pathname === "/gift" && <SectionHeader title="Gift card" />}
+        {pathname === "/info" && <SectionHeader title="Info Tortuga" />}
 
         <div className="flex flex-1 flex-col gap-5">
           <PwaController />
@@ -171,5 +162,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <BottomNav isVip={customerStatus.isVip} />
     </div>
+    </BookingOverlayProvider>
+    </MenuOverlayProvider>
+    </DemoScenarioProvider>
+    </CustomerStatusProvider>
   );
+}
+
+function AppHeader({ firstName, fallbackGreeting }: { firstName: string; fallbackGreeting: string }) {
+  const { scenario } = useDemoScenario();
+  const name = scenario.enabled && scenario.loggedIn ? "Andrea" : firstName;
+  const title = name ? `Ciao, ${name}` : fallbackGreeting.toLowerCase().replace(/^ciao/, "Ciao");
+  return <header className="minimal-app-header">
+    <Link href="/"><h1>{title}</h1><span /></Link>
+    <HeaderScannerButton />
+  </header>;
+}
+
+function HeaderScannerButton() {
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const { openMenu } = useMenuOverlay();
+  return <>
+    <button type="button" className="header-scan-button" onClick={() => setScannerOpen(true)} aria-label="Scansiona QR del locale"><ScanLine /></button>
+    {scannerOpen ? <div className="header-scanner-overlay" role="dialog" aria-modal="true" aria-labelledby="header-scanner-title">
+      <div className="header-scanner-card">
+        <header><div><p className="minimal-eyebrow">Check-in Tortuga</p><h2 id="header-scanner-title">Scansiona il QR del tavolo</h2></div><button onClick={() => setScannerOpen(false)} aria-label="Chiudi scanner"><X /></button></header>
+        <p>Punta la fotocamera sul codice presente nel locale per abilitare il menu.</p>
+        <QRScanner onSuccess={() => { setScannerOpen(false); openMenu(); }} onCancel={() => setScannerOpen(false)} />
+      </div>
+    </div> : null}
+  </>;
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return <header className="minimal-app-header section"><div><h1>{title}</h1><span /></div><HeaderScannerButton /></header>;
 }

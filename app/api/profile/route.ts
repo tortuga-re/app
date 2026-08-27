@@ -45,17 +45,18 @@ export async function GET(request: Request) {
     // Se la ricerca è per email, cerchiamo anche l'avatar e le missioni sbloccate su Supabase
     if (mode === "email") {
       const { getCustomerAvatar } = await import("@/lib/profile/avatar-service");
-      const { getCustomerAchievements } = await import("@/lib/profile/achievement-service");
+      const { evaluateCustomerAchievements } = await import("@/lib/profile/achievement-service");
       
-      const [avatarUrl, achievementIds] = await Promise.all([
+      const [avatarUrl, achievementState] = await Promise.all([
         getCustomerAvatar(normalizedQuery).catch(() => null),
-        getCustomerAchievements(normalizedQuery).catch(() => []),
+        evaluateCustomerAchievements(normalizedQuery, data).catch(() => ({ achievementIds: [] as string[], achievementViews: [] })),
       ]);
 
       if (avatarUrl) {
         data.avatarUrl = avatarUrl;
       }
-      data.unlockedAchievementIds = achievementIds;
+      data.unlockedAchievementIds = achievementState.achievementIds;
+      data.achievementViews = achievementState.achievementViews;
     }
 
     return NextResponse.json(data);

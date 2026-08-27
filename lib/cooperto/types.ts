@@ -386,6 +386,7 @@ export interface ProfileResponse {
   query: string;
   avatarUrl?: string;
   unlockedAchievementIds?: string[];
+  achievementViews?: import("@/lib/achievements/types").AchievementView[];
 }
 
 export interface FidelityActivationResponse {

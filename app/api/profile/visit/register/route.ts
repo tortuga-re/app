@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { registerContactVisit } from "@/lib/cooperto/service";
+import { getProfileData, registerContactVisit } from "@/lib/cooperto/service";
 import { coopertoConfig } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +37,16 @@ export async function POST(request: Request) {
     // Se contactCode contiene un @, è probabilmente l'email fallback
     const email = payload.contactCode.includes("@") ? payload.contactCode : undefined;
     await saveVisitToStorage(payload.contactCode, email).catch(() => null);
+
+    const lookupMode = payload.contactCode.includes("@") ? "email" : "contactCode";
+    const profile = await getProfileData(lookupMode, payload.contactCode).catch(() => null);
+    const profileEmail = profile?.contact?.Email?.trim().toLowerCase() || email;
+    if (profileEmail) {
+      const { recordCustomerVisit } = await import("@/lib/profile/achievement-service");
+      await recordCustomerVisit(profileEmail, result.visitDate).catch((achievementError) => {
+        console.error("[Visit Registration API] Achievement evaluation failed:", achievementError);
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {

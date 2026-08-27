@@ -9,8 +9,6 @@ const ActiveCouponsCard = dynamic(() => import("@/components/active-coupons-card
 const FidelityStatusCard = dynamic(() => import("@/components/fidelity-status-card").then(mod => mod.FidelityStatusCard), { ssr: false });
 const SurveyTeaserCard = dynamic(() => import("@/components/survey-teaser-card").then(mod => mod.SurveyTeaserCard), { ssr: false });
 const KantaquizTeaser = dynamic(() => import("@/components/kantaquiz-teaser").then(mod => mod.KantaquizTeaser), { ssr: false });
-const BuzzerTeaser = dynamic(() => import("@/components/buzzer-teaser").then(mod => mod.BuzzerTeaser), { ssr: false });
-const MatchDrinkTeaser = dynamic(() => import("@/components/match-drink-teaser").then(mod => mod.MatchDrinkTeaser), { ssr: false });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
 const ReservationCard = dynamic(() => import("@/components/reservation-card").then(mod => mod.ReservationCard), { ssr: false });
@@ -44,6 +42,7 @@ import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { PwaInstallCard } from "@/components/pwa-install-card";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 import type { RouteFallback } from "@/components/reservation-card";
+import { LoyaltyJourney } from "@/components/loyalty-journey";
 
 const loadProfileData = async (email: string) => {
   const normalizedEmail = normalizeCustomerEmail(email);
@@ -458,7 +457,7 @@ export function HomeScreen() {
 
       {!loading ? (
         <>
-          <SurveyTeaserCard />
+          <LoyaltyJourney />
           {hasMenuAccess ? (
             <>
               <VenueModeCard
@@ -485,19 +484,14 @@ export function HomeScreen() {
               onScanSuccess={() => void registerVisit(profile?.contact?.CodiceContatto)}
             />
           ) : null}
-          <KantaquizTeaser />
-          {!hasMenuAccess ? (
-            <>
-              <BuzzerTeaser />
-            </>
-          ) : null}
+          <div className="secondary-experiences"><KantaquizTeaser /></div>
           {showReservationCard ? (
             <div id="prossima-prenotazione" className="hash-scroll-target rounded-[2rem]">
               <ReservationCard reservation={primaryReservation} fallback={routeFallback} />
             </div>
           ) : null}
 
-          <div id="ciurma-card" className="hash-scroll-target rounded-[2rem]">
+          <div id="ciurma-card" className="hash-scroll-target rounded-[2rem] secondary-experiences">
             <PwaInstallCard />
             
             <div id="fidelity" className="hash-scroll-target rounded-[2rem] mt-5">
@@ -528,7 +522,7 @@ export function HomeScreen() {
         </>
       ) : null}
 
-      <ReviewsCard />
+      <div className="secondary-experiences"><SurveyTeaserCard /><ReviewsCard /></div>
     </section>
   );
 }

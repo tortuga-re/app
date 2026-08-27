@@ -124,13 +124,12 @@ const buildUpcomingReservations = (): UpcomingReservation[] => [];
 
 const buildHours = (): CoopertoVenueHours => ({
   Orari: [
-    { CodiceGiorno: 2, Giorno: "Martedi", OraInizio: "19:00", OraFine: "23:30" },
-    { CodiceGiorno: 3, Giorno: "Mercoledi", OraInizio: "19:00", OraFine: "23:30" },
-    { CodiceGiorno: 4, Giorno: "Giovedi", OraInizio: "19:00", OraFine: "23:30" },
-    { CodiceGiorno: 5, Giorno: "Venerdi", OraInizio: "19:00", OraFine: "00:30" },
-    { CodiceGiorno: 6, Giorno: "Sabato", OraInizio: "19:00", OraFine: "00:30" },
-    { CodiceGiorno: 7, Giorno: "Domenica", OraInizio: "12:30", OraFine: "15:00" },
-    { CodiceGiorno: 7, Giorno: "Domenica", OraInizio: "19:00", OraFine: "23:00" },
+    { CodiceGiorno: 3, Giorno: "Mercoledi", OraInizio: "19:30", OraFine: "02:00" },
+    { CodiceGiorno: 4, Giorno: "Giovedi", OraInizio: "19:30", OraFine: "02:00" },
+    { CodiceGiorno: 5, Giorno: "Venerdi", OraInizio: "19:30", OraFine: "02:00" },
+    { CodiceGiorno: 6, Giorno: "Sabato", OraInizio: "19:30", OraFine: "02:00" },
+    { CodiceGiorno: 7, Giorno: "Domenica", OraInizio: "12:00", OraFine: "15:30" },
+    { CodiceGiorno: 7, Giorno: "Domenica", OraInizio: "19:30", OraFine: "02:00" },
   ],
   Eccezioni: [],
 });

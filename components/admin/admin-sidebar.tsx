@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Tv, Megaphone, Gamepad2, Ticket, ImageIcon, LogOut, Menu, X } from "lucide-react";
+import { Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { PanicButton } from "./panic-button";
 
@@ -11,7 +11,6 @@ const navItems = [
   { name: "Media Manager", href: "/admin/media", icon: ImageIcon },
   { name: "Push & Promo", href: "/admin/push", icon: Megaphone },
   { name: "Giochi Live", href: "/admin/games", icon: Gamepad2 },
-  { name: "Verifica Coupon", href: "/verificacoupon", icon: Ticket },
 ];
 
 export function AdminSidebar({ children }: { children: React.ReactNode }) {

@@ -50,43 +50,58 @@ export const tortugaInfoConfig = {
   programmazioneUrl: "https://tortugabay.it/programmazione-invernale",
   eveningProgram: [
     {
+      id: "perla-nera-day",
+      weekday: 3,
       day: "MERCOLEDÌ",
       title: "PERLA NERA DAY 2x1",
       description:
         "Il più venduto del Tortuga, oltre 600 al mese, in formula 2x1.",
       imageUrl:
         "https://tortugabay.it/wp-content/uploads/2026/06/perla-nera-day-mercoledi-tortuga-reggio-emilia.png",
+      detailUrl: "https://tortugabay.it/mercoledi",
     },
     {
+      id: "the-social-game",
+      weekday: 4,
       day: "GIOVEDÌ",
       title: "THE SOCIAL GAME",
       description:
         "Vuoi conoscere persone con i tuoi stessi interessi? Tra una risposta e l'altra, potrebbe nascere anche qualcosa di romantico.",
       imageUrl:
         "https://tortugabay.it/wp-content/uploads/2026/06/giovedi-the-social-game-tortuga-nuove-amicizie-e-conoscenze-a-reggio-emilia.png",
+      detailUrl: "https://tortugabay.it/giovedi",
     },
     {
+      id: "kantaquiz",
+      weekday: 5,
       day: "VENERDÌ",
       title: "KANTAQUIZ",
       description:
         "Quiz, musica, risate e gente che si scatena. Non è solo cena: è il venerdì del Tortuga.",
       imageUrl:
         "https://tortugabay.it/wp-content/uploads/2026/06/venerdi-kanta-quiz-tortuga-reggio-emilia.png",
+      detailUrl: "https://tortugabay.it/venerdi",
     },
     {
+      id: "notte-del-capitano",
+      weekday: 6,
       day: "SABATO",
       title: "LA NOTTE DEL CAPITANO",
       description: "Atmosfera, gioco, musica e ciurma pronta a fare casino.",
       imageUrl:
         "https://tortugabay.it/wp-content/uploads/2026/06/sabato-notte-del-capitano-cena-con-spettacolo-karaoke-tortuga-reggio-emilia.png",
+      detailUrl: "https://tortugabay.it/sabato",
     },
     {
+      id: "cervellone",
+      weekday: 0,
       day: "DOMENICA",
       title: "CERVELLONE DAY",
       description:
         "La domenica si chiude con amici e famigliari: tavoli, sfide e cervelli messi alla prova fino all’ultima risposta.",
       imageUrl:
         "https://tortugabay.it/wp-content/uploads/2026/06/domenica-cervellone-day-quiz-sfida-amici-e-familiari-tortuga-reggio-emilia.png",
+      detailUrl: undefined,
     },
   ],
   phoneNumber: "+39 379 359 3799",
