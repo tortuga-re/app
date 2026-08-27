@@ -60,6 +60,7 @@ const buildDemoProfile = (visits: number, points: number, hasCoupon: boolean): P
 export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [selectedMission, setSelectedMission] = useState<DisplayMission | null>(null);
+  const [legends, setLegends] = useState<{ nickname: string; legend_number: number }[]>([]);
   const { scenario } = useDemoScenario();
   const customer = useCurrentCustomerStatus();
   const points = scenario.enabled ? scenario.points : customer.points;
@@ -82,6 +83,21 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     }
   }, [isUserRegistered]);
 
+  useEffect(() => {
+    const loadLegends = async () => {
+      try {
+        const response = await fetch("/api/profile/legends");
+        const body = await response.json();
+        if (response.ok && body.legends) {
+          setLegends(body.legends);
+        }
+      } catch (err) {
+        console.error("Error loading legends:", err);
+      }
+    };
+    void loadLegends();
+  }, []);
+
   return <div className="space-y-5">
     <LoyaltyJourney compact />
     <div className="loyalty-tabs" role="tablist">
@@ -97,6 +113,37 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
 
     {tab === "ranks" ? <div id="ranghi" className="hash-scroll-target space-y-5">
       <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
+      {/* Hall of Legends Section */}
+      <div className="hall-of-legends p-4 rounded-[1.5rem] border border-[rgba(216,176,106,0.18)] bg-[rgba(12,9,7,0.4)] space-y-4 mt-6">
+        <div className="text-center space-y-1">
+          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[var(--accent-strong)] flex items-center justify-center gap-1.5">
+            <Trophy size={14} /> Hall of Legends
+          </h3>
+          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+            I leggendari pirati che hanno conquistato il massimo rango a bordo del Tortuga.
+          </p>
+        </div>
+
+        {legends.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
+            {legends.map((legend) => (
+              <div key={legend.legend_number} className="flex items-center gap-2 p-2.5 rounded-xl bg-[rgba(216,176,106,0.05)] border border-[rgba(216,176,106,0.08)]">
+                <span className="text-[10px] font-black font-mono text-[var(--accent-strong)]">
+                  #{String(legend.legend_number).padStart(4, "0")}
+                </span>
+                <span className="text-xs font-bold text-white truncate">
+                  {legend.nickname}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[10px] text-[var(--text-muted)] text-center py-4 italic">
+            Nessun pirata ha ancora inciso il proprio nome nella storia...
+          </p>
+        )}
+      </div>
+
       {isUserRegistered ? (
         <p className="maintenance-note">Mantieni il rango con almeno 5 visite ogni anno. Il ciclo va dal 1 agosto al 31 luglio; i Dobloni Fidelity vengono azzerati il 31 luglio di ogni anno.</p>
       ) : null}

@@ -46,10 +46,16 @@ export async function GET(request: Request) {
     if (mode === "email") {
       const { getCustomerAvatar } = await import("@/lib/profile/avatar-service");
       const { evaluateCustomerAchievements } = await import("@/lib/profile/achievement-service");
+      const { getSupabaseAdmin } = await import("@/lib/match-drink/supabase");
       
-      const [avatarUrl, achievementState] = await Promise.all([
+      const [avatarUrl, achievementState, legendResult] = await Promise.all([
         getCustomerAvatar(normalizedQuery).catch(() => null),
         evaluateCustomerAchievements(normalizedQuery, data).catch(() => ({ achievementIds: [] as string[], achievementViews: [] })),
+        getSupabaseAdmin()
+          .from("legends_hall_of_fame")
+          .select("nickname, legend_number")
+          .eq("email", normalizedQuery)
+          .maybeSingle(),
       ]);
 
       if (avatarUrl) {
@@ -57,6 +63,11 @@ export async function GET(request: Request) {
       }
       data.unlockedAchievementIds = achievementState.achievementIds;
       data.achievementViews = achievementState.achievementViews;
+
+      if (legendResult?.data) {
+        data.legendNickname = legendResult.data.nickname;
+        data.legendNumber = legendResult.data.legend_number;
+      }
     }
 
     return NextResponse.json(data);
