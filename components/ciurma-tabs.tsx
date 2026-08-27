@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Award, Check, Gift, LockKeyhole, Trophy, X } from "lucide-react";
 
 import { DragCarousel } from "@/components/drag-carousel";
@@ -75,6 +75,12 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
   ];
   const unlockedMissionCount = displayMissions.filter((mission) => mission.unlocked).length;
   const hasRedeemableReward = fidelityRewardTiers.some((reward) => points >= reward.threshold);
+
+  useEffect(() => {
+    if (!isUserRegistered) {
+      setTab("ranks");
+    }
+  }, [isUserRegistered]);
 
   return <div className="space-y-5">
     <LoyaltyJourney compact />

@@ -82,7 +82,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
 
   if (!loggedIn) {
     return <>
-      <GuestLoyalty />
+      <GuestLoyalty compact={compact} />
       {beforeHighlights}
     </>;
   }
@@ -172,7 +172,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
 
 function Metric({ icon, value, label }: { icon: React.ReactNode; value: string | number; label: string }) { return <div className="loyalty-metric"><div>{icon}</div><strong>{value}</strong><span>{label}</span></div>; }
 function LoadingLoyalty() { return <section className="loyalty-journey"><div className="loyalty-summary" aria-busy="true"><p className="minimal-eyebrow">La tua Fidelity</p><h2 className="mt-2">Recupero i dati della tessera…</h2><p className="mt-2 text-sm text-[var(--text-muted)]">Sincronizzazione con Cooperto in corso.</p></div></section>; }
-function GuestLoyalty() {
+function GuestLoyalty({ compact = false }: { compact?: boolean }) {
   const [recognitionOpen, setRecognitionOpen] = useState(false);
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("recognition") !== "1") return;
@@ -185,7 +185,17 @@ function GuestLoyalty() {
     return () => window.removeEventListener("tortuga:open-recognition", handleOpen);
   }, []);
   return <>
-    <section id="accesso-fidelity" className="guest-loyalty hash-scroll-target"><div className="slide-icon"><Anchor /></div><p className="minimal-eyebrow">Entra nella Ciurma</p><h2>Attiva la Fidelity Tortuga.</h2><p>Accedi o registrati per ottenere la tessera, conquistare ranghi e sbloccare vantaggi dedicati.</p></section>
+    <section id="accesso-fidelity" className="guest-loyalty hash-scroll-target">
+      <div className="slide-icon"><Anchor /></div>
+      <p className="minimal-eyebrow">Entra nella Ciurma</p>
+      <h2>Inizia la tua scalata</h2>
+      <p>Accedi o registrati per unirti alla Ciurma del Tortuga! Potrai accumulare Dobloni ad ogni visita, salire di rango e sbloccare premi e vantaggi esclusivi.</p>
+      {!compact ? (
+        <button type="button" className="minimal-primary" onClick={() => setRecognitionOpen(true)}>
+          Accedi o registrati
+        </button>
+      ) : null}
+    </section>
     {recognitionOpen ? <div className="recognition-overlay" role="dialog" aria-modal="true" aria-labelledby="recognition-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setRecognitionOpen(false); }}>
       <section className="recognition-modal">
         <header><div><p className="minimal-eyebrow">Riconoscimento Ciurma</p><h2 id="recognition-title">Sali a bordo</h2></div><button type="button" onClick={() => setRecognitionOpen(false)} aria-label="Chiudi riconoscimento"><span aria-hidden="true">×</span></button></header>
