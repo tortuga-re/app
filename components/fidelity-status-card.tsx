@@ -71,7 +71,7 @@ export function FidelityStatusCard({
   return (
     <CollapsibleWrapper
       title={title}
-      subtitle={`${tierLabel} • ${points} Punti`}
+      subtitle={`${tierLabel} • ${points} Dobloni`}
       defaultOpen={false}
       className={className}
     >
@@ -113,7 +113,7 @@ export function FidelityStatusCard({
 
           <div className="shrink-0 text-right">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-              Punti Card
+              Dobloni disponibili
             </p>
             <p className="mt-1 text-3xl font-black text-white">{points}</p>
           </div>
@@ -146,7 +146,7 @@ export function FidelityStatusCard({
                       ) : null}
                       <span>{tier.label}</span>
                     </div>
-                    <span className="text-[10px] font-mono">{tier.minPoints} punti</span>
+                    <span className="text-[10px] font-mono">{tier.minPoints} Dobloni</span>
                   </div>
                 );
               })}

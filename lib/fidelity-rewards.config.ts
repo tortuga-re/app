@@ -16,7 +16,7 @@ export const fidelityRewardTiers: FidelityRewardTier[] = [
   { threshold: 30, label: "Tagliere di salumi" },
   { threshold: 40, label: "Tagliere della ciurma x2" },
   { threshold: 60, label: "Perla Nera + Bibita Media" },
-  { threshold: 100, label: "GOLD Fidelity Club" },
+  { threshold: 100, label: "25% Cashback ad ogni visita" },
 ];
 
 export const fidelityVipThreshold = 150;
@@ -24,38 +24,26 @@ export const fidelityVipThreshold = 150;
 export const fidelityLoyaltyTiers: FidelityLoyaltyTier[] = [
   {
     minPoints: 0,
-    label: "Clandestino",
-    description: "Sei appena entrato nel giro. Il bottino parte da qui.",
-    image: "/badges/loyalty-clandestino.png",
-  },
-  {
-    minPoints: 20,
     label: "Mozzo",
-    description: "Inizi a farti le ossa sul ponte. Continua a navigare.",
+    description: "Il primo approdo nella Ciurma.",
     image: "/badges/loyalty-mozzo.png",
   },
   {
-    minPoints: 45,
+    minPoints: 30,
     label: "Corsaro",
-    description: "Al Tortuga ormai non passi inosservato. La tua fama cresce.",
+    description: "5 visite e 30 Dobloni raggiunti.",
     image: "/badges/loyalty-corsaro.png",
   },
   {
-    minPoints: 75,
-    label: "Bucaniere",
-    description: "Sei un veterano dei saccheggi. La ciurma ti rispetta.",
-    image: "/badges/loyalty-bucaniere.png",
-  },
-  {
-    minPoints: 110,
+    minPoints: 60,
     label: "Capitano",
-    description: "Hai preso il comando. Ogni tuo approdo lascia il segno.",
+    description: "10 visite e 60 Dobloni raggiunti.",
     image: "/badges/loyalty-capitano.png",
   },
   {
-    minPoints: fidelityVipThreshold,
+    minPoints: 100,
     label: "Leggenda del Tortuga",
-    description: "Il tuo nome e leggenda. I sette mari non hanno piu segreti.",
+    description: "20 visite e 100 Dobloni raggiunti.",
     image: "/badges/loyalty-leggenda.png",
   },
 ];

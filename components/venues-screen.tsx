@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { BookOpen, ExternalLink, X } from "lucide-react";
 
 import { StatusBlock } from "@/components/status-block";
-import { KantaquizTeaser } from "@/components/kantaquiz-teaser";
-import { BuzzerTeaser } from "@/components/buzzer-teaser";
-import { CollapsibleWrapper } from "@/components/collapsible-wrapper";
+import { DragCarousel } from "@/components/drag-carousel";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { CoopertoVenueHour, VenueResponse } from "@/lib/cooperto/types";
 import { useHashScroll } from "@/lib/hash-scroll";
-import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { formatDateTime } from "@/lib/utils";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
+import { useMenuOverlay } from "@/components/menu-overlay";
+import { useDemoScenario } from "@/components/demo-scenario-provider";
+
+const PUBLIC_MENU_URL = "https://menu.cooperto.it/169a0b2d-da4e-4a8a-b851-b0160b4e9da9";
 
 type GroupedOpeningHour = {
   dayLabel: string;
@@ -106,11 +107,11 @@ function TikTokIcon() {
 }
 
 const dayLabelsByCode: Record<number, string> = {
-  1: "lunedi",
-  2: "martedi",
-  3: "mercoledi",
-  4: "giovedi",
-  5: "venerdi",
+  1: "lunedì",
+  2: "martedì",
+  3: "mercoledì",
+  4: "giovedì",
+  5: "venerdì",
   6: "sabato",
   7: "domenica",
 };
@@ -151,14 +152,10 @@ const formatDayRange = (startDay: number, endDay: number) => {
   return `da ${getDayLabel(startDay)} a ${getDayLabel(endDay)}`;
 };
 
-const isLateSaturdayAfterDinner = (hour: CoopertoVenueHour) => {
-  const dayCode = getDayCode(hour);
-  if (dayCode !== 6 || !hour.OraInizio) {
-    return false;
-  }
-
+const isAfterDinnerBand = (hour: CoopertoVenueHour) => {
+  if (!hour.OraInizio) return false;
   const [startHour] = hour.OraInizio.split(":").map(Number);
-  return Number.isFinite(startHour) && startHour >= 23;
+  return Number.isFinite(startHour) && startHour >= 22;
 };
 
 const groupVenueHours = (hours?: CoopertoVenueHour[] | null): GroupedOpeningHour[] => {
@@ -168,7 +165,7 @@ const groupVenueHours = (hours?: CoopertoVenueHour[] | null): GroupedOpeningHour
 
   const slotsByTime = new Map<string, number[]>();
 
-  for (const hour of hours.filter((entry) => !isLateSaturdayAfterDinner(entry))) {
+  for (const hour of hours.filter((entry) => !isAfterDinnerBand(entry))) {
     if (!hour.OraInizio || !hour.OraFine) {
       continue;
     }
@@ -233,11 +230,12 @@ function VenuesScreenContent() {
   const [data, setData] = useState<VenueResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { hasAccess } = useOnPremiseAccess();
-  const searchParams = useSearchParams();
-  const simDay = searchParams.get("simDay");
-  const currentDay = simDay ? parseInt(simDay, 10) : new Date().getDay();
-
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [programDetail, setProgramDetail] = useState<{ title: string; url: string } | null>(null);
+  const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
+  const { scenario } = useDemoScenario();
+  const isOnPremise = scenario.enabled ? scenario.onPremise : hasOnPremiseAccess;
+  const { openMenu: openVenueMenu } = useMenuOverlay();
   useEffect(() => {
     const loadVenues = async () => {
       try {
@@ -270,14 +268,6 @@ function VenuesScreenContent() {
 
   return (
     <section className="space-y-5">
-      {loading ? (
-        <StatusBlock
-          variant="loading"
-          title="Sto leggendo gli orari del Tortuga"
-          description="Recupero le aperture reali e le eventuali variazioni della settimana."
-        />
-      ) : null}
-
       {error ? (
         <StatusBlock
           variant="error"
@@ -286,74 +276,49 @@ function VenuesScreenContent() {
         />
       ) : null}
 
-            <div id="programmazione" className="panel hash-scroll-target rounded-[2rem] p-5">
-        <div className="space-y-2">
-          <p className="eyebrow">Programmazione serale</p>
+      <div id="programmazione" className="info-section minimal-overlap-sheet hash-scroll-target">
+        <div className="info-section-heading">
+          <p className="minimal-eyebrow">Programmazione serale</p>
         </div>
 
-        <div className="mt-4 grid gap-4">
+        <DragCarousel className="evening-program-slides" label="Programmazione settimanale Tortuga">
           {tortugaInfoConfig.eveningProgram.map((event) => {
-            const imageUrl = event.imageUrl;
-
             return (
-              <CollapsibleWrapper
+              <article
                 key={`${event.day}-${event.title}`}
-                title={`${event.day} - ${event.title}`}
-                defaultOpen={false}
-                className="overflow-hidden rounded-[1.8rem] border border-[rgba(255,216,156,0.14)] bg-[linear-gradient(180deg,rgba(20,15,11,0.98),rgba(10,8,7,0.97))] shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
+                className="evening-program-card"
               >
-                <div className="flex flex-col gap-4">
-                  {/* Testo sopra */}
-                  <div className="flex flex-col justify-center p-2">
-                    <p className="eyebrow text-[var(--accent-strong)]">{event.day}</p>
-                    <h3 className="mt-1 text-2xl font-semibold text-white">
-                      {event.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                      {event.description}
-                    </p>
-
-                    {hasAccess ? (
-                      <>
-                        {event.day === "MERCOLEDÌ" && currentDay === 3 ? (
-                          <div className="mt-4">
-                            <Link
-                              href="/game/buzzer"
-                              className="button-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold"
-                            >
-                              Accedi al gioco
-                            </Link>
-                          </div>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </div>
-
-                  {/* Immagine sotto */}
-                  <div className="relative min-h-[240px] md:min-h-[340px] rounded-[1.2rem] overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imageUrl}
-                      alt={event.title}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.18)_40%,rgba(0,0,0,0.72)_100%)]" />
-                    <div className="absolute left-4 top-4 rounded-full border border-[rgba(255,216,156,0.25)] bg-[rgba(12,9,7,0.72)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)] backdrop-blur-sm">
-                      {event.day}
-                    </div>
-                  </div>
+                <div className="evening-program-image">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={event.imageUrl} alt={event.title} loading="lazy" draggable={false} />
                 </div>
-              </CollapsibleWrapper>
+                <div className="evening-program-copy">
+                  <p>{event.day}</p>
+                  <h3>{event.title}</h3>
+                  <span>{event.description}</span>
+                  {event.detailUrl ? <button type="button" onClick={() => setProgramDetail({ title: event.title, url: event.detailUrl })}>Scopri di più <ExternalLink /></button> : null}
+                </div>
+              </article>
             );
           })}
+        </DragCarousel>
+        <div className="public-menu-cta">
+          <button type="button" className="minimal-primary" onClick={() => isOnPremise ? openVenueMenu() : setMenuOpen(true)}><BookOpen />Vedi menu</button>
+          {!isOnPremise ? <p>Se sei al Tortuga utilizza il QR sul tavolo per visualizzare il menu, potrebbe differire da questo. Scannerizzalo con la funzione dedicata in alto a destra.</p> : null}
         </div>
       </div>
 
-      <KantaquizTeaser />
-      <BuzzerTeaser />
+      {menuOpen ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label="Menu Tortuga">
+        <header><div><BookOpen size={19} /><span>Menu Tortuga</span></div><div className="flex gap-2"><a href={PUBLIC_MENU_URL} target="_blank" rel="noreferrer" aria-label="Apri il menu nel browser"><ExternalLink size={19} /></a><button onClick={() => setMenuOpen(false)} aria-label="Chiudi menu"><X size={22} /></button></div></header>
+        <iframe src={PUBLIC_MENU_URL} title="Menu Tortuga" />
+      </div> : null}
 
-      <div id="social" className="panel hash-scroll-target rounded-[2rem] p-5">
+      {programDetail ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label={`Approfondimento ${programDetail.title}`}>
+        <header><div><BookOpen size={19} /><span>{programDetail.title}</span></div><div className="flex gap-2"><a href={programDetail.url} target="_blank" rel="noreferrer" aria-label="Apri approfondimento nel browser"><ExternalLink size={19} /></a><button onClick={() => setProgramDetail(null)} aria-label="Chiudi approfondimento"><X size={22} /></button></div></header>
+        <iframe src={programDetail.url} title={programDetail.title} />
+      </div> : null}
+
+      <div id="social" className="panel info-clean-panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Social</p>
           <h2 className="text-xl font-semibold text-white">
@@ -383,9 +348,10 @@ function VenuesScreenContent() {
       </div>
 
       {primaryVenue ? (
-        <div id="quando-ci-trovi" className="panel hash-scroll-target rounded-[2rem] p-5">
+        <div id="quando-ci-trovi" className="panel info-clean-panel hash-scroll-target rounded-[2rem] p-5">
           <div className="space-y-2">
             <p className="eyebrow">Quando ci trovi e fuori rotta</p>
+            {data?.source !== "live" ? <p className="local-data-note">Orari di riferimento locali · collega Cooperto per la sincronizzazione live</p> : null}
           </div>
 
           <div className="mt-4 space-y-4">
@@ -407,6 +373,13 @@ function VenuesScreenContent() {
                       </div>
                     </div>
                   ))}
+                  <div className="after-dinner-hours">
+                    <div>
+                      <p>Ingresso dopo cena</p>
+                      <span>Valido tutte le serate</span>
+                    </div>
+                    <strong>22:00 - 02:00</strong>
+                  </div>
                 </div>
               ) : (
                 <div className="panel-muted rounded-[1.4rem] px-4 py-4">
@@ -451,7 +424,7 @@ function VenuesScreenContent() {
         </div>
       ) : null}
 
-      <div id="dove-siamo" className="panel hash-scroll-target rounded-[2rem] p-5">
+      <div id="dove-siamo" className="panel info-clean-panel hash-scroll-target rounded-[2rem] p-5">
         <div className="space-y-2">
           <p className="eyebrow">Dove siamo e contatti</p>
         </div>
