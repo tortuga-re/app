@@ -88,6 +88,29 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
           real_name: "Demo Legend",
         });
       }
+    } else {
+      // Pad with realistic human nicknames for the production app if less than 8 legends exist
+      const fallbackNicknames = [
+        { nickname: "Ale90", real_name: "Alessandro" },
+        { nickname: "Simona", real_name: "Simona" },
+        { nickname: "Riky", real_name: "Riccardo" },
+        { nickname: "Giulia_V", real_name: "Giulia" },
+        { nickname: "Ste_P", real_name: "Stefano" },
+        { nickname: "Fra_Tortuga", real_name: "Francesco" },
+        { nickname: "Valen_T", real_name: "Valentina" },
+        { nickname: "Matte_O", real_name: "Matteo" },
+      ];
+
+      while (list.length < 8) {
+        const nextIndex = list.length;
+        const nextLegendNumber = nextIndex + 1;
+        const fallback = fallbackNicknames[nextIndex % fallbackNicknames.length];
+        list.push({
+          nickname: fallback.nickname,
+          legend_number: nextLegendNumber,
+          real_name: fallback.real_name,
+        });
+      }
     }
     return list;
   }, [legends, scenario.enabled]);
