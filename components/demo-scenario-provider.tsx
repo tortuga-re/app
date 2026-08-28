@@ -16,6 +16,7 @@ export type DemoScenario = {
   hasReservation: boolean;
   hasCoupon: boolean;
   onPremise: boolean;
+  demoBirthday: boolean;
 };
 
 const defaults: DemoScenario = {
@@ -30,6 +31,7 @@ const defaults: DemoScenario = {
   hasReservation: false,
   hasCoupon: true,
   onPremise: false,
+  demoBirthday: false,
 };
 
 const DemoContext = createContext<{ scenario: DemoScenario; update: (patch: Partial<DemoScenario>) => void } | null>(null);
@@ -95,6 +97,7 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                   <Toggle label="Prenotazione" checked={scenario.hasReservation} onChange={(hasReservation) => update({ hasReservation })} />
                   <Toggle label="Coupon" checked={scenario.hasCoupon} onChange={(hasCoupon) => update({ hasCoupon })} />
                   <Toggle label="Nel locale" checked={scenario.onPremise} onChange={(onPremise) => update({ onPremise })} />
+                  <Toggle label="Compleanno" checked={scenario.demoBirthday} onChange={(demoBirthday) => update({ demoBirthday })} />
                 </div>
                 <Range label="Dobloni disponibili" value={scenario.points} max={130} onChange={(points) => update({ points })} />
                 <Range label="Massimo Dobloni raggiunto" value={scenario.highestPoints} max={130} onChange={(highestPoints) => update({ highestPoints })} />
