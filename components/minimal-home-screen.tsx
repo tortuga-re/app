@@ -12,6 +12,7 @@ import { formatCouponExpiry, getCouponDisplayCode, getCouponQrValue, sortActiveC
 import type { CoopertoCoupon } from "@/lib/cooperto/types";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { useMenuOverlay } from "@/components/menu-overlay";
+import { PwaInstallCard } from "@/components/pwa-install-card";
 
 export function MinimalHomeScreen() {
   const { scenario } = useDemoScenario();
@@ -38,6 +39,7 @@ export function MinimalHomeScreen() {
       <Link href="/info#programmazione"><UtensilsCrossed /><span><strong>Menu e locale</strong><small>Scopri il Tortuga</small></span><ChevronRight /></Link>
     </div>
     {couponOpen && coupon ? <CouponModal coupon={coupon} onClose={() => setCouponOpen(false)} /> : null}
+    <PwaInstallCard />
   </section>;
 }
 
