@@ -99,16 +99,13 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
     }
   };
 
-  if (!loggedIn) {
-    return <>
-      <GuestLoyalty compact={compact} />
-      {beforeHighlights}
-    </>;
-  }
-  if (!scenario.enabled && customer.loading) return <LoadingLoyalty />;
+  if (!scenario.enabled && customer.loading && loggedIn) return <LoadingLoyalty />;
 
   return <section className="loyalty-journey">
-    <div className="loyalty-summary">
+    {!loggedIn ? (
+      <GuestLoyalty compact={compact} />
+    ) : (
+      <div className="loyalty-summary">
       <div className="flex items-start justify-between gap-4">
         <div><p className="minimal-eyebrow">La tua Fidelity</p><div className="mt-2 flex items-baseline gap-2"><strong className="points-number">{points}</strong><span>Dobloni disponibili</span></div></div>
         <div className="relative"><RankBadge rank={activeRank.id} label={activeRank.label} size={72} />{isVip ? <span className="vip-ribbon">VIP</span> : null}</div>
@@ -157,7 +154,10 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
         ) : null}
       </div>
     </div>
+    )}
     
+    {!loggedIn ? beforeHighlights : null}
+
     {compact && missingBirthDate ? (
       <div className="mt-3 rounded-[1.5rem] border border-[rgba(216,176,106,0.18)] bg-[rgba(216,176,106,0.05)] p-4 flex flex-col gap-2.5 animate-in fade-in duration-300">
         <div className="flex items-start gap-3">
