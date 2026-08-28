@@ -874,7 +874,7 @@ body {
 .legacy-profile-details #contest { display:none; }
 .legacy-profile-details .parchment-unroll-animation { animation:none; }
 
-.drag-carousel { cursor:grab; overscroll-behavior-inline:contain; scroll-behavior:smooth; touch-action:pan-y; user-select:none; }
+.drag-carousel { cursor:grab; overscroll-behavior-inline:contain; scroll-behavior:smooth; touch-action:pan-x pan-y; user-select:none; }
 .drag-carousel:active { cursor:grabbing; scroll-snap-type:none; }
 .drag-carousel a,.drag-carousel button { user-drag:none; -webkit-user-drag:none; }
 .drag-carousel img { pointer-events:none; user-drag:none; -webkit-user-drag:none; user-select:none; -webkit-user-select:none; }
