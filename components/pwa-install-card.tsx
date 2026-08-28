@@ -75,20 +75,31 @@ export function PwaInstallCard() {
       event.preventDefault();
       setPromptEvent(event as DeferredPromptEvent);
     };
-
+ 
     const handleInstalled = () => {
       setIsInstalled(true);
       setShowAsPopup(false);
     };
 
+    const handleProfileUpdate = () => {
+      // Quando il profilo viene aggiornato (login o salvataggio), cancelliamo lo snooze
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(storageKeys.installPromptDismissedAt);
+      }
+      setInstallDismissedAt(null);
+      setShowAsPopup(true);
+    };
+ 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handleInstalled);
-
+    window.addEventListener("tortuga:profile-updated", handleProfileUpdate);
+ 
     const timer = setTimeout(() => setInstallFallbackReady(true), 1500);
-
+ 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleInstalled);
+      window.removeEventListener("tortuga:profile-updated", handleProfileUpdate);
       clearTimeout(timer);
     };
   }, []);

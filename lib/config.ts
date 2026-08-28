@@ -160,7 +160,7 @@ export const ciurmaRoadmapFeatures = [] as const;
 export const pwaConfig = {
   vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? "",
   pushSubscriptionsFile: process.env.PUSH_SUBSCRIPTIONS_FILE?.trim() ?? "",
-  installReminderWindowMs: 1000 * 60 * 60 * 24 * 7,
+  installReminderWindowMs: 1000 * 60 * 60 * 24 * 3,
   pushReminderWindowMs: 1000 * 60 * 60 * 24 * 7,
 };
 
