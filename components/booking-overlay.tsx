@@ -7,9 +7,12 @@ import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 
 const BOOKING_URL = "https://prenotazioni.cooperto.it/in/510b3be7-ed1d-41";
-const BookingContext = createContext<{ openBooking: () => void }>({ openBooking: () => undefined });
+const BookingContext = createContext<{ openBooking: () => void; showBookingButton: boolean }>({
+  openBooking: () => undefined,
+  showBookingButton: false,
+});
 export const useBookingOverlay = () => useContext(BookingContext);
-
+ 
 export function BookingOverlayProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [compact, setCompact] = useState(false);
@@ -21,7 +24,7 @@ export function BookingOverlayProvider({ children }: { children: React.ReactNode
   const showBookingButton = scenario.enabled
     ? !hasActiveReservation && !isOnPremise
     : !customer.loading && !hasActiveReservation && !isOnPremise;
-
+ 
   useEffect(() => {
     let expandTimer: number | undefined;
     const handleScroll = () => {
@@ -35,10 +38,9 @@ export function BookingOverlayProvider({ children }: { children: React.ReactNode
       if (expandTimer) window.clearTimeout(expandTimer);
     };
   }, []);
-
-  return <BookingContext.Provider value={{ openBooking: () => setOpen(true) }}>
+ 
+  return <BookingContext.Provider value={{ openBooking: () => setOpen(true), showBookingButton }}>
     {children}
-    {showBookingButton ? <button className={`booking-fab${compact ? " compact" : ""}`} onClick={() => setOpen(true)} aria-label="Prenota"><Flag size={19} fill="currentColor" /><span>PRENOTA</span></button> : null}
     {open ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label="Prenotazione Tortuga">
       <header><div><CalendarDays size={19} /><span>Prenota al Tortuga</span></div><div className="flex gap-2"><a href={BOOKING_URL} target="_blank" rel="noreferrer" aria-label="Apri nel browser"><ExternalLink size={19} /></a><button onClick={() => setOpen(false)} aria-label="Chiudi prenotazione"><X size={22} /></button></div></header>
       <iframe src={BOOKING_URL} title="Prenotazione Tortuga" allow="payment" />
