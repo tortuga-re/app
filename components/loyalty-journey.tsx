@@ -51,14 +51,23 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
 
   /* ── Birthday promo: show for the 14 days before the birthday (and on the day itself).
      Hidden if there is already a future reservation. ── */
-  const hasReservation = customer.hasReservation;
+  const hasReservation = scenario.enabled ? scenario.hasReservation : customer.hasReservation;
   const birthdayPromo = useMemo(() => {
+    if (scenario.enabled) {
+      if (!scenario.demoBirthday || hasReservation) return null;
+      return {
+        date: new Date(),
+        daysUntil: 0,
+        label: "oggi! 🎂",
+        isToday: true
+      };
+    }
     const birthDate = customer.profile?.contact?.DataDiNascita;
     if (!birthDate || hasReservation) return null;
     const insight = getBirthdayInsight(birthDate, 14);
     if (!insight) return null;
     return insight;
-  }, [customer.profile?.contact?.DataDiNascita, hasReservation]);
+  }, [scenario.enabled, scenario.demoBirthday, hasReservation, customer.profile?.contact?.DataDiNascita]);
 
   const [activationLoading, setActivationLoading] = useState(false);
   const [activationError, setActivationError] = useState("");
