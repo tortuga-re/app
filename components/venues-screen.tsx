@@ -13,6 +13,7 @@ import { formatDateTime } from "@/lib/utils";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { useMenuOverlay } from "@/components/menu-overlay";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
+import { BrandedIframe } from "@/components/branded-iframe";
 
 const PUBLIC_MENU_URL = "https://menu.cooperto.it/169a0b2d-da4e-4a8a-b851-b0160b4e9da9";
 
@@ -310,12 +311,12 @@ function VenuesScreenContent() {
 
       {menuOpen ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label="Menu Tortuga">
         <header><div><BookOpen size={19} /><span>Menu Tortuga</span></div><div className="flex gap-2"><a href={PUBLIC_MENU_URL} target="_blank" rel="noreferrer" aria-label="Apri il menu nel browser"><ExternalLink size={19} /></a><button onClick={() => setMenuOpen(false)} aria-label="Chiudi menu"><X size={22} /></button></div></header>
-        <iframe src={PUBLIC_MENU_URL} title="Menu Tortuga" />
+        <BrandedIframe src={PUBLIC_MENU_URL} title="Menu Tortuga" />
       </div> : null}
 
       {programDetail ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label={`Approfondimento ${programDetail.title}`}>
         <header><div><BookOpen size={19} /><span>{programDetail.title}</span></div><div className="flex gap-2"><a href={programDetail.url} target="_blank" rel="noreferrer" aria-label="Apri approfondimento nel browser"><ExternalLink size={19} /></a><button onClick={() => setProgramDetail(null)} aria-label="Chiudi approfondimento"><X size={22} /></button></div></header>
-        <iframe src={programDetail.url} title={programDetail.title} />
+        <BrandedIframe src={programDetail.url} title={programDetail.title} />
       </div> : null}
 
       <div id="social" className="panel info-clean-panel hash-scroll-target rounded-[2rem] p-5">

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { ExternalLink, Gift, X } from "lucide-react";
 import { DragCarousel } from "@/components/drag-carousel";
+import { BrandedIframe } from "@/components/branded-iframe";
 
 type GiftCard = { id: string; title: string; image: string; purchaseUrl: string | null };
 
@@ -42,7 +43,7 @@ export function GiftScreen() {
     </header>
     <div id="gift-card" className="gift-collections hash-scroll-target">
       {collections.map((collection) => <section className="gift-collection" key={collection.title}>
-        <header><h2>{collection.title}</h2><span>{collection.cards.length} card</span></header>
+        <header><h2>{collection.title}</h2></header>
         <DragCarousel className="gift-card-row" label={`Gift card ${collection.title}`}>
           {collection.cards.map((card) => <GiftCardCover card={card} key={card.id} onOpen={() => setSelectedCard(card)} />)}
         </DragCarousel>
@@ -50,7 +51,7 @@ export function GiftScreen() {
     </div>
     {selectedCard?.purchaseUrl && typeof document !== "undefined" ? createPortal(<div className="booking-overlay" role="dialog" aria-modal="true" aria-label={`Acquista ${selectedCard.title}`}>
       <header><div><Gift size={19} /><span>{selectedCard.title}</span></div><div className="flex gap-2"><a href={selectedCard.purchaseUrl} target="_blank" rel="noreferrer" aria-label="Apri l’acquisto nel browser"><ExternalLink size={19} /></a><button onClick={() => setSelectedCard(null)} aria-label="Chiudi acquisto"><X size={22} /></button></div></header>
-      <iframe src={selectedCard.purchaseUrl} title={`Acquista ${selectedCard.title}`} allow="payment" />
+      <BrandedIframe src={selectedCard.purchaseUrl} title={`Acquista ${selectedCard.title}`} allow="payment" />
     </div>, document.body) : null}
   </section>;
 }

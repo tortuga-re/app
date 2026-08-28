@@ -1037,7 +1037,7 @@ export default function AdminLiveTvPage() {
                           </p>
                           <p className="text-xs text-[var(--text-muted)]">
                             {submission.uploaderName || "Cliente Tortuga"}
-                            {submission.uploaderEmail ? ` Ã‚Â· ${submission.uploaderEmail}` : ""}
+                            {submission.uploaderEmail ? ` · ${submission.uploaderEmail}` : ""}
                           </p>
                           <p className="text-[11px] text-[var(--text-muted)]">
                             {new Date(submission.createdAt).toLocaleString("it-IT")}
@@ -1093,7 +1093,7 @@ export default function AdminLiveTvPage() {
                           <div>
                             <p className="text-sm font-semibold text-white">{submission.title}</p>
                             <p className="text-[11px] text-[var(--text-muted)]">
-                              {submission.uploaderName || "Cliente Tortuga"} Ã‚Â·{" "}
+                              {submission.uploaderName || "Cliente Tortuga"} ·{" "}
                               {submission.resolvedAt
                                 ? new Date(submission.resolvedAt).toLocaleString("it-IT")
                                 : new Date(submission.createdAt).toLocaleString("it-IT")}

@@ -727,6 +727,8 @@ body {
 .feature-slide a:hover, .feature-slide button:hover { border-color:rgba(255,255,255,.5); background:rgba(255,255,255,.22); box-shadow:0 7px 16px rgba(0,0,0,.14); transform:translateY(-1px); }
 .feature-slide a:active, .feature-slide button:active { background:rgba(255,255,255,.1); box-shadow:none; transform:translateY(1px); }
 .feature-slide a:focus-visible, .feature-slide button:focus-visible { outline:3px solid rgba(255,255,255,.42); outline-offset:3px; }
+.slide-actions { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:1.25rem; }
+.slide-actions .feature-slide-button, .slide-actions button { margin-top:0; }
 .feature-slide {
   position: relative;
   background-size: cover;
@@ -942,6 +944,20 @@ body {
 .coupon-code strong { display:block; margin-top:.3rem; overflow-wrap:anywhere; color:var(--accent); font-size:1rem; letter-spacing:.05em; }
 .coupon-expiry { margin-top:.75rem; color:var(--text-muted); font-size:.68rem; }
 .coupon-modal-action { width:100%; margin-top:1rem; }
+.upcoming-reservation-card { border:1px solid var(--border); border-radius:1.35rem; background:rgba(255,253,248,.9); padding:1rem; color:var(--text); box-shadow:0 8px 22px rgba(35,27,18,.07); }
+.upcoming-reservation-card header { display:flex; align-items:center; gap:.75rem; }
+.upcoming-reservation-card .context-icon { flex:0 0 auto; }
+.upcoming-reservation-card h2 { margin:.18rem 0 0; font-family:var(--font-serif); font-size:1.2rem; line-height:1.1; }
+.reservation-details { display:grid; grid-template-columns:1.35fr .85fr .6fr; gap:.5rem; margin-top:.9rem; }
+.reservation-details>div { display:flex; min-width:0; align-items:center; gap:.38rem; border-radius:.8rem; background:#f2ebdf; padding:.58rem .55rem; color:var(--text); }
+.reservation-details svg { width:.9rem; height:.9rem; flex:0 0 auto; color:var(--accent); stroke-width:1.9; }
+.reservation-details span { overflow:hidden; font-size:.68rem; font-weight:800; line-height:1.15; text-overflow:ellipsis; text-transform:capitalize; white-space:nowrap; }
+.game-context-card { display:block; color:var(--text); cursor:default; }
+.game-context-card .minimal-eyebrow { color:var(--accent-strong); }
+.game-context-card>div>span { display:block; margin-top:.3rem; color:var(--text-muted); font-size:.7rem; }
+.game-context-card ol { display:grid; gap:.25rem; margin:.75rem 0; padding-left:1.1rem; font-size:.72rem; font-weight:700; }
+.game-context-card a { display:inline-flex; align-items:center; gap:.2rem; color:var(--accent-strong); font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+.game-context-card a svg { width:.9rem; }
 .home-actions { grid-template-columns:1fr 1fr; }.home-actions>a,.home-actions>button { grid-template-columns:auto 1fr; padding:.85rem; }.home-actions>*>svg:last-child { display:none; }.home-actions span { min-width:0; }.home-actions strong,.home-actions small { display:block; }.home-actions strong { font-size:.75rem; }.home-actions small { margin-top:.15rem; color:var(--text-muted); font-size:.58rem; }
 
 .info-section { color:var(--text); }
@@ -1003,3 +1019,86 @@ body {
 .achievement-modal-status.unlocked { background:#e8eddf; color:#566748; }
 .achievement-modal-status.locked { background:#eee7da; color:#756f66; }
 .achievement-modal-action { width:100%; margin-top:1.15rem; }
+.branded-frame-shell { position:relative; flex:1; min-height:0; overflow:hidden; background:#f4efe5; }
+.branded-frame-shell>iframe { position:absolute; inset:0; height:100%; width:100%; border:0; background:white; }
+.tortuga-frame-loader { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; flex-direction:column; overflow:hidden; background:radial-gradient(circle at 50% 40%,#fffdf8 0,#f7f0e3 52%,#eee2cf 100%); color:#25241f; padding:2rem; text-align:center; opacity:1; visibility:visible; transition:opacity .38s ease,visibility 0s linear 0s; }
+.tortuga-frame-loader::before { content:""; position:absolute; inset:0; opacity:.24; background-image:radial-gradient(circle at 20% 18%,rgba(164,43,43,.12) 0 1px,transparent 1.5px),radial-gradient(circle at 78% 72%,rgba(184,137,51,.16) 0 1px,transparent 1.5px); background-size:19px 19px,23px 23px; pointer-events:none; }
+.tortuga-frame-loader.is-loaded { opacity:0; visibility:hidden; pointer-events:none; transition:opacity .38s ease,visibility 0s linear .38s; }
+.tortuga-treasure { position:relative; width:9rem; color:#ad7823; filter:drop-shadow(0 8px 14px rgba(87,57,20,.12)); }
+.tortuga-treasure svg { display:block; width:100%; overflow:visible; }
+.treasure-chest { fill:rgba(255,253,248,.62); stroke:#342f27; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; animation:treasure-breathe 2.4s ease-in-out infinite; transform-origin:50% 75%; }
+.treasure-coins { fill:#f7e4a5; stroke:#b47717; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.treasure-coin,.coin-mark { transform-box:fill-box; transform-origin:center; animation:coin-drop 1.8s cubic-bezier(.35,.05,.55,1) infinite; }
+.coin-two { animation-delay:-.62s; }
+.coin-three { animation-delay:-1.16s; }
+.coin-mark { fill:none; }
+.tortuga-loader-title { position:relative; margin-top:.35rem; color:#9f2828; font-family:var(--font-serif),Georgia,serif; font-size:1.35rem; font-weight:800; letter-spacing:.01em; }
+.tortuga-loader-copy { position:relative; margin-top:.35rem; color:#756d62; font-size:.76rem; }
+.tortuga-loader-timeout { position:relative; display:flex; align-items:center; flex-direction:column; gap:.8rem; margin-top:1.6rem; animation:loader-message-in .25s ease-out both; }
+.tortuga-loader-timeout p { color:#665f55; font-size:.74rem; }
+.tortuga-loader-timeout a { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; border:1px solid rgba(159,40,40,.22); border-radius:999px; background:#a52b2b; color:white; padding:.72rem 1rem; box-shadow:0 8px 20px rgba(102,22,22,.18); font-size:.72rem; font-weight:800; }
+@keyframes coin-drop { 0% { opacity:0; transform:translateY(-18px) rotate(-18deg) scale(.82); } 20% { opacity:1; } 72% { opacity:1; transform:translateY(28px) rotate(14deg) scale(1); } 100% { opacity:0; transform:translateY(37px) rotate(20deg) scale(.9); } }
+@keyframes treasure-breathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(2px); } }
+@keyframes loader-message-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion:reduce) { .treasure-chest,.treasure-coin,.coin-mark,.tortuga-loader-timeout { animation:none; } .tortuga-frame-loader { transition-duration:.01ms; } }
+
+.coupon-slide {
+  background-image: linear-gradient(105deg, rgba(31, 15, 8, .91) 0%, rgba(52, 24, 12, .82) 54%, rgba(35, 14, 7, .58) 100%), url('/images/coupon-burger-background.png');
+  background-position: center;
+}
+.coupon-slide:hover {
+  background-image: linear-gradient(105deg, rgba(31, 15, 8, .84) 0%, rgba(52, 24, 12, .74) 54%, rgba(35, 14, 7, .48) 100%), url('/images/coupon-burger-background.png');
+}
+.coupon-slide p, .coupon-slide h3, .coupon-slide > span { opacity: 1; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+.coupon-slide > span { color: rgba(255,255,255,.9); }
+
+.survey-slide {
+  background-image: linear-gradient(105deg, rgba(10, 22, 25, .91) 0%, rgba(13, 37, 40, .81) 55%, rgba(12, 25, 29, .52) 100%), url('/images/survey-pirate-background.png');
+  background-position: center;
+}
+.survey-slide:hover {
+  background-image: linear-gradient(105deg, rgba(10, 22, 25, .83) 0%, rgba(13, 37, 40, .71) 55%, rgba(12, 25, 29, .42) 100%), url('/images/survey-pirate-background.png');
+}
+.survey-slide p, .survey-slide h3, .survey-slide > span { opacity: 1; text-shadow: 0 1px 3px rgba(0,0,0,.72); }
+.survey-slide > span { color: rgba(255,255,255,.9); }
+
+.rank-slide {
+  background-image: linear-gradient(105deg, rgba(10, 22, 27, .91) 0%, rgba(12, 31, 37, .83) 56%, rgba(8, 20, 26, .58) 100%), url('/images/ranks-pirate-galleons-background.png');
+}
+.rank-slide:hover {
+  background-image: linear-gradient(105deg, rgba(10, 22, 27, .83) 0%, rgba(12, 31, 37, .74) 56%, rgba(8, 20, 26, .48) 100%), url('/images/ranks-pirate-galleons-background.png');
+}
+
+.reward-slide {
+  background-image: linear-gradient(105deg, rgba(102, 27, 24, .91) 0%, rgba(130, 37, 27, .83) 56%, rgba(65, 18, 14, .59) 100%), url('/images/rewards-food-table-background.png');
+}
+.reward-slide:hover {
+  background-image: linear-gradient(105deg, rgba(102, 27, 24, .83) 0%, rgba(130, 37, 27, .74) 56%, rgba(65, 18, 14, .48) 100%), url('/images/rewards-food-table-background.png');
+}
+
+.receipt-slide {
+  background-image: linear-gradient(105deg, rgba(42, 22, 9, .87) 0%, rgba(80, 43, 14, .76) 56%, rgba(65, 33, 9, .53) 100%), url('/images/receipt-treasure-map-background.png');
+  background-position: center;
+}
+
+.receipt-slide:hover {
+  background-image: linear-gradient(105deg, rgba(42, 22, 9, .78) 0%, rgba(80, 43, 14, .67) 56%, rgba(65, 33, 9, .42) 100%), url('/images/receipt-treasure-map-background.png');
+}
+
+.rank-progress-slide {
+  background-image: linear-gradient(105deg, rgba(13, 34, 40, .9) 0%, rgba(18, 62, 69, .78) 56%, rgba(10, 32, 39, .53) 100%), url('/images/ranks-pirate-galleons-background.png');
+  background-position: center;
+}
+
+.rank-progress-slide:hover {
+  background-image: linear-gradient(105deg, rgba(13, 34, 40, .81) 0%, rgba(18, 62, 69, .69) 56%, rgba(10, 32, 39, .43) 100%), url('/images/ranks-pirate-galleons-background.png');
+}
+
+.gift-slide {
+  background-image: linear-gradient(105deg, rgba(31, 15, 12, .88) 0%, rgba(61, 25, 16, .76) 56%, rgba(24, 13, 9, .48) 100%), url('/images/gift-card-treasure-chest-background.png');
+  background-position: center;
+}
+
+.gift-slide:hover {
+  background-image: linear-gradient(105deg, rgba(31, 15, 12, .79) 0%, rgba(61, 25, 16, .67) 56%, rgba(24, 13, 9, .38) 100%), url('/images/gift-card-treasure-chest-background.png');
+}

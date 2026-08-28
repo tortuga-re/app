@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X } from "lucide-react";
+import { Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper } from "lucide-react";
 import { useState } from "react";
 import { PanicButton } from "./panic-button";
 
@@ -10,6 +10,7 @@ const navItems = [
   { name: "Live TV", href: "/admin/live-tv", icon: Tv },
   { name: "Media Manager", href: "/admin/media", icon: ImageIcon },
   { name: "Push & Promo", href: "/admin/push", icon: Megaphone },
+  { name: "Contenuti in evidenza", href: "/admin/highlights", icon: Newspaper },
   { name: "Giochi Live", href: "/admin/games", icon: Gamepad2 },
 ];
 
@@ -36,9 +37,10 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#111] border-r border-white/10 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={[
+          "fixed inset-y-0 left-0 z-40 w-64 bg-[#111] border-r border-white/10 transform transition-transform duration-300 ease-in-out lg:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+        ].join(" ")}
       >
         <div className="flex h-16 items-center justify-between px-6 border-b border-white/10">
           <span className="font-black italic text-xl tracking-wider text-[var(--accent-strong)] hidden lg:block">
@@ -48,7 +50,7 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
             
             return (
@@ -56,11 +58,10 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
-                  isActive
-                    ? "bg-[var(--accent-strong)]/20 text-[var(--accent-strong)] border border-[var(--accent-strong)]/30"
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
-                }`}
+                className={[
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold",
+                  isActive ? "bg-[var(--accent-strong)]/20 text-[var(--accent-strong)] border border-[var(--accent-strong)]/30" : "text-white/60 hover:bg-white/5 hover:text-white",
+                ].join(" ")}
               >
                 <Icon size={20} />
                 {item.name}

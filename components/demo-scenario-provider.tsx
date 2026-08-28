@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ChevronDown, FlaskConical, RotateCcw, X } from "lucide-react";
@@ -17,6 +17,9 @@ export type DemoScenario = {
   hasCoupon: boolean;
   onPremise: boolean;
   demoBirthday: boolean;
+  demoEditorial: boolean;
+  demoReceiptPending: boolean;
+  demoLastVisitDate: string;
 };
 
 const defaults: DemoScenario = {
@@ -32,6 +35,9 @@ const defaults: DemoScenario = {
   hasCoupon: true,
   onPremise: false,
   demoBirthday: false,
+  demoEditorial: false,
+  demoReceiptPending: false,
+  demoLastVisitDate: "",
 };
 
 const DemoContext = createContext<{ scenario: DemoScenario; update: (patch: Partial<DemoScenario>) => void } | null>(null);
@@ -98,6 +104,9 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                   <Toggle label="Coupon" checked={scenario.hasCoupon} onChange={(hasCoupon) => update({ hasCoupon })} />
                   <Toggle label="Nel locale" checked={scenario.onPremise} onChange={(onPremise) => update({ onPremise })} />
                   <Toggle label="Compleanno" checked={scenario.demoBirthday} onChange={(demoBirthday) => update({ demoBirthday })} />
+                  <Toggle label="Contenuto editoriale" checked={scenario.demoEditorial} onChange={(demoEditorial) => update({ demoEditorial })} />
+                  <Toggle label="Scontrino da caricare" checked={scenario.demoReceiptPending} onChange={(demoReceiptPending) => update({ demoReceiptPending })} />
+                  <label className="demo-field"><span>Data ultima visita</span><input type="date" value={scenario.demoLastVisitDate} onChange={(event) => update({ demoLastVisitDate: event.target.value })} /></label>
                 </div>
                 <Range label="Dobloni disponibili" value={scenario.points} max={130} onChange={(points) => update({ points })} />
                 <Range label="Massimo Dobloni raggiunto" value={scenario.highestPoints} max={130} onChange={(highestPoints) => update({ highestPoints })} />

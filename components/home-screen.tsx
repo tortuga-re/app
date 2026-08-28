@@ -1,13 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import dynamic from "next/dynamic";
 import { StatusBlock } from "@/components/status-block";
 
-const ActiveCouponsCard = dynamic(() => import("@/components/active-coupons-card").then(mod => mod.ActiveCouponsCard), { ssr: false });
 const FidelityStatusCard = dynamic(() => import("@/components/fidelity-status-card").then(mod => mod.FidelityStatusCard), { ssr: false });
-const SurveyTeaserCard = dynamic(() => import("@/components/survey-teaser-card").then(mod => mod.SurveyTeaserCard), { ssr: false });
 const KantaquizTeaser = dynamic(() => import("@/components/kantaquiz-teaser").then(mod => mod.KantaquizTeaser), { ssr: false });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
@@ -435,7 +433,6 @@ export function HomeScreen() {
 
   const showHeroCard = !hasMenuAccess && !primaryReservation;
   const showReservationCard = !hasMenuAccess && Boolean(primaryReservation);
-  const showCouponCard = hasMenuAccess || !primaryReservation;
 
   return (
     <section className="space-y-5">
@@ -510,20 +507,10 @@ export function HomeScreen() {
             </div>
           </div>
 
-          {showCouponCard ? (
-            <div id="coupon" className="hash-scroll-target rounded-[2rem]">
-              <ActiveCouponsCard
-                coupons={activeCoupons}
-                description=""
-                emptyMessage="Nessun coupon attivo da spendere per ora."
-              />
-            </div>
-          ) : null}
         </>
       ) : null}
 
-      <div className="secondary-experiences"><SurveyTeaserCard /><ReviewsCard /></div>
+      <div className="secondary-experiences"><ReviewsCard /></div>
     </section>
   );
 }
-

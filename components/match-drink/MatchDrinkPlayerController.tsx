@@ -162,7 +162,7 @@ export function MatchDrinkPlayerController() {
               ) : (
                 <>
                   <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
-                    <span className="text-3xl">ðŸ“</span>
+                    <span className="text-3xl">📍</span>
                   </div>
                   <div className="space-y-2">
                     <h2 className="text-2xl font-black text-white uppercase italic">Sei al Tortuga?</h2>
@@ -178,7 +178,7 @@ export function MatchDrinkPlayerController() {
                       className="w-full"
                       onClick={() => setShowQRScanner(true)}
                     >
-                      ðŸ“· Scannerizza QR Tavolo
+                      📷 Scannerizza QR Tavolo
                     </MatchDrinkButton>
                     <Link href="/ciurma" className="button-secondary block w-full py-3 text-xs font-black uppercase">
                       Torna alla Ciurma
@@ -353,7 +353,7 @@ export function MatchDrinkPlayerController() {
           <div className="space-y-4">
             <div className="h-16 w-16 mx-auto rounded-full border-2 border-[var(--accent-strong)] animate-spin border-t-transparent" />
             <p className="text-lg font-bold text-white uppercase tracking-tight">
-              Il sistema sta incrociando risposte, traumi e pessime decisioniâ€¦
+              Il sistema sta incrociando risposte, traumi e pessime decisioni…
             </p>
           </div>
         </div>

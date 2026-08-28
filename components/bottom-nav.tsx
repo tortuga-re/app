@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ComponentType } from "react";
 import { usePathname } from "next/navigation";
 import { Gift, Home, Info, Users } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
@@ -59,7 +60,7 @@ function SkullCrossbones({ size = 21, strokeWidth = 1.7 }: { size?: number; stro
 interface NavItem {
   href: string;
   label: string;
-  Icon: any;
+  Icon: ComponentType<{ size?: number; strokeWidth?: number }>;
   isAction?: boolean;
 }
 

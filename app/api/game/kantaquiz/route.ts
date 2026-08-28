@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     const { sendPushNotification } = await import("@/lib/push/send");
     void sendPushNotification({
-      title: "Il Kantaquiz inizia ora! ðŸŽ¤",
+      title: "Il Kantaquiz inizia ora! 🎤",
       body:
         "Scaldate la voce: stiamo per iniziare. Entra nell'app per partecipare alla sfida!",
       url: "/info",

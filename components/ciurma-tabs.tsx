@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Award, Check, Gift, LockKeyhole, Ship, Trophy, X } from "lucide-react";
+import { Award, Check, Coins, Gift, LockKeyhole, Ship, Skull, Trophy, X } from "lucide-react";
 
 import { DragCarousel } from "@/components/drag-carousel";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
@@ -118,6 +118,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
 
   useEffect(() => {
     if (!isUserRegistered) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- enforce the only tab available to guests
       setTab("ranks");
     }
   }, [isUserRegistered]);
@@ -165,7 +166,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     </div> : null}
 
     {tab === "ranks" ? <div id="ranghi" className="hash-scroll-target space-y-5">
-      <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><ul className="my-3.5 space-y-1.5 text-left border-t border-[rgba(216,176,106,0.15)] pt-3">{rank.privileges.map((p, idx) => { const isDobloni = p.text.includes("Dobloni"); const isPrivilegesInherited = p.text.includes("Tutti i privilegi"); const bullet = isDobloni ? "🪙" : (isPrivilegesInherited ? "⚔️" : "•"); return <li key={idx} className="flex items-start gap-2 text-[0.74rem] text-[var(--text-muted)] leading-relaxed"><span className={`shrink-0 mt-0.5 ${(!isDobloni && !isPrivilegesInherited) ? "text-[var(--accent)] font-bold text-sm leading-none" : "text-[11px]"}`}>{bullet}</span><span>{p.text}</span></li>; })}</ul><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
+      <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><ul className="my-3.5 space-y-1.5 text-left border-t border-[rgba(216,176,106,0.15)] pt-3">{rank.privileges.map((p, idx) => { const isDobloni = p.text.includes("Dobloni"); const isPrivilegesInherited = p.text.includes("Tutti i privilegi"); const BulletIcon = isDobloni ? Coins : (isPrivilegesInherited ? Skull : null); return <li key={idx} className="flex items-start gap-2 text-[0.74rem] text-[var(--text-muted)] leading-relaxed"><span className={`shrink-0 mt-0.5 ${BulletIcon ? "text-[var(--accent)]" : "text-[var(--accent)] font-bold text-sm leading-none"}`}>{BulletIcon ? <BulletIcon size={14} strokeWidth={2.2} aria-hidden="true" /> : "•"}</span><span>{p.text}</span></li>; })}</ul><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
       {/* Hall of Legends Section */}
       <div className="hall-of-legends p-5 rounded-[1.55rem] border border-[rgba(197,154,71,0.45)] bg-[#fffdf8] space-y-4 mt-6 animate-in fade-in duration-300">
         <div className="text-center space-y-1.5 pb-2.5 border-b border-[rgba(197,154,71,0.15)]">
@@ -229,7 +230,6 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     ) : null}
   </div>;
 }
-
 function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onClose: () => void }) {
   const { unlocked } = mission;
   return <div className="achievement-modal" role="dialog" aria-modal="true" aria-labelledby="achievement-modal-title" onClick={onClose}>
@@ -245,6 +245,7 @@ function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onC
         {unlocked ? <Check /> : <LockKeyhole />}
         <span>{unlocked ? "Sbloccata" : "Non ancora sbloccata"}</span>
       </div>
+      {mission.id === "assaggiatore-ufficiale" && !unlocked ? <Link href="/ciurma/carica-scontrino" className="minimal-primary achievement-modal-action">Carica scontrino</Link> : null}
       <button className="minimal-primary achievement-modal-action" onClick={onClose}>Chiudi</button>
     </div>
   </div>;

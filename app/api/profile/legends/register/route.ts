@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports */
 import { NextResponse } from "next/server";
 import { getProfileData } from "@/lib/cooperto/service";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";

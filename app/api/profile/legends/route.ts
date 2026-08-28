@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 import fs from "fs";

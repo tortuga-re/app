@@ -60,7 +60,7 @@ export const tortugaRanks: TortugaRank[] = [
   },
   { 
     id: "leggenda", 
-    label: "Leggenda del Tortuga", 
+    label: "Leggenda",
     visits: 20, 
     points: 100, 
     description: "Il rango speciale riservato alle grandi rotte.",
