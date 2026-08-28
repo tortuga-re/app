@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Anchor, Award, CalendarCheck, ChevronRight, Gift, Pencil, QrCode, Shield, Coins, Cake } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +14,8 @@ import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { ProfileEditModal } from "@/components/profile-edit-modal";
 import { LegendNicknameModal } from "@/components/legend-nickname-modal";
+import { useBookingOverlay } from "@/components/booking-overlay";
+import { getBirthdayInsight } from "@/lib/customer-profile";
 
 const CiurmaRecognition = dynamic(() => import("@/components/profile-screen").then((module) => module.CiurmaScreen), { ssr: false });
 
@@ -45,6 +47,18 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
   const missingPoints = Math.max(0, nextRank.points - highestPoints);
   const nextReward = fidelityRewardTiers.find((reward) => reward.threshold > points);
   const missingBirthDate = loggedIn && customer.hasProfile && !customer.profile?.contact?.DataDiNascita;
+  const { openBooking } = useBookingOverlay();
+
+  /* ── Birthday promo: show for the 14 days before the birthday (and on the day itself).
+     Hidden if there is already a future reservation. ── */
+  const hasReservation = customer.hasReservation;
+  const birthdayPromo = useMemo(() => {
+    const birthDate = customer.profile?.contact?.DataDiNascita;
+    if (!birthDate || hasReservation) return null;
+    const insight = getBirthdayInsight(birthDate, 14);
+    if (!insight) return null;
+    return insight;
+  }, [customer.profile?.contact?.DataDiNascita, hasReservation]);
 
   const [activationLoading, setActivationLoading] = useState(false);
   const [activationError, setActivationError] = useState("");
@@ -167,6 +181,17 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
       {beforeHighlights}
       <div className="section-heading"><div><p className="minimal-eyebrow">In evidenza</p><h2>Le tue prossime tappe</h2></div></div>
       <DragCarousel className="snap-slides" label="Contenuti in evidenza">
+        {birthdayPromo ? (
+          <article className="feature-slide birthday-slide">
+            <div className="slide-icon"><Cake size={20} /></div>
+            <p>{birthdayPromo.isToday ? "Buon compleanno! 🎉" : `Il tuo compleanno è il ${birthdayPromo.label}`}</p>
+            <h3>{birthdayPromo.isToday ? "Stasera la cena è offerta da noi!" : "La cena del tuo compleanno è gratis!"}</h3>
+            <span>Prenota da 10 persone in su e la tua cena di compleanno è offerta dal Tortuga.</span>
+            <button type="button" onClick={openBooking}>
+              Prenota ora <ChevronRight size={16} />
+            </button>
+          </article>
+        ) : null}
         {missingBirthDate ? (
           <article className="feature-slide birthday-slide">
             <div className="slide-icon"><Cake size={20} /></div>

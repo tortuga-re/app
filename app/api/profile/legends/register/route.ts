@@ -47,13 +47,81 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+    let useFallbackStorage = false;
+    let existing: any = null;
 
-    // Check if they already registered
-    const { data: existing } = await supabase
-      .from("legends_hall_of_fame")
-      .select("legend_number")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("legends_hall_of_fame")
+        .select("legend_number")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (fetchError) {
+        if (fetchError.message?.includes("Invalid API key") || fetchError.message?.includes("API key")) {
+          useFallbackStorage = true;
+        } else {
+          throw fetchError;
+        }
+      } else {
+        existing = data;
+      }
+    } catch (err) {
+      console.error("Supabase legend check failed, using local storage:", err);
+      useFallbackStorage = true;
+    }
+
+    const fs = require("fs");
+    const path = require("path");
+    const LOCAL_DATA_DIR = path.join(process.cwd(), ".data");
+    const LOCAL_LEGENDS_FILE = path.join(LOCAL_DATA_DIR, "legends.json");
+
+    function readLocalLegends(): any[] {
+      try {
+        if (!fs.existsSync(LOCAL_LEGENDS_FILE)) return [];
+        const content = fs.readFileSync(LOCAL_LEGENDS_FILE, "utf8");
+        return JSON.parse(content) || [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function writeLocalLegends(list: any[]) {
+      try {
+        if (!fs.existsSync(LOCAL_DATA_DIR)) {
+          fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
+        }
+        fs.writeFileSync(LOCAL_LEGENDS_FILE, JSON.stringify(list, null, 2), "utf8");
+      } catch (err) {
+        console.error("Error writing local legends:", err);
+      }
+    }
+
+    if (useFallbackStorage) {
+      const localList = readLocalLegends();
+      const alreadyRegistered = localList.find((l) => l.email === normalizedEmail);
+      if (alreadyRegistered) {
+        return NextResponse.json(
+          { error: "Hai già registrato un nickname nella Hall of Legends." },
+          { status: 409 },
+        );
+      }
+
+      // Generate a new legend number based on list length
+      const legendNumber = localList.length + 1;
+      const newLegend = {
+        email: normalizedEmail,
+        nickname,
+        real_name: realName,
+        legend_number: legendNumber,
+        unlocked_at: new Date().toISOString(),
+      };
+
+      localList.push(newLegend);
+      writeLocalLegends(localList);
+
+      return NextResponse.json({ success: true, legend: newLegend });
+    }
 
     if (existing) {
       return NextResponse.json(
@@ -62,8 +130,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Register nickname
-    const { data, error } = await supabase
+    // Register nickname in Supabase
+    let insertResult = await supabase
       .from("legends_hall_of_fame")
       .insert({
         email: normalizedEmail,
@@ -71,13 +139,28 @@ export async function POST(request: Request) {
         real_name: realName,
       })
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      throw error;
+    if (insertResult.error) {
+      // If the remote schema doesn't have 'real_name' column, retry without it
+      if (insertResult.error.message?.includes("real_name") || insertResult.error.hint?.includes("real_name")) {
+        console.warn("Supabase does not have 'real_name' column, retrying without it...");
+        insertResult = await supabase
+          .from("legends_hall_of_fame")
+          .insert({
+            email: normalizedEmail,
+            nickname,
+          })
+          .select()
+          .maybeSingle();
+      }
     }
 
-    return NextResponse.json({ success: true, legend: data });
+    if (insertResult.error) {
+      throw insertResult.error;
+    }
+
+    return NextResponse.json({ success: true, legend: insertResult.data });
   } catch (error) {
     console.error("Error registering legend nickname:", error);
     return NextResponse.json(
