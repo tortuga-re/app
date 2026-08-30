@@ -17,13 +17,14 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const COUPON_CODE = "BAULE-DI-BENVENUTO";
+const COOPERTO_COUPON_CODE = "50de70e0-308f-42";
 const WELCOME_POINTS = 5;
 const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
 const cleanText = (value?: string) => value?.trim() ?? "";
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 type RewardRow = {
-  status: "processing" | "completed" | "failed";
+  status: "prepared" | "processing" | "completed" | "failed";
   is_new_customer: boolean;
   coupon_contact_code: string | null;
   coupon_expires_at: string | null;
@@ -40,8 +41,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Inserisci nome ed email validi." }, { status: 400 });
   }
 
-  const currentProfile = await getProfileData("email", email);
-  const existingContact = currentProfile.source === "live" && Boolean(currentProfile.contact?.CodiceContatto);
   const rewards = getSupabaseAdmin().from("welcome_chest_rewards");
   const { data: existingReward, error: readError } = await rewards
     .select("status,is_new_customer,coupon_contact_code,coupon_expires_at")
@@ -55,8 +54,8 @@ export async function POST(request: NextRequest) {
 
   if (existingReward?.status === "completed") {
     const profile = await getProfileData("email", email);
-    const coupon = profile.coupons.find((item) => item.CodiceCoupon === COUPON_CODE) ?? {
-      CodiceCoupon: COUPON_CODE,
+    const coupon = profile.coupons.find((item) => item.CodiceCoupon === COOPERTO_COUPON_CODE) ?? {
+      CodiceCoupon: COOPERTO_COUPON_CODE,
       DataScadenza: existingReward.coupon_expires_at ?? undefined,
     };
     return NextResponse.json({
@@ -73,15 +72,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Il tuo Baule si sta già aprendo. Attendi qualche secondo." }, { status: 409 });
   }
 
-  const isNewCustomer = !existingContact;
-  const { error: createError } = existingReward?.status === "failed"
-    ? await rewards.update({ status: "processing", updated_at: new Date().toISOString() }).eq("email", email)
-    : await rewards.insert({
-      email,
-      status: "processing",
-      is_new_customer: isNewCustomer,
-      coupon_code: COUPON_CODE,
-    });
+  if (!existingReward || (existingReward.status !== "prepared" && existingReward.status !== "failed")) {
+    return NextResponse.json(
+      { error: "Completa prima la preparazione del Baule." },
+      { status: 409 },
+    );
+  }
+
+  const isNewCustomer = existingReward.is_new_customer;
+  const { error: createError } = await rewards
+    .update({ status: "processing", updated_at: new Date().toISOString() })
+    .eq("email", email)
+    .in("status", ["prepared", "failed"]);
 
   if (createError) {
     return NextResponse.json({ error: "Il Baule è già in preparazione." }, { status: 409 });
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
     const coupon = await generateContactCoupon({
       Nome: firstName,
       Email: email,
-      CodiceCoupon: COUPON_CODE,
+      CodiceCoupon: COOPERTO_COUPON_CODE,
       DataPrivacy: now,
       DataMarketing: body?.marketingConsent ? now : undefined,
     });
@@ -122,7 +124,9 @@ export async function POST(request: NextRequest) {
     }
 
     profile = await getProfileData("email", email);
-    const welcomeCoupon = profile.coupons.find((item) => item.CodiceCoupon === COUPON_CODE);
+    const welcomeCoupon = profile.coupons.find(
+      (item) => item.CodiceCoupon === COOPERTO_COUPON_CODE,
+    );
     const { error: completeError } = await rewards
       .update({
         status: "completed",
@@ -143,7 +147,10 @@ export async function POST(request: NextRequest) {
     });
     const response = NextResponse.json({
       profile,
-      coupon: welcomeCoupon ?? { CodiceCoupon: COUPON_CODE, DataScadenza: coupon.DataScadenza },
+      coupon: welcomeCoupon ?? {
+        CodiceCoupon: COOPERTO_COUPON_CODE,
+        DataScadenza: coupon.DataScadenza,
+      },
       isNewCustomer,
       pointsAwarded: WELCOME_POINTS,
     });

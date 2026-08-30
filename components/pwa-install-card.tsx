@@ -10,6 +10,7 @@ import { useCustomerIdentity } from "@/lib/customer-identity";
 import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
 
 type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
+const welcomeChestPendingKey = "tortuga-welcome-chest-pending";
 
 interface DeferredPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -61,6 +62,7 @@ export function PwaInstallCard() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [pushReady, setPushReady] = useState(false);
+  const [chestPrepared, setChestPrepared] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [reward, setReward] = useState<{ coupon: CoopertoCoupon; profile: ProfileResponse; pointsAwarded: number } | null>(null);
@@ -79,6 +81,18 @@ export function PwaInstallCard() {
       setIsIos(isIosDevice());
       setIsIosChrome(/crios/i.test(window.navigator.userAgent));
       setEvaluationNow(Date.now());
+
+      const pendingChest = window.localStorage.getItem(welcomeChestPendingKey);
+      if (installed && pendingChest) {
+        try {
+          const pending = JSON.parse(pendingChest) as { firstName?: string; email?: string };
+          setFirstName(pending.firstName ?? "");
+          setEmail(pending.email ?? "");
+          setChestPrepared(true);
+        } catch {
+          window.localStorage.removeItem(welcomeChestPendingKey);
+        }
+      }
 
       // Se non è installata e non è mai stata rifiutata, mostriamo il popup
       if (!installed && dismissedAt === null) {
@@ -121,17 +135,24 @@ export function PwaInstallCard() {
   }, []);
 
 
-  const claimChest = useCallback(async () => {
+  const prepareChest = useCallback(async () => {
     setBusy(true); setError("");
     try {
-      const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number }>('/api/welcome-chest/claim', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
-      setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
+      const response = await requestJson<{ profile: ProfileResponse }>('/api/welcome-chest/prepare', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
       updateIdentity({ email, firstName: response.profile.contact?.Nome || firstName, lastName: response.profile.contact?.Cognome || "", phone: response.profile.contact?.Telefono || "", marketingConsent: true });
+      window.localStorage.setItem(welcomeChestPendingKey, JSON.stringify({ firstName, email }));
+      setChestPrepared(true);
       window.dispatchEvent(new Event("tortuga:profile-updated"));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad aprire il Baule.");
+      setError(reason instanceof Error ? reason.message : "Non siamo riusciti a preparare il Baule.");
     } finally { setBusy(false); }
   }, [email, firstName, updateIdentity]);
+
+  const claimChest = useCallback(async () => {
+    const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number }>('/api/welcome-chest/claim', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
+    setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
+    window.localStorage.removeItem(welcomeChestPendingKey);
+  }, [email, firstName]);
 
   const enablePush = useCallback(async () => {
     if (!firstName.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
@@ -189,14 +210,14 @@ export function PwaInstallCard() {
   }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos]);
   const showFullRewards = !isInstalled && !identity.email;
 
-  if (isInstalled && !identity.email && showAsPopup) {
+  if (isInstalled && showAsPopup && (!identity.email || chestPrepared || reward)) {
     return <div className="fixed inset-0 z-[120] flex items-center justify-center px-5 py-6">
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <section className="relative w-full max-w-sm panel rounded-[2.4rem] border border-[rgba(216,176,106,.28)] p-6 shadow-2xl">
         <button type="button" onClick={dismissPopup} className="absolute right-4 top-4 z-10 rounded-full p-2 text-[var(--text-muted)] transition-colors hover:bg-white/10 hover:text-white" aria-label="Chiudi Baule di benvenuto">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        {reward ? <div className="space-y-5 text-center">
+        {reward && pushReady ? <div className="space-y-5 text-center">
           <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
           <h2 className="text-3xl font-black uppercase italic text-white">Baule aperto</h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">Hai ricevuto {reward.pointsAwarded} Dobloni e il tuo premio da usare al Tortuga.</p>
@@ -204,9 +225,9 @@ export function PwaInstallCard() {
           <button type="button" className="button-primary w-full py-3" onClick={() => setShowAsPopup(false)}>Vai alla mia Ciurma</button>
         </div> : <div className="space-y-5">
           <div><p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p><h2 className="mt-2 text-2xl font-black uppercase italic text-white">Completa l&apos;imbarco</h2><p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Attiva le notifiche e apri il tuo Baule con 5 Dobloni e un premio da mostrare al personale.</p></div>
-          {!reward ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label></> : <p className="text-sm leading-6 text-[var(--text-muted)]">Un ultimo passo e il premio è tuo: attiva le notifiche push.</p>}
+          {!chestPrepared ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label></> : <p className="text-sm leading-6 text-[var(--text-muted)]">Un ultimo passo e il premio è tuo: attiva le notifiche push.</p>}
           {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
-          <button type="button" className="button-primary w-full py-3" disabled={busy || pushReady} onClick={() => void (reward ? enablePush() : claimChest())}>{busy ? "Preparazione..." : reward ? "Attiva notifiche e apri il Baule" : "Richiedi premio"}</button>
+          <button type="button" className="button-primary w-full py-3" disabled={busy || pushReady} onClick={() => void (chestPrepared ? enablePush() : prepareChest())}>{busy ? "Preparazione..." : chestPrepared ? "Attiva notifiche" : "Richiedi premio"}</button>
         </div>}
       </section>
     </div>;

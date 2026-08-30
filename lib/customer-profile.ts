@@ -54,10 +54,11 @@ export const formatCouponExpiry = (value?: string) => {
   }).format(parsed);
 };
 
-export const getCouponDisplayCode = (coupon: CoopertoCoupon) =>
-  coupon.CodiceCoupon?.trim() ||
-  coupon.CodiceCouponContatto?.trim() ||
-  "Coupon Tortuga";
+export const getCouponDisplayCode = (coupon: CoopertoCoupon) => {
+  const code = coupon.CodiceCoupon?.trim() || coupon.CodiceCouponContatto?.trim() || "";
+
+  return code === "50de70e0-308f-42" ? "BAULE-DI-BENVENUTO" : code || "Coupon Tortuga";
+};
 
 export const getCouponQrValue = (coupon: CoopertoCoupon) =>
   coupon.CodiceCouponContatto?.trim() || coupon.CodiceCoupon?.trim() || "";
