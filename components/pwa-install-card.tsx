@@ -64,7 +64,6 @@ export function PwaInstallCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [reward, setReward] = useState<{ coupon: CoopertoCoupon; profile: ProfileResponse; pointsAwarded: number } | null>(null);
-  const [onboardingReady, setOnboardingReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -86,12 +85,6 @@ export function PwaInstallCard() {
         setShowAsPopup(true);
       }
       if (installed) setShowAsPopup(true);
-      if (installed) {
-        void requestJson<{ start: { firstName: string; email: string } | null }>("/api/welcome-chest/start").then(({ start }) => {
-          if (!start) return;
-          setFirstName(start.firstName); setEmail(start.email); setOnboardingReady(true);
-        }).catch(() => undefined);
-      }
     });
 
     const handleBeforeInstall = (event: Event) => {
@@ -127,12 +120,6 @@ export function PwaInstallCard() {
     };
   }, []);
 
-  const prepareOnboarding = useCallback(async () => {
-    if (!firstName.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) throw new Error("Inserisci nome ed email per continuare.");
-    const rewardTier = isInstalled || identity.email ? "basic" : "full";
-    await requestJson("/api/welcome-chest/start", { method: "POST", body: JSON.stringify({ firstName, email, rewardTier }) });
-    setOnboardingReady(true);
-  }, [email, firstName, identity.email, isInstalled]);
 
   const claimChest = useCallback(async () => {
     setBusy(true); setError("");
@@ -202,7 +189,7 @@ export function PwaInstallCard() {
   }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos]);
   const showFullRewards = !isInstalled && !identity.email;
 
-  if (isInstalled && showAsPopup) {
+  if (isInstalled && !identity.email && showAsPopup) {
     return <div className="fixed inset-0 z-[120] flex items-center justify-center px-5 py-6">
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <section className="relative w-full max-w-sm panel rounded-[2.4rem] border border-[rgba(216,176,106,.28)] p-6 shadow-2xl">
@@ -217,9 +204,9 @@ export function PwaInstallCard() {
           <button type="button" className="button-primary w-full py-3" onClick={() => setShowAsPopup(false)}>Vai alla mia Ciurma</button>
         </div> : <div className="space-y-5">
           <div><p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p><h2 className="mt-2 text-2xl font-black uppercase italic text-white">Completa l&apos;imbarco</h2><p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Attiva le notifiche e apri il tuo Baule con 5 Dobloni e un premio da mostrare al personale.</p></div>
-          {!onboardingReady ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label></> : <p className="text-sm leading-6 text-[var(--text-muted)]">Riapri l&apos;app dalla Home: ora manca solo l&apos;attivazione delle notifiche.</p>}
+          {!reward ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label></> : <p className="text-sm leading-6 text-[var(--text-muted)]">Un ultimo passo e il premio è tuo: attiva le notifiche push.</p>}
           {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
-          <button type="button" className="button-primary w-full py-3" disabled={busy || pushReady} onClick={() => void (onboardingReady ? enablePush() : prepareOnboarding())}>{busy ? "Apro il Baule..." : onboardingReady ? "Attiva notifiche e apri il Baule" : "Prepara il Baule"}</button>
+          <button type="button" className="button-primary w-full py-3" disabled={busy || pushReady} onClick={() => void (reward ? enablePush() : claimChest())}>{busy ? "Preparazione..." : reward ? "Attiva notifiche e apri il Baule" : "Richiedi premio"}</button>
         </div>}
       </section>
     </div>;
@@ -229,49 +216,37 @@ export function PwaInstallCard() {
 
   const content = (
     <div className={showAsPopup ? "" : "panel rounded-[1.9rem] px-5 py-5 border-2 border-[var(--accent-strong)]/20 bg-[var(--accent-soft)]/5"}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
-          <Image
-            src="/images/gift-card-treasure-chest-background.png"
-            alt="Baule aperto con monete e tesori"
-            width={1536}
-            height={1024}
-            className="h-32 w-full rounded-2xl border border-[rgba(216,176,106,.24)] object-cover object-[74%_center]"
-          />
-          <h2 className="text-xl font-black text-white uppercase italic tracking-tight">Inizia l&apos;imbarco</h2>
+      <div className="flex items-center justify-between gap-4">
+        <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
+        <button 
+          onClick={showAsPopup ? dismissPopup : dismissPermanently} 
+          className="text-[var(--text-muted)] hover:text-white transition-colors p-1"
+          aria-label="Chiudi Baule di benvenuto"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div className="mt-3 space-y-3">
+        <Image
+          src="/images/gift-card-treasure-chest-background.png"
+          alt="Baule aperto con monete e tesori"
+          width={1536}
+          height={1024}
+          className="h-40 w-full rounded-2xl border border-[rgba(216,176,106,.24)] object-cover object-[74%_center]"
+        /><h2 className="text-xl font-black text-white uppercase italic tracking-tight">Inizia l&apos;imbarco</h2>
           <ul className="space-y-1 text-sm leading-5 text-[var(--accent-strong)]">
             <li>• 5 Dobloni Tortuga</li>
             <li>• Una porzione di gnocco/tigelle</li>
             {showFullRewards ? <><li>• Card Fidelity attiva</li><li>• Rango Mozzo</li><li>• Missioni Primo approdo e Mozzo di bordo</li></> : null}
           </ul>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            {mode === "prompt"
-              ? "Installa l'app per sbloccare 5 Dobloni e il tuo premio di benvenuto."
-              : mode === "fallback-ios"
-                ? isIosChrome
-                  ? "In Chrome premi i tre puntini, scegli 'Condividi' e poi 'Aggiungi alla schermata Home'."
-                  : "In Safari premi Condividi e scegli 'Aggiungi alla schermata Home' per continuare e aprire il Baule."
-                : "Apri il menu del browser e scegli 'Installa app' o 'Aggiungi a Home' per continuare e aprire il Baule."}
-          </p>
-        </div>
-        <button 
-          onClick={showAsPopup ? dismissPopup : dismissPermanently} 
-          className="text-[var(--text-muted)] hover:text-white transition-colors p-1"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <p className="text-sm leading-6 text-[var(--text-muted)]">Per ricevere il Baule aggiungi l&apos;app alla Home e riaprila dall&apos;icona.</p>
       </div>
 
       <div className="mt-4 space-y-3">
-        {!onboardingReady ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>{error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}</> : null}
         {mode === "prompt" ? (
           <button
             onClick={async () => {
               if (!promptEvent) return;
-              try { await prepareOnboarding(); } catch (reason) { setError(reason instanceof Error ? reason.message : "Impossibile preparare il Baule."); return; }
               await promptEvent.prompt();
               const { outcome } = await promptEvent.userChoice;
               if (outcome === "accepted") {
@@ -285,12 +260,12 @@ export function PwaInstallCard() {
             Installa app
           </button>
         ) : (
-          onboardingReady ? <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3 text-xs text-[var(--text-muted)] border border-white/5 italic">
+          <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3 text-xs text-[var(--text-muted)] border border-white/5 italic">
             <svg className="w-4 h-4 shrink-0 text-[var(--accent-strong)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Usa il comando nativo del tuo browser per aggiungere l&apos;icona alla Home.
-          </div> : <button type="button" className="button-primary w-full py-3" disabled={busy} onClick={() => void prepareOnboarding().catch((reason) => setError(reason instanceof Error ? reason.message : "Impossibile richiedere il premio."))}>{isIos ? "Richiedi premio" : "Prepara installazione"}</button>
+          </div>
         )}
         
         {showAsPopup && (

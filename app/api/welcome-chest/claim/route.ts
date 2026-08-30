@@ -12,7 +12,6 @@ import {
   attachCustomerSessionCookie,
   normalizeCustomerSessionIdentity,
 } from "@/lib/session/customer-session";
-import { readWelcomeChestStart } from "@/lib/session/welcome-chest";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,10 +33,8 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as
     | { email?: string; firstName?: string; marketingConsent?: boolean }
     | null;
-  const start = readWelcomeChestStart(request);
-  const email = normalizeEmail(start?.email ?? body?.email);
-  const firstName = cleanText(start?.firstName ?? body?.firstName);
-  const rewardTier = start?.rewardTier ?? "basic";
+  const email = normalizeEmail(body?.email);
+  const firstName = cleanText(body?.firstName);
 
   if (!isValidEmail(email) || !firstName) {
     return NextResponse.json({ error: "Inserisci nome ed email validi." }, { status: 400 });
@@ -106,7 +103,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Cooperto non ha restituito il contatto associato al Baule.");
     }
 
-    if (rewardTier === "full" && !profile.contact?.CodiceCard) {
+    if (!profile.contact?.CodiceCard) {
       await activateFidelityCard({ contactCode });
       profile = await getProfileData("contactCode", contactCode);
     }
@@ -117,7 +114,7 @@ export async function POST(request: NextRequest) {
       note: "Baule di benvenuto Tortuga",
     });
 
-    if (rewardTier === "full") {
+    if (isNewCustomer) {
       await Promise.all([
         unlockAchievement(email, "primo-approdo"),
         unlockAchievement(email, "mozzo-di-bordo"),
