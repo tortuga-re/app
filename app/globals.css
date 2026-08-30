@@ -779,6 +779,16 @@ body {
 .minimal-overlap-sheet { position:relative; z-index:2; margin-top:-.35rem; border:1px solid var(--border); border-radius:1.65rem; background:#fffdf8; padding:1.2rem; box-shadow:0 15px 35px rgba(45,35,23,.08); }
 .overlap-sheet-intro { padding:0 0 1rem; }
 .overlap-sheet-intro>p:last-child { margin-top:.5rem; color:var(--text-muted); font-size:.78rem; line-height:1.5; }
+.tonight-sheet { padding-top:.7rem; }
+.tonight-intro { padding-top:1.35rem; }
+.tonight-section-title,.tonight-winner-name { margin-top:.35rem; color:var(--text); font-family:var(--font-serif); line-height:1.08; }
+.tonight-section-title { font-size:1.55rem; font-weight:400; }
+.tonight-winner-name { font-size:1.55rem; font-weight:400; }
+.tonight-winner-name { font-size:1.2rem; }
+.tonight-photo-form>label { display:grid; gap:.35rem; color:var(--text); font-size:.73rem; font-weight:750; }
+.tonight-photo-form>label>input { width:100%; min-height:3.15rem; border:1px solid rgba(40,35,28,.16); border-radius:1rem; background:#f2ebdf; color:var(--text); padding:.7rem .85rem; font-family:var(--font-sans); font-size:.82rem; outline:none; }
+.tonight-photo-form>label>input:focus { border-color:rgba(165,43,43,.52); box-shadow:0 0 0 3px rgba(165,43,43,.1); }
+.tonight-photo-form>label>input[type="file"] { padding:.7rem; font-size:.72rem; }
 .category-tabs { display:flex; gap:.4rem; margin-inline:-1rem; overflow-x:auto; padding:0 1rem .8rem; scrollbar-width:none; }.category-tabs button { flex:none; border:1px solid var(--border); border-radius:999px; background:#fffdf8; color:#716b62; padding:.62rem .9rem; font-size:.7rem; }.category-tabs button.active { border-color:var(--accent); background:var(--accent); color:white; }
 .gift-catalog { width:100%; min-width:0; overflow:hidden; padding-inline:0; }
 .gift-catalog-intro { padding:0 1.2rem 1.1rem; }

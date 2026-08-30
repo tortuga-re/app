@@ -149,6 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {pathname === "/" && (
           <AppHeader firstName={identity.firstName} fallbackGreeting={greeting} />
         )}
+        {pathname === "/stasera" && <SectionHeader title="Cose da fare stasera" />}
         {pathname === "/ciurma" && <SectionHeader title="La tua Ciurma" />}
         {pathname === "/gift" && <SectionHeader title="Gift card" />}
         {pathname === "/info" && <SectionHeader title="Info Tortuga" />}
