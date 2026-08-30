@@ -207,14 +207,14 @@ export function PwaInstallCard() {
     <div className={showAsPopup ? "" : "panel rounded-[1.9rem] px-5 py-5 border-2 border-[var(--accent-strong)]/20 bg-[var(--accent-soft)]/5"}>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <p className="eyebrow text-[var(--accent-strong)]">Installazione App</p>
-          <h2 className="text-xl font-black text-white uppercase italic tracking-tight">Porta il Tortuga con te</h2>
+          <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
+          <h2 className="text-xl font-black text-white uppercase italic tracking-tight">Inizia l&apos;imbarco</h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
             {mode === "prompt"
-              ? "Installa l'app per accedere velocemente a giochi, prenotazioni e premi."
+              ? "Installa l&apos;app per sbloccare 5 Dobloni e il tuo premio di benvenuto."
               : mode === "fallback-ios"
-                ? "Premi il tasto Condividi in Safari e scegli 'Aggiungi alla schermata Home'."
-                : "Apri il menu del browser e scegli 'Installa app' o 'Aggiungi a Home'."}
+                ? "Premi Condividi in Safari e scegli &apos;Aggiungi alla schermata Home&apos; per continuare e aprire il Baule."
+                : "Apri il menu del browser e scegli &apos;Installa app&apos; o &apos;Aggiungi a Home&apos; per continuare e aprire il Baule."}
           </p>
         </div>
         <button 
@@ -242,7 +242,7 @@ export function PwaInstallCard() {
             }}
             className="button-primary w-full py-3 text-xs font-bold uppercase tracking-widest"
           >
-            Installa Ora
+            Installa e apri il Baule
           </button>
         ) : (
           <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3 text-xs text-[var(--text-muted)] border border-white/5 italic">
@@ -258,7 +258,7 @@ export function PwaInstallCard() {
             onClick={dismissPopup}
             className="w-full py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-white transition-colors"
           >
-            Continua nel browser
+            Lo faro piu tardi
           </button>
         )}
       </div>

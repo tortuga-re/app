@@ -221,8 +221,8 @@ export function ProfileEditModal({ open, onClose }: { open: boolean; onClose: ()
     }
   };
 
-  const leaveProfile = (destination: string) => {
-    clearCustomerContext();
+  const leaveProfile = async (destination: string) => {
+    await clearCustomerContext();
     onClose();
     window.location.assign(destination);
   };
@@ -246,8 +246,8 @@ export function ProfileEditModal({ open, onClose }: { open: boolean; onClose: ()
         <label className="profile-marketing"><input type="checkbox" checked={form.marketingConsent} onChange={(event) => setForm((current) => ({ ...current, marketingConsent: event.target.checked }))} /><span>Accetto comunicazioni marketing future di Tortuga.</span></label>
         <button type="button" className="minimal-primary w-full" disabled={saving || Boolean(error && !originalEmail)} onClick={() => void save()}>{saving ? "Salvataggio…" : "Salva modifiche"}</button>
         <div className="profile-session-actions">
-          <button type="button" disabled={saving} onClick={() => leaveProfile("/ciurma?recognition=1")}><UserRoundCog />Cambia profilo</button>
-          <button type="button" disabled={saving} onClick={() => leaveProfile("/")}><LogOut />Esci</button>
+          <button type="button" disabled={saving} onClick={() => void leaveProfile("/ciurma?recognition=1")}><UserRoundCog />Cambia profilo</button>
+          <button type="button" disabled={saving} onClick={() => void leaveProfile("/")}><LogOut />Esci</button>
         </div>
       </div> : null}
 

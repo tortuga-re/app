@@ -239,7 +239,7 @@ export function useCustomerIdentity() {
     removeLocalStorageValue(storageKeys.bookingDraft);
     removeLocalStorageValue(storageKeys.lastReservation);
     removeLocalStorageValue(storageKeys.profileLookup);
-    void clearPersistedCustomerSession();
+    return clearPersistedCustomerSession();
   }, []);
 
   return {
