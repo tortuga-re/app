@@ -159,8 +159,6 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
       <button className={tab === "ranks" ? "active" : ""} onClick={() => setTab("ranks")}><Award />Ranghi</button>
       <button className={tab === "achievements" ? "active" : ""} onClick={() => setTab("achievements")}><Trophy />Imprese</button>
     </div>
-    <HallOfLegends legends={displayLegends} />
-
     {tab === "rewards" ? <div id="premi" className="hash-scroll-target space-y-4">
       <div className="clean-list">{fidelityRewardTiers.map((reward) => { const unlocked = points >= reward.threshold; return <article key={reward.threshold}><div className="list-icon">{unlocked ? <Check /> : <LockKeyhole />}</div><div><h3>{reward.label}</h3><p>{reward.threshold} Dobloni</p></div><span className={unlocked ? "available" : ""}>{unlocked ? "Disponibile" : `${Math.max(0, reward.threshold - points)} mancanti`}</span></article>; })}</div>
       {hasRedeemableReward ? <p className="maintenance-note">Chiedi al cameriere di utilizzare i tuoi Dobloni e richiedi il tuo premio.</p> : null}
@@ -182,6 +180,8 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
         </article>; })}
       </DragCarousel>
     </section> : null}
+
+    <HallOfLegends legends={displayLegends} />
 
     {selectedMission ? <MissionDetailModal mission={selectedMission} onClose={() => setSelectedMission(null)} /> : null}
 
