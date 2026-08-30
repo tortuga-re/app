@@ -255,10 +255,14 @@ export function PwaInstallCard() {
           height={1024}
           className="h-40 w-full rounded-2xl border border-[rgba(216,176,106,.24)] object-cover object-[74%_center]"
         /><h2 className="text-xl font-black text-white uppercase italic tracking-tight">Inizia l&apos;imbarco</h2>
-          <ul className="space-y-1 text-sm leading-5 text-[var(--accent-strong)]">
-            <li>• 5 Dobloni Tortuga</li>
-            <li>• Una porzione di gnocco/tigelle</li>
-            {showFullRewards ? <><li>• Card Fidelity attiva</li><li>• Rango Mozzo</li><li>• Missioni Primo approdo e Mozzo di bordo</li></> : null}
+          <ul className="space-y-2 text-sm leading-5 text-[var(--accent-strong)]">
+            <li><strong>5 Dobloni</strong> <span className="text-[var(--text-muted)]">- Pari a 50 euro di spesa</span></li>
+            <li><strong>Porzione di Gnocco/Tigelle</strong></li>
+            {showFullRewards ? <>
+              <li><strong>Card Fidelity</strong> <span className="text-[var(--text-muted)]">- ATTIVATA</span></li>
+              <li><strong>Rango Mozzo</strong> <span className="text-[var(--text-muted)]">- CONQUISTATO</span></li>
+              <li><strong>Missioni Primo approdo e Mozzo di bordo</strong> <span className="text-[var(--text-muted)]">- SBLOCCATE</span></li>
+            </> : null}
           </ul>
           <p className="text-sm leading-6 text-[var(--text-muted)]">Per ricevere il Baule aggiungi l&apos;app alla Home e riaprila dall&apos;icona.</p>
       </div>
