@@ -9,6 +9,7 @@ const categories = [
   { id: "antipasti", label: "Antipasti", source: "APPETIZER E TAGLIERI" },
   { id: "hamburger", label: "Hamburger", source: "HAMBURGER" },
   { id: "steakhouse", label: "Steakhouse", source: "STEAKHOUSE" },
+  { id: "dessert", label: "Dessert", source: "DESSERT" },
 ] as const;
 
 const romeDate = (date: Date) => {
@@ -19,18 +20,24 @@ const romeDate = (date: Date) => {
   return `${value.year}-${value.month}-${value.day}`;
 };
 
+const addDays = (date: string, days: number) => {
+  const value = new Date(`${date}T12:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+};
+
 export async function GET() {
-  const today = new Date();
-  const from = new Date(today);
-  from.setDate(from.getDate() - 29);
+  // Tilby Insight reports the last 30 completed business days, not today's partial service.
+  const todayInRome = romeDate(new Date());
+  const to = addDays(todayInRome, -1);
+  const from = addDays(todayInRome, -30);
   const admin = getSupabaseAdmin();
   const { data: sales, error: salesError } = await admin
     .from("tilby_sales")
     .select("sale_uuid")
     .eq("shop_code", SHOP_CODE)
-    .eq("status", "closed")
-    .gte("business_date", romeDate(from))
-    .lte("business_date", romeDate(today));
+    .gte("business_date", from)
+    .lte("business_date", to);
 
   if (salesError) {
     console.error("Leaderboard sales read error:", salesError);

@@ -259,13 +259,13 @@ export function PwaInstallCard() {
         </button>
       </div>
       <div className="mt-2 space-y-2">
-        <Image
+        {mode !== "fallback-ios" ? <Image
           src="/images/gift-card-treasure-chest-background.png"
           alt="Baule aperto con monete e tesori"
           width={1536}
           height={1024}
           className="h-28 w-full rounded-2xl border border-[rgba(216,176,106,.24)] object-cover object-[74%_center]"
-        /><h2 className="text-xl font-black text-white uppercase italic tracking-tight">Baule di benvenuto</h2>
+        /> : null}<h2 className="text-xl font-black text-white uppercase italic tracking-tight">Baule di benvenuto</h2>
           <ul className="space-y-1.5 text-[13px] font-bold leading-[1.25] text-[var(--accent-strong)]">
             <li>5 Dobloni - Pari a 50€ di spesa</li>
             <li>Porzione di Gnocco/Tigelle</li>

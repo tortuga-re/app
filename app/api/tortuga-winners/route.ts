@@ -10,6 +10,12 @@ const fallbackTeams: Record<"friday" | "saturday" | "sunday", string[]> = {
   sunday: ["I Domenicali", "La Ciurma Tranquilla", "Tavolo 8", "I Pirati in Ciabatte", "Sunday Raiders", "Gli Affamati", "Le Tigelle Felici", "I Lupi di Mare Calmi", "La Perla della Domenica", "Capitan Pisolo", "Gli Esploratori", "Tortuga Family", "I Dobloni di Carta", "La Squadra delle 21", "Gli Amici del Baule", "Steak & Smile", "I Corsari Buoni", "Tavolo dei Sogni", "I Marinai della Sera", "Gli Incrociati", "La Rotta di Casa", "Burger Hunters", "I Senza Fretta", "Le Sirene del Po", "Ciurma del Divano", "I Naviganti", "Gli Ultimi Pirati", "La Compagnia del Gnocco", "I Vincitori Morali", "Le Leggende della Domenica"],
 };
 
+const fallbackWins: Record<"friday" | "saturday" | "sunday", number[]> = {
+  friday: [6, 5, 5, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  saturday: [5, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  sunday: [4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+};
+
 export async function GET() {
   const { data, error } = await getSupabaseAdmin()
     .from("tortuga_winners")
@@ -42,7 +48,7 @@ export async function GET() {
       team_name,
       evening,
       created_at: new Date(Date.now() - (index + 1) * 86400000).toISOString(),
-      wins: Math.max(1, 4 - Math.floor(index / 8)),
+      wins: fallbackWins[evening][index] ?? 1,
       is_mock: true,
     }));
   });

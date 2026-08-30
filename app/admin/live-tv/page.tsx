@@ -1069,7 +1069,7 @@ export default function AdminLiveTvPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-[var(--text-muted)]">
-                    Nessuna Foto Live da valutare. Le foto vengono gia trasmesse per 5 secondi;
+                    Nessuna Foto Live da valutare. Le foto vengono gia trasmesse per 10 secondi;
                     qui decidi solo quali conservare o aggiungere alla scaletta.
                   </p>
                 )}

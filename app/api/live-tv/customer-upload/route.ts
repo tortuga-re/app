@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
       type: "image",
       title: "Foto Live",
       mediaUrl: storedMedia.mediaUrl,
-      durationSeconds: 5,
+      durationSeconds: 10,
       enabled: true,
       styleVariant: "default",
     });

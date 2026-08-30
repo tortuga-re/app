@@ -981,6 +981,8 @@ body {
 .game-wifi-row svg { width:.82rem; height:.82rem; color:var(--accent-strong); stroke-width:1.9; }
 .game-context-card a { display:inline-flex; align-items:center; gap:.2rem; margin-top:.75rem; border-radius:999px; background:var(--accent-strong); padding:.52rem .72rem; color:#fffaf1; font-size:.65rem; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
 .game-context-card a svg { width:.85rem; }
+.tonight-current-program .evening-program-card { min-width:0; }
+.tonight-game-pending { margin-top:1.35rem!important; border-top:1px solid var(--border); padding-top:1rem; color:var(--text-muted)!important; font-size:.72rem!important; font-weight:400!important; letter-spacing:0!important; line-height:1.5; text-transform:none!important; }
 .home-actions { grid-template-columns:1fr 1fr; }.home-actions>a,.home-actions>button { grid-template-columns:auto 1fr; padding:.85rem; }.home-actions>*>svg:last-child { display:none; }.home-actions span { min-width:0; }.home-actions strong,.home-actions small { display:block; }.home-actions strong { font-size:.75rem; }.home-actions small { margin-top:.15rem; color:var(--text-muted); font-size:.58rem; }
 
 .info-section { color:var(--text); }

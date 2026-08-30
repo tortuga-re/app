@@ -159,6 +159,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
       <button className={tab === "ranks" ? "active" : ""} onClick={() => setTab("ranks")}><Award />Ranghi</button>
       <button className={tab === "achievements" ? "active" : ""} onClick={() => setTab("achievements")}><Trophy />Imprese</button>
     </div>
+    <HallOfLegends legends={displayLegends} />
 
     {tab === "rewards" ? <div id="premi" className="hash-scroll-target space-y-4">
       <div className="clean-list">{fidelityRewardTiers.map((reward) => { const unlocked = points >= reward.threshold; return <article key={reward.threshold}><div className="list-icon">{unlocked ? <Check /> : <LockKeyhole />}</div><div><h3>{reward.label}</h3><p>{reward.threshold} Dobloni</p></div><span className={unlocked ? "available" : ""}>{unlocked ? "Disponibile" : `${Math.max(0, reward.threshold - points)} mancanti`}</span></article>; })}</div>
@@ -167,44 +168,6 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
 
     {tab === "ranks" ? <div id="ranghi" className="hash-scroll-target space-y-5">
       <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><ul className="my-3.5 space-y-1.5 text-left border-t border-[rgba(216,176,106,0.15)] pt-3">{rank.privileges.map((p, idx) => { const isDobloni = p.text.includes("Dobloni"); const isPrivilegesInherited = p.text.includes("Tutti i privilegi"); const BulletIcon = isDobloni ? Coins : (isPrivilegesInherited ? Skull : null); return <li key={idx} className="flex items-start gap-2 text-[0.74rem] text-[var(--text-muted)] leading-relaxed"><span className={`shrink-0 mt-0.5 ${BulletIcon ? "text-[var(--accent)]" : "text-[var(--accent)] font-bold text-sm leading-none"}`}>{BulletIcon ? <BulletIcon size={14} strokeWidth={2.2} aria-hidden="true" /> : "•"}</span><span>{p.text}</span></li>; })}</ul><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
-      {/* Hall of Legends Section */}
-      <div className="hall-of-legends p-5 rounded-[1.55rem] border border-[rgba(197,154,71,0.45)] bg-[#fffdf8] space-y-4 mt-6 animate-in fade-in duration-300">
-        <div className="text-center space-y-1.5 pb-2.5 border-b border-[rgba(197,154,71,0.15)]">
-          <h3 className="text-sm font-black uppercase tracking-[0.25em] text-[var(--accent)] flex items-center justify-center gap-1.5">
-            <Trophy size={15} /> Hall of Legends
-          </h3>
-          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-            Il registro storico dei pirati leggendari del Tortuga che hanno superato 100 dobloni
-          </p>
-        </div>
-
-        {displayLegends.length > 0 ? (
-          <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-            {displayLegends.map((legend) => (
-              <div key={legend.legend_number} className="flex items-center justify-between py-2.5 px-4 rounded-[0.8rem] bg-[#f0e9de] border border-[rgba(197,154,71,0.12)] hover:border-[rgba(197,154,71,0.35)] transition-all duration-200">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-7 w-12 shrink-0 items-center justify-center rounded-lg border border-[rgba(197,154,71,0.35)] bg-[#fffdf8] font-mono text-[10px] font-black text-[var(--accent)]">
-                    #{String(legend.legend_number).padStart(4, "0")}
-                  </div>
-                  <span className="text-xs font-black text-black">
-                    {legend.nickname}
-                  </span>
-                </div>
-                {legend.real_name ? (
-                  <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[#fffdf8] px-2.5 py-1 rounded-full border border-[rgba(197,154,71,0.2)] font-sans">
-                    {legend.real_name}
-                  </span>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[10px] text-[var(--text-muted)] text-center py-6 italic">
-            Nessun pirata ha ancora inciso il proprio nome nella storia...
-          </p>
-        )}
-      </div>
-
       {isUserRegistered ? (
         <p className="maintenance-note">Mantieni il rango con almeno 5 visite ogni anno. Il ciclo va dal 1 agosto al 31 luglio; i Dobloni Fidelity vengono azzerati il 31 luglio di ogni anno.</p>
       ) : null}
@@ -230,6 +193,17 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     ) : null}
   </div>;
 }
+
+function HallOfLegends({ legends }: { legends: { nickname: string; legend_number: number; real_name?: string }[] }) {
+  return <div className="hall-of-legends animate-in mt-1 space-y-4 rounded-[1.55rem] border border-[rgba(197,154,71,0.45)] bg-[#fffdf8] p-5 fade-in duration-300">
+    <div className="space-y-1.5 border-b border-[rgba(197,154,71,0.15)] pb-2.5 text-center">
+      <h3 className="flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-[0.25em] text-[var(--accent)]"><Trophy size={15} /> Hall of Legends</h3>
+      <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Il registro storico dei pirati leggendari del Tortuga che hanno superato 100 dobloni</p>
+    </div>
+    {legends.length > 0 ? <div className="custom-scrollbar max-h-[320px] space-y-2 overflow-y-auto pr-1">{legends.map((legend) => <div key={legend.legend_number} className="flex items-center justify-between rounded-[0.8rem] border border-[rgba(197,154,71,0.12)] bg-[#f0e9de] px-4 py-2.5 transition-all duration-200 hover:border-[rgba(197,154,71,0.35)]"><div className="flex items-center gap-3"><div className="flex h-7 w-12 shrink-0 items-center justify-center rounded-lg border border-[rgba(197,154,71,0.35)] bg-[#fffdf8] font-mono text-[10px] font-black text-[var(--accent)]">#{String(legend.legend_number).padStart(4, "0")}</div><span className="text-xs font-black text-black">{legend.nickname}</span></div>{legend.real_name ? <span className="rounded-full border border-[rgba(197,154,71,0.2)] bg-[#fffdf8] px-2.5 py-1 font-sans text-[10px] font-bold text-[var(--text-muted)]">{legend.real_name}</span> : null}</div>)}</div> : <p className="py-6 text-center text-[10px] italic text-[var(--text-muted)]">Nessun pirata ha ancora inciso il proprio nome nella storia...</p>}
+  </div>;
+}
+
 function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onClose: () => void }) {
   const { unlocked } = mission;
   return <div className="achievement-modal" role="dialog" aria-modal="true" aria-labelledby="achievement-modal-title" onClick={onClose}>

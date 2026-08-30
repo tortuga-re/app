@@ -21,6 +21,8 @@ export type DemoScenario = {
   demoReceiptPending: boolean;
   demoLastVisitDate: string;
   welcomeChestDevice: "none" | "iphone" | "android";
+  demoWeekday: number;
+  demoLiveGame: "none" | "kantaquiz" | "cervellone";
 };
 
 const defaults: DemoScenario = {
@@ -40,6 +42,8 @@ const defaults: DemoScenario = {
   demoReceiptPending: false,
   demoLastVisitDate: "",
   welcomeChestDevice: "none",
+  demoWeekday: -1,
+  demoLiveGame: "none",
 };
 
 const DemoContext = createContext<{ scenario: DemoScenario; update: (patch: Partial<DemoScenario>) => void } | null>(null);
@@ -110,6 +114,8 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                   <Toggle label="Scontrino da caricare" checked={scenario.demoReceiptPending} onChange={(demoReceiptPending) => update({ demoReceiptPending })} />
                 <label className="demo-field"><span>Data ultima visita</span><input type="date" value={scenario.demoLastVisitDate} onChange={(event) => update({ demoLastVisitDate: event.target.value })} /></label>
                 <label className="demo-field"><span>Anteprima Baule</span><select value={scenario.welcomeChestDevice} onChange={(event) => update({ welcomeChestDevice: event.target.value as DemoScenario["welcomeChestDevice"] })}><option value="none">Nessuna</option><option value="iphone">iPhone</option><option value="android">Android</option></select><ChevronDown size={16} /></label>
+                <label className="demo-field"><span>Giorno simulato</span><select value={scenario.demoWeekday} onChange={(event) => update({ demoWeekday: Number(event.target.value) })}><option value={-1}>Reale</option><option value={1}>Lunedi</option><option value={2}>Martedi</option><option value={3}>Mercoledi</option><option value={4}>Giovedi</option><option value={5}>Venerdi</option><option value={6}>Sabato</option><option value={0}>Domenica</option></select><ChevronDown size={16} /></label>
+                <label className="demo-field"><span>Istruzioni gioco</span><select value={scenario.demoLiveGame} onChange={(event) => update({ demoLiveGame: event.target.value as DemoScenario["demoLiveGame"] })}><option value="none">Nessuna</option><option value="kantaquiz">Dr Why</option><option value="cervellone">Cervellone</option></select><ChevronDown size={16} /></label>
                 </div>
                 <Range label="Dobloni disponibili" value={scenario.points} max={130} onChange={(points) => update({ points })} />
                 <Range label="Massimo Dobloni raggiunto" value={scenario.highestPoints} max={130} onChange={(highestPoints) => update({ highestPoints })} />
