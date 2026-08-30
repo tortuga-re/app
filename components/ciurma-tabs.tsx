@@ -174,7 +174,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
             <Trophy size={15} /> Hall of Legends
           </h3>
           <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-            Il registro storico dei pirati leggendari del Tortuga
+            Il registro storico dei pirati leggendari del Tortuga che hanno superato 100 dobloni
           </p>
         </div>
 

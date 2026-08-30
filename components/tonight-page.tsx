@@ -1,26 +1,32 @@
 "use client";
 
-import { Camera, Send, Trophy } from "lucide-react";
+import { Anchor, Camera, ChevronRight, Gift, KeyRound, QrCode, Send, Wifi } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { DragCarousel } from "@/components/drag-carousel";
+import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useCustomerIdentity } from "@/lib/customer-identity";
-
-type Evening = "friday" | "saturday" | "sunday";
-type Winner = { id: string; team_name: string; evening: Evening; created_at: string };
-const eveningLabels: Record<Evening, string> = { friday: "Venerdi", saturday: "Sabato", sunday: "Domenica" };
+import { formatCouponExpiry, sortActiveCoupons } from "@/lib/customer-profile";
+import type { HighlightContent } from "@/lib/highlight-content";
+import { liveGames, type LiveGameState } from "@/lib/live-game";
 
 export function TonightPage() {
   const { hasIdentity, updateIdentity } = useCustomerIdentity();
-  const [winners, setWinners] = useState<Winner[]>([]);
-  const [evening, setEvening] = useState<Evening>("friday");
+  const customer = useCurrentCustomerStatus();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [liveGame, setLiveGame] = useState<LiveGameState | null>(null);
+  const [editorial, setEditorial] = useState<HighlightContent | null>(null);
 
-  useEffect(() => { fetch("/api/tortuga-winners").then((response) => response.json()).then((body) => setWinners(body.winners ?? [])).catch(() => setWinners([])); }, []);
+  useEffect(() => {
+    void fetch("/api/live-game").then((response) => response.ok ? response.json() : null).then((body) => setLiveGame(body?.game ?? null)).catch(() => setLiveGame(null));
+    void fetch("/api/highlights").then((response) => response.ok ? response.json() : null).then((body) => setEditorial(body?.highlight ?? null)).catch(() => setEditorial(null));
+  }, []);
 
   const submitPhoto = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -38,13 +44,14 @@ export function TonightPage() {
     setMessage("Foto inviata in diretta per 5 secondi. Grazie, ciurma!");
   };
 
-  const visibleWinners = winners.filter((winner) => winner.evening === evening);
+  const activeCoupon = sortActiveCoupons(customer.profile?.coupons ?? [])[0];
   return <main className="minimal-page tonight-page pb-28">
     <div className="minimal-overlap-sheet tonight-sheet">
       <header className="overlap-sheet-intro tonight-intro"><p className="minimal-eyebrow">Al Tortuga si partecipa... sul serio.</p><p>Manda una foto in diretta e scopri le squadre che hanno conquistato il Tortuga.</p></header>
       <div className="space-y-7">
-        <section className="loyalty-summary space-y-4"><div className="flex items-center gap-2"><Camera size={19} className="text-[var(--accent-strong)]" /><div><p className="minimal-eyebrow">Foto Live</p><h2 className="tonight-section-title">Vai in onda per 5 secondi</h2></div></div><p className="text-sm leading-relaxed text-[var(--text-muted)]">La foto viene trasmessa subito sullo schermo del locale. Inviandola autorizzi Tortuga a mostrarla durante la serata.</p><form onSubmit={submitPhoto} className="space-y-3">{!hasIdentity ? <><label className="block w-full text-[.73rem] font-bold text-[var(--text)]">Nome<input required value={name} onChange={(event) => setName(event.target.value)} maxLength={120} className="mt-2 block min-h-[3.15rem] w-full rounded-2xl border border-[rgba(40,35,28,.16)] bg-[#f2ebdf] px-4 py-3 text-[var(--text)] outline-none focus:border-[rgba(165,43,43,.52)] focus:ring-4 focus:ring-[rgba(165,43,43,.1)]" /></label><label className="block w-full text-[.73rem] font-bold text-[var(--text)]">Email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 block min-h-[3.15rem] w-full rounded-2xl border border-[rgba(40,35,28,.16)] bg-[#f2ebdf] px-4 py-3 text-[var(--text)] outline-none focus:border-[rgba(165,43,43,.52)] focus:ring-4 focus:ring-[rgba(165,43,43,.1)]" /></label><p className="text-xs leading-relaxed text-[var(--text-muted)]">Ci servono solo per poterti ricontattare se la tua foto sarà votata come la più bella del mese.</p></> : <p className="text-sm text-[var(--text-muted)]">La tua identita di ciurma e gia pronta: scegli la foto e mandala in onda.</p>}<label className="block w-full text-[.73rem] font-bold text-[var(--text)]">La tua foto<input ref={inputRef} required type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="mt-2 block min-h-[3.15rem] w-full rounded-2xl border border-[rgba(40,35,28,.16)] bg-[#f2ebdf] px-3 py-3 text-[var(--text)]" /></label><button type="submit" disabled={loading} className="minimal-primary w-full">{loading ? "Invio in corso..." : <><Send size={17} /> Invia Foto Live</>}</button>{message ? <p className={`text-sm ${message.startsWith("Foto") ? "text-[var(--accent-strong)]" : "text-[var(--danger)]"}`}>{message}</p> : null}</form></section>
-        <section className="loyalty-summary"><div className="flex items-center gap-2"><Trophy size={19} className="text-[var(--accent-strong)]" /><div><p className="minimal-eyebrow">Vincitori del Tortuga</p><h2 className="tonight-section-title">Onore alla ciurma</h2></div></div><div className="mt-5 grid grid-cols-3 gap-2">{(Object.keys(eveningLabels) as Evening[]).map((key) => <button key={key} type="button" onClick={() => setEvening(key)} className={evening === key ? "minimal-primary py-2 text-xs" : "profile-edit-trigger py-2 text-xs"}>{eveningLabels[key]}</button>)}</div><div className="mt-4 space-y-2">{visibleWinners.length ? visibleWinners.map((winner) => <article key={winner.id} className="rank-route"><p className="minimal-eyebrow">{new Date(winner.created_at).toLocaleDateString("it-IT")}</p><h3 className="tonight-winner-name">{winner.team_name}</h3><span className="text-sm text-[var(--text-muted)]">Squadra vincitrice della serata</span></article>) : <p className="py-4 text-center text-sm text-[var(--text-muted)]">La prossima squadra vincitrice sara qui.</p>}</div></section>
+        {liveGame?.active_game ? <section className="game-context-card"><div className="game-context-heading"><div><p className="minimal-eyebrow">Come giocare</p><span>I passaggi vanno eseguiti in ordine</span></div></div><p className="game-wifi-label">COLLEGATI AL WI-FI</p><div className="game-wifi-row"><span><Wifi aria-hidden="true" />TORTUGA</span><span><KeyRound aria-hidden="true" />PERLANERA</span></div><a href={liveGames[liveGame.active_game].url} target="_blank" rel="noreferrer">POI CLICCA QUI <ChevronRight /></a></section> : null}
+        <section className="loyalty-summary space-y-4"><div className="flex items-center gap-2"><Camera size={19} className="text-[var(--accent-strong)]" /><div><p className="minimal-eyebrow">Foto Live</p><h2 className="tonight-section-title">Vai in onda per 5 secondi</h2></div></div><form onSubmit={submitPhoto} className="space-y-3">{!hasIdentity ? <><label className="block w-full text-[.73rem] font-bold text-[var(--text)]">Nome<input required value={name} onChange={(event) => setName(event.target.value)} maxLength={120} className="mt-2 block min-h-[3.15rem] w-full rounded-2xl border border-[rgba(40,35,28,.16)] bg-[#f2ebdf] px-4 py-3 text-[var(--text)] outline-none focus:border-[rgba(165,43,43,.52)] focus:ring-4 focus:ring-[rgba(165,43,43,.1)]" /></label><label className="block w-full text-[.73rem] font-bold text-[var(--text)]">Email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 block min-h-[3.15rem] w-full rounded-2xl border border-[rgba(40,35,28,.16)] bg-[#f2ebdf] px-4 py-3 text-[var(--text)] outline-none focus:border-[rgba(165,43,43,.52)] focus:ring-4 focus:ring-[rgba(165,43,43,.1)]" /></label><p className="text-xs leading-relaxed text-[var(--text-muted)]">Ci servono solo per poterti ricontattare se la tua foto sarà votata come la più bella del mese.</p></> : <p className="text-sm text-[var(--text-muted)]">La tua identita di ciurma e gia pronta: scegli la foto e mandala in onda.</p>}<label className="block w-full text-[.73rem] font-bold text-[var(--text)]">La tua foto<input ref={inputRef} required type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="mt-2 block min-h-[3.15rem] w-full rounded-2xl border border-[rgba(40,35,28,.16)] bg-[#f2ebdf] px-3 py-3 text-[var(--text)]" /></label><button type="submit" disabled={loading} className="minimal-primary w-full">{loading ? "Invio in corso..." : <><Send size={17} /> Invia Foto Live</>}</button>{message ? <p className={`text-sm ${message.startsWith("Foto") ? "text-[var(--accent-strong)]" : "text-[var(--danger)]"}`}>{message}</p> : null}</form></section>
+        {editorial || !hasIdentity || activeCoupon ? <section><div className="section-heading"><div><p className="minimal-eyebrow">In evidenza</p><h2>Da non perdere</h2></div></div><DragCarousel className="snap-slides" label="Contenuti in evidenza">{editorial ? <article className="feature-slide editorial-slide" style={editorial.background_image_url ? { backgroundImage: `linear-gradient(${editorial.overlay_color ?? "rgba(15,18,16,.62)"}, ${editorial.overlay_color ?? "rgba(15,18,16,.62)"}), url(${editorial.background_image_url})` } : undefined}><div className="slide-icon"><Anchor size={20} /></div><p>{editorial.eyebrow}</p><h3>{editorial.title}</h3><span>{editorial.description}</span><a href={editorial.cta_url}>{editorial.cta_label} <ChevronRight size={16} /></a></article> : null}{!hasIdentity ? <article className="feature-slide reward-slide"><div className="slide-icon"><Gift size={20} /></div><p>Fidelity Tortuga</p><h3>Inizia a conquistare premi</h3><span>Registrati per accumulare Dobloni ad ogni visita e sbloccare vantaggi.</span><Link href="/ciurma?recognition=1">Entra nella Ciurma <ChevronRight size={16} /></Link></article> : null}{activeCoupon ? <article className="feature-slide coupon-slide"><div className="slide-icon"><QrCode size={20} /></div><p>Coupon disponibile</p><h3>Usa il tuo coupon prima che scada</h3><span>{activeCoupon.DataScadenza ? `Valido fino al ${formatCouponExpiry(activeCoupon.DataScadenza)}` : "Il tuo coupon è pronto da utilizzare."}</span><Link href="/ciurma">Vedi coupon <ChevronRight size={16} /></Link></article> : null}</DragCarousel></section> : null}
       </div>
     </div>
   </main>;

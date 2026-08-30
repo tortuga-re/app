@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
 import { usePathname } from "next/navigation";
-import { Gift, Home, Info, Users } from "lucide-react";
+import { BarChart3, Home, Info, Users } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { useBookingOverlay } from "@/components/booking-overlay";
@@ -66,7 +66,7 @@ interface NavItem {
 
 const baseItems: NavItem[] = [
   { href: "/", label: "Home", Icon: Home },
-  { href: "/gift", label: "Gift", Icon: Gift },
+  { href: "/classifiche", label: "Classifiche", Icon: BarChart3 },
   { href: "/ciurma", label: "Ciurma", Icon: Users },
   { href: "/info", label: "Info", Icon: Info },
 ];
@@ -77,7 +77,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
 
   const navItems = [...baseItems];
   if (showBookingButton) {
-    // Inserisce il pulsante Prenota con icona SkullCrossbones al centro (indice 2, tra Gift e Ciurma)
+    // Inserisce il pulsante Prenota con icona SkullCrossbones al centro.
     navItems.splice(2, 0, { href: "#prenota", label: "Prenota", Icon: SkullCrossbones, isAction: true });
   }
 

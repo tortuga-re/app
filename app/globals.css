@@ -784,6 +784,13 @@ body {
 .tonight-section-title,.tonight-winner-name { margin-top:.35rem; color:var(--text); font-family:var(--font-serif); line-height:1.08; }
 .tonight-section-title { font-size:1.55rem; font-weight:400; }
 .tonight-winner-name { font-size:1.55rem; font-weight:400; }
+.rankings-sheet { padding-top:.7rem; }
+.rankings-sheet .overlap-sheet-intro h1,.rankings-title,.rankings-name { margin-top:.35rem; color:var(--text); font-family:var(--font-serif); font-size:1.55rem; font-weight:400; line-height:1.08; }
+.rankings-row { display:flex; align-items:center; gap:.75rem; min-height:3rem; border-radius:1rem; background:#f2ebdf; padding:.75rem .85rem; color:var(--text); font-size:.8rem; }
+.rankings-row>span { display:flex; width:1.65rem; height:1.65rem; flex:none; align-items:center; justify-content:center; border-radius:50%; background:#171916; color:#e4c276; font-size:.65rem; font-weight:800; }
+.rankings-row strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rankings-row svg { margin-left:auto; color:var(--gold); }
+.rankings-empty { padding:1rem; color:var(--text-muted); font-size:.74rem; text-align:center; }
 .tonight-winner-name { font-size:1.2rem; }
 .tonight-photo-form>label { display:grid; gap:.35rem; color:var(--text); font-size:.73rem; font-weight:750; }
 .tonight-photo-form>label>input { width:100%; min-height:3.15rem; border:1px solid rgba(40,35,28,.16); border-radius:1rem; background:#f2ebdf; color:var(--text); padding:.7rem .85rem; font-family:var(--font-sans); font-size:.82rem; outline:none; }
