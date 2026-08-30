@@ -1,11 +1,15 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-export function DragCarousel({ children, className, label }: { children: React.ReactNode; className?: string; label: string }) {
+export function DragCarousel({ children, className, label, resetKey }: { children: React.ReactNode; className?: string; label: string; resetKey?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, captured: false, startX: 0, startScroll: 0 });
+
+  useEffect(() => {
+    ref.current?.scrollTo({ left: 0, behavior: "auto" });
+  }, [resetKey]);
 
   return <div
     ref={ref}

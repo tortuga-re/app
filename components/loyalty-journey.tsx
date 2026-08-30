@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Anchor, Award, CalendarCheck, ChevronRight, Gift, Pencil, QrCode, Shield, Coins, Cake, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { getActiveRank, getNextRank, getRankIndex, tortugaRanks } from "@/lib/loyalty-ranks";
 import { fidelityRewardTiers } from "@/lib/fidelity-rewards.config";
@@ -22,6 +23,7 @@ import type { HighlightContent } from "@/lib/highlight-content";
 const CiurmaRecognition = dynamic(() => import("@/components/profile-screen").then((module) => module.CiurmaScreen), { ssr: false });
 
 export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?: boolean; beforeHighlights?: React.ReactNode }) {
+  const pathname = usePathname();
   const [now] = useState(() => Date.now());
   const [cardOpen, setCardOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -220,7 +222,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
     {!compact ? <>
       {loggedIn ? beforeHighlights : null}
       <div className="section-heading"><div><p className="minimal-eyebrow">In evidenza</p><h2>Le tue prossime tappe</h2></div></div>
-      <DragCarousel className="snap-slides" label="Contenuti in evidenza">
+      <DragCarousel className="snap-slides" label="Contenuti in evidenza" resetKey={`${pathname}:${visibleEditorial?.id ?? ""}`}>
         {visibleEditorial ? <article className="feature-slide editorial-slide" style={visibleEditorial.background_image_url ? { backgroundImage: `linear-gradient(${visibleEditorial.overlay_color ?? "rgba(15,18,16,.62)"}, ${visibleEditorial.overlay_color ?? "rgba(15,18,16,.62)"}), url(${visibleEditorial.background_image_url})` } : undefined}><div className="slide-icon"><Anchor size={20} /></div><p>{visibleEditorial.eyebrow}</p><h3>{visibleEditorial.title}</h3><span>{visibleEditorial.description}</span>{!hasUpcomingReservationSoon || !editorialHasBookingCta ? editorialCtaExternal ? <button type="button" onClick={() => setEditorialLinkOpen(true)}>{visibleEditorial.cta_label} <ChevronRight size={16} /></button> : <a href={visibleEditorial.cta_url}>{visibleEditorial.cta_label} <ChevronRight size={16} /></a> : null}</article> : null}
         {loggedIn && activeCoupons[0] ? <article className="feature-slide coupon-slide"><div className="slide-icon"><QrCode size={20} /></div><p>Coupon disponibile</p><h3>Usa il tuo coupon prima che scada</h3><span>{hasUpcomingReservationSoon ? "Potrai usarlo durante la tua prossima visita già confermata." : activeCoupons[0].DataScadenza ? `Valido fino al ${formatCouponExpiry(activeCoupons[0].DataScadenza)}` : "Il tuo coupon è pronto da utilizzare."}</span><div className="slide-actions"><button type="button" onClick={() => setCouponOpen(true)}>Vedi coupon <ChevronRight size={16} /></button>{!hasUpcomingReservationSoon ? <button type="button" onClick={openBooking}>Prenota <ChevronRight size={16} /></button> : null}</div></article> : null}
         {surveyEligible ? <article className="feature-slide survey-slide"><div className="slide-icon"><Gift size={20} /></div><p>La tua opinione conta</p><h3>Raccontaci la tua visita</h3><span>Compila un breve sondaggio: al termine riceverai un regalo di ringraziamento.</span><button type="button" onClick={() => setSurveyOpen(true)}>Compila il sondaggio <ChevronRight size={16} /></button></article> : null}

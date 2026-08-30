@@ -7,6 +7,7 @@ import { requestJson } from "@/lib/client";
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { getCouponDisplayCode, getCouponQrValue, formatCouponExpiry } from "@/lib/customer-profile";
 import { useCustomerIdentity } from "@/lib/customer-identity";
+import { useDemoScenario } from "@/components/demo-scenario-provider";
 import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
 
 type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
@@ -49,6 +50,7 @@ const isIosDevice = () => {
 
 export function PwaInstallCard() {
   const { identity, updateIdentity } = useCustomerIdentity();
+  const { scenario } = useDemoScenario();
   const [clientReady, setClientReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [installDismissedAt, setInstallDismissedAt] = useState<number | null>(null);
@@ -66,6 +68,7 @@ export function PwaInstallCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [reward, setReward] = useState<{ coupon: CoopertoCoupon; profile: ProfileResponse; pointsAwarded: number } | null>(null);
+  const welcomeChestPreview = scenario.enabled ? scenario.welcomeChestDevice : "none";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -134,6 +137,11 @@ export function PwaInstallCard() {
     };
   }, []);
 
+  useEffect(() => {
+    if (welcomeChestPreview === "none") return;
+    setShowAsPopup(true);
+  }, [welcomeChestPreview]);
+
 
   const prepareChest = useCallback(async () => {
     setBusy(true); setError("");
@@ -152,6 +160,7 @@ export function PwaInstallCard() {
     const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number }>('/api/welcome-chest/claim', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
     setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
     window.localStorage.removeItem(welcomeChestPendingKey);
+    window.dispatchEvent(new Event("tortuga:profile-updated"));
   }, [email, firstName]);
 
   const enablePush = useCallback(async () => {
@@ -202,15 +211,17 @@ export function PwaInstallCard() {
   }, [installDismissedAt, evaluationNow]);
 
   const mode = useMemo<InstallCardMode | null>(() => {
+    if (welcomeChestPreview === "iphone") return "fallback-ios";
+    if (welcomeChestPreview === "android") return "prompt";
     if (!clientReady || isInstalled || installSnoozed || !isProbablyMobile || !installFallbackReady) {
       return null;
     }
     if (promptEvent) return "prompt";
     return isIos ? "fallback-ios" : "fallback-browser";
-  }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos]);
-  const showFullRewards = !isInstalled && !identity.email;
+  }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos, welcomeChestPreview]);
+  const showFullRewards = (welcomeChestPreview !== "none" || !isInstalled) && !identity.email;
 
-  if (isInstalled && showAsPopup && (!identity.email || chestPrepared || reward)) {
+  if (welcomeChestPreview === "none" && isInstalled && showAsPopup && (!identity.email || chestPrepared || reward)) {
     return <div className="fixed inset-0 z-[120] flex items-center justify-center px-5 py-6">
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <section className="relative w-full max-w-sm panel rounded-[2.4rem] border border-[rgba(216,176,106,.28)] p-6 shadow-2xl">
@@ -238,7 +249,7 @@ export function PwaInstallCard() {
   const content = (
     <div className={showAsPopup ? "" : "panel rounded-[1.9rem] px-5 py-5 border-2 border-[var(--accent-strong)]/20 bg-[var(--accent-soft)]/5"}>
       <div className="flex items-center justify-between gap-4">
-        <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
+        <p className="eyebrow text-[var(--accent-strong)]">Inizia l&apos;imbarco</p>
         <button 
           onClick={showAsPopup ? dismissPopup : dismissPermanently} 
           className="text-[var(--text-muted)] hover:text-white transition-colors p-1"
@@ -247,30 +258,31 @@ export function PwaInstallCard() {
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
-      <div className="mt-3 space-y-3">
+      <div className="mt-2 space-y-2">
         <Image
           src="/images/gift-card-treasure-chest-background.png"
           alt="Baule aperto con monete e tesori"
           width={1536}
           height={1024}
-          className="h-40 w-full rounded-2xl border border-[rgba(216,176,106,.24)] object-cover object-[74%_center]"
-        /><h2 className="text-xl font-black text-white uppercase italic tracking-tight">Inizia l&apos;imbarco</h2>
-          <ul className="space-y-2 text-sm leading-5 text-[var(--accent-strong)]">
-            <li><strong>5 Dobloni</strong> <span className="text-[var(--text-muted)]">- Pari a 50 euro di spesa</span></li>
-            <li><strong>Porzione di Gnocco/Tigelle</strong></li>
+          className="h-28 w-full rounded-2xl border border-[rgba(216,176,106,.24)] object-cover object-[74%_center]"
+        /><h2 className="text-xl font-black text-white uppercase italic tracking-tight">Baule di benvenuto</h2>
+          <ul className="space-y-1.5 text-[13px] font-bold leading-[1.25] text-[var(--accent-strong)]">
+            <li>5 Dobloni - Pari a 50€ di spesa</li>
+            <li>Porzione di Gnocco/Tigelle</li>
             {showFullRewards ? <>
-              <li><strong>Card Fidelity</strong> <span className="text-[var(--text-muted)]">- ATTIVATA</span></li>
-              <li><strong>Rango Mozzo</strong> <span className="text-[var(--text-muted)]">- CONQUISTATO</span></li>
-              <li><strong>Missioni Primo approdo e Mozzo di bordo</strong> <span className="text-[var(--text-muted)]">- SBLOCCATE</span></li>
+              <li>Card Fidelity - ATTIVATA</li>
+              <li>Rango Mozzo - CONQUISTATO</li>
+              <li>2 Missioni - SBLOCCATE</li>
             </> : null}
           </ul>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">Per ricevere il Baule aggiungi l&apos;app alla Home e riaprila dall&apos;icona.</p>
+          <p className="text-xs leading-5 text-[var(--text-muted)]">Per ricevere il Baule aggiungi l&apos;app alla Home e riaprila dall&apos;icona.</p>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 space-y-2">
         {mode === "prompt" ? (
           <button
             onClick={async () => {
+              if (welcomeChestPreview === "android") return;
               if (!promptEvent) return;
               await promptEvent.prompt();
               const { outcome } = await promptEvent.userChoice;
@@ -280,10 +292,17 @@ export function PwaInstallCard() {
               }
               setPromptEvent(null);
             }}
-            className="button-primary w-full py-3 text-xs font-bold uppercase tracking-widest"
+            className="button-primary w-full py-2.5 text-xs font-bold uppercase tracking-widest"
           >
             Installa app
           </button>
+        ) : mode === "fallback-ios" ? (
+          <div className="space-y-3">
+            <video className="aspect-square w-full rounded-2xl border border-[rgba(216,176,106,.24)] bg-black object-cover" autoPlay loop muted playsInline preload="auto">
+              <source src="https://app.tortugabay.it/live-tv-media/video/1788114922343-il-mio-video-2.mp4" type="video/mp4" />
+            </video>
+            <p className="rounded-xl border border-white/5 bg-white/5 p-3 text-xs leading-5 text-[var(--text-muted)]">In Safari tocca <strong>Condividi</strong>, poi scorri e scegli <strong>Aggiungi alla schermata Home</strong>. Riapri quindi Tortuga dall&apos;icona appena creata.</p>
+          </div>
         ) : (
           <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3 text-xs text-[var(--text-muted)] border border-white/5 italic">
             <svg className="w-4 h-4 shrink-0 text-[var(--accent-strong)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -296,7 +315,7 @@ export function PwaInstallCard() {
         {showAsPopup && (
           <button 
             onClick={dismissPopup}
-            className="w-full py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-white transition-colors"
+            className="w-full py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-white transition-colors"
           >
             Lo faro piu tardi
           </button>
@@ -307,9 +326,9 @@ export function PwaInstallCard() {
 
   if (showAsPopup) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-4">
         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={dismissPopup} />
-        <div className="relative w-full max-w-sm panel rounded-[2.5rem] p-8 border-t border-white/10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+        <div className="relative w-full max-w-sm panel rounded-[2.5rem] p-6 border-t border-white/10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
           {content}
         </div>
       </div>

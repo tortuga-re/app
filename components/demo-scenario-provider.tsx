@@ -20,6 +20,7 @@ export type DemoScenario = {
   demoEditorial: boolean;
   demoReceiptPending: boolean;
   demoLastVisitDate: string;
+  welcomeChestDevice: "none" | "iphone" | "android";
 };
 
 const defaults: DemoScenario = {
@@ -38,6 +39,7 @@ const defaults: DemoScenario = {
   demoEditorial: false,
   demoReceiptPending: false,
   demoLastVisitDate: "",
+  welcomeChestDevice: "none",
 };
 
 const DemoContext = createContext<{ scenario: DemoScenario; update: (patch: Partial<DemoScenario>) => void } | null>(null);
@@ -106,7 +108,8 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                   <Toggle label="Compleanno" checked={scenario.demoBirthday} onChange={(demoBirthday) => update({ demoBirthday })} />
                   <Toggle label="Contenuto editoriale" checked={scenario.demoEditorial} onChange={(demoEditorial) => update({ demoEditorial })} />
                   <Toggle label="Scontrino da caricare" checked={scenario.demoReceiptPending} onChange={(demoReceiptPending) => update({ demoReceiptPending })} />
-                  <label className="demo-field"><span>Data ultima visita</span><input type="date" value={scenario.demoLastVisitDate} onChange={(event) => update({ demoLastVisitDate: event.target.value })} /></label>
+                <label className="demo-field"><span>Data ultima visita</span><input type="date" value={scenario.demoLastVisitDate} onChange={(event) => update({ demoLastVisitDate: event.target.value })} /></label>
+                <label className="demo-field"><span>Anteprima Baule</span><select value={scenario.welcomeChestDevice} onChange={(event) => update({ welcomeChestDevice: event.target.value as DemoScenario["welcomeChestDevice"] })}><option value="none">Nessuna</option><option value="iphone">iPhone</option><option value="android">Android</option></select><ChevronDown size={16} /></label>
                 </div>
                 <Range label="Dobloni disponibili" value={scenario.points} max={130} onChange={(points) => update({ points })} />
                 <Range label="Massimo Dobloni raggiunto" value={scenario.highestPoints} max={130} onChange={(highestPoints) => update({ highestPoints })} />
