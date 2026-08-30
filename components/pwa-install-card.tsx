@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { pwaConfig, storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { getCouponDisplayCode, getCouponQrValue, formatCouponExpiry } from "@/lib/customer-profile";
+import { useCustomerIdentity } from "@/lib/customer-identity";
 import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
 
 type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
@@ -45,6 +47,7 @@ const isIosDevice = () => {
 };
 
 export function PwaInstallCard() {
+  const { identity, updateIdentity } = useCustomerIdentity();
   const [clientReady, setClientReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [installDismissedAt, setInstallDismissedAt] = useState<number | null>(null);
@@ -52,6 +55,7 @@ export function PwaInstallCard() {
   const [installFallbackReady, setInstallFallbackReady] = useState(false);
   const [isProbablyMobile, setIsProbablyMobile] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [isIosChrome, setIsIosChrome] = useState(false);
   const [evaluationNow, setEvaluationNow] = useState(0);
   const [showAsPopup, setShowAsPopup] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -60,6 +64,7 @@ export function PwaInstallCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [reward, setReward] = useState<{ coupon: CoopertoCoupon; profile: ProfileResponse; pointsAwarded: number } | null>(null);
+  const [onboardingReady, setOnboardingReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -73,6 +78,7 @@ export function PwaInstallCard() {
       setInstallDismissedAt(dismissedAt);
       setIsProbablyMobile(isProbablyMobileDevice());
       setIsIos(isIosDevice());
+      setIsIosChrome(/crios/i.test(window.navigator.userAgent));
       setEvaluationNow(Date.now());
 
       // Se non è installata e non è mai stata rifiutata, mostriamo il popup
@@ -80,6 +86,12 @@ export function PwaInstallCard() {
         setShowAsPopup(true);
       }
       if (installed) setShowAsPopup(true);
+      if (installed) {
+        void requestJson<{ start: { firstName: string; email: string } | null }>("/api/welcome-chest/start").then(({ start }) => {
+          if (!start) return;
+          setFirstName(start.firstName); setEmail(start.email); setOnboardingReady(true);
+        }).catch(() => undefined);
+      }
     });
 
     const handleBeforeInstall = (event: Event) => {
@@ -115,6 +127,25 @@ export function PwaInstallCard() {
     };
   }, []);
 
+  const prepareOnboarding = useCallback(async () => {
+    if (!firstName.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) throw new Error("Inserisci nome ed email per continuare.");
+    const rewardTier = isInstalled || identity.email ? "basic" : "full";
+    await requestJson("/api/welcome-chest/start", { method: "POST", body: JSON.stringify({ firstName, email, rewardTier }) });
+    setOnboardingReady(true);
+  }, [email, firstName, identity.email, isInstalled]);
+
+  const claimChest = useCallback(async () => {
+    setBusy(true); setError("");
+    try {
+      const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number }>('/api/welcome-chest/claim', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
+      setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
+      updateIdentity({ email, firstName: response.profile.contact?.Nome || firstName, lastName: response.profile.contact?.Cognome || "", phone: response.profile.contact?.Telefono || "", marketingConsent: true });
+      window.dispatchEvent(new Event("tortuga:profile-updated"));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad aprire il Baule.");
+    } finally { setBusy(false); }
+  }, [email, firstName, updateIdentity]);
+
   const enablePush = useCallback(async () => {
     if (!firstName.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
       setError("Inserisci nome ed email per continuare.");
@@ -135,21 +166,11 @@ export function PwaInstallCard() {
       const subscription = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
       await requestJson("/api/push/subscriptions", { method: "POST", body: JSON.stringify({ subscription: subscription.toJSON(), email: email.trim().toLowerCase(), permission, installed: true, userAgent: navigator.userAgent }) });
       setPushReady(true);
+      await claimChest();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad attivare le notifiche.");
     } finally { setBusy(false); }
-  }, [email, firstName]);
-
-  const claimChest = useCallback(async () => {
-    setBusy(true); setError("");
-    try {
-      const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number; requiresLogin?: boolean }>("/api/welcome-chest/claim", { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
-      setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
-      window.dispatchEvent(new Event("tortuga:profile-updated"));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad aprire il Baule.");
-    } finally { setBusy(false); }
-  }, [email, firstName]);
+  }, [claimChest, email, firstName]);
 
   const dismissPopup = useCallback(() => {
     setShowAsPopup(false);
@@ -179,11 +200,15 @@ export function PwaInstallCard() {
     if (promptEvent) return "prompt";
     return isIos ? "fallback-ios" : "fallback-browser";
   }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos]);
+  const showFullRewards = !isInstalled && !identity.email;
 
   if (isInstalled && showAsPopup) {
     return <div className="fixed inset-0 z-[120] flex items-center justify-center px-5 py-6">
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <section className="relative w-full max-w-sm panel rounded-[2.4rem] border border-[rgba(216,176,106,.28)] p-6 shadow-2xl">
+        <button type="button" onClick={dismissPopup} className="absolute right-4 top-4 z-10 rounded-full p-2 text-[var(--text-muted)] transition-colors hover:bg-white/10 hover:text-white" aria-label="Chiudi Baule di benvenuto">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
         {reward ? <div className="space-y-5 text-center">
           <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
           <h2 className="text-3xl font-black uppercase italic text-white">Baule aperto</h2>
@@ -192,10 +217,9 @@ export function PwaInstallCard() {
           <button type="button" className="button-primary w-full py-3" onClick={() => setShowAsPopup(false)}>Vai alla mia Ciurma</button>
         </div> : <div className="space-y-5">
           <div><p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p><h2 className="mt-2 text-2xl font-black uppercase italic text-white">Completa l&apos;imbarco</h2><p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Attiva le notifiche e apri il tuo Baule con 5 Dobloni e un premio da mostrare al personale.</p></div>
-          <label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label>
-          <label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+          {!onboardingReady ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label></> : <p className="text-sm leading-6 text-[var(--text-muted)]">Riapri l&apos;app dalla Home: ora manca solo l&apos;attivazione delle notifiche.</p>}
           {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
-          {!pushReady ? <button type="button" className="button-primary w-full py-3" disabled={busy} onClick={() => void enablePush()}>{busy ? "Attivazione..." : "Attiva notifiche"}</button> : <button type="button" className="button-primary w-full py-3" disabled={busy} onClick={() => void claimChest()}>{busy ? "Apro il Baule..." : "Apri il Baule"}</button>}
+          <button type="button" className="button-primary w-full py-3" disabled={busy || pushReady} onClick={() => void (onboardingReady ? enablePush() : prepareOnboarding())}>{busy ? "Apro il Baule..." : onboardingReady ? "Attiva notifiche e apri il Baule" : "Prepara il Baule"}</button>
         </div>}
       </section>
     </div>;
@@ -208,13 +232,27 @@ export function PwaInstallCard() {
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
+          <Image
+            src="/images/gift-card-treasure-chest-background.png"
+            alt="Baule aperto con monete e tesori"
+            width={1536}
+            height={1024}
+            className="h-32 w-full rounded-2xl border border-[rgba(216,176,106,.24)] object-cover object-[74%_center]"
+          />
           <h2 className="text-xl font-black text-white uppercase italic tracking-tight">Inizia l&apos;imbarco</h2>
+          <ul className="space-y-1 text-sm leading-5 text-[var(--accent-strong)]">
+            <li>• 5 Dobloni Tortuga</li>
+            <li>• Una porzione di gnocco/tigelle</li>
+            {showFullRewards ? <><li>• Card Fidelity attiva</li><li>• Rango Mozzo</li><li>• Missioni Primo approdo e Mozzo di bordo</li></> : null}
+          </ul>
           <p className="text-sm leading-6 text-[var(--text-muted)]">
             {mode === "prompt"
-              ? "Installa l&apos;app per sbloccare 5 Dobloni e il tuo premio di benvenuto."
+              ? "Installa l'app per sbloccare 5 Dobloni e il tuo premio di benvenuto."
               : mode === "fallback-ios"
-                ? "Premi Condividi in Safari e scegli &apos;Aggiungi alla schermata Home&apos; per continuare e aprire il Baule."
-                : "Apri il menu del browser e scegli &apos;Installa app&apos; o &apos;Aggiungi a Home&apos; per continuare e aprire il Baule."}
+                ? isIosChrome
+                  ? "In Chrome premi i tre puntini, scegli 'Condividi' e poi 'Aggiungi alla schermata Home'."
+                  : "In Safari premi Condividi e scegli 'Aggiungi alla schermata Home' per continuare e aprire il Baule."
+                : "Apri il menu del browser e scegli 'Installa app' o 'Aggiungi a Home' per continuare e aprire il Baule."}
           </p>
         </div>
         <button 
@@ -228,10 +266,12 @@ export function PwaInstallCard() {
       </div>
 
       <div className="mt-4 space-y-3">
+        {!onboardingReady ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>{error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}</> : null}
         {mode === "prompt" ? (
           <button
             onClick={async () => {
               if (!promptEvent) return;
+              try { await prepareOnboarding(); } catch (reason) { setError(reason instanceof Error ? reason.message : "Impossibile preparare il Baule."); return; }
               await promptEvent.prompt();
               const { outcome } = await promptEvent.userChoice;
               if (outcome === "accepted") {
@@ -242,15 +282,15 @@ export function PwaInstallCard() {
             }}
             className="button-primary w-full py-3 text-xs font-bold uppercase tracking-widest"
           >
-            Installa e apri il Baule
+            Installa app
           </button>
         ) : (
-          <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3 text-xs text-[var(--text-muted)] border border-white/5 italic">
+          onboardingReady ? <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3 text-xs text-[var(--text-muted)] border border-white/5 italic">
             <svg className="w-4 h-4 shrink-0 text-[var(--accent-strong)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Usa il comando nativo del tuo browser per aggiungere l&apos;icona alla Home.
-          </div>
+          </div> : <button type="button" className="button-primary w-full py-3" disabled={busy} onClick={() => void prepareOnboarding().catch((reason) => setError(reason instanceof Error ? reason.message : "Impossibile richiedere il premio."))}>{isIos ? "Richiedi premio" : "Prepara installazione"}</button>
         )}
         
         {showAsPopup && (

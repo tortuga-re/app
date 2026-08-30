@@ -10,9 +10,9 @@ import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 import { unlockAchievement } from "@/lib/profile/achievement-service";
 import {
   attachCustomerSessionCookie,
-  getCustomerSession,
   normalizeCustomerSessionIdentity,
 } from "@/lib/session/customer-session";
+import { readWelcomeChestStart } from "@/lib/session/welcome-chest";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,8 +34,10 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as
     | { email?: string; firstName?: string; marketingConsent?: boolean }
     | null;
-  const email = normalizeEmail(body?.email);
-  const firstName = cleanText(body?.firstName);
+  const start = readWelcomeChestStart(request);
+  const email = normalizeEmail(start?.email ?? body?.email);
+  const firstName = cleanText(start?.firstName ?? body?.firstName);
+  const rewardTier = start?.rewardTier ?? "basic";
 
   if (!isValidEmail(email) || !firstName) {
     return NextResponse.json({ error: "Inserisci nome ed email validi." }, { status: 400 });
@@ -43,17 +45,6 @@ export async function POST(request: NextRequest) {
 
   const currentProfile = await getProfileData("email", email);
   const existingContact = currentProfile.source === "live" && Boolean(currentProfile.contact?.CodiceContatto);
-  const session = getCustomerSession(request);
-
-  // Existing customers must prove that the email belongs to them before a
-  // reward can be attached to their already active Cooperto contact.
-  if (existingContact && session?.email !== email) {
-    return NextResponse.json(
-      { requiresLogin: true, error: "Accedi con il codice ricevuto via email per sbloccare il Baule." },
-      { status: 401 },
-    );
-  }
-
   const rewards = getSupabaseAdmin().from("welcome_chest_rewards");
   const { data: existingReward, error: readError } = await rewards
     .select("status,is_new_customer,coupon_contact_code,coupon_expires_at")
@@ -115,7 +106,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Cooperto non ha restituito il contatto associato al Baule.");
     }
 
-    if (!profile.contact?.CodiceCard) {
+    if (rewardTier === "full" && !profile.contact?.CodiceCard) {
       await activateFidelityCard({ contactCode });
       profile = await getProfileData("contactCode", contactCode);
     }
@@ -126,7 +117,7 @@ export async function POST(request: NextRequest) {
       note: "Baule di benvenuto Tortuga",
     });
 
-    if (isNewCustomer) {
+    if (rewardTier === "full") {
       await Promise.all([
         unlockAchievement(email, "primo-approdo"),
         unlockAchievement(email, "mozzo-di-bordo"),

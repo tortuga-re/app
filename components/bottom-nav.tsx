@@ -104,7 +104,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
           </button>;
         }
 
-        return <Link key={item.href} href={item.href} onClick={() => triggerHaptic()} className={cn("minimal-nav-item", active && "active", item.href === "/ciurma" && isVip && "vip")}>
+        return <Link key={item.href} href={item.href} prefetch onClick={() => triggerHaptic()} className={cn("minimal-nav-item", active && "active", item.href === "/ciurma" && isVip && "vip")}>
           <Icon size={21} strokeWidth={active ? 2.2 : 1.7} /><span>{item.label}</span>
         </Link>;
       })}

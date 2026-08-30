@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { CalendarDays, ExternalLink, X } from "lucide-react";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
@@ -17,6 +17,7 @@ export const useBookingOverlay = () => useContext(BookingContext);
  
 export function BookingOverlayProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [preloaded, setPreloaded] = useState(false);
   const [now] = useState(() => Date.now());
   const customer = useCurrentCustomerStatus();
   const { scenario } = useDemoScenario();
@@ -33,10 +34,18 @@ export function BookingOverlayProvider({ children }: { children: React.ReactNode
   const showBookingButton = scenario.enabled
     ? !hasUpcomingReservationSoon && !isOnPremise
     : !customer.loading && !hasUpcomingReservationSoon && !isOnPremise;
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (connection?.saveData) return;
+
+    const timer = window.setTimeout(() => setPreloaded(true), 2_500);
+    return () => window.clearTimeout(timer);
+  }, []);
  
   return <BookingContext.Provider value={{ openBooking: () => setOpen(true), showBookingButton, hasUpcomingReservationSoon }}>
     {children}
-    {open ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label="Prenotazione Tortuga">
+    {open || preloaded ? <div className={open ? "booking-overlay" : "hidden"} role="dialog" aria-modal="true" aria-label="Prenotazione Tortuga">
       <header><div><CalendarDays size={19} /><span>Prenota al Tortuga</span></div><div className="flex gap-2"><a href={BOOKING_URL} target="_blank" rel="noreferrer" aria-label="Apri nel browser"><ExternalLink size={19} /></a><button onClick={() => setOpen(false)} aria-label="Chiudi prenotazione"><X size={22} /></button></div></header>
       <BrandedIframe src={BOOKING_URL} title="Prenotazione Tortuga" allow="payment" />
     </div> : null}

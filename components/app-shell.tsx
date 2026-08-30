@@ -16,6 +16,7 @@ import { useCustomerStatus } from "@/lib/use-customer-status";
 import { CustomerStatusProvider } from "@/components/customer-status-context";
 import { QRScanner } from "@/components/QRScanner";
 import { MenuOverlayProvider, useMenuOverlay } from "@/components/menu-overlay";
+import { RoutePrefetcher } from "@/components/route-prefetcher";
 
 const RECOVERY_KEY = "tortuga.chunk-recovery-at";
 const RECOVERY_COOLDOWN_MS = 30_000;
@@ -125,9 +126,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <CustomerStatusProvider value={customerStatus}>
     <DemoScenarioProvider>
     <MenuOverlayProvider>
-    <BookingOverlayProvider>
+      <BookingOverlayProvider>
     <div className="relative min-h-screen overflow-x-hidden">
       <AnalyticsTracker />
+      <RoutePrefetcher />
 
       <div className="pointer-events-none absolute inset-0">
         <div className="fixed inset-0 z-[-1] bg-[#0a0a0a]">
