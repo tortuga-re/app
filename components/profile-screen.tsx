@@ -3,27 +3,12 @@
 import { missions } from "@/lib/missions";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 
-import { ScratchAndWinCard } from "@/components/scratch-and-win-card";
 import { StatusBlock } from "@/components/status-block";
-import dynamic from "next/dynamic";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const FidelityActivationPanel = dynamic<any>(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel).catch(() => ({ default: () => null } as any)), { ssr: false });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const PiratePhotoContestCard = dynamic<any>(() => import("@/features/pirate-photo/components/PiratePhotoContestCard").then(mod => mod.PiratePhotoContestCard).catch(() => ({ default: () => null } as any)), { ssr: false });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => ({ default: () => null } as any)), { ssr: false });
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import { scrollToFormField } from "@/lib/form-focus";
-import {
-  formatBirthDateLabel,
-  toDateInputValue,
-} from "@/lib/customer-profile";
+import { toDateInputValue } from "@/lib/customer-profile";
 import {
   isValidCustomerEmail,
   normalizeCustomerEmail,
@@ -37,7 +22,6 @@ import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { isAdmin } from "@/lib/live-buzzer/admin";
-import { CollapsibleWrapper } from "@/components/collapsible-wrapper";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 import {
   italianPhoneValidationError,
@@ -900,19 +884,6 @@ export function CiurmaScreen() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handlePiratePhotoProfileResolved = (profile: ProfileResponse) => {
-    applyProfileResponse(profile);
-    setContactForm(buildContactForm(profile.contact ?? undefined));
-    setIsEditingLookup(false);
-    setIsRegistering(false);
-    setIsEditingProfile(false);
-    setContactError("");
-    setContactMessage("");
-    autoLoadedKeyRef.current = normalizeCustomerEmail(
-      profile.contact?.Email || profile.query,
-    );
-  };
-
   const handleFidelityActivated = (profile: ProfileResponse) => {
     applyProfileResponse(profile);
     setShowActivatedCardPanel(true);
@@ -1032,22 +1003,6 @@ export function CiurmaScreen() {
         />
       ) : null}
 
-      {!data?.contact ? (
-        <div id="contest" className="hash-scroll-target space-y-4 rounded-[2rem]">
-          <PiratePhotoContestCard
-            contact={data?.contact ?? null}
-            onProfileResolved={applyProfileResponse}
-            onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-          />
-          {hasOnPremiseAccess ? (
-            <LiveTvContributionCard
-              contact={data?.contact ?? null}
-              onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-            />
-          ) : null}
-        </div>
-      ) : null}
-
       {data?.contact ? (
         <>
           <ProfileDashboard
@@ -1058,21 +1013,6 @@ export function CiurmaScreen() {
             triggerHaptic={triggerHaptic}
             hasOnPremiseAccess={hasOnPremiseAccess}
           />
-          <div id="scatto-del-mese" className="hash-scroll-target rounded-[2rem]">
-            <CollapsibleWrapper
-              title="Lo Scatto del Mese"
-              subtitle="Partecipa al contest fotografico della ciurma"
-              defaultOpen={false}
-            >
-              <PiratePhotoContestCard
-                key={data.contact.CodiceContatto || contactSnapshot.email || identityEmail}
-                contact={data.contact}
-                onProfileResolved={handlePiratePhotoProfileResolved}
-                onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-              />
-            </CollapsibleWrapper>
-          </div>
-
           <ProfileGamesAndAdmin
             data={data}
             identityEmail={identityEmail}

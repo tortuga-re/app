@@ -3,12 +3,6 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/live-buzzer/admin";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import { ScratchAndWinCard } from "@/components/scratch-and-win-card";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import dynamic from "next/dynamic";
-
-// Dynamically import LiveTvContributionCard as it was in profile-screen.tsx
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const LiveTvContributionCard = dynamic<any>(() => import("@/features/live-tv/components/LiveTvContributionCard").then(mod => mod.LiveTvContributionCard).catch(() => ({ default: () => null } as any)), { ssr: false });
 
 export interface ProfileGamesAndAdminProps {
   data: ProfileResponse;
@@ -52,10 +46,6 @@ export function ProfileGamesAndAdmin({
                 <ScratchAndWinCard
                   className="mt-4"
                   onClick={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
-                />
-                <LiveTvContributionCard
-                  contact={data.contact}
-                  onVisitTrigger={() => data?.contact?.CodiceContatto && void registerVisit(data.contact.CodiceContatto)}
                 />
               </>
             )}

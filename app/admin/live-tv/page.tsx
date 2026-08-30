@@ -993,11 +993,11 @@ export default function AdminLiveTvPage() {
             >
               <div className="flex flex-wrap items-center gap-3">
                 <div>
-                  <p className="eyebrow">Contributi clienti</p>
-                  <h3 className="text-lg font-black text-white">Inbox moderazione Live TV</h3>
+                  <p className="eyebrow">Foto Live</p>
+                  <h3 className="text-lg font-black text-white">Foto inviate dalla ciurma</h3>
                 </div>
                 <span className="rounded-full border border-[var(--accent-strong)]/30 bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                  {pendingCustomerSubmissions.length} pending
+                  {pendingCustomerSubmissions.length} da valutare
                 </span>
               </div>
               <span className="text-sm font-black text-[var(--accent-strong)]">
@@ -1031,13 +1031,8 @@ export default function AdminLiveTvPage() {
                           )}
                         </div>
                         <div className="mt-3 space-y-2">
-                          <p className="text-base font-black text-white">{submission.title}</p>
                           <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-                            {submission.kind === "video" ? "Video cliente" : "Foto cliente"}
-                          </p>
-                          <p className="text-xs text-[var(--text-muted)]">
-                            {submission.uploaderName || "Cliente Tortuga"}
-                            {submission.uploaderEmail ? ` · ${submission.uploaderEmail}` : ""}
+                            Foto Live mandata in diretta
                           </p>
                           <p className="text-[11px] text-[var(--text-muted)]">
                             {new Date(submission.createdAt).toLocaleString("it-IT")}
@@ -1050,7 +1045,7 @@ export default function AdminLiveTvPage() {
                             onClick={() => void moderateCustomerSubmission(submission, "library")}
                             disabled={busy}
                           >
-                            Approva in libreria
+                            Salva in libreria
                           </button>
                           <button
                             type="button"
@@ -1058,7 +1053,7 @@ export default function AdminLiveTvPage() {
                             onClick={() => void moderateCustomerSubmission(submission, "playlist")}
                             disabled={busy}
                           >
-                            Approva e aggiungi in scaletta
+                            Aggiungi alla scaletta
                           </button>
                           <button
                             type="button"
@@ -1074,8 +1069,8 @@ export default function AdminLiveTvPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-[var(--text-muted)]">
-                    Nessun contributo cliente in attesa. Quando un cliente invia foto o video
-                    della serata, lo vedrai qui prima di mandarlo in libreria o in scaletta.
+                    Nessuna Foto Live da valutare. Le foto vengono gia trasmesse per 5 secondi;
+                    qui decidi solo quali conservare o aggiungere alla scaletta.
                   </p>
                 )}
 
@@ -1093,7 +1088,6 @@ export default function AdminLiveTvPage() {
                           <div>
                             <p className="text-sm font-semibold text-white">{submission.title}</p>
                             <p className="text-[11px] text-[var(--text-muted)]">
-                              {submission.uploaderName || "Cliente Tortuga"} ·{" "}
                               {submission.resolvedAt
                                 ? new Date(submission.resolvedAt).toLocaleString("it-IT")
                                 : new Date(submission.createdAt).toLocaleString("it-IT")}

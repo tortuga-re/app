@@ -12,8 +12,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const submissions = await listLiveTvCustomerSubmissions();
     return NextResponse.json({
-      submissions: await listLiveTvCustomerSubmissions(),
+      submissions: submissions.map((submission) => ({
+        id: submission.id,
+        kind: submission.kind,
+        title: submission.title,
+        originalName: submission.originalName,
+        fileName: submission.fileName,
+        mediaUrl: submission.mediaUrl,
+        mimeType: submission.mimeType,
+        sizeBytes: submission.sizeBytes,
+        storageMode: submission.storageMode,
+        createdAt: submission.createdAt,
+        status: submission.status,
+        resolvedAt: submission.resolvedAt,
+        resolution: submission.resolution,
+        linkedAssetId: submission.linkedAssetId,
+      })),
     });
   } catch (error) {
     return NextResponse.json(

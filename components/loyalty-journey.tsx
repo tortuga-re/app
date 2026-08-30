@@ -221,6 +221,9 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
 
     {!compact ? <>
       {loggedIn ? beforeHighlights : null}
+      <Link href="/stasera" className="minimal-primary mt-5 w-full">
+        Cose da fare stasera al Tortuga <ChevronRight size={18} />
+      </Link>
       <div className="section-heading"><div><p className="minimal-eyebrow">In evidenza</p><h2>Le tue prossime tappe</h2></div></div>
       <DragCarousel className="snap-slides" label="Contenuti in evidenza" resetKey={`${pathname}:${visibleEditorial?.id ?? ""}`}>
         {visibleEditorial ? <article className="feature-slide editorial-slide" style={visibleEditorial.background_image_url ? { backgroundImage: `linear-gradient(${visibleEditorial.overlay_color ?? "rgba(15,18,16,.62)"}, ${visibleEditorial.overlay_color ?? "rgba(15,18,16,.62)"}), url(${visibleEditorial.background_image_url})` } : undefined}><div className="slide-icon"><Anchor size={20} /></div><p>{visibleEditorial.eyebrow}</p><h3>{visibleEditorial.title}</h3><span>{visibleEditorial.description}</span>{!hasUpcomingReservationSoon || !editorialHasBookingCta ? editorialCtaExternal ? <button type="button" onClick={() => setEditorialLinkOpen(true)}>{visibleEditorial.cta_label} <ChevronRight size={16} /></button> : <a href={visibleEditorial.cta_url}>{visibleEditorial.cta_label} <ChevronRight size={16} /></a> : null}</article> : null}

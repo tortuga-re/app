@@ -190,7 +190,7 @@ export const missions: Mission[] = [
   {
     id: "fotografo-ciurma",
     label: "Fotografo della Ciurma",
-    description: "Carica una foto nello Scatto del Mese.",
+    description: "Invia una foto durante una serata Foto Live.",
     icon: "📷",
     image: "/badges/fotografo-ciurma.png",
     category: "ciurma",

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper } from "lucide-react";
+import { Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper, Trophy } from "lucide-react";
 import { useState } from "react";
 import { PanicButton } from "./panic-button";
 
@@ -11,6 +11,7 @@ const navItems = [
   { name: "Media Manager", href: "/admin/media", icon: ImageIcon },
   { name: "Push & Promo", href: "/admin/push", icon: Megaphone },
   { name: "Contenuti in evidenza", href: "/admin/highlights", icon: Newspaper },
+  { name: "Vincitori del Tortuga", href: "/admin/vincitori", icon: Trophy },
   { name: "Giochi Live", href: "/admin/games", icon: Gamepad2 },
 ];
 
