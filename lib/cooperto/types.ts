@@ -112,6 +112,21 @@ export interface CoopertoCreateContactRequest {
   SovrascriviDati?: boolean;
 }
 
+export interface CoopertoGenerateCouponRequest {
+  Nome?: string;
+  Email?: string;
+  CodiceCoupon: string;
+  DataPrivacy?: string;
+  DataMarketing?: string;
+}
+
+export interface CoopertoGenerateCouponResponse {
+  UrlQRCode?: string;
+  DataGenerazione?: string;
+  DataUtilizzo?: string;
+  DataScadenza?: string;
+}
+
 export interface CoopertoUpdateFidelityCardRequest {
   codiceContatto: string;
   codiceCard?: string;

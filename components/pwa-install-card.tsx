@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { pwaConfig, storageKeys } from "@/lib/config";
+import { requestJson } from "@/lib/client";
+import { FidelityQrCode } from "@/components/fidelity-qr-code";
+import { getCouponDisplayCode, getCouponQrValue, formatCouponExpiry } from "@/lib/customer-profile";
+import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
 
 type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
 
@@ -50,6 +54,12 @@ export function PwaInstallCard() {
   const [isIos, setIsIos] = useState(false);
   const [evaluationNow, setEvaluationNow] = useState(0);
   const [showAsPopup, setShowAsPopup] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pushReady, setPushReady] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [reward, setReward] = useState<{ coupon: CoopertoCoupon; profile: ProfileResponse; pointsAwarded: number } | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -69,6 +79,7 @@ export function PwaInstallCard() {
       if (!installed && dismissedAt === null) {
         setShowAsPopup(true);
       }
+      if (installed) setShowAsPopup(true);
     });
 
     const handleBeforeInstall = (event: Event) => {
@@ -104,6 +115,42 @@ export function PwaInstallCard() {
     };
   }, []);
 
+  const enablePush = useCallback(async () => {
+    if (!firstName.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setError("Inserisci nome ed email per continuare.");
+      return;
+    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !pwaConfig.vapidPublicKey) {
+      setError("Le notifiche non sono supportate o configurate su questo dispositivo.");
+      return;
+    }
+    setBusy(true); setError("");
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") throw new Error("Le notifiche devono essere attivate per aprire il Baule.");
+      const registration = await navigator.serviceWorker.ready;
+      const padding = "=".repeat((4 - (pwaConfig.vapidPublicKey.length % 4)) % 4);
+      const raw = atob(`${pwaConfig.vapidPublicKey}${padding}`.replace(/-/g, "+").replace(/_/g, "/"));
+      const key = Uint8Array.from(raw, (char) => char.charCodeAt(0));
+      const subscription = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      await requestJson("/api/push/subscriptions", { method: "POST", body: JSON.stringify({ subscription: subscription.toJSON(), email: email.trim().toLowerCase(), permission, installed: true, userAgent: navigator.userAgent }) });
+      setPushReady(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad attivare le notifiche.");
+    } finally { setBusy(false); }
+  }, [email, firstName]);
+
+  const claimChest = useCallback(async () => {
+    setBusy(true); setError("");
+    try {
+      const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number; requiresLogin?: boolean }>("/api/welcome-chest/claim", { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
+      setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
+      window.dispatchEvent(new Event("tortuga:profile-updated"));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad aprire il Baule.");
+    } finally { setBusy(false); }
+  }, [email, firstName]);
+
   const dismissPopup = useCallback(() => {
     setShowAsPopup(false);
     // Salviamo un timestamp "finto" o speciale per dire che il popup è stato visto
@@ -132,6 +179,27 @@ export function PwaInstallCard() {
     if (promptEvent) return "prompt";
     return isIos ? "fallback-ios" : "fallback-browser";
   }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos]);
+
+  if (isInstalled && showAsPopup) {
+    return <div className="fixed inset-0 z-[120] flex items-center justify-center px-5 py-6">
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
+      <section className="relative w-full max-w-sm panel rounded-[2.4rem] border border-[rgba(216,176,106,.28)] p-6 shadow-2xl">
+        {reward ? <div className="space-y-5 text-center">
+          <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
+          <h2 className="text-3xl font-black uppercase italic text-white">Baule aperto</h2>
+          <p className="text-sm leading-6 text-[var(--text-muted)]">Hai ricevuto {reward.pointsAwarded} Dobloni e il tuo premio da usare al Tortuga.</p>
+          <div className="rounded-[1.6rem] border border-[rgba(216,176,106,.24)] bg-black/20 p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-[var(--accent-strong)]">{getCouponDisplayCode(reward.coupon).replace(/-/g, " ")}</p><div className="mx-auto mt-3 w-fit rounded-2xl bg-white p-3"><FidelityQrCode value={getCouponQrValue(reward.coupon)} label="QR coupon Baule di benvenuto" variant="coupon" /></div>{reward.coupon.DataScadenza ? <p className="mt-3 text-xs text-[var(--text-muted)]">Valido fino al {formatCouponExpiry(reward.coupon.DataScadenza)}</p> : null}</div>
+          <button type="button" className="button-primary w-full py-3" onClick={() => setShowAsPopup(false)}>Vai alla mia Ciurma</button>
+        </div> : <div className="space-y-5">
+          <div><p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p><h2 className="mt-2 text-2xl font-black uppercase italic text-white">Completa l&apos;imbarco</h2><p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Attiva le notifiche e apri il tuo Baule con 5 Dobloni e un premio da mostrare al personale.</p></div>
+          <label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label>
+          <label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+          {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
+          {!pushReady ? <button type="button" className="button-primary w-full py-3" disabled={busy} onClick={() => void enablePush()}>{busy ? "Attivazione..." : "Attiva notifiche"}</button> : <button type="button" className="button-primary w-full py-3" disabled={busy} onClick={() => void claimChest()}>{busy ? "Apro il Baule..." : "Apri il Baule"}</button>}
+        </div>}
+      </section>
+    </div>;
+  }
 
   if (!mode) return null;
 

@@ -28,6 +28,8 @@ import type {
   CoopertoBookingModule,
   CoopertoContact,
   CoopertoCreateContactRequest,
+  CoopertoGenerateCouponRequest,
+  CoopertoGenerateCouponResponse,
   CoopertoCreateQueueRequest,
   CoopertoCreateReservationRequest,
   CoopertoUpdateReservationStatusRequest,
@@ -866,6 +868,19 @@ export const updateProfileContact = async (
     }
     return fallbackSource(await mockUpdateProfileContact(input));
   }
+};
+
+export const generateContactCoupon = async (
+  request: CoopertoGenerateCouponRequest,
+): Promise<CoopertoGenerateCouponResponse> => {
+  if (!hasCoopertoLiveConfig) {
+    throw new Error("Configurazione Cooperto non presente.");
+  }
+
+  return coopertoFetch<CoopertoGenerateCouponResponse>("/api/Contatti/GeneraCoupon", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 };
 
 export const getFidelityCards = unstable_cache(

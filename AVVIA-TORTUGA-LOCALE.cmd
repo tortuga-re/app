@@ -3,7 +3,7 @@ setlocal
 title Tortuga App - Server locale
 cd /d "%~dp0"
 
-set "TORTUGA_NODE=C:\Users\Andreea\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
+set "TORTUGA_NODE=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
 
 if not exist "%TORTUGA_NODE%" (
   echo Impossibile trovare il runtime Node.js locale.
