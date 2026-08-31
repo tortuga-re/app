@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Anchor, Award, CalendarCheck, ChevronRight, Gift, Pencil, QrCode, Shield, Coins, Cake, X } from "lucide-react";
+import { Anchor, Award, CalendarCheck, ChevronRight, Gift, Info, Pencil, QrCode, Shield, Coins, Cake, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
@@ -22,10 +22,19 @@ import type { HighlightContent } from "@/lib/highlight-content";
 
 const CiurmaRecognition = dynamic(() => import("@/components/profile-screen").then((module) => module.CiurmaScreen), { ssr: false });
 
+type LoyaltyMetricInfo = "visits" | "points" | "rank";
+
+const loyaltyMetricInfo: Record<LoyaltyMetricInfo, { title: string; description: string }> = {
+  visits: { title: "Visite annuali", description: "Sono le visite registrate nel ciclo Fidelity in corso, dal 1 agosto al 31 luglio. Effettuare almeno 5 visite nel ciclo aiuta a mantenere il tuo rango." },
+  points: { title: "Record Dobloni", description: "Indica il miglior traguardo di Dobloni raggiunto. I Dobloni ti accompagnano nella scalata dei ranghi e puoi usarli anche per richiedere i premi disponibili." },
+  rank: { title: "Rango attuale", description: "È il tuo grado nella Ciurma. Per avanzare servono sia visite sia Dobloni; nella sezione Ranghi trovi requisiti e vantaggi di ogni grado." },
+};
+
 export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?: boolean; beforeHighlights?: React.ReactNode }) {
   const pathname = usePathname();
   const [now] = useState(() => Date.now());
   const [cardOpen, setCardOpen] = useState(false);
+  const [metricInfoOpen, setMetricInfoOpen] = useState<LoyaltyMetricInfo | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [legendModalOpen, setLegendModalOpen] = useState(false);
   const { scenario } = useDemoScenario();
@@ -43,8 +52,9 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
   const loggedIn = scenario.enabled ? scenario.loggedIn : hasIdentity;
   const hasCard = Boolean(cardCode);
   const activeRank = getActiveRank(visits, highestPoints, historicalRank, maintained);
-  const nextRank = getNextRank(activeRank.id);
-  const isLegend = activeRank.id === "leggenda";
+  const hasReachedFirstRank = visits >= tortugaRanks[0].visits;
+  const nextRank = hasReachedFirstRank ? getNextRank(activeRank.id) : tortugaRanks[0];
+  const isLegend = hasReachedFirstRank && activeRank.id === "leggenda";
   const registeredLegendNickname = scenario.enabled
     ? (typeof window !== "undefined" ? sessionStorage.getItem("demo_legend_nickname") : null)
     : customer.profile?.legendNickname;
@@ -149,17 +159,17 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
     ) : (
       <div className="loyalty-summary">
       <div className="flex items-start justify-between gap-4">
-        <div><p className="minimal-eyebrow">La tua Fidelity</p><div className="mt-2 flex items-baseline gap-2"><strong className="points-number">{points}</strong><span>Dobloni disponibili</span></div></div>
-        <div className="relative"><RankBadge rank={activeRank.id} label={activeRank.label} size={72} />{isVip ? <span className="vip-ribbon">VIP</span> : null}</div>
+        <div><p className="minimal-eyebrow">Passaporto Pirata</p><div className="mt-2 flex items-center gap-2"><strong className="points-number">{points}</strong><Coins className="points-coin-icon" aria-label="Dobloni disponibili" /></div></div>
+        <div className="relative"><RankBadge rank={hasReachedFirstRank ? activeRank.id : nextRank.id} label={hasReachedFirstRank ? activeRank.label : `Prossimo rango: ${nextRank.label}`} size={72} />{isVip ? <span className="vip-ribbon">VIP</span> : null}</div>
       </div>
       <div className="mt-5 grid grid-cols-3 gap-2">
-        <Metric icon={<CalendarCheck />} value={visits} label="visite annuali" />
-        <Metric icon={<Coins />} value={highestPoints} label="record dobloni" />
-        <Metric icon={<Shield />} value={activeRank.label} label="rango attuale" />
+        <Metric icon={<CalendarCheck />} value={visits} label="visite annuali" onInfo={() => setMetricInfoOpen("visits")} />
+        <Metric icon={<Coins />} value={highestPoints} label="record dobloni" onInfo={() => setMetricInfoOpen("points")} />
+        <Metric icon={<Shield />} value={hasReachedFirstRank ? activeRank.label : "Da conquistare"} label="rango attuale" onInfo={() => setMetricInfoOpen("rank")} />
       </div>
       <div className="rank-route">
         <div className="flex items-center justify-between"><div><p>{isLegend ? "La tua rotta è leggenda" : `Rotta verso ${nextRank.label}`}</p><span>{isLegend ? "Hai raggiunto il rango speciale" : `${missingVisits} visite e ${missingPoints} Dobloni mancanti`}</span></div><Award size={23} /></div>
-        <div className="rank-track">{tortugaRanks.map((rank) => { const reached = getRankIndex(rank.id) <= getRankIndex(activeRank.id); return <div key={rank.id} className={reached ? "reached" : ""}><i /><span>{rank.label.replace(" del Tortuga", "")}</span></div>; })}</div>
+        <div className="rank-track">{tortugaRanks.map((rank) => { const reached = hasReachedFirstRank && getRankIndex(rank.id) <= getRankIndex(activeRank.id); return <div key={rank.id} className={reached ? "reached" : ""}><i /><span>{rank.label.replace(" del Tortuga", "")}</span></div>; })}</div>
       </div>
       <div className="mt-4 space-y-2">
         {isLegend && !registeredLegendNickname ? (
@@ -257,6 +267,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
         <article className="feature-slide gift-slide"><div className="slide-icon"><Gift /></div><p>Regala Tortuga</p><h3>Gift card per la tua ciurma</h3><span>Scegli una copertina e invia un’esperienza.</span><Link href="/gift#gift-card">Apri Gift <ChevronRight size={16} /></Link></article>
       </DragCarousel>
     </> : null}
+    {metricInfoOpen ? <div className="metric-info-modal" role="dialog" aria-modal="true" aria-labelledby="metric-info-title" onClick={() => setMetricInfoOpen(null)}><section onClick={(event) => event.stopPropagation()}><button type="button" className="metric-info-close" onClick={() => setMetricInfoOpen(null)} aria-label="Chiudi informazioni"><X /></button><div className="metric-info-icon"><Info aria-hidden="true" /></div><p className="minimal-eyebrow">Passaporto Pirata</p><h2 id="metric-info-title">{loyaltyMetricInfo[metricInfoOpen].title}</h2><p>{loyaltyMetricInfo[metricInfoOpen].description}</p><button type="button" className="minimal-primary w-full" onClick={() => setMetricInfoOpen(null)}>Ho capito</button></section></div> : null}
     {cardOpen ? <div className="qr-modal" role="dialog" aria-modal="true" aria-label="Tessera Fidelity Tortuga" onClick={() => setCardOpen(false)}><div className={isVip ? "vip-qr-shell" : ""} onClick={(event) => event.stopPropagation()}><div className="fidelity-card-heading"><div><p className="minimal-eyebrow">La tua Fidelity</p><h2>Tessera Tortuga</h2></div>{isVip ? <span>VIP</span> : null}</div>{cardCode ? <FidelityQrCode value={cardCode} label={isVip ? "QR Ciurma VIP Tortuga" : "QR Ciurma Tortuga"} variant={isVip ? "vip" : "default"} /> : <p className="maintenance-note">Nessuna tessera Fidelity associata a questo profilo.</p>}<button type="button" className="minimal-primary w-full" onClick={() => setCardOpen(false)}>Chiudi tessera</button></div></div> : null}
     {couponOpen && activeCoupons[0] ? <div className="coupon-modal" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title" onClick={() => setCouponOpen(false)}><div className="coupon-modal-card" onClick={(event) => event.stopPropagation()}><button className="coupon-modal-close" type="button" onClick={() => setCouponOpen(false)} aria-label="Chiudi coupon"><X /></button><p className="minimal-eyebrow">Il tuo coupon</p><h2 id="coupon-modal-title">Pronto da utilizzare</h2><FidelityQrCode value={getCouponQrValue(activeCoupons[0])} label={`QR coupon ${getCouponDisplayCode(activeCoupons[0])}`} variant="coupon" /><div className="coupon-code"><span>Codice coupon</span><strong>{getCouponDisplayCode(activeCoupons[0])}</strong></div>{activeCoupons[0].DataScadenza ? <p className="coupon-expiry">Valido fino al {formatCouponExpiry(activeCoupons[0].DataScadenza)}</p> : null}{!hasUpcomingReservationSoon ? <button type="button" className="minimal-primary coupon-modal-action" onClick={() => { setCouponOpen(false); openBooking(); }}>Prenota</button> : <button type="button" className="minimal-primary coupon-modal-action" onClick={() => setCouponOpen(false)}>Chiudi</button>}</div></div> : null}
     <ProfileEditModal open={profileOpen} onClose={() => setProfileOpen(false)} />
@@ -266,8 +277,8 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
   </section>;
 }
 
-function Metric({ icon, value, label }: { icon: React.ReactNode; value: string | number; label: string }) { return <div className="loyalty-metric"><div>{icon}</div><strong>{value}</strong><span>{label}</span></div>; }
-function LoadingLoyalty() { return <section className="loyalty-journey"><div className="loyalty-summary" aria-busy="true"><p className="minimal-eyebrow">La tua Fidelity</p><h2 className="mt-2">Recupero i dati della tessera…</h2><p className="mt-2 text-sm text-[var(--text-muted)]">Sincronizzazione con Cooperto in corso.</p></div></section>; }
+function Metric({ icon, value, label, onInfo }: { icon: React.ReactNode; value: string | number; label: string; onInfo: () => void }) { return <div className="loyalty-metric"><button type="button" className="metric-info-trigger" onClick={onInfo} aria-label={`Informazioni su ${label}`}><Info aria-hidden="true" /></button><div>{icon}</div><strong>{value}</strong><span>{label}</span></div>; }
+function LoadingLoyalty() { return <section className="loyalty-journey"><div className="loyalty-summary" aria-busy="true"><p className="minimal-eyebrow">Passaporto Pirata</p><h2 className="mt-2">Recupero i dati della tessera…</h2><p className="mt-2 text-sm text-[var(--text-muted)]">Sincronizzazione con Cooperto in corso.</p></div></section>; }
 function GuestLoyalty({ compact = false }: { compact?: boolean }) {
   const [recognitionOpen, setRecognitionOpen] = useState(false);
   useEffect(() => {

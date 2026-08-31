@@ -44,9 +44,9 @@ export const analyticsConfig = {
 export const tortugaInfoConfig = {
   address: "Via Giambattista Vico, 93 - Reggio Emilia",
   menuUrl: "https://cprt.it/a69bf",
-  mapsUrl: "https://maps.app.goo.gl/ne4gvpo7QaeusxfV8",
+  mapsUrl: "https://maps.app.goo.gl/WEXZaWt4U2Bsf1PT8",
   mapsEmbedUrl:
-    "https://www.google.com/maps?q=44.733084,10.534609&z=17&output=embed",
+    "https://www.google.com/maps?q=Tortuga+Reggio+Emilia&z=17&output=embed",
   programmazioneUrl: "https://tortugabay.it/programmazione-invernale",
   eveningProgram: [
     {

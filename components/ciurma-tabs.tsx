@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Award, Check, Coins, Gift, LockKeyhole, Ship, Skull, Trophy, X } from "lucide-react";
+import { Award, CalendarDays, Check, Coins, Gift, LockKeyhole, Ship, Skull, Trophy, X } from "lucide-react";
 
 import { DragCarousel } from "@/components/drag-carousel";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
@@ -68,6 +68,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
   const visits = scenario.enabled ? scenario.visits : customer.visits;
   const highestPoints = scenario.enabled ? Math.max(scenario.points, scenario.highestPoints) : points;
   const active = getActiveRank(visits, highestPoints, scenario.enabled ? scenario.historicalRank : undefined, scenario.enabled ? scenario.maintained : true);
+  const hasReachedFirstRank = visits >= tortugaRanks[0].visits;
   const profile = scenario.enabled ? buildDemoProfile(visits, points, scenario.hasCoupon) : customer.profile;
   const isUserRegistered = scenario.enabled ? scenario.loggedIn : customer.hasProfile;
   const visibleMissions = missions.filter((mission) => mission.id !== "ritorno-naufragio" || Boolean(profile && mission.isUnlocked(profile)));
@@ -165,7 +166,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
     </div> : null}
 
     {tab === "ranks" ? <div id="ranghi" className="hash-scroll-target space-y-5">
-      <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><RankBadge rank={rank.id} label={rank.label} size={66} /><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span><ul className="my-3.5 space-y-1.5 text-left border-t border-[rgba(216,176,106,0.15)] pt-3">{rank.privileges.map((p, idx) => { const isDobloni = p.text.includes("Dobloni"); const isPrivilegesInherited = p.text.includes("Tutti i privilegi"); const BulletIcon = isDobloni ? Coins : (isPrivilegesInherited ? Skull : null); return <li key={idx} className="flex items-start gap-2 text-[0.74rem] text-[var(--text-muted)] leading-relaxed"><span className={`shrink-0 mt-0.5 ${BulletIcon ? "text-[var(--accent)]" : "text-[var(--accent)] font-bold text-sm leading-none"}`}>{BulletIcon ? <BulletIcon size={14} strokeWidth={2.2} aria-hidden="true" /> : "•"}</span><span>{p.text}</span></li>; })}</ul><dl><div><dt>Visite</dt><dd>{rank.visits}</dd></div><div><dt>Dobloni raggiunti</dt><dd>{rank.points}</dd></div></dl></article>; })}</DragCarousel>
+      <DragCarousel className="rank-slides" label="Ranghi Tortuga">{tortugaRanks.map((rank) => { const reached = isUserRegistered && hasReachedFirstRank && (getRankIndex(rank.id) <= getRankIndex(active.id)); return <article key={rank.id} className={reached ? "reached" : ""}><div className="rank-card-header"><RankBadge rank={rank.id} label={rank.label} size={66} /><div className="rank-card-copy"><p>{reached ? "Rango conquistato" : "Prossimo traguardo"}</p><h2>{rank.label}</h2><span>{rank.description}</span></div><aside className="rank-requirements" aria-label={`Requisiti per il rango ${rank.label}`}><b>Requisiti</b><span><CalendarDays aria-hidden="true" />{rank.visits} visite</span><span><Coins aria-hidden="true" />{rank.points} Dobloni</span></aside></div><ul className="my-2.5 space-y-1 text-left border-t border-[rgba(216,176,106,0.15)] pt-2">{rank.privileges.map((p, idx) => { const isDobloni = p.text.includes("Dobloni"); const isPrivilegesInherited = p.text.includes("Tutti i privilegi"); const BulletIcon = isDobloni ? Coins : (isPrivilegesInherited ? Skull : null); return <li key={idx} className="flex items-start gap-2 text-[0.74rem] text-[var(--text-muted)] leading-relaxed"><span className={`shrink-0 mt-0.5 ${BulletIcon ? "text-[var(--accent)]" : "text-[var(--accent)] font-bold text-sm leading-none"}`}>{BulletIcon ? <BulletIcon size={14} strokeWidth={2.2} aria-hidden="true" /> : "•"}</span><span>{p.text}</span></li>; })}</ul></article>; })}</DragCarousel>
       {isUserRegistered ? (
         <p className="maintenance-note">Mantieni il rango con almeno 5 visite ogni anno. Il ciclo va dal 1 agosto al 31 luglio; i Dobloni Fidelity vengono azzerati il 31 luglio di ogni anno.</p>
       ) : null}

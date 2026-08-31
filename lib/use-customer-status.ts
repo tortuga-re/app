@@ -46,6 +46,26 @@ const hasExplicitVipCard = (response: ProfileResponse) =>
     ...(response.contact?.Tags ?? []),
   ].some((value) => /\bvip\b/i.test(value?.trim() ?? ""));
 
+const statusFromProfile = (email: string, response: ProfileResponse): CustomerStatusState => {
+  const progress = getFidelityRewardProgress(
+    response.points ?? response.contact?.SaldoPuntiCard ?? 0,
+  );
+
+  return {
+    email,
+    loading: false,
+    hasProfile: Boolean(response.contact),
+    profile: response,
+    points: progress.points,
+    visits: Math.max(0, response.contact?.NumeroVisite ?? 0),
+    tierLabel: progress.loyaltyTier.label,
+    isVip: progress.isVip || hasExplicitVipCard(response),
+    activeCardCode: response.contact?.CodiceCard?.trim() ?? "",
+    hasReservation: response.upcomingReservations.length > 0,
+    hasCoupon: response.coupons.length > 0,
+  };
+};
+
 export function useCustomerStatus(email?: string): CustomerStatusState {
   const normalizedEmail = normalizeCustomerEmail(email);
   const [state, setState] = useState<CustomerStatusState>(baseStatus);
@@ -57,48 +77,44 @@ export function useCustomerStatus(email?: string): CustomerStatusState {
     }
 
     let cancelled = false;
+    let requestVersion = 0;
 
     const loadStatus = async () => {
+      const version = ++requestVersion;
       try {
         const params = new URLSearchParams({
           mode: "email",
           query: normalizedEmail,
         });
         const response = await requestJson<ProfileResponse>(`/api/profile?${params.toString()}`);
-        const progress = getFidelityRewardProgress(
-          response.points ?? response.contact?.SaldoPuntiCard ?? 0,
-        );
-
-        if (cancelled) {
+        if (cancelled || version !== requestVersion) {
           return;
         }
 
-        setState({
-          email: normalizedEmail,
-          loading: false,
-          hasProfile: Boolean(response.contact),
-          profile: response,
-          points: progress.points,
-          visits: Math.max(0, response.contact?.NumeroVisite ?? 0),
-          tierLabel: progress.loyaltyTier.label,
-          isVip: progress.isVip || hasExplicitVipCard(response),
-          activeCardCode: response.contact?.CodiceCard?.trim() ?? "",
-          hasReservation: response.upcomingReservations.length > 0,
-          hasCoupon: response.coupons.length > 0,
-        });
+        setState(statusFromProfile(normalizedEmail, response));
       } catch {
-        if (!cancelled) {
+        if (!cancelled && version === requestVersion) {
           setState(baseStatus(normalizedEmail));
         }
       }
     };
 
+    const handleProfileUpdate = (event: Event) => {
+      const profile = (event as CustomEvent<{ profile?: ProfileResponse }>).detail?.profile;
+      if (profile) {
+        requestVersion += 1;
+        setState(statusFromProfile(normalizedEmail, profile));
+        return;
+      }
+      void loadStatus();
+    };
+
     void loadStatus();
-    window.addEventListener("tortuga:profile-updated", loadStatus);
+    window.addEventListener("tortuga:profile-updated", handleProfileUpdate);
 
     return () => {
       cancelled = true;
-      window.removeEventListener("tortuga:profile-updated", loadStatus);
+      window.removeEventListener("tortuga:profile-updated", handleProfileUpdate);
     };
   }, [normalizedEmail]);
 

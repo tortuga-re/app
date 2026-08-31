@@ -160,7 +160,7 @@ export function PwaInstallCard() {
     const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number }>('/api/welcome-chest/claim', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
     setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
     window.localStorage.removeItem(welcomeChestPendingKey);
-    window.dispatchEvent(new Event("tortuga:profile-updated"));
+    window.dispatchEvent(new CustomEvent("tortuga:profile-updated", { detail: { profile: response.profile } }));
   }, [email, firstName]);
 
   const enablePush = useCallback(async () => {
@@ -271,7 +271,7 @@ export function PwaInstallCard() {
             <li>Porzione di Gnocco/Tigelle</li>
             {showFullRewards ? <>
               <li>Card Fidelity - ATTIVATA</li>
-              <li>Rango Mozzo - CONQUISTATO</li>
+              <li>Prima visita - sblocca il rango Mozzo</li>
               <li>2 Missioni - SBLOCCATE</li>
             </> : null}
           </ul>
