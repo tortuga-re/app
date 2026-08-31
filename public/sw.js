@@ -1,4 +1,4 @@
-const CACHE_NAME = "tortuga-shell-v5";
+const CACHE_NAME = "tortuga-shell-v6";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
   OFFLINE_URL,
@@ -219,6 +219,7 @@ const parsePushPayload = (event) => {
       icon: json.icon || "/pwa-icon/192",
       badge: json.badge || "/pwa-icon/192",
       renotify: Boolean(json.renotify),
+      tracking: json.tracking || null,
     };
   } catch {
     return {
@@ -229,6 +230,7 @@ const parsePushPayload = (event) => {
       icon: "/pwa-icon/192",
       badge: "/pwa-icon/192",
       renotify: false,
+      tracking: null,
     };
   }
 };
@@ -245,6 +247,7 @@ self.addEventListener("push", (event) => {
       renotify: payload.renotify,
       data: {
         url: payload.url || "/ciurma",
+        tracking: payload.tracking || null,
       },
     }),
   );
@@ -254,20 +257,37 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const targetUrl = event.notification.data?.url || "/ciurma";
+  const tracking = event.notification.data?.tracking;
 
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+  const trackOpening = tracking?.token
+    ? fetch("/api/push/open", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...tracking,
+          url: targetUrl,
+        }),
+      }).catch(() => undefined)
+    : Promise.resolve();
+
+  const openDestination = self.clients
+    .matchAll({ type: "window", includeUncontrolled: true })
+    .then((clients) => {
+      const target = new URL(targetUrl, self.location.origin);
       for (const client of clients) {
-        if ("focus" in client && client.url.includes(targetUrl)) {
+        if (!("focus" in client)) continue;
+        if (client.url === target.href || !("navigate" in client)) {
           return client.focus();
         }
+        return client.navigate(target.href).then(() => client.focus());
       }
 
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(target.href);
       }
 
       return undefined;
-    }),
-  );
+    });
+
+  event.waitUntil(Promise.all([trackOpening, openDestination]));
 });

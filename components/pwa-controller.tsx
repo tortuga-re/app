@@ -5,6 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 import { requestJson } from "@/lib/client";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { pwaConfig, storageKeys } from "@/lib/config";
+import {
+  ensureCurrentPushSubscription,
+  isStandalonePwa,
+} from "@/lib/push/client-subscription";
 import type {
   SavePushSubscriptionResponse,
 } from "@/lib/push/types";
@@ -41,35 +45,11 @@ const clearTimestamp = (key: string) => {
   window.localStorage.removeItem(key);
 };
 
-const isStandaloneDisplayMode = () => {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const standaloneMatch =
-    window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-  const iosStandalone = Boolean(
-    (window.navigator as Navigator & { standalone?: boolean }).standalone,
-  );
-
-  return standaloneMatch || iosStandalone;
-};
-
-
-
 const isPushSupported = () =>
   typeof window !== "undefined" &&
   "serviceWorker" in navigator &&
   "PushManager" in window &&
   "Notification" in window;
-
-const base64ToUint8Array = (value: string) => {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4);
-  const normalized = `${value}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(normalized);
-
-  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
-};
 
 export function PwaController() {
   const { identity } = useCustomerIdentity();
@@ -97,7 +77,7 @@ export function PwaController() {
 
       setClientReady(true);
       setPushDismissedAt(readTimestamp(storageKeys.pushPromptDismissedAt));
-      setIsInstalled(isStandaloneDisplayMode());
+      setIsInstalled(isStandalonePwa());
       setPushPermission(isPushSupported() ? Notification.permission : "unsupported");
       setEvaluationNow(Date.now());
     });
@@ -219,6 +199,7 @@ export function PwaController() {
           permission: Notification.permission,
           userAgent: navigator.userAgent,
           installed: isInstalled,
+          standalone: isStandalonePwa(),
           venueAccessExpiresAt: venueExpiresAt,
         }),
       });
@@ -262,16 +243,10 @@ export function PwaController() {
 
       try {
         const readyRegistration = await navigator.serviceWorker.ready;
-        const existingSubscription =
-          (await readyRegistration.pushManager.getSubscription().catch(() => null)) ??
-          null;
-
-        const subscription =
-          existingSubscription ??
-          (await readyRegistration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: base64ToUint8Array(pwaConfig.vapidPublicKey),
-          }));
+        const subscription = await ensureCurrentPushSubscription(
+          readyRegistration,
+          pwaConfig.vapidPublicKey,
+        );
 
         await persistSubscription(subscription);
         clearTimestamp(storageKeys.pushPromptDismissedAt);
@@ -314,6 +289,26 @@ export function PwaController() {
       cancelled = true;
     };
   }, [clientReady, ensurePushSubscription, pushPermission, serviceWorkerRegistration, venueExpiresAt]);
+
+  useEffect(() => {
+    if (!clientReady || pushPermission !== "granted") return;
+
+    let lastSyncAt = 0;
+    const syncWhenActive = () => {
+      if (document.visibilityState === "hidden") return;
+      const now = Date.now();
+      if (now - lastSyncAt < 30_000) return;
+      lastSyncAt = now;
+      void ensurePushSubscription(false);
+    };
+
+    window.addEventListener("pageshow", syncWhenActive);
+    document.addEventListener("visibilitychange", syncWhenActive);
+    return () => {
+      window.removeEventListener("pageshow", syncWhenActive);
+      document.removeEventListener("visibilitychange", syncWhenActive);
+    };
+  }, [clientReady, ensurePushSubscription, pushPermission]);
 
   const pushSnoozed =
     pushDismissedAt !== null &&

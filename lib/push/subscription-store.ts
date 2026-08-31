@@ -5,9 +5,15 @@ import path from "node:path";
 import { pwaConfig } from "@/lib/config";
 import { createPersistentJsonStore } from "@/lib/server/persistent-json-store";
 import type {
+  PushDeliveryError,
   SavePushSubscriptionInput,
   StoredPushSubscription,
 } from "@/lib/push/types";
+import {
+  describePushDevice,
+  getEndpointFingerprint,
+  getCurrentVapidKeyVersion,
+} from "@/lib/push/metadata";
 
 const DEFAULT_SUBSCRIPTIONS_PATH = path.join(
   ".data",
@@ -51,6 +57,7 @@ export const savePushSubscription = async (
   input: SavePushSubscriptionInput,
 ): Promise<{ record: StoredPushSubscription; isNew: boolean }> => {
   const now = new Date().toISOString();
+  const device = describePushDevice(input.userAgent);
 
   const nextRecord: StoredPushSubscription = {
     endpoint: input.subscription.endpoint,
@@ -63,7 +70,12 @@ export const savePushSubscription = async (
     permission: input.permission,
     userAgent: input.userAgent?.trim() || undefined,
     installed: Boolean(input.installed),
+    standalone: Boolean(input.standalone ?? input.installed),
+    platform: device.platform,
+    browser: device.browser,
+    vapidKeyVersion: getCurrentVapidKeyVersion() || undefined,
     venueAccessExpiresAt: input.venueAccessExpiresAt,
+    lastSeenAt: now,
     createdAt: now,
     updatedAt: now,
   };
@@ -119,6 +131,68 @@ export const deletePushSubscription = async (endpoint: string) => {
   });
 
   return removed;
+};
+
+export const markPushSubscriptionDelivery = async (
+  endpoint: string,
+  result:
+    | { success: true; at?: string }
+    | { success: false; error: PushDeliveryError; at?: string },
+) => markPushSubscriptionDeliveries([{ endpoint, result }]);
+
+export const markPushSubscriptionDeliveries = async (
+  deliveries: Array<{
+    endpoint: string;
+    result:
+      | { success: true; at?: string }
+      | { success: false; error: PushDeliveryError; at?: string };
+  }>,
+) => {
+  const deliveryByEndpoint = new Map(
+    deliveries
+      .filter((delivery) => delivery.endpoint.trim())
+      .map((delivery) => [delivery.endpoint.trim(), delivery.result]),
+  );
+  if (!deliveryByEndpoint.size) return;
+
+  await subscriptionsStore.update((currentRecords) =>
+    normalizeSubscriptionRecords(currentRecords).map((record) => {
+      const delivery = deliveryByEndpoint.get(record.endpoint);
+      if (!delivery) return record;
+      const at = delivery.at ?? new Date().toISOString();
+      if (delivery.success) {
+        return {
+          ...record,
+          lastSuccessfulSendAt: at,
+          lastError: undefined,
+        };
+      }
+      return {
+        ...record,
+        lastFailedSendAt: at,
+        lastError: delivery.error,
+      };
+    }),
+  );
+};
+
+export const markPushSubscriptionOpened = async (
+  endpointFingerprint: string,
+  url?: string,
+) => {
+  const openedAt = new Date().toISOString();
+
+  await subscriptionsStore.update((currentRecords) =>
+    normalizeSubscriptionRecords(currentRecords).map((record) =>
+      getEndpointFingerprint(record.endpoint) === endpointFingerprint
+        ? {
+            ...record,
+            lastOpenedAt: openedAt,
+            lastOpenedUrl: url?.trim() || undefined,
+          }
+        : record,
+    ),
+  );
 };
 
 export interface StoredVisit {

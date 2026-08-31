@@ -9,6 +9,10 @@ import { getCouponDisplayCode, getCouponQrValue, formatCouponExpiry } from "@/li
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
+import {
+  ensureCurrentPushSubscription,
+  isStandalonePwa,
+} from "@/lib/push/client-subscription";
 
 type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
 const welcomeChestPendingKey = "tortuga-welcome-chest-pending";
@@ -31,13 +35,6 @@ const writeTimestamp = (key: string, value: number) => {
   window.localStorage.setItem(key, String(value));
 };
 
-const isStandaloneDisplayMode = () => {
-  if (typeof window === "undefined") return false;
-  const standaloneMatch = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-  const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
-  return standaloneMatch || iosStandalone;
-};
-
 const isProbablyMobileDevice = () => {
   if (typeof window === "undefined") return false;
   return window.matchMedia?.("(max-width: 820px)").matches || /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
@@ -58,7 +55,6 @@ export function PwaInstallCard() {
   const [installFallbackReady, setInstallFallbackReady] = useState(false);
   const [isProbablyMobile, setIsProbablyMobile] = useState(false);
   const [isIos, setIsIos] = useState(false);
-  const [isIosChrome, setIsIosChrome] = useState(false);
   const [evaluationNow, setEvaluationNow] = useState(0);
   const [showAsPopup, setShowAsPopup] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -75,14 +71,13 @@ export function PwaInstallCard() {
     
     window.requestAnimationFrame(() => {
       setClientReady(true);
-      const installed = isStandaloneDisplayMode();
+      const installed = isStandalonePwa();
       const dismissedAt = readTimestamp(storageKeys.installPromptDismissedAt);
       
       setIsInstalled(installed);
       setInstallDismissedAt(dismissedAt);
       setIsProbablyMobile(isProbablyMobileDevice());
       setIsIos(isIosDevice());
-      setIsIosChrome(/crios/i.test(window.navigator.userAgent));
       setEvaluationNow(Date.now());
 
       const pendingChest = window.localStorage.getItem(welcomeChestPendingKey);
@@ -178,11 +173,8 @@ export function PwaInstallCard() {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") throw new Error("Le notifiche devono essere attivate per aprire il Baule.");
       const registration = await navigator.serviceWorker.ready;
-      const padding = "=".repeat((4 - (pwaConfig.vapidPublicKey.length % 4)) % 4);
-      const raw = atob(`${pwaConfig.vapidPublicKey}${padding}`.replace(/-/g, "+").replace(/_/g, "/"));
-      const key = Uint8Array.from(raw, (char) => char.charCodeAt(0));
-      const subscription = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
-      await requestJson("/api/push/subscriptions", { method: "POST", body: JSON.stringify({ subscription: subscription.toJSON(), email: email.trim().toLowerCase(), permission, installed: true, userAgent: navigator.userAgent }) });
+      const subscription = await ensureCurrentPushSubscription(registration, pwaConfig.vapidPublicKey);
+      await requestJson("/api/push/subscriptions", { method: "POST", body: JSON.stringify({ subscription: subscription.toJSON(), email: email.trim().toLowerCase(), permission, installed: true, standalone: isStandalonePwa(), userAgent: navigator.userAgent }) });
       setPushReady(true);
       await claimChest();
     } catch (reason) {

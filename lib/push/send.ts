@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import webpush from "web-push";
 
 import type { ProfileResponse } from "@/lib/cooperto/types";
@@ -13,8 +15,19 @@ import { getProfileData } from "@/lib/cooperto/service";
 import {
   deletePushSubscription,
   listPushSubscriptions,
+  markPushSubscriptionDelivery,
+  markPushSubscriptionDeliveries,
 } from "@/lib/push/subscription-store";
+import {
+  completePushHistory,
+  createPushHistory,
+} from "@/lib/push/history-store";
+import {
+  createPushTrackingToken,
+  getEndpointFingerprint,
+} from "@/lib/push/metadata";
 import type {
+  PushDeliveryTarget,
   PushAudienceSegment,
   PushSendPayload,
   PushSendResponse,
@@ -115,7 +128,13 @@ const matchesSegment = ({
   return true;
 };
 
-const buildPayload = (payload: PushSendPayload) =>
+const buildPayload = (
+  payload: PushSendPayload,
+  tracking?: {
+    deliveryId: string;
+    endpointFingerprint: string;
+  },
+) =>
   JSON.stringify({
     title: payload.title,
     body: payload.body,
@@ -124,6 +143,15 @@ const buildPayload = (payload: PushSendPayload) =>
     icon: payload.icon || "/pwa-icon/192",
     badge: payload.badge || "/pwa-icon/192",
     renotify: Boolean(payload.renotify),
+    tracking: tracking
+      ? {
+          ...tracking,
+          token: createPushTrackingToken(
+            tracking.deliveryId,
+            tracking.endpointFingerprint,
+          ),
+        }
+      : undefined,
   });
 
 const describePushError = (error: unknown) => {
@@ -142,24 +170,31 @@ export const sendPushToSubscription = async (
   payload: PushSendPayload,
 ): Promise<boolean> => {
   configureWebPush();
-  const notificationPayload = buildPayload(payload);
+  const deliveryId = randomUUID();
+  const endpointFingerprint = getEndpointFingerprint(record.endpoint);
+  const notificationPayload = buildPayload(payload, {
+    deliveryId,
+    endpointFingerprint,
+  });
 
   try {
     await webpush.sendNotification(
       toWebPushSubscription(record),
       notificationPayload,
     );
+    await markPushSubscriptionDelivery(record.endpoint, {
+      success: true,
+    }).catch(() => undefined);
     return true;
   } catch (error) {
-    const statusCode =
-      typeof error === "object" &&
-      error !== null &&
-      "statusCode" in error &&
-      typeof error.statusCode === "number"
-        ? error.statusCode
-        : 0;
+    const failure = describePushError(error);
 
-    if (statusCode === 404 || statusCode === 410) {
+    await markPushSubscriptionDelivery(record.endpoint, {
+      success: false,
+      error: failure,
+    }).catch(() => undefined);
+
+    if (failure.statusCode === 404 || failure.statusCode === 410) {
       await deletePushSubscription(record.endpoint);
     }
     return false;
@@ -198,47 +233,121 @@ export const sendPushNotification = async (
       profile,
     });
   });
-  const notificationPayload = buildPayload(payload);
+  const historyId = randomUUID();
+  const createdAt = new Date().toISOString();
+  const pendingTargets: PushDeliveryTarget[] = subscriptions.map((record) => ({
+    id: randomUUID(),
+    endpointFingerprint: getEndpointFingerprint(record.endpoint),
+    email: record.email,
+    browser: record.browser,
+    platform: record.platform,
+    status: "pending",
+  }));
 
-  let sent = 0;
-  let failed = 0;
-  let removed = 0;
-  const errors: PushSendResponse["errors"] = [];
+  await createPushHistory({
+    id: historyId,
+    title: payload.title,
+    body: payload.body,
+    url: payload.url || "/ciurma",
+    segment: payload.segment ?? "all",
+    email: email || undefined,
+    createdAt,
+    sent: 0,
+    failed: 0,
+    removed: 0,
+    total: subscriptions.length,
+    errors: [],
+    targets: pendingTargets,
+  }).catch((error) => {
+    console.error("[Push history] Creazione storico non riuscita:", error);
+  });
 
-  await Promise.all(
-    subscriptions.map(async (record) => {
+  const targets = await Promise.all(
+    subscriptions.map(async (record, index): Promise<PushDeliveryTarget> => {
+      const target = pendingTargets[index];
+      const notificationPayload = buildPayload(payload, {
+        deliveryId: historyId,
+        endpointFingerprint: target.endpointFingerprint,
+      });
+
       try {
         await webpush.sendNotification(
           toWebPushSubscription(record),
           notificationPayload,
         );
-        sent += 1;
+        const acceptedAt = new Date().toISOString();
+        return {
+          ...target,
+          status: "accepted",
+          acceptedAt,
+        };
       } catch (error) {
-        failed += 1;
         const failure = describePushError(error);
-        if (!errors.some((item) => item.statusCode === failure.statusCode && item.message === failure.message)) {
-          errors.push(failure);
+        let removed = false;
+        if (failure.statusCode === 404 || failure.statusCode === 410) {
+          removed = await deletePushSubscription(record.endpoint);
         }
 
-        const statusCode =
-          typeof error === "object" &&
-          error !== null &&
-          "statusCode" in error &&
-          typeof error.statusCode === "number"
-            ? error.statusCode
-            : 0;
-
-        if (statusCode === 404 || statusCode === 410) {
-          const deleted = await deletePushSubscription(record.endpoint);
-          if (deleted) {
-            removed += 1;
-          }
-        }
+        return {
+          ...target,
+          status: "failed",
+          statusCode: failure.statusCode,
+          error: failure.message,
+          removed,
+        };
       }
     }),
   );
 
+  const sent = targets.filter((target) => target.status === "accepted").length;
+  const failed = targets.filter((target) => target.status === "failed").length;
+  const removed = targets.filter((target) => target.removed).length;
+  const errors = targets.reduce<PushSendResponse["errors"]>((items, target) => {
+    if (target.status !== "failed" || !target.error) return items;
+    const failure = {
+      statusCode: target.statusCode ?? 0,
+      message: target.error,
+    };
+    if (
+      !items.some(
+        (item) =>
+          item.statusCode === failure.statusCode && item.message === failure.message,
+      )
+    ) {
+      items.push(failure);
+    }
+    return items;
+  }, []);
+
+  await markPushSubscriptionDeliveries(
+    targets.map((target, index) => ({
+      endpoint: subscriptions[index].endpoint,
+      result:
+        target.status === "accepted"
+          ? { success: true as const, at: target.acceptedAt }
+          : {
+              success: false as const,
+              error: {
+                statusCode: target.statusCode ?? 0,
+                message: target.error || "Errore push non specificato.",
+              },
+            },
+    })),
+  ).catch(() => undefined);
+
+  await completePushHistory(historyId, {
+    completedAt: new Date().toISOString(),
+    sent,
+    failed,
+    removed,
+    errors,
+    targets,
+  }).catch((error) => {
+    console.error("[Push history] Completamento storico non riuscito:", error);
+  });
+
   return {
+    historyId,
     sent,
     failed,
     removed,

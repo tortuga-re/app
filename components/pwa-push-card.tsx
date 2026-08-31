@@ -5,15 +5,12 @@ import { triggerHaptic } from "@/lib/haptics";
 import { pwaConfig } from "@/lib/config";
 import { requestJson } from "@/lib/client";
 import { useCustomerIdentity } from "@/lib/customer-identity";
+import {
+  ensureCurrentPushSubscription,
+  isStandalonePwa,
+} from "@/lib/push/client-subscription";
 
 type PushCardMode = "invite" | "standalone-required" | "blocked" | "enabled";
-
-const isStandaloneDisplayMode = () => {
-  if (typeof window === "undefined") return false;
-  const standaloneMatch = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-  const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
-  return standaloneMatch || iosStandalone;
-};
 
 export function PwaPushCard() {
   const { identity } = useCustomerIdentity();
@@ -27,7 +24,7 @@ export function PwaPushCard() {
   useEffect(() => {
     window.requestAnimationFrame(() => {
       setClientReady(true);
-      setIsStandalone(isStandaloneDisplayMode());
+      setIsStandalone(isStandalonePwa());
 
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         setPushStatus("unsupported");
@@ -83,16 +80,17 @@ export function PwaPushCard() {
         throw new Error("Configurazione push incompleta.");
       }
 
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKey,
-      });
+      const subscription = await ensureCurrentPushSubscription(registration, vapidKey);
 
       await requestJson("/api/push/subscriptions", {
         method: "POST",
         body: JSON.stringify({
           subscription,
           email: identity.email || undefined,
+          permission,
+          installed: isStandalonePwa(),
+          standalone: isStandalonePwa(),
+          userAgent: navigator.userAgent,
         }),
       });
 

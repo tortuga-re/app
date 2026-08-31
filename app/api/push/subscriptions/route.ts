@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import {
   deletePushSubscription,
@@ -10,13 +10,14 @@ import type {
   SavePushSubscriptionInput,
   SavePushSubscriptionResponse,
 } from "@/lib/push/types";
+import { getCustomerSession } from "@/lib/session/customer-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let payload: SavePushSubscriptionInput;
 
   try {
@@ -46,9 +47,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    const sessionIdentity = getCustomerSession(request);
     const { record, isNew } = await savePushSubscription({
       ...payload,
-      email: normalizeEmail(payload.email),
+      email: normalizeEmail(payload.email || sessionIdentity?.email),
+      userAgent: payload.userAgent?.trim() || request.headers.get("user-agent") || undefined,
     });
 
     // Automazione #1: Benvenuto a bordo (SOLO SE È UN NUOVO ABBONAMENTO)

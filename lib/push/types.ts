@@ -15,7 +15,13 @@ export interface SavePushSubscriptionInput {
   permission?: NotificationPermission | "unsupported";
   userAgent?: string;
   installed?: boolean;
+  standalone?: boolean;
   venueAccessExpiresAt?: number;
+}
+
+export interface PushDeliveryError {
+  statusCode: number;
+  message: string;
 }
 
 export interface StoredPushSubscription {
@@ -29,7 +35,17 @@ export interface StoredPushSubscription {
   permission?: NotificationPermission | "unsupported";
   userAgent?: string;
   installed: boolean;
+  standalone?: boolean;
+  platform?: string;
+  browser?: string;
+  vapidKeyVersion?: string;
   venueAccessExpiresAt?: number;
+  lastSeenAt?: string;
+  lastSuccessfulSendAt?: string;
+  lastFailedSendAt?: string;
+  lastError?: PushDeliveryError;
+  lastOpenedAt?: string;
+  lastOpenedUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,15 +87,81 @@ export interface PushSendPayload {
 }
 
 export interface PushSendResponse {
+  historyId?: string;
   sent: number;
   failed: number;
   removed: number;
   total: number;
-  errors: Array<{
-    statusCode: number;
-    message: string;
-  }>;
+  errors: PushDeliveryError[];
 }
+
+export type PushDeliveryTargetStatus = "pending" | "accepted" | "failed";
+
+export interface PushDeliveryTarget {
+  id: string;
+  endpointFingerprint: string;
+  email?: string;
+  browser?: string;
+  platform?: string;
+  status: PushDeliveryTargetStatus;
+  statusCode?: number;
+  error?: string;
+  removed?: boolean;
+  acceptedAt?: string;
+  openedAt?: string;
+}
+
+export interface PushSendHistoryRecord {
+  id: string;
+  title: string;
+  body: string;
+  url: string;
+  segment: PushAudienceSegment;
+  email?: string;
+  createdAt: string;
+  completedAt?: string;
+  sent: number;
+  failed: number;
+  removed: number;
+  total: number;
+  errors: PushDeliveryError[];
+  targets: PushDeliveryTarget[];
+}
+
+export interface PushDeviceDiagnostic {
+  id: string;
+  email?: string;
+  browser: string;
+  platform: string;
+  installed: boolean;
+  standalone: boolean;
+  permission: NotificationPermission | "unsupported" | "unknown";
+  vapidKeyVersion: string;
+  vapidStatus: "current" | "outdated" | "unknown";
+  createdAt: string;
+  updatedAt: string;
+  lastSeenAt?: string;
+  lastSuccessfulSendAt?: string;
+  lastFailedSendAt?: string;
+  lastError?: PushDeliveryError;
+  lastOpenedAt?: string;
+  lastOpenedUrl?: string;
+  isIos: boolean;
+  iosChecks?: {
+    openedFromHome: boolean;
+    permissionGranted: boolean;
+    subscriptionPresent: boolean;
+    focusAndLowPowerMode: "manual-check-required";
+  };
+}
+
+export interface PushDiagnosticsResponse {
+  email: string;
+  currentVapidKeyVersion: string;
+  devices: PushDeviceDiagnostic[];
+}
+
+export type PushHistoryResponseRecord = PushSendHistoryRecord;
 
 export interface SavedPushSegment {
   id: string;
