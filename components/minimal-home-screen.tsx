@@ -15,7 +15,7 @@ export function MinimalHomeScreen() {
   const [now] = useState(() => Date.now());
   const { scenario } = useDemoScenario();
   const { showBookingButton } = useBookingOverlay();
-  const { openMenu } = useMenuOverlay();
+  const { openMenu, menuCtaRef } = useMenuOverlay();
   const customer = useCurrentCustomerStatus();
   const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
   const hasReservation = scenario.enabled ? scenario.hasReservation : customer.hasReservation;
@@ -33,7 +33,7 @@ export function MinimalHomeScreen() {
   const beforeHighlights = <>
     {nextReservation ? <article className="upcoming-reservation-card"><header><p className="minimal-eyebrow">Prossima prenotazione</p></header><div className="reservation-details"><div><CalendarDays aria-hidden="true" /><span>{reservationDateLabel}</span></div><div><Clock3 aria-hidden="true" /><span>{reservationTimeLabel}</span></div><div><Users aria-hidden="true" /><span>{nextReservation.pax ?? "—"}</span></div></div></article> : null}
     {onPremise ? <div className="home-context-stack">
-      {onPremise ? <button type="button" className="menu-context-button" onClick={openMenu}><BookOpen /><div className="flex flex-col text-left py-0.5"><span className="font-serif text-[1.08rem] font-bold text-[var(--text)] leading-tight">Apri menu</span><span className="text-[10px] text-[var(--text-muted)] font-normal leading-normal mt-1 pr-2">Al momento del conto puoi richiederlo e pagare direttamente dal tavolo (con carte e bancomat).</span></div><ChevronRight /></button> : null}
+      {onPremise ? <button ref={menuCtaRef} type="button" className="menu-context-button" onClick={openMenu}><BookOpen /><div className="flex flex-col text-left py-0.5"><span className="font-serif text-[1.08rem] font-bold text-[var(--text)] leading-tight">Apri menu</span><span className="text-[10px] text-[var(--text-muted)] font-normal leading-normal mt-1 pr-2">Al momento del conto puoi richiederlo e pagare direttamente dal tavolo (con carte e bancomat).</span></div><ChevronRight /></button> : null}
     </div> : null}
   </>;
 

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
 import { usePathname } from "next/navigation";
-import { BarChart3, Home, Info, Users } from "lucide-react";
+import { BarChart3, Home, Info, Sparkles, Users } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { useBookingOverlay } from "@/components/booking-overlay";
+import { useDemoScenario } from "@/components/demo-scenario-provider";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 
 // Icona personalizzata: Teschio con ossa incrociate (Jolly Roger)
 function SkullCrossbones({ size = 21, strokeWidth = 1.7 }: { size?: number; strokeWidth?: number }) {
@@ -73,10 +75,16 @@ const baseItems: NavItem[] = [
 
 export function BottomNav({ isVip = false }: { isVip?: boolean }) {
   const pathname = usePathname();
-  const { openBooking, showBookingButton } = useBookingOverlay();
+  const { openBooking, showBookingButton, bookingCtaRef } = useBookingOverlay();
+  const { scenario } = useDemoScenario();
+  const { hasAccess } = useOnPremiseAccess();
+  const isOnPremise = scenario.enabled ? scenario.onPremise : hasAccess;
+  const showCenterAction = isOnPremise || showBookingButton;
 
   const navItems = [...baseItems];
-  if (showBookingButton) {
+  if (isOnPremise) {
+    navItems.splice(2, 0, { href: "/stasera", label: "Stasera", Icon: Sparkles });
+  } else if (showBookingButton) {
     // Inserisce il pulsante Prenota con icona SkullCrossbones al centro.
     navItems.splice(2, 0, { href: "#prenota", label: "Prenota", Icon: SkullCrossbones, isAction: true });
   }
@@ -84,7 +92,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
   return <div className="app-bottom-nav pointer-events-none fixed inset-x-0 z-30 flex justify-center px-3">
     <nav className={cn(
       "minimal-bottom-nav pointer-events-auto grid w-full max-w-md px-2 py-2",
-      showBookingButton ? "grid-cols-5" : "grid-cols-4"
+      showCenterAction ? "grid-cols-5" : "grid-cols-4"
     )}>
       {navItems.map((item) => {
         const active = pathname === item.href;
@@ -92,6 +100,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
 
         if ('isAction' in item && item.isAction) {
           return <button
+            ref={bookingCtaRef}
             key={item.label}
             type="button"
             onClick={() => {

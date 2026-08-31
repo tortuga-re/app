@@ -8,7 +8,6 @@ import { StatusBlock } from "@/components/status-block";
 import { trackAppEvent } from "@/lib/analytics";
 import { requestJson } from "@/lib/client";
 import { scrollToFormField } from "@/lib/form-focus";
-import { toDateInputValue } from "@/lib/customer-profile";
 import {
   isValidCustomerEmail,
   normalizeCustomerEmail,
@@ -35,53 +34,7 @@ import { ProfileGamesAndAdmin } from "@/features/profile/components/ProfileGames
 import { ProfilePassport } from "@/features/profile/components/ProfilePassport";
 import { OfflinePassportScreen } from "@/features/profile/components/OfflinePassportScreen";
 import { saveOfflinePassport } from "@/lib/offline-passport";
-
-type ContactFormState = {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  birthDate: string;
-  marketingConsent: boolean;
-};
-
-type ProfileFieldName =
-  | "lookupEmail"
-  | "loginCode"
-  | "firstName"
-  | "lastName"
-  | "email"
-  | "phone";
-
-const emptyContactForm: ContactFormState = {
-  firstName: "",
-  lastName: "",
-  phone: "",
-  email: "",
-  birthDate: "",
-  marketingConsent: false,
-};
-
-const loadProfileData = async (email: string) => {
-  const normalizedEmail = normalizeCustomerEmail(email);
-  const params = new URLSearchParams({
-    mode: "email",
-    query: normalizedEmail,
-  });
-
-  return requestJson<ProfileResponse>(`/api/profile?${params.toString()}`);
-};
-
-const buildContactForm = (
-  contact: ProfileResponse["contact"] | undefined,
-): ContactFormState => ({
-  firstName: contact?.Nome?.trim() ?? "",
-  lastName: contact?.Cognome?.trim() ?? "",
-  phone: normalizeItalianPhone(contact?.Telefono?.trim() ?? "")?.nationalNumber ?? "",
-  email: normalizeCustomerEmail(contact?.Email),
-  birthDate: toDateInputValue(contact?.DataDiNascita),
-  marketingConsent: contact?.ConsensoMarketing === 1,
-});
+import { buildContactForm, emptyContactForm, loadProfileData, type ContactFormState, type ProfileFieldName } from "@/features/profile/utils";
 
 export function CiurmaScreen() {
   const {

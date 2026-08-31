@@ -26,24 +26,24 @@ export const fidelityLoyaltyTiers: FidelityLoyaltyTier[] = [
     minPoints: 0,
     label: "Mozzo",
     description: "Il primo approdo nella Ciurma.",
-    image: "/badges/loyalty-mozzo.png",
+    image: "/badges/loyalty-mozzo.webp",
   },
   {
     minPoints: 30,
     label: "Corsaro",
     description: "5 visite e 30 Dobloni raggiunti.",
-    image: "/badges/loyalty-corsaro.png",
+    image: "/badges/loyalty-corsaro.webp",
   },
   {
     minPoints: 60,
     label: "Capitano",
     description: "10 visite e 60 Dobloni raggiunti.",
-    image: "/badges/loyalty-capitano.png",
+    image: "/badges/loyalty-capitano.webp",
   },
   {
     minPoints: 100,
     label: "Leggenda del Tortuga",
     description: "20 visite e 100 Dobloni raggiunti.",
-    image: "/badges/loyalty-leggenda.png",
+    image: "/badges/loyalty-leggenda.webp",
   },
 ];

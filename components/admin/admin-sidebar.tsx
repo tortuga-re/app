@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper, Trophy } from "lucide-react";
+import { LayoutDashboard, Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper, Trophy } from "lucide-react";
 import { useState } from "react";
 import { PanicButton } from "./panic-button";
 
 const navItems = [
+  { name: "Cruscotto", href: "/admin", icon: LayoutDashboard },
   { name: "Live TV", href: "/admin/live-tv", icon: Tv },
   { name: "Media Manager", href: "/admin/media", icon: ImageIcon },
   { name: "Push & Promo", href: "/admin/push", icon: Megaphone },
@@ -51,7 +52,7 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
             const Icon = item.icon;
             
             return (
@@ -74,7 +75,7 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-[#111]">
            <button 
              onClick={async () => {
-                await fetch('/api/admin/logout', { method: 'POST' });
+                await fetch('/api/admin/session/logout', { method: 'POST' });
                 window.location.href = '/admin';
              }}
              className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-400 hover:bg-red-500/10 transition-colors font-semibold"

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -14,12 +15,17 @@ import { PwaController } from "@/components/pwa-controller";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useCustomerStatus } from "@/lib/use-customer-status";
 import { CustomerStatusProvider } from "@/components/customer-status-context";
-import { QRScanner } from "@/components/QRScanner";
 import { MenuOverlayProvider, useMenuOverlay } from "@/components/menu-overlay";
 import { RoutePrefetcher } from "@/components/route-prefetcher";
+import { NotificationCenter } from "@/components/notification-center";
 
 const RECOVERY_KEY = "tortuga.chunk-recovery-at";
 const RECOVERY_COOLDOWN_MS = 30_000;
+
+const QRScanner = dynamic(
+  () => import("@/components/QRScanner").then((module) => module.QRScanner),
+  { ssr: false },
+);
 
 const isChunkRecoveryError = (message: string) =>
   message.includes("Loading chunk") ||
@@ -179,7 +185,7 @@ function AppHeader({ firstName, fallbackGreeting }: { firstName: string; fallbac
   const title = name ? `Ciao, ${name}` : fallbackGreeting.toLowerCase().replace(/^ciao/, "Ciao");
   return <header className="minimal-app-header">
     <Link href="/"><h1>{title}</h1><span /></Link>
-    <HeaderScannerButton />
+    <div className="flex items-center gap-2"><NotificationCenter /><HeaderScannerButton /></div>
   </header>;
 }
 
@@ -199,5 +205,5 @@ function HeaderScannerButton() {
 }
 
 function SectionHeader({ title }: { title: string }) {
-  return <header className="minimal-app-header section"><div><h1>{title}</h1><span /></div><HeaderScannerButton /></header>;
+  return <header className="minimal-app-header section"><div><h1>{title}</h1><span /></div><div className="flex items-center gap-2"><NotificationCenter /><HeaderScannerButton /></div></header>;
 }

@@ -515,14 +515,32 @@ export function LiveTvStageController() {
 
   useEffect(() => {
     let mounted = true;
-    let pollInterval: NodeJS.Timeout | null = null;
+    let pollTimeout: number | null = null;
+    let requestTimeout: number | null = null;
+    let requestAbortController: AbortController | null = null;
+    let requestInFlight = false;
     const supabase = getSupabase();
     let channel: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+    const clearFallbackPoll = () => {
+      if (pollTimeout) window.clearTimeout(pollTimeout);
+      pollTimeout = null;
+    };
+
     const fetchState = async () => {
+      if (!mounted || document.visibilityState === "hidden" || requestInFlight) {
+        return;
+      }
+
+      requestInFlight = true;
+      const controller = new AbortController();
+      requestAbortController = controller;
+      requestTimeout = window.setTimeout(() => controller.abort(), 8_000);
+
       try {
-        const response = await fetch(`/api/live-tv/state?t=${Date.now()}`, {
+        const response = await fetch("/api/live-tv/state", {
           cache: "no-store",
+          signal: controller.signal,
         });
 
         if (!response.ok || !mounted) {
@@ -539,15 +557,36 @@ export function LiveTvStageController() {
           setLoading(false);
         }
       } catch (error) {
-        console.error("Live TV stage fetch error:", error);
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Live TV stage fetch error:", error);
+        }
+      } finally {
+        if (requestTimeout) window.clearTimeout(requestTimeout);
+        requestTimeout = null;
+        if (requestAbortController === controller) requestAbortController = null;
+        requestInFlight = false;
       }
     };
 
-    const startPolling = () => {
-      if (pollInterval) clearInterval(pollInterval);
-      pollInterval = setInterval(() => {
-        void fetchState();
-      }, 2000);
+    const scheduleFallbackPoll = () => {
+      clearFallbackPoll();
+      if (!mounted || document.visibilityState === "hidden") return;
+
+      pollTimeout = window.setTimeout(async () => {
+        await fetchState();
+        scheduleFallbackPoll();
+      }, 30_000);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        clearFallbackPoll();
+        requestAbortController?.abort();
+        return;
+      }
+
+      void fetchState();
+      scheduleFallbackPoll();
     };
 
     channel = supabase
@@ -571,12 +610,16 @@ export function LiveTvStageController() {
       })
       .subscribe();
 
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     void fetchState();
-    startPolling();
+    scheduleFallbackPoll();
 
     return () => {
       mounted = false;
-      if (pollInterval) clearInterval(pollInterval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearFallbackPoll();
+      requestAbortController?.abort();
+      if (requestTimeout) window.clearTimeout(requestTimeout);
       if (channel) supabase.removeChannel(channel);
     };
   }, []);

@@ -9,7 +9,7 @@ export type MasterRoomRegion = {
 export const TORTUGA_MASTER_TABLE_MAP = {
   width: 1448,
   height: 1086,
-  imagePath: "/maps/tortuga-master-map.png",
+  imagePath: "/maps/tortuga-master-map.webp",
   roomRegions: [
     {
       roomCode: "da1d57f0-e0d5-4d7e-86be-9f8300f388b8",

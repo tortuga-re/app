@@ -10,6 +10,7 @@ import { LoyaltyJourney } from "@/components/loyalty-journey";
 import { RankBadge } from "@/components/rank-badge";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
+import { useBookingOverlay } from "@/components/booking-overlay";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import { fidelityRewardTiers } from "@/lib/fidelity-rewards.config";
 import { getActiveRank, getRankIndex, tortugaRanks } from "@/lib/loyalty-ranks";
@@ -32,7 +33,7 @@ const buildDemoProfile = (visits: number, points: number, hasCoupon: boolean): P
       label: "La Maledizione del Tortuga",
       description: "Una vera maledizione non si spezza tanto facilmente…",
       icon: "🐙",
-      image: "/badges/maledizione-tortuga.png",
+      image: "/badges/maledizione-tortuga.webp",
       secrecy: "hinted",
       unlocked: false,
     },
@@ -41,7 +42,7 @@ const buildDemoProfile = (visits: number, points: number, hasCoupon: boolean): P
       label: "Il giro dei Sette Mari",
       description: "Un vero pirata non percorre sempre la stessa rotta.",
       icon: "🌊",
-      image: "/badges/giro-sette-mari.png",
+      image: "/badges/giro-sette-mari.webp",
       secrecy: "hinted",
       unlocked: false,
     },
@@ -207,6 +208,13 @@ function HallOfLegends({ legends }: { legends: { nickname: string; legend_number
 
 function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onClose: () => void }) {
   const { unlocked } = mission;
+  const { openBooking, showBookingButton, bookingCtaRef } = useBookingOverlay();
+  const bookingMissionIds = new Set([
+    "primo-approdo", "membro-ciurma", "pirati-fiducia", "leggenda-tortuga",
+    "capitano", "capitano-tavolata", "grande-ammutinamento",
+    "rotta-infrasettimanale", "ritorno-naufragio", "stessa-rotta-3",
+  ]);
+  const eventMissionIds = new Set(["kantaquiz", "cervellone", "mai-normale"]);
   return <div className="achievement-modal" role="dialog" aria-modal="true" aria-labelledby="achievement-modal-title" onClick={onClose}>
     <div className="achievement-modal-card" onClick={(event) => event.stopPropagation()}>
       <button className="achievement-modal-close" onClick={onClose} aria-label="Chiudi dettagli impresa"><X /></button>
@@ -221,6 +229,10 @@ function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onC
         <span>{unlocked ? "Sbloccata" : "Non ancora sbloccata"}</span>
       </div>
       {mission.id === "assaggiatore-ufficiale" && !unlocked ? <Link href="/ciurma/carica-scontrino" className="minimal-primary achievement-modal-action">Carica scontrino</Link> : null}
+      {mission.id === "mozzo-di-bordo" && !unlocked ? <Link href="/ciurma#attiva-fidelity" className="minimal-primary achievement-modal-action">Attiva la Fidelity</Link> : null}
+      {eventMissionIds.has(mission.id) && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vedi il programma</Link> : null}
+      {mission.id === "fotografo-ciurma" && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vai a Foto Live</Link> : null}
+      {bookingMissionIds.has(mission.id) && !unlocked && showBookingButton ? <button ref={bookingCtaRef} type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); openBooking(); }}>Prenota</button> : null}
       <button className="minimal-primary achievement-modal-action" onClick={onClose}>Chiudi</button>
     </div>
   </div>;

@@ -1,5 +1,5 @@
-import { TonightPage } from "@/components/tonight-page";
+import { TonightExperience } from "@/components/tonight/tonight-experience";
 
 export default function StaseraPage() {
-  return <TonightPage />;
+  return <TonightExperience />;
 }

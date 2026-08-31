@@ -17,7 +17,7 @@ export const missions: Mission[] = [
     label: "Primo Approdo",
     description: "Sbloccato alla prima visita registrata.",
     icon: "⚓",
-    image: "/badges/primo-approdo.png",
+    image: "/badges/primo-approdo.webp",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("primo-approdo") ||
@@ -28,7 +28,7 @@ export const missions: Mission[] = [
     label: "Mozzo di Bordo",
     description: "Sbloccato con 1 visita e Fidelity attiva.",
     icon: "🧹",
-    image: "/badges/mozzo-di-bordo.png",
+    image: "/badges/mozzo-di-bordo.webp",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("mozzo-di-bordo") ||
@@ -41,7 +41,7 @@ export const missions: Mission[] = [
     label: "Membro della Ciurma",
     description: "Sbloccato dopo 3 visite.",
     icon: "☠️",
-    image: "/badges/membro-ciurma.png",
+    image: "/badges/membro-ciurma.webp",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("membro-ciurma") ||
@@ -52,7 +52,7 @@ export const missions: Mission[] = [
     label: "Corsaro di Fiducia",
     description: "Sbloccato dopo 5 visite.",
     icon: "⚔️",
-    image: "/badges/pirati-fiducia.png",
+    image: "/badges/pirati-fiducia.webp",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("pirati-fiducia") ||
@@ -63,7 +63,7 @@ export const missions: Mission[] = [
     label: "Leggenda del Tortuga",
     description: "Sbloccato dopo 20 visite.",
     icon: "🏴‍☠️",
-    image: "/badges/leggenda-tortuga.png",
+    image: "/badges/leggenda-tortuga.webp",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("leggenda-tortuga") ||
@@ -74,7 +74,7 @@ export const missions: Mission[] = [
     label: "Capitano",
     description: "Sbloccato dopo 10 visite.",
     icon: "👻",
-    image: "/badges/loyalty-capitano.png",
+    image: "/badges/loyalty-capitano.webp",
     category: "navigazione",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("capitano") ||
@@ -87,7 +87,7 @@ export const missions: Mission[] = [
     label: "Sopravvissuto al KantaQuiz",
     description: "Visita registrata di Venerdì.",
     icon: "🎤",
-    image: "/badges/kantaquiz.png",
+    image: "/badges/kantaquiz.webp",
     category: "eventi",
     isUnlocked: (p) => {
       if (p.unlockedAchievementIds?.includes("kantaquiz")) return true;
@@ -100,7 +100,7 @@ export const missions: Mission[] = [
     label: "Cervello in Fuga",
     description: "Visita registrata di Domenica.",
     icon: "🧠",
-    image: "/badges/cervellone.png",
+    image: "/badges/cervellone.webp",
     category: "eventi",
     isUnlocked: (p) => {
       if (p.unlockedAchievementIds?.includes("cervellone")) return true;
@@ -113,7 +113,7 @@ export const missions: Mission[] = [
     label: "Mai una serata normale",
     description: "Partecipa a 3 serate diverse.",
     icon: "🎭",
-    image: "/badges/mai-normale.png",
+    image: "/badges/mai-normale.webp",
     category: "eventi",
     isUnlocked: (p) => {
       if (p.unlockedAchievementIds?.includes("mai-normale")) return true;
@@ -136,7 +136,7 @@ export const missions: Mission[] = [
     label: "Cacciatore di Bottino",
     description: "Usa il tuo primo coupon.",
     icon: "💰",
-    image: "/badges/cacciatore-bottino.png",
+    image: "/badges/cacciatore-bottino.webp",
     category: "bottino",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("cacciatore-bottino") ||
@@ -147,7 +147,7 @@ export const missions: Mission[] = [
     label: "Chiave d'Oro",
     description: "Usa almeno 3 coupon.",
     icon: "🔑",
-    image: "/badges/chiave-oro.png",
+    image: "/badges/chiave-oro.webp",
     category: "bottino",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("chiave-oro") ||
@@ -158,7 +158,7 @@ export const missions: Mission[] = [
     label: "Assaggiatore Ufficiale",
     description: "Carica la tua prima ricevuta.",
     icon: "🧾",
-    image: "/badges/assaggiatore-ufficiale.png",
+    image: "/badges/assaggiatore-ufficiale.webp",
     category: "bottino",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("assaggiatore-ufficiale") ?? false,
@@ -170,7 +170,7 @@ export const missions: Mission[] = [
     label: "Capitano della Tavolata",
     description: "Prenotazione da almeno 6 persone.",
     icon: "👥",
-    image: "/badges/capitano-tavolata.png",
+    image: "/badges/capitano-tavolata.webp",
     category: "ciurma",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("capitano-tavolata") ||
@@ -181,7 +181,7 @@ export const missions: Mission[] = [
     label: "Grande Ammutinamento",
     description: "Prenotazione da almeno 10 persone.",
     icon: "📢",
-    image: "/badges/grande-ammutinamento.png",
+    image: "/badges/grande-ammutinamento.webp",
     category: "ciurma",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("grande-ammutinamento") ||
@@ -192,7 +192,7 @@ export const missions: Mission[] = [
     label: "Fotografo della Ciurma",
     description: "Invia una foto durante una serata Foto Live.",
     icon: "📷",
-    image: "/badges/fotografo-ciurma.png",
+    image: "/badges/fotografo-ciurma.webp",
     category: "ciurma",
     isUnlocked: (p) => p.unlockedAchievementIds?.includes("fotografo-ciurma") ?? false,
   },
@@ -201,7 +201,7 @@ export const missions: Mission[] = [
     label: "Rotta Infrasettimanale",
     description: "Prenota per un mercoledì o un giovedì.",
     icon: "⚓",
-    image: "/badges/rotta-infrasettimanale.png",
+    image: "/badges/rotta-infrasettimanale.webp",
     category: "ciurma",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("rotta-infrasettimanale") ||
@@ -214,7 +214,7 @@ export const missions: Mission[] = [
     label: "Ritorno dal Naufragio",
     description: "Torna a trovarci dopo più di 60 giorni di assenza.",
     icon: "🏝️",
-    image: "/badges/ritorno-naufragio.png",
+    image: "/badges/ritorno-naufragio.webp",
     category: "navigazione",
     isUnlocked: (p) => {
       if (p.unlockedAchievementIds?.includes("ritorno-naufragio")) return true;
@@ -231,7 +231,7 @@ export const missions: Mission[] = [
     label: "Tre volte sulla stessa rotta",
     description: "Torna a trovarci 3 volte nello stesso mese.",
     icon: "🗺️",
-    image: "/badges/stessa-rotta-3.png",
+    image: "/badges/stessa-rotta-3.webp",
     category: "navigazione",
     isUnlocked: (p) => p.unlockedAchievementIds?.includes("stessa-rotta-3") ?? false,
   },
@@ -240,7 +240,7 @@ export const missions: Mission[] = [
     label: "Il Naufragio Perfetto",
     description: "Completa tutte le altre imprese del Tortuga.",
     icon: "🌪️",
-    image: "/badges/naufragio-perfetto.png",
+    image: "/badges/naufragio-perfetto.webp",
     category: "ciurma",
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("naufragio-perfetto") ||

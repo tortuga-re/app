@@ -899,7 +899,7 @@ body {
 .recognition-modal .legacy-profile-details { border:0; padding:0; box-shadow:none; }
 .recognition-modal #contest { display:none; }
 @media (max-width:430px){.profile-edit-overlay{align-items:flex-end;padding:.5rem}.profile-edit-modal{max-height:calc(100dvh - 1rem);border-radius:1.7rem 1.7rem 1rem 1rem}.profile-edit-grid{grid-template-columns:1fr}}
-.minimal-app-header { display:flex; min-height:5.4rem; align-items:center; justify-content:space-between; gap:1rem; color:#fffdf8; padding:.4rem .55rem .7rem; }.minimal-app-header h1 { font-family:var(--font-serif); font-size:1.7rem; font-weight:600; letter-spacing:-.02em; }.minimal-app-header>a span,.minimal-app-header.section span { display:block; width:1.75rem; height:2px; margin-top:.45rem; background:#c59a47; }
+.minimal-app-header { display:flex; min-height:5.4rem; align-items:center; justify-content:space-between; gap:1rem; color:#fffdf8; padding:.4rem .55rem .7rem; }.minimal-app-header h1 { font-family:var(--font-serif); font-size:1.7rem; font-weight:600; letter-spacing:-.02em; }.minimal-app-header>a>span,.minimal-app-header.section>div:first-child>span { display:block; width:1.75rem; height:2px; margin-top:.45rem; background:#c59a47; }
 .minimal-app-header.section { min-height:5.4rem; }
 .header-scan-button { display:flex; width:2.7rem; height:2.7rem; flex:none; align-items:center; justify-content:center; border:1px solid rgba(197,154,71,.48); border-radius:50%; background:rgba(17,19,17,.62); color:#e0bd74; backdrop-filter:blur(8px); }
 .header-scan-button svg { width:20px; height:20px; }
@@ -1080,62 +1080,62 @@ body {
 @media (prefers-reduced-motion:reduce) { .treasure-chest,.treasure-coin,.coin-mark,.tortuga-loader-timeout { animation:none; } .tortuga-frame-loader { transition-duration:.01ms; } }
 
 .coupon-slide {
-  background-image: linear-gradient(105deg, rgba(31, 15, 8, .91) 0%, rgba(52, 24, 12, .82) 54%, rgba(35, 14, 7, .58) 100%), url('/images/coupon-burger-background.png');
+  background-image: linear-gradient(105deg, rgba(31, 15, 8, .91) 0%, rgba(52, 24, 12, .82) 54%, rgba(35, 14, 7, .58) 100%), url('/images/coupon-burger-background.webp');
   background-position: center;
 }
 .coupon-slide:hover {
-  background-image: linear-gradient(105deg, rgba(31, 15, 8, .84) 0%, rgba(52, 24, 12, .74) 54%, rgba(35, 14, 7, .48) 100%), url('/images/coupon-burger-background.png');
+  background-image: linear-gradient(105deg, rgba(31, 15, 8, .84) 0%, rgba(52, 24, 12, .74) 54%, rgba(35, 14, 7, .48) 100%), url('/images/coupon-burger-background.webp');
 }
 .coupon-slide p, .coupon-slide h3, .coupon-slide > span { opacity: 1; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
 .coupon-slide > span { color: rgba(255,255,255,.9); }
 
 .survey-slide {
-  background-image: linear-gradient(105deg, rgba(10, 22, 25, .91) 0%, rgba(13, 37, 40, .81) 55%, rgba(12, 25, 29, .52) 100%), url('/images/survey-pirate-background.png');
+  background-image: linear-gradient(105deg, rgba(10, 22, 25, .91) 0%, rgba(13, 37, 40, .81) 55%, rgba(12, 25, 29, .52) 100%), url('/images/survey-pirate-background.webp');
   background-position: center;
 }
 .survey-slide:hover {
-  background-image: linear-gradient(105deg, rgba(10, 22, 25, .83) 0%, rgba(13, 37, 40, .71) 55%, rgba(12, 25, 29, .42) 100%), url('/images/survey-pirate-background.png');
+  background-image: linear-gradient(105deg, rgba(10, 22, 25, .83) 0%, rgba(13, 37, 40, .71) 55%, rgba(12, 25, 29, .42) 100%), url('/images/survey-pirate-background.webp');
 }
 .survey-slide p, .survey-slide h3, .survey-slide > span { opacity: 1; text-shadow: 0 1px 3px rgba(0,0,0,.72); }
 .survey-slide > span { color: rgba(255,255,255,.9); }
 
 .rank-slide {
-  background-image: linear-gradient(105deg, rgba(10, 22, 27, .91) 0%, rgba(12, 31, 37, .83) 56%, rgba(8, 20, 26, .58) 100%), url('/images/ranks-pirate-galleons-background.png');
+  background-image: linear-gradient(105deg, rgba(10, 22, 27, .91) 0%, rgba(12, 31, 37, .83) 56%, rgba(8, 20, 26, .58) 100%), url('/images/ranks-pirate-galleons-background.webp');
 }
 .rank-slide:hover {
-  background-image: linear-gradient(105deg, rgba(10, 22, 27, .83) 0%, rgba(12, 31, 37, .74) 56%, rgba(8, 20, 26, .48) 100%), url('/images/ranks-pirate-galleons-background.png');
+  background-image: linear-gradient(105deg, rgba(10, 22, 27, .83) 0%, rgba(12, 31, 37, .74) 56%, rgba(8, 20, 26, .48) 100%), url('/images/ranks-pirate-galleons-background.webp');
 }
 
 .reward-slide {
-  background-image: linear-gradient(105deg, rgba(102, 27, 24, .91) 0%, rgba(130, 37, 27, .83) 56%, rgba(65, 18, 14, .59) 100%), url('/images/rewards-food-table-background.png');
+  background-image: linear-gradient(105deg, rgba(102, 27, 24, .91) 0%, rgba(130, 37, 27, .83) 56%, rgba(65, 18, 14, .59) 100%), url('/images/rewards-food-table-background.webp');
 }
 .reward-slide:hover {
-  background-image: linear-gradient(105deg, rgba(102, 27, 24, .83) 0%, rgba(130, 37, 27, .74) 56%, rgba(65, 18, 14, .48) 100%), url('/images/rewards-food-table-background.png');
+  background-image: linear-gradient(105deg, rgba(102, 27, 24, .83) 0%, rgba(130, 37, 27, .74) 56%, rgba(65, 18, 14, .48) 100%), url('/images/rewards-food-table-background.webp');
 }
 
 .receipt-slide {
-  background-image: linear-gradient(105deg, rgba(42, 22, 9, .87) 0%, rgba(80, 43, 14, .76) 56%, rgba(65, 33, 9, .53) 100%), url('/images/receipt-treasure-map-background.png');
+  background-image: linear-gradient(105deg, rgba(42, 22, 9, .87) 0%, rgba(80, 43, 14, .76) 56%, rgba(65, 33, 9, .53) 100%), url('/images/receipt-treasure-map-background.webp');
   background-position: center;
 }
 
 .receipt-slide:hover {
-  background-image: linear-gradient(105deg, rgba(42, 22, 9, .78) 0%, rgba(80, 43, 14, .67) 56%, rgba(65, 33, 9, .42) 100%), url('/images/receipt-treasure-map-background.png');
+  background-image: linear-gradient(105deg, rgba(42, 22, 9, .78) 0%, rgba(80, 43, 14, .67) 56%, rgba(65, 33, 9, .42) 100%), url('/images/receipt-treasure-map-background.webp');
 }
 
 .rank-progress-slide {
-  background-image: linear-gradient(105deg, rgba(13, 34, 40, .9) 0%, rgba(18, 62, 69, .78) 56%, rgba(10, 32, 39, .53) 100%), url('/images/ranks-pirate-galleons-background.png');
+  background-image: linear-gradient(105deg, rgba(13, 34, 40, .9) 0%, rgba(18, 62, 69, .78) 56%, rgba(10, 32, 39, .53) 100%), url('/images/ranks-pirate-galleons-background.webp');
   background-position: center;
 }
 
 .rank-progress-slide:hover {
-  background-image: linear-gradient(105deg, rgba(13, 34, 40, .81) 0%, rgba(18, 62, 69, .69) 56%, rgba(10, 32, 39, .43) 100%), url('/images/ranks-pirate-galleons-background.png');
+  background-image: linear-gradient(105deg, rgba(13, 34, 40, .81) 0%, rgba(18, 62, 69, .69) 56%, rgba(10, 32, 39, .43) 100%), url('/images/ranks-pirate-galleons-background.webp');
 }
 
 .gift-slide {
-  background-image: linear-gradient(105deg, rgba(31, 15, 12, .88) 0%, rgba(61, 25, 16, .76) 56%, rgba(24, 13, 9, .48) 100%), url('/images/gift-card-treasure-chest-background.png');
+  background-image: linear-gradient(105deg, rgba(31, 15, 12, .88) 0%, rgba(61, 25, 16, .76) 56%, rgba(24, 13, 9, .48) 100%), url('/images/gift-card-treasure-chest-background.webp');
   background-position: center;
 }
 
 .gift-slide:hover {
-  background-image: linear-gradient(105deg, rgba(31, 15, 12, .79) 0%, rgba(61, 25, 16, .67) 56%, rgba(24, 13, 9, .38) 100%), url('/images/gift-card-treasure-chest-background.png');
+  background-image: linear-gradient(105deg, rgba(31, 15, 12, .79) 0%, rgba(61, 25, 16, .67) 56%, rgba(24, 13, 9, .38) 100%), url('/images/gift-card-treasure-chest-background.webp');
 }

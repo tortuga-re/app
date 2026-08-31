@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 
 import type { LiveTvMediaAsset } from "@/lib/live-tv/types";
 
@@ -10,6 +11,13 @@ export type LiveTvStoredMedia = {
   mediaUrl: string;
   fileName: string;
   storageMode: "external" | "public";
+  mimeType: string;
+  sizeBytes: number;
+};
+
+type SaveLiveTvMediaOptions = {
+  /** Converts a customer photo before it reaches persistent storage. */
+  optimizeImage?: boolean;
 };
 
 const EXTERNAL_MEDIA_DIR =
@@ -86,8 +94,8 @@ const resolveTargetPath = (targetDir: string, fileName: string) => {
 export const saveLiveTvMediaFile = async (
   file: File,
   mediaKind: "image" | "video",
+  options: SaveLiveTvMediaOptions = {},
 ): Promise<LiveTvStoredMedia> => {
-  const fileExt = getExtension(file);
   const safeBaseName = file.name
     .replace(/\.[^.]+$/, "")
     .replace(/[^a-zA-Z0-9-_]+/g, "-")
@@ -95,18 +103,39 @@ export const saveLiveTvMediaFile = async (
     .replace(/^-|-$/g, "")
     .toLowerCase()
     .slice(0, 48);
+  const sourceBuffer = Buffer.from(await file.arrayBuffer());
+  const optimizeImage = mediaKind === "image" && options.optimizeImage;
+  const fileExt = optimizeImage ? "webp" : getExtension(file);
   const fileName = `${Date.now()}-${safeBaseName || randomUUID()}.${fileExt}`;
   const config = getTargetConfig(mediaKind);
   const targetPath = path.join(config.targetDir, fileName);
 
+  const buffer = optimizeImage
+    ? await sharp(sourceBuffer, {
+      animated: file.type === "image/gif",
+      failOn: "error",
+      limitInputPixels: 40_000_000,
+    })
+      .rotate()
+      .resize({
+        width: 1920,
+        height: 1080,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 82, effort: 4, smartSubsample: true })
+      .toBuffer()
+    : sourceBuffer;
+
   await mkdir(config.targetDir, { recursive: true });
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(targetPath, buffer);
 
   return {
     mediaUrl: `${config.publicBaseUrl}/${mediaKind}/${fileName}`,
     fileName,
     storageMode: config.storageMode,
+    mimeType: optimizeImage ? "image/webp" : file.type,
+    sizeBytes: buffer.byteLength,
   };
 };
 

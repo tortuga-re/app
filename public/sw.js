@@ -1,4 +1,4 @@
-const CACHE_NAME = "tortuga-shell-v4";
+const CACHE_NAME = "tortuga-shell-v5";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
   OFFLINE_URL,
@@ -22,6 +22,15 @@ const isImmutableStaticAsset = (url) =>
 const isStaticShellAsset = (url) =>
   url.pathname.startsWith("/pwa-icon/") ||
   url.pathname === "/manifest.webmanifest";
+
+const isPublicCacheableApi = (url) =>
+  [
+    "/api/venues",
+    "/api/highlights",
+    "/api/tortuga-winners",
+    "/api/profile/legends",
+    "/api/classifiche",
+  ].includes(url.pathname);
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -74,8 +83,25 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // API calls: Network first, fallback to cache
+  // Private and operational APIs must never be stored by the service worker.
+  // Public, non-personal data can use a network-first fallback.
   if (url.pathname.startsWith("/api/")) {
+    if (!isPublicCacheableApi(url)) {
+      event.respondWith(
+        fetch(request).catch(
+          () =>
+            new Response(
+              JSON.stringify({ error: "Connessione non disponibile." }),
+              {
+                status: 503,
+                headers: { "Content-Type": "application/json" },
+              },
+            ),
+        ),
+      );
+      return;
+    }
+
     event.respondWith(
       fetch(request)
         .then((response) => {

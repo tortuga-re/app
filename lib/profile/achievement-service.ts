@@ -8,10 +8,10 @@ import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
 
 type ActivityRow = { activity_type: "visit" | "event"; activity_key: string | null; occurred_at: string };
 const specialDefinitions: AchievementDefinition[] = [
-  { id: specialAchievementIds.curse, label: "La Maledizione del Tortuga", hint: "Una vera maledizione non si spezza tanto facilmente…", icon: "🐙", image: "/badges/maledizione-tortuga.png", secrecy: "hinted" },
-  { id: specialAchievementIds.sevenSeas, label: "Il giro dei Sette Mari", hint: "Un vero pirata non percorre sempre la stessa rotta.", icon: "🌊", image: "/badges/giro-sette-mari.png", secrecy: "hinted" },
-  { id: specialAchievementIds.veteran, label: "Veterano della Ciurma", hint: "Continua a navigare…", icon: "⚓", image: "/badges/veterano-ciurma.png", secrecy: "secret" },
-  { id: specialAchievementIds.cannotStayAway, label: "Non riesci proprio a stare lontano", hint: "Sei tornato al Tortuga dopo meno di 72 ore. Ammettilo: ti mancavamo già.", icon: "🧭", image: "/badges/non-riesci-stare-lontano.png", secrecy: "hidden" },
+  { id: specialAchievementIds.curse, label: "La Maledizione del Tortuga", hint: "Una vera maledizione non si spezza tanto facilmente…", icon: "🐙", image: "/badges/maledizione-tortuga.webp", secrecy: "hinted" },
+  { id: specialAchievementIds.sevenSeas, label: "Il giro dei Sette Mari", hint: "Un vero pirata non percorre sempre la stessa rotta.", icon: "🌊", image: "/badges/giro-sette-mari.webp", secrecy: "hinted" },
+  { id: specialAchievementIds.veteran, label: "Veterano della Ciurma", hint: "Continua a navigare…", icon: "⚓", image: "/badges/veterano-ciurma.webp", secrecy: "secret" },
+  { id: specialAchievementIds.cannotStayAway, label: "Non riesci proprio a stare lontano", hint: "Sei tornato al Tortuga dopo meno di 72 ore. Ammettilo: ti mancavamo già.", icon: "🧭", image: "/badges/non-riesci-stare-lontano.webp", secrecy: "hidden" },
 ];
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();

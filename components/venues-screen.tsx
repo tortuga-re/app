@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import { BookOpen, ExternalLink, X } from "lucide-react";
 
 import { StatusBlock } from "@/components/status-block";
-import { DragCarousel } from "@/components/drag-carousel";
+import { EveningProgram } from "@/components/info/evening-program";
 import { requestJson } from "@/lib/client";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { CoopertoVenueHour, VenueResponse } from "@/lib/cooperto/types";
@@ -232,11 +232,10 @@ function VenuesScreenContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [programDetail, setProgramDetail] = useState<{ title: string; url: string } | null>(null);
   const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
   const { scenario } = useDemoScenario();
   const isOnPremise = scenario.enabled ? scenario.onPremise : hasOnPremiseAccess;
-  const { openMenu: openVenueMenu } = useMenuOverlay();
+  const { openMenu: openVenueMenu, menuCtaRef } = useMenuOverlay();
   useEffect(() => {
     const loadVenues = async () => {
       try {
@@ -278,33 +277,9 @@ function VenuesScreenContent() {
       ) : null}
 
       <div id="programmazione" className="info-section minimal-overlap-sheet hash-scroll-target">
-        <div className="info-section-heading">
-          <p className="minimal-eyebrow">Programmazione serale</p>
-        </div>
-
-        <DragCarousel className="evening-program-slides" label="Programmazione settimanale Tortuga">
-          {tortugaInfoConfig.eveningProgram.map((event) => {
-            return (
-              <article
-                key={`${event.day}-${event.title}`}
-                className="evening-program-card"
-              >
-                <div className="evening-program-image">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={event.imageUrl} alt={event.title} loading="lazy" draggable={false} />
-                </div>
-                <div className="evening-program-copy">
-                  <p>{event.day}</p>
-                  <h3>{event.title}</h3>
-                  <span>{event.description}</span>
-                  {event.detailUrl ? <button type="button" onClick={() => setProgramDetail({ title: event.title, url: event.detailUrl })}>Scopri di più <ExternalLink /></button> : null}
-                </div>
-              </article>
-            );
-          })}
-        </DragCarousel>
+        <EveningProgram />
         <div className="public-menu-cta">
-          <button type="button" className="minimal-primary" onClick={() => isOnPremise ? openVenueMenu() : setMenuOpen(true)}><BookOpen />Vedi menu</button>
+          <button ref={isOnPremise ? menuCtaRef : undefined} type="button" className="minimal-primary" onClick={() => isOnPremise ? openVenueMenu() : setMenuOpen(true)}><BookOpen />Vedi menu</button>
           {!isOnPremise ? <p>Se sei al Tortuga utilizza il QR sul tavolo per visualizzare il menu, potrebbe differire da questo. Scannerizzalo con la funzione dedicata in alto a destra.</p> : null}
         </div>
       </div>
@@ -312,11 +287,6 @@ function VenuesScreenContent() {
       {menuOpen ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label="Menu Tortuga">
         <header><div><BookOpen size={19} /><span>Menu Tortuga</span></div><div className="flex gap-2"><a href={PUBLIC_MENU_URL} target="_blank" rel="noreferrer" aria-label="Apri il menu nel browser"><ExternalLink size={19} /></a><button onClick={() => setMenuOpen(false)} aria-label="Chiudi menu"><X size={22} /></button></div></header>
         <BrandedIframe src={PUBLIC_MENU_URL} title="Menu Tortuga" />
-      </div> : null}
-
-      {programDetail ? <div className="booking-overlay" role="dialog" aria-modal="true" aria-label={`Approfondimento ${programDetail.title}`}>
-        <header><div><BookOpen size={19} /><span>{programDetail.title}</span></div><div className="flex gap-2"><a href={programDetail.url} target="_blank" rel="noreferrer" aria-label="Apri approfondimento nel browser"><ExternalLink size={19} /></a><button onClick={() => setProgramDetail(null)} aria-label="Chiudi approfondimento"><X size={22} /></button></div></header>
-        <BrandedIframe src={programDetail.url} title={programDetail.title} />
       </div> : null}
 
       <div id="social" className="panel info-clean-panel hash-scroll-target rounded-[2rem] p-5">

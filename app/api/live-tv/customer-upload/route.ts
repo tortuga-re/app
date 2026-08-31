@@ -93,7 +93,9 @@ export async function POST(req: NextRequest) {
       if (!identity) throw new Error("Contatto Cooperto non disponibile.");
     }
 
-    const storedMedia = await saveLiveTvMediaFile(media, mediaKind);
+    const storedMedia = await saveLiveTvMediaFile(media, mediaKind, {
+      optimizeImage: true,
+    });
     const submission: LiveTvCustomerSubmission = {
       id: crypto.randomUUID(),
       kind: mediaKind,
@@ -101,8 +103,8 @@ export async function POST(req: NextRequest) {
       originalName: media.name,
       fileName: storedMedia.fileName,
       mediaUrl: storedMedia.mediaUrl,
-      mimeType: media.type,
-      sizeBytes: media.size,
+      mimeType: storedMedia.mimeType,
+      sizeBytes: storedMedia.sizeBytes,
       storageMode: storedMedia.storageMode,
       uploaderName: null,
       uploaderEmail: null,

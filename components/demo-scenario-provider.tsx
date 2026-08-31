@@ -23,6 +23,7 @@ export type DemoScenario = {
   welcomeChestDevice: "none" | "iphone" | "android";
   demoWeekday: number;
   demoLiveGame: "none" | "kantaquiz" | "cervellone";
+  demoLiveGameSession: number;
 };
 
 const defaults: DemoScenario = {
@@ -44,6 +45,7 @@ const defaults: DemoScenario = {
   welcomeChestDevice: "none",
   demoWeekday: -1,
   demoLiveGame: "none",
+  demoLiveGameSession: 0,
 };
 
 const DemoContext = createContext<{ scenario: DemoScenario; update: (patch: Partial<DemoScenario>) => void } | null>(null);
@@ -77,7 +79,18 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
 
   const update = useCallback((patch: Partial<DemoScenario>) => {
     setScenario((value) => {
-      const next = { ...value, ...patch };
+      const isNewDemoGameActivation = Boolean(
+        patch.demoLiveGame &&
+        patch.demoLiveGame !== "none" &&
+        patch.demoLiveGame !== value.demoLiveGame,
+      );
+      const next = {
+        ...value,
+        ...patch,
+        ...(isNewDemoGameActivation
+          ? { demoLiveGameSession: value.demoLiveGameSession + 1 }
+          : {}),
+      };
       if (isDev) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });

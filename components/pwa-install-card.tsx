@@ -139,7 +139,8 @@ export function PwaInstallCard() {
 
   useEffect(() => {
     if (welcomeChestPreview === "none") return;
-    setShowAsPopup(true);
+    const timer = window.setTimeout(() => setShowAsPopup(true), 0);
+    return () => window.clearTimeout(timer);
   }, [welcomeChestPreview]);
 
 
@@ -260,7 +261,7 @@ export function PwaInstallCard() {
       </div>
       <div className="mt-2 space-y-2">
         {mode !== "fallback-ios" ? <Image
-          src="/images/gift-card-treasure-chest-background.png"
+          src="/images/gift-card-treasure-chest-background.webp"
           alt="Baule aperto con monete e tesori"
           width={1536}
           height={1024}

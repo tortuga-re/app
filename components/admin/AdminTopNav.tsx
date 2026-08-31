@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const ADMIN_NAV_ITEMS = [
+  { href: "/admin", label: "Cruscotto" },
   { href: "/admin/live-tv", label: "Plancia" },
   { href: "/admin/buzzer", label: "Buzzer" },
   { href: "/admin/scontrini", label: "Scontrini" },
@@ -19,7 +20,7 @@ export function AdminTopNav() {
       {ADMIN_NAV_ITEMS.map((item) => {
         const isActive =
           pathname === item.href ||
-          pathname.startsWith(item.href);
+          (item.href !== "/admin" && pathname.startsWith(item.href));
 
         return (
           <Link
