@@ -13,6 +13,16 @@ import type {
   SavedPushSegment,
 } from "@/lib/push/types";
 
+type PushResult = {
+  success?: boolean;
+  error?: string;
+  sent?: number;
+  failed?: number;
+  removed?: number;
+  total?: number;
+  errors?: Array<{ statusCode: number; message: string }>;
+};
+
 export default function AdminPushPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -24,7 +34,7 @@ export default function AdminPushPage() {
   const [segmentName, setSegmentName] = useState("");
   const [campaignName, setCampaignName] = useState("");
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ success?: boolean; error?: string } | null>(null);
+  const [result, setResult] = useState<PushResult | null>(null);
 
   const refreshLibrary = async () => {
     try {
@@ -101,7 +111,7 @@ export default function AdminPushPage() {
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string; sent?: number; total?: number }
+        | PushResult
         | null;
 
       if (!response.ok) {
@@ -109,7 +119,14 @@ export default function AdminPushPage() {
         return;
       }
 
-      setResult({ success: true });
+      setResult({
+        success: true,
+        sent: payload?.sent ?? 0,
+        failed: payload?.failed ?? 0,
+        removed: payload?.removed ?? 0,
+        total: payload?.total ?? 0,
+        errors: payload?.errors ?? [],
+      });
       trackAppEvent("admin_push_sent", {
         app_section: "admin",
         push_segment: segment,
@@ -197,7 +214,7 @@ export default function AdminPushPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="admin-push-page mx-auto max-w-2xl space-y-8 p-5 md:p-8">
       <header className="space-y-2">
         <Link
           href="/ciurma"
@@ -205,7 +222,7 @@ export default function AdminPushPage() {
         >
           <ChevronLeft className="h-3 w-3" /> Torna alla Ciurma
         </Link>
-        <h1 className="text-3xl font-black uppercase italic tracking-tighter text-white">
+        <h1 className="text-3xl font-black uppercase italic tracking-tighter text-[var(--text)]">
           Push marketing
         </h1>
         <p className="text-sm text-[var(--text-muted)]">
@@ -389,9 +406,9 @@ export default function AdminPushPage() {
 
       {result?.success ? (
         <StatusBlock
-          variant="info"
-          title="Bottino consegnato"
-          description="La notifica è stata inviata correttamente al segmento selezionato."
+          variant={result.sent ? (result.failed ? "info" : "success") : "error"}
+          title={result.sent ? (result.failed ? "Consegna parziale" : "Bottino consegnato") : "Push non consegnata"}
+          description={formatPushResult(result)}
         />
       ) : null}
 
@@ -404,4 +421,14 @@ export default function AdminPushPage() {
       ) : null}
     </div>
   );
+}
+
+function formatPushResult(result: PushResult) {
+  const total = result.total ?? 0;
+  const sent = result.sent ?? 0;
+  const failed = result.failed ?? 0;
+  if (!total) return "Nessuna subscription push corrisponde al segmento selezionato.";
+  if (!failed) return `Consegna accettata dal servizio push per ${sent} ${sent === 1 ? "dispositivo" : "dispositivi"}.`;
+  const detail = result.errors?.map((item) => `${item.statusCode ? `HTTP ${item.statusCode}: ` : ""}${item.message}`).join(" · ");
+  return `${sent} inviati, ${failed} non consegnati${result.removed ? `, ${result.removed} subscription rimosse` : ""}.${detail ? ` Errore: ${detail}` : ""}`;
 }

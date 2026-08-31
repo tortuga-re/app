@@ -947,6 +947,21 @@ body {
 .legacy-profile-details #contest { display:none; }
 .legacy-profile-details .parchment-unroll-animation { animation:none; }
 
+/* The command deck shares the public app's parchment palette without rewriting every admin tool. */
+.admin-shell { background:radial-gradient(circle at 90% 0,rgba(197,154,71,.14),transparent 30%),#f4efe5; color:var(--text); }
+.admin-shell main { color:var(--text); }
+.admin-shell .panel,.admin-shell .panel-muted { border:1px solid var(--border)!important; background:#fffdf8!important; color:var(--text)!important; box-shadow:0 12px 30px rgba(45,35,23,.075)!important; }
+.admin-shell .panel::before,.admin-shell .panel::after { display:none!important; }
+.admin-shell .field { border:1px solid rgba(35,31,26,.14)!important; border-radius:1rem!important; background:#f3ecdf!important; color:var(--text)!important; box-shadow:none!important; }
+.admin-shell .field:focus { border-color:var(--accent)!important; background:#fffdf8!important; box-shadow:0 0 0 3px rgba(165,43,43,.09)!important; }
+.admin-shell .field::placeholder { color:#8c857a!important; }
+.admin-shell .button-primary { border:0!important; border-radius:999px!important; background:#a52b2b!important; color:#fff!important; box-shadow:0 8px 20px rgba(120,25,25,.18)!important; text-transform:none!important; }
+.admin-shell .button-secondary { border:1px solid rgba(165,43,43,.25)!important; background:transparent!important; color:var(--accent)!important; box-shadow:none!important; }
+.admin-shell .text-white,.admin-shell .text-white\/60,.admin-shell .text-white\/50,.admin-shell .text-white\/40 { color:var(--text)!important; }
+.admin-shell [class*="bg-[#0a0a0a]"],.admin-shell [class*="bg-[#111]"],.admin-shell [class*="bg-black/20"],.admin-shell [class*="bg-white/5"] { background:#fffdf8!important; }
+.admin-shell [class*="border-white/10"],.admin-shell [class*="border-white/5"] { border-color:var(--border)!important; }
+.admin-shell [class*="text-white/50"],.admin-shell [class*="text-white/40"] { color:var(--text-muted)!important; }
+
 .drag-carousel { cursor:grab; overscroll-behavior-inline:contain; scroll-behavior:smooth; touch-action:pan-x pan-y; user-select:none; }
 .drag-carousel:active { cursor:grabbing; scroll-snap-type:none; }
 .drag-carousel a,.drag-carousel button { user-drag:none; -webkit-user-drag:none; }

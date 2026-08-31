@@ -126,6 +126,17 @@ const buildPayload = (payload: PushSendPayload) =>
     renotify: Boolean(payload.renotify),
   });
 
+const describePushError = (error: unknown) => {
+  const details = typeof error === "object" && error !== null ? error : null;
+  const statusCode = details && "statusCode" in details && typeof details.statusCode === "number" ? details.statusCode : 0;
+  const message = error instanceof Error ? error.message : "Errore sconosciuto del servizio push.";
+  const body = details && "body" in details && typeof details.body === "string" ? details.body.trim() : "";
+  return {
+    statusCode,
+    message: (body || message).slice(0, 240),
+  };
+};
+
 export const sendPushToSubscription = async (
   record: StoredPushSubscription,
   payload: PushSendPayload,
@@ -192,6 +203,7 @@ export const sendPushNotification = async (
   let sent = 0;
   let failed = 0;
   let removed = 0;
+  const errors: PushSendResponse["errors"] = [];
 
   await Promise.all(
     subscriptions.map(async (record) => {
@@ -203,6 +215,10 @@ export const sendPushNotification = async (
         sent += 1;
       } catch (error) {
         failed += 1;
+        const failure = describePushError(error);
+        if (!errors.some((item) => item.statusCode === failure.statusCode && item.message === failure.message)) {
+          errors.push(failure);
+        }
 
         const statusCode =
           typeof error === "object" &&
@@ -227,5 +243,6 @@ export const sendPushNotification = async (
     failed,
     removed,
     total: subscriptions.length,
+    errors,
   };
 };

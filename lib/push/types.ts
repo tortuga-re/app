@@ -75,6 +75,10 @@ export interface PushSendResponse {
   failed: number;
   removed: number;
   total: number;
+  errors: Array<{
+    statusCode: number;
+    message: string;
+  }>;
 }
 
 export interface SavedPushSegment {

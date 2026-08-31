@@ -21,17 +21,17 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a] text-white">
+    <div className="admin-shell flex min-h-screen bg-[#f4efe5] text-[var(--text)]">
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#111] border-b border-white/10 z-50 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[#fffdf8] px-4">
         <div className="flex items-center gap-3">
-          <span className="font-black italic text-xl tracking-wider text-[var(--accent-strong)]">
+          <span className="font-black italic text-xl tracking-wider text-[var(--accent)]">
             TORTUGA ADMIN
           </span>
         </div>
         <div className="flex items-center gap-2">
           <PanicButton />
-          <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-white">
+          <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-[var(--text)]">
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -40,12 +40,12 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-40 w-64 bg-[#111] border-r border-white/10 transform transition-transform duration-300 ease-in-out lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 w-64 border-r border-[var(--border)] bg-[#fffdf8] shadow-[10px_0_30px_rgba(45,35,23,.08)] transition-transform duration-300 ease-in-out lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
-        <div className="flex h-16 items-center justify-between px-6 border-b border-white/10">
-          <span className="font-black italic text-xl tracking-wider text-[var(--accent-strong)] hidden lg:block">
+        <div className="flex h-16 items-center justify-between border-b border-[var(--border)] px-6">
+          <span className="hidden font-black italic text-xl tracking-wider text-[var(--accent)] lg:block">
             TORTUGA ADMIN
           </span>
         </div>
@@ -62,7 +62,7 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
                 onClick={() => setIsOpen(false)}
                 className={[
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold",
-                  isActive ? "bg-[var(--accent-strong)]/20 text-[var(--accent-strong)] border border-[var(--accent-strong)]/30" : "text-white/60 hover:bg-white/5 hover:text-white",
+                  isActive ? "border border-[rgba(165,43,43,.28)] bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text-muted)] hover:bg-[#f2ebdf] hover:text-[var(--text)]",
                 ].join(" ")}
               >
                 <Icon size={20} />
@@ -72,7 +72,7 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-[#111]">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-[var(--border)] bg-[#fffdf8] p-4">
            <button 
              onClick={async () => {
                 await fetch('/api/admin/session/logout', { method: 'POST' });
