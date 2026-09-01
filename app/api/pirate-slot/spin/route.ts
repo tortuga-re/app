@@ -15,7 +15,7 @@ type PlayRow = {
 
 export async function POST(request: NextRequest) {
   const session = getCustomerSession(request);
-  const body = (await request.json().catch(() => null)) as { playId?: string } | null;
+  const body = (await request.json().catch(() => null)) as { playId?: string; forceWin?: boolean } | null;
   const playId = body?.playId?.trim() ?? "";
   const email = session?.email?.trim().toLowerCase() ?? "";
   if (!session || !email || !playId) {
@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "I tentativi di oggi sono terminati." }, { status: 409 });
   }
 
-  const won = randomInt(10_000) < pirateSlotConfig.winProbability * 10_000;
+  const forceWin = Boolean(body?.forceWin) || request.headers.get("x-demo-force-win") === "true";
+  const won = forceWin ? true : randomInt(10_000) < pirateSlotConfig.winProbability * 10_000;
   const attemptsUsed = play.attempts_used + 1;
   const status = won ? "won" : attemptsUsed >= pirateSlotConfig.maxAttempts ? "lost" : "started";
   const { data: updated, error: updateError } = await database

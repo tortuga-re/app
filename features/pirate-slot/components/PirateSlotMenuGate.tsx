@@ -142,10 +142,11 @@ export function PirateSlotMenuGate({
   };
 
   const resolveSpin = async () => {
+    const forceWin = typeof window !== "undefined" && window.sessionStorage.getItem("tortuga_demo_force_slot_win") === "true";
     const response = await fetch("/api/pirate-slot/spin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playId }),
+      body: JSON.stringify({ playId, forceWin }),
     });
     const data = (await response.json().catch(() => null)) as { won?: boolean; error?: string } | null;
     if (!response.ok || typeof data?.won !== "boolean") {

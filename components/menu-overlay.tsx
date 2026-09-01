@@ -49,6 +49,12 @@ export function MenuOverlayProvider({ children }: { children: React.ReactNode })
     };
   }, []);
 
+  useEffect(() => {
+    const handleDemoGate = () => setGateOpen(true);
+    window.addEventListener("tortuga_demo_open_slot_gate", handleDemoGate);
+    return () => window.removeEventListener("tortuga_demo_open_slot_gate", handleDemoGate);
+  }, []);
+
   const openMenuDirect = useCallback(() => {
     setGateOpen(false);
     setOpen(true);

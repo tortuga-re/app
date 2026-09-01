@@ -34,3 +34,8 @@ export const rememberPirateSlotPlayedToday = (email: string, playDate: string) =
     playDate,
   } satisfies StoredDailyPlay));
 };
+
+export const clearPirateSlotPlayedToday = () => {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(storageKey);
+};

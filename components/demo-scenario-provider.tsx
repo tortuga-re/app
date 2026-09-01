@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ChevronDown, FlaskConical, RotateCcw, X } from "lucide-react";
 import type { TortugaRankId } from "@/lib/loyalty-ranks";
+import { clearPirateSlotPlayedToday } from "@/lib/pirate-slot/client-state";
 
 export type DemoScenario = {
   enabled: boolean;
@@ -138,6 +139,48 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                 <Range label="Visite annuali" value={scenario.visits} max={25} onChange={(visits) => update({ visits })} />
                 <label className="demo-field"><span>Massimo rango storico</span><select value={scenario.historicalRank} onChange={(e) => update({ historicalRank: e.target.value as TortugaRankId })}><option value="mozzo">Mozzo</option><option value="corsaro">Corsaro</option><option value="capitano">Capitano</option><option value="leggenda">Leggenda</option></select><ChevronDown size={16} /></label>
                 
+                <div className="pt-2 border-t border-black/10 space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-black/60">Test Slot Pirata</p>
+                  
+                  <button
+                    type="button"
+                    className="w-full py-2 px-3 rounded-xl bg-[#a52b2b]/15 hover:bg-[#a52b2b]/25 border border-[#a52b2b]/30 text-[#8b2323] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={() => {
+                      clearPirateSlotPlayedToday();
+                      update({ enabled: true, onPremise: true });
+                      window.dispatchEvent(new CustomEvent("tortuga_demo_open_slot_gate"));
+                    }}
+                  >
+                    🎰 Apri Gate Menu (On-Premise)
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-full py-2 px-3 rounded-xl bg-[#c59a47]/20 hover:bg-[#c59a47]/30 border border-[#c59a47]/40 text-[#151714] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        const next = window.sessionStorage.getItem("tortuga_demo_force_slot_win") !== "true";
+                        if (next) window.sessionStorage.setItem("tortuga_demo_force_slot_win", "true");
+                        else window.sessionStorage.removeItem("tortuga_demo_force_slot_win");
+                        alert(next ? "🏆 Vittoria forzata attivata (5 birre al prossimo giro)!" : "Vittoria forzata disattivata.");
+                      }
+                    }}
+                  >
+                    🏆 Attiva/Disattiva Vittoria Forzata (5 Birre 🍺)
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-full py-1.5 px-3 rounded-xl bg-black/5 hover:bg-black/10 border border-black/10 text-black/70 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={() => {
+                      clearPirateSlotPlayedToday();
+                      alert("Giocata del giorno azzerata! Ora puoi ritestare il gate.");
+                    }}
+                  >
+                    🔄 Azzera giocata del giorno
+                  </button>
+                </div>
+
                 <div className="pt-2 border-t border-black/10 space-y-2">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-black/60">Test Diretta TV</p>
                   <button
