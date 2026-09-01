@@ -1,103 +1,96 @@
-# Tortuga Client App
+# Tortuga Client App 🏴‍☠️
 
-Web app mobile-first per i pirati del **Tortuga Bay**, progettata per offrire un'esperienza immersiva nel locale: dalle prenotazioni ai giochi interattivi, fino alla gestione della fedeltà ("Ciurma").
+Web app mobile-first per i pirati del **Tortuga Bay**, progettata per offrire un'esperienza immersiva nel locale: dalle prenotazioni alla gamification della fedeltà ("Ciurma"), fino all'esperienza serale dal vivo (*Tonight Hub*).
 
-Costruita con **Next.js (App Router)**, **TypeScript** e **Tailwind CSS v4**, l'applicazione è una PWA (Progressive Web App) installabile con supporto alle notifiche push e integrazione server-side con il sistema **Cooperto**.
+Costruita con **Next.js 16 (App Router)**, **TypeScript** e **Tailwind CSS v4**, l'applicazione è una PWA (Progressive Web App) installabile con supporto alle notifiche push, aggiornamenti proattivi in background e integrazione server-side con il sistema **Cooperto**.
 
 ---
 
 ## 🚀 Funzionalità Principali
 
-### 🏴‍☠️ Dashboard "La Ciurma"
-*   **Profilo Dinamico**: Visualizzazione saldo punti, livello fedeltà e QR code per il riconoscimento rapido in cassa.
-*   **Azioni Rapide**: Accesso immediato a prenotazioni, giochi e coupon attivi.
-*   **Stato Prenotazioni**: Riepilogo delle prenotazioni imminenti direttamente in Home.
+### 🎁 Onboarding & Welcome Chest
+* **Premi di Benvenuto**: Flusso guidato di benvenuto che sblocca promozioni e coupon dedicati all'installazione della PWA e all'abilitazione delle notifiche push.
+
+### 🏴‍☠️ Loyalty & Dashboard "La Ciurma"
+* **Sistema a Ranghi**: Progressioni dinamiche da *Mozzo* fino a *Leggenda del Tortuga* in base a visite e Dobloni accumulati.
+* **Hall of Legends**: Classifica pubblica dei pirati leggendari con salvataggio sicuro e gestione fallback.
+* **Tessera & QR Code**: Riconoscimento istantaneo in cassa con scansione del QR code personalizzato.
+
+### 🌙 Tonight Hub & Esperienza nel Locale
+* **Stato "Nel Locale"**: Rilevamento automatico della presenza al tavolo via QR code locale o geolocalizzazione (valido 4 ore).
+* **Foto Live**: Scatti della serata aggiornati in tempo reale sullo schermo e negli smartphone della ciurma.
+* **Live TV & Media**: Integrazione con gli schermi del locale per annunci, promozioni e dirette.
 
 ### 📅 Sistema di Prenotazione Avanzato
-*   **Integrazione Real-time**: Sincronizzazione completa con le API di Cooperto per disponibilità e sale.
-*   **Ingresso Dopo Cena**: Opzione dedicata per prenotazioni dalle 22:30, gestita con logiche di overbooking flessibile.
-*   **Area Family**: Supporto specifico per famiglie con inserimento obbligatorio del numero di bambini per la sala dedicata.
-*   **Mappa Interattiva**: Piantina del locale integrata per visualizzare la posizione della sala scelta.
+* **Integrazione Real-time**: Sincronizzazione diretta con le API di Cooperto per la selezione delle sale e disponibilità orarie.
+* **Mappa Interattiva**: Visualizzazione integrata della piantina delle sale del locale.
 
-### 🎮 Giochi e Intrattenimento
-*   **Match & Drink**: Gioco multiplayer per animare i tavoli, con gestione sessioni via Supabase.
-*   **Kantaquiz**: Quiz a tema musicale/karaoke per sfidare la propria conoscenza.
-*   **Sfida il Capitano**: Gioco di riflessi con validazione server-side e sistema di referral.
-*   **Pirate Photo**: Contest fotografico con upload diretto delle immagini per partecipare alle iniziative del locale.
-
-### 📱 PWA & Esperienza Locale
-*   **PWA Installabile**: Prompt personalizzato "Aggiungi a Home" per iOS e Android.
-*   **Notifiche Push**: Infrastruttura pronta per l'invio di avvisi e comunicazioni marketing.
-*   **Registrazione Visite**: Sistema di check-in via QR code locale per accumulare punti e sbloccare premi.
-*   **Survey Post-Visita**: Funnel automatico per la raccolta feedback dopo l'esperienza al locale.
+### 📱 PWA, Push & Performance
+* **Aggiornamenti Proattivi**: Service Worker intelligente che riconosce le nuove build rilasciate e notifica l'utente con un banner di aggiornamento senza mai causare errori di rotta.
+* **Notifiche Push**: Sistema avanzato di messaggistica diretto e personalizzato per eventi, scadenze coupon e promozioni.
+* **Gestione Offline & Fallback**: Cache resiliente e database locale di riserva in caso di disservizi di rete.
 
 ---
 
 ## 🛠 Stack Tecnologico
 
-*   **Framework**: [Next.js](https://nextjs.org/) (App Router)
-*   **Linguaggio**: [TypeScript](https://www.typescriptlang.org/)
-*   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-*   **Database & Backend**:
-    *   **Supabase**: Gestione dati per giochi (domande, sessioni) e contest fotografici.
-    *   **Redis**: Tracking delle visite, gestione lock e rate limiting.
-*   **Integrazioni**: API Cooperto (Booking & Fidelity).
-*   **PWA**: Service Workers nativi per gestione offline e installazione.
+* **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
+* **Linguaggio**: [TypeScript 5](https://www.typescriptlang.org/)
+* **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+* **Database & Backend**:
+    * **Supabase**: Gestione stato live, notifiche, classifiche e Hall of Fame.
+    * **Local JSON Fallback**: Sistema di salvataggio di riserva a resilienza elevata.
+* **Integrazioni**: API Cooperto (Booking & Fidelity).
+* **Media & Performance**: `sharp` per l'ottimizzazione automatica delle immagini caricate in formato WebP.
+* **PWA & Push**: Service Worker nativi con Web Push API (VAPID).
 
 ---
 
 ## 📂 Struttura del Progetto
 
 ```text
-app/
-├── api/                # Route handlers (Cooperto proxy, Push, Games, Visits)
-├── components/         # Componenti UI condivisi (BookingFlow, Layout, MapViewer)
-├── features/           # Moduli verticali (Match&Drink, PiratePhoto, Kantaquiz)
-├── lib/                # Logica di business, configurazioni e client (Supabase, Redis, Cooperto)
-├── (pages)/            # Pagine dell'applicazione (Home, Prenota, Profilo, Info)
-└── public/             # Asset statici, icone PWA e piantine
+tortuga-app/
+├── app/
+│   ├── admin/            # Plancia di comando e gestione live game / TV
+│   ├── api/              # Proxy API Cooperto, Push, Live TV, Leggende
+│   ├── ciurma/           # Dashboard fidelity, scontrini e classifiche
+│   ├── gift/             # Carte regalo ed esperienze
+│   ├── info/             # Orari, mappa, contatti e domande frequenti
+│   └── page.tsx          # Home Screen con highlights e Tonight Hub
+├── components/
+│   ├── booking-overlay.tsx # Popup prenotazioni Cooperto
+│   ├── bottom-nav.tsx    # Barra di navigazione dinamica (4 o 5 pulsanti)
+│   ├── loyalty-journey.tsx # Progressione fidelity e caroselli tappe
+│   ├── pwa-controller.tsx# Gestione PWA, notifiche push e aggiornamenti
+│   └── tonight/          # Componenti per l'esperienza serale live
+├── lib/                  # Servizi Cooperto, Supabase, push e logica di business
+├── public/               # Asset statici ottimizzati (.webp, manifest, PWA icons)
+└── supabase/             # Migrazioni e schema database
 ```
 
 ---
 
-## ⚙️ Configurazione (Variabili Ambiente)
+## ⚙️ Setup Locale
 
-L'app richiede diverse variabili per il pieno funzionamento. Copia `.env.example` in `.env` e configura:
+1. **Installazione dipendenze**:
+   ```bash
+   npm install
+   ```
 
-### Cooperto & Fidelity
-- `COOPERTO_API_KEY`: Chiave API fornita da Cooperto.
-- `COOPERTO_SEDE_CODE`: Codice identificativo della sede.
-- `COOPERTO_BOOKING_MODULE_CODE`: Codice del modulo prenotazioni attivo.
+2. **Configurazione ambiente**:
+   Copia `.env.example` in `.env.local` e inserisci le tue credenziali riservate (API key Cooperto, Supabase URL, chiavi VAPID).
 
-### Supabase & Redis
-- `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`: Per giochi e contest.
-- `REDIS_URL`: Per il tracking delle visite e survey.
+3. **Avvio in modalità sviluppo**:
+   ```bash
+   npm run dev
+   ```
 
-### PWA & Push
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`: Per le notifiche push.
+4. **Verifica Qualità e Build**:
+   ```bash
+   npm run typecheck  # Controllo tipi TypeScript
+   npm run build      # Compilazione di produzione
+   ```
 
----
-
-## 🛠 Setup Locale
-
-1.  **Installazione**:
-    ```bash
-    npm install
-    ```
-2.  **Sviluppo**:
-    ```bash
-    npm run dev
-    ```
-3.  **Qualità & Build**:
-    ```bash
-    npm run lint       # Controllo stile e errori
-    npm run typecheck  # Controllo tipi TypeScript
-    npm run build      # Build di produzione
-    ```
-
----
-
-## 🚢 Deploy
 
 L'applicazione è ottimizzata per il deploy su ambienti **Node.js** o **Cloud Run**.
 In produzione, assicurarsi che le variabili ambiente siano correttamente popolate e che il Service Worker sia servito via HTTPS.
