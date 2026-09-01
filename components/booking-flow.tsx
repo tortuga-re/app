@@ -4,21 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 
 import { StatusBlock } from "@/components/status-block";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TortugaMapViewer = dynamic<any>(
-  () =>
-    import("@/components/tortuga-map-viewer")
-      .then((mod) => mod.TortugaMapViewer)
-      .catch(() => {
-        if (typeof window !== "undefined") window.location.reload();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return { default: () => null } as any;
-      }),
-  {
-    loading: () => <div className="h-48 w-full animate-pulse rounded-[2rem] bg-white/5" />,
-    ssr: false,
-  },
-);
 import { trackAppEvent } from "@/lib/analytics";
 import { storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
@@ -819,13 +804,6 @@ export function BookingFlow() {
                     Scegli prima la sala richiesta per vedere gli orari disponibili.
                   </p>
                 </div>
-              ) : null}
-
-              {activeRoomCode && selectedRoom && !isRoomSelectionDisabled ? (
-                <TortugaMapViewer
-                  roomCode={activeRoomCode}
-                  roomName={selectedRoom.publicName || selectedRoom.name}
-                />
               ) : null}
 
               {canLoadAvailability ? (
