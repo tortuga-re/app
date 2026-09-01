@@ -20,8 +20,13 @@ export function LegendNicknameModal({ open, onClose, email, onSuccess }: LegendN
 
   const handleSave = async () => {
     const trimmed = nickname.trim();
-    if (trimmed.length < 2 || trimmed.length > 25) {
-      setError("Il nickname deve contenere da 2 a 25 caratteri.");
+    if (trimmed.length < 2 || trimmed.length > 24) {
+      setError("Il nickname deve contenere da 2 a 24 caratteri.");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9\s-]+$/.test(trimmed)) {
+      setError("Il nickname può contenere solo lettere, numeri, spazi e trattini (-).");
       return;
     }
 

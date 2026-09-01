@@ -9,12 +9,25 @@ import {
   readJsonBody,
   RequestValidationError,
 } from "@/lib/validation/request";
+import { checkRateLimit, getClientIp, recordFailedAttempt, resetFailedAttempts } from "@/lib/security/rate-limiter";
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimit = checkRateLimit(ip, "admin_login");
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { success: false, error: rateLimit.error },
+      { status: 429 },
+    );
+  }
+
   try {
     const payload = await readJsonBody<{ pin?: string }>(request);
     const pin = expectString(payload.pin, "PIN admin", { minLength: 4, maxLength: 32 });
     const session = createAdminSessionFromPin(pin);
+    resetFailedAttempts(ip, "admin_login");
+
     const response = NextResponse.json({
       success: true,
       session: {
@@ -25,6 +38,8 @@ export async function POST(request: Request) {
 
     return attachAdminSessionCookie(response, session);
   } catch (error) {
+    recordFailedAttempt(ip, "admin_login");
+
     return NextResponse.json(
       {
         success: false,

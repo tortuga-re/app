@@ -19,6 +19,19 @@ export const normalizeProfileEmail = (value?: string) =>
 export const isValidProfileEmail = (value?: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeProfileEmail(value));
 
+/**
+ * Validazione severa per Nickname e Input utente:
+ * - Solo lettere (a-z, A-Z), numeri (0-9), trattini (-) e spazi
+ * - Lunghezza massima 24 caratteri (minimo 2)
+ * - Nessun simbolo o tag HTML (previene XSS e iniezione)
+ */
+export const isValidStrictNickname = (value?: string): boolean => {
+  if (!value || typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (trimmed.length < 2 || trimmed.length > 24) return false;
+  return /^[a-zA-Z0-9\s-]+$/.test(trimmed);
+};
+
 export const isValidItalianMobileNumber = (value?: string) =>
   isValidItalianPhone(value ?? "");
 

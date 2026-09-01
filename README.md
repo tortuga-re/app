@@ -1,96 +1,108 @@
-# Tortuga Client App 🏴‍☠️
+# 🏴‍☠️ Tortuga Bay — Client PWA App
 
-Web app mobile-first per i pirati del **Tortuga Bay**, progettata per offrire un'esperienza immersiva nel locale: dalle prenotazioni alla gamification della fedeltà ("Ciurma"), fino all'esperienza serale dal vivo (*Tonight Hub*).
+Benvenuti nel repository ufficiale della Web Application mobile-first del **Tortuga Bay** di Reggio Emilia.
 
-Costruita con **Next.js 16 (App Router)**, **TypeScript** e **Tailwind CSS v4**, l'applicazione è una PWA (Progressive Web App) installabile con supporto alle notifiche push, aggiornamenti proattivi in background e integrazione server-side con il sistema **Cooperto**.
+L'applicazione è una Progressive Web App (PWA) ad alte prestazioni sviluppata per offrire un'esperienza completa e immersiva ai clienti del locale: dalla gestione della fedeltà gamificata alla prenotazione dei tavoli, fino all'intrattenimento dal vivo durante la permanenza al ristorante.
 
 ---
 
-## 🚀 Funzionalità Principali
+## 🌟 Caratteristiche Principali
 
 ### 🎁 Onboarding & Welcome Chest
-* **Premi di Benvenuto**: Flusso guidato di benvenuto che sblocca promozioni e coupon dedicati all'installazione della PWA e all'abilitazione delle notifiche push.
+- **Premi di Benvenuto**: Flusso di benvenuto che regala un bonus iniziale ai pirati al loro primo approdo.
+- **Incentivo alla PWA e Notifiche Push**: Lo sblocco delle offerte speciali guida l'utente all'installazione dell'app sulla schermata home e all'abilitazione delle notifiche push.
 
-### 🏴‍☠️ Loyalty & Dashboard "La Ciurma"
-* **Sistema a Ranghi**: Progressioni dinamiche da *Mozzo* fino a *Leggenda del Tortuga* in base a visite e Dobloni accumulati.
-* **Hall of Legends**: Classifica pubblica dei pirati leggendari con salvataggio sicuro e gestione fallback.
-* **Tessera & QR Code**: Riconoscimento istantaneo in cassa con scansione del QR code personalizzato.
+### 🏴‍☠️ Sistema Loyalty "La Ciurma" & Hall of Legends
+- **Progressione a Ranghi**: Avanzamento da *Mozzo* fino a *Leggenda del Tortuga* basato su visite annuali e Dobloni guadagnati.
+- **Hall of Legends**: Albo d'oro pubblico per i pirati che raggiungono il rango massimo, con registrazione del nickname unico.
+- **Tessera Fidelity Digitale & QR**: Riconoscimento immediato in cassa con scansione nativa del QR code personale.
 
-### 🌙 Tonight Hub & Esperienza nel Locale
-* **Stato "Nel Locale"**: Rilevamento automatico della presenza al tavolo via QR code locale o geolocalizzazione (valido 4 ore).
-* **Foto Live**: Scatti della serata aggiornati in tempo reale sullo schermo e negli smartphone della ciurma.
-* **Live TV & Media**: Integrazione con gli schermi del locale per annunci, promozioni e dirette.
+### 🌙 Tonight Hub & Esperienza Live al Ristorante
+- **Riconoscimento Presenza**: Rilevamento automatico della presenza al tavolo tramite QR code del tavolo o geo-check-in (validità 4 ore).
+- **Foto Live**: Galleria e caricamenti istantanei per condividere gli scatti della serata sugli schermi del locale.
+- **Contenuti Live TV**: Integrazione con i display del ristorante per dirette, menu del giorno e annunci del Capitano.
 
-### 📅 Sistema di Prenotazione Avanzato
-* **Integrazione Real-time**: Sincronizzazione diretta con le API di Cooperto per la selezione delle sale e disponibilità orarie.
-* **Mappa Interattiva**: Visualizzazione integrata della piantina delle sale del locale.
+### 📅 Prenotazioni & Mappa del Locale
+- **Sincronizzazione API Cooperto**: Verifica in tempo reale delle disponibilità orarie e delle sale.
+- **Piantina Interattiva**: Visualizzazione integrata della posizione dei tavoli e delle sale tematiche.
 
-### 📱 PWA, Push & Performance
-* **Aggiornamenti Proattivi**: Service Worker intelligente che riconosce le nuove build rilasciate e notifica l'utente con un banner di aggiornamento senza mai causare errori di rotta.
-* **Notifiche Push**: Sistema avanzato di messaggistica diretto e personalizzato per eventi, scadenze coupon e promozioni.
-* **Gestione Offline & Fallback**: Cache resiliente e database locale di riserva in caso di disservizi di rete.
-
----
-
-## 🛠 Stack Tecnologico
-
-* **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
-* **Linguaggio**: [TypeScript 5](https://www.typescriptlang.org/)
-* **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-* **Database & Backend**:
-    * **Supabase**: Gestione stato live, notifiche, classifiche e Hall of Fame.
-    * **Local JSON Fallback**: Sistema di salvataggio di riserva a resilienza elevata.
-* **Integrazioni**: API Cooperto (Booking & Fidelity).
-* **Media & Performance**: `sharp` per l'ottimizzazione automatica delle immagini caricate in formato WebP.
-* **PWA & Push**: Service Worker nativi con Web Push API (VAPID).
+### 📱 PWA Avanzata & Sicurezza
+- **Notifica Aggiornamenti Proattiva**: Il Service Worker rileva le nuove build rilasciate su Hostinger in background e mostra un discreto banner di aggiornamento senza mai causare crash o errori di rotta.
+- **Notifiche Push Native (VAPID)**: Canale diretto per comunicare offerte, scadenze coupon ed eventi.
+- **Sicurezza & Rate Limiting**: Protezione degli endpoint riservati tramite blocco temporaneo IP in caso di tentativi errati e validazione severa degli input utente.
 
 ---
 
-## 📂 Struttura del Progetto
+## 🛠️ Stack Tecnologico
+
+- **Core**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
+- **Linguaggio**: [TypeScript 5](https://www.typescriptlang.org/)
+- **UI & Styling**: [Tailwind CSS v4](https://tailwindcss.com/), Lucide Icons
+- **Backend & Database**:
+  - **Cooperto API**: Sincronizzazione cassa, fidelity points e prenotazioni.
+  - **Supabase Cloud**: Gestione stati live, notifiche, classifiche e Hall of Fame.
+  - **Local Persistence Layer**: Fallback locale per la massima continuità di servizio.
+- **Media Optimization**: Compressione automatica `sharp` in formato WebP.
+- **PWA**: Service Worker nativi, Web App Manifest e Push Notifications API.
+
+---
+
+## 📂 Struttura del Repository
 
 ```text
 tortuga-app/
-├── app/
-│   ├── admin/            # Plancia di comando e gestione live game / TV
-│   ├── api/              # Proxy API Cooperto, Push, Live TV, Leggende
-│   ├── ciurma/           # Dashboard fidelity, scontrini e classifiche
+├── app/                  # Next.js App Router (Rotte, API & Layouts)
+│   ├── admin/            # Plancia di comando per lo Staff / Capitano
+│   ├── api/              # Proxy API per Cooperto, Supabase, Push & Media
+│   ├── ciurma/           # Dashboard fedeltà, Dobloni e Hall of Legends
 │   ├── gift/             # Carte regalo ed esperienze
-│   ├── info/             # Orari, mappa, contatti e domande frequenti
-│   └── page.tsx          # Home Screen con highlights e Tonight Hub
-├── components/
-│   ├── booking-overlay.tsx # Popup prenotazioni Cooperto
-│   ├── bottom-nav.tsx    # Barra di navigazione dinamica (4 o 5 pulsanti)
-│   ├── loyalty-journey.tsx # Progressione fidelity e caroselli tappe
-│   ├── pwa-controller.tsx# Gestione PWA, notifiche push e aggiornamenti
-│   └── tonight/          # Componenti per l'esperienza serale live
-├── lib/                  # Servizi Cooperto, Supabase, push e logica di business
-├── public/               # Asset statici ottimizzati (.webp, manifest, PWA icons)
-└── supabase/             # Migrazioni e schema database
+│   ├── info/             # Orari, piantina, contatti e FAQ
+│   └── page.tsx          # Home page con Highlights e Tonight Hub
+├── components/           # Componenti UI riutilizzabili
+│   ├── booking-overlay.tsx # Modal prenotazioni Cooperto
+│   ├── bottom-nav.tsx    # Navigation bar dinamica adattiva
+│   ├── loyalty-journey.tsx # Componente card fedeltà e caroselli tappe
+│   ├── pwa-controller.tsx# Gestore PWA, notifiche push e update toast
+│   └── tonight/          # Moduli dell'esperienza live serale
+├── lib/                  # Moduli di servizio, validazioni e client SDK
+│   ├── cooperto/         # Client API e modelli di cassa
+│   ├── security/         # Rate Limiter e protezioni di sicurezza
+│   └── supabase/         # Client Supabase e sincronizzazione
+├── public/               # Asset statici ottimizzati (.webp) e icone PWA
+└── supabase/             # Schema database e migrazioni SQL
 ```
 
 ---
 
-## ⚙️ Setup Locale
+## 🚀 Guida all'Installazione Locale
 
-1. **Installazione dipendenze**:
+### 1. Prerequisiti
+- **Node.js**: v18.17+ o v20+
+- **npm** o **pnpm**
+
+### 2. Configurazione
+1. Clona il repository sul tuo computer.
+2. Copia il file delle variabili di ambiente:
    ```bash
-   npm install
+   cp .env.example .env.local
    ```
+3. Compila `.env.local` con le tue credenziali riservate (Cooperto API key, Supabase credentials, VAPID keys).
 
-2. **Configurazione ambiente**:
-   Copia `.env.example` in `.env.local` e inserisci le tue credenziali riservate (API key Cooperto, Supabase URL, chiavi VAPID).
+### 3. Avvio in Sviluppo
+```bash
+npm install
+npm run dev
+```
+L'applicazione sarà disponibile su `http://localhost:3000`.
 
-3. **Avvio in modalità sviluppo**:
-   ```bash
-   npm run dev
-   ```
+### 4. Build di Produzione
+```bash
+npm run typecheck
+npm run build
+```
 
-4. **Verifica Qualità e Build**:
-   ```bash
-   npm run typecheck  # Controllo tipi TypeScript
-   npm run build      # Compilazione di produzione
-   ```
+---
 
+## 📄 Licenza & Diritti
 
-L'applicazione è ottimizzata per il deploy su ambienti **Node.js** o **Cloud Run**.
-In produzione, assicurarsi che le variabili ambiente siano correttamente popolate e che il Service Worker sia servito via HTTPS.
+Tutti i diritti sono riservati a **Tortuga Bay** © 2026.

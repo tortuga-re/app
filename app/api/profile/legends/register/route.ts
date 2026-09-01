@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { getProfileData } from "@/lib/cooperto/service";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
-import { normalizeProfileEmail, isValidProfileEmail } from "@/lib/profile/validation";
+import { normalizeProfileEmail, isValidProfileEmail, isValidStrictNickname } from "@/lib/profile/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +27,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (nickname.length < 2 || nickname.length > 25) {
+    if (!isValidStrictNickname(nickname)) {
       return NextResponse.json(
-        { error: "Il nickname deve contenere da 2 a 25 caratteri." },
+        { error: "Il nickname deve contenere da 2 a 24 caratteri (solo lettere, numeri, spazi e trattini -)." },
         { status: 400 },
       );
     }
