@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Sparkles, Tv, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, Clock, Sparkles, Tv, X } from "lucide-react";
 import { ALLOWED_TABLE_RANGES_DESCRIPTION, validateGreetingInput } from "@/lib/live-tv/table-validation";
+
+const GREETING_COOLDOWN_MS = 5 * 60 * 1000; // 5 minuti
+const STORAGE_KEY_LAST_GREETING = "tortuga_last_greeting_sent_ts";
 
 interface LiveGreetingModalProps {
   open: boolean;
@@ -18,12 +21,46 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [cooldownRemainingSec, setCooldownRemainingSec] = useState(0);
+
+  // Controllo cooldown da localStorage ogni secondo mentre il modal è aperto
+  useEffect(() => {
+    if (!open) return;
+
+    const checkCooldown = () => {
+      try {
+        const lastSent = Number(window.localStorage.getItem(STORAGE_KEY_LAST_GREETING)) || 0;
+        const elapsed = Date.now() - lastSent;
+        if (elapsed < GREETING_COOLDOWN_MS) {
+          setCooldownRemainingSec(Math.ceil((GREETING_COOLDOWN_MS - elapsed) / 1000));
+        } else {
+          setCooldownRemainingSec(0);
+        }
+      } catch {
+        setCooldownRemainingSec(0);
+      }
+    };
+
+    checkCooldown();
+    const interval = window.setInterval(checkCooldown, 1000);
+    return () => window.clearInterval(interval);
+  }, [open]);
 
   if (!open) return null;
+
+  const isCooldownActive = cooldownRemainingSec > 0;
+  const cooldownMin = Math.floor(cooldownRemainingSec / 60);
+  const cooldownSec = cooldownRemainingSec % 60;
+  const cooldownFormatted = `${cooldownMin}:${cooldownSec.toString().padStart(2, "0")}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (isCooldownActive) {
+      setError(`Attendi ancora ${cooldownFormatted} prima di inviare un nuovo saluto.`);
+      return;
+    }
 
     const validation = validateGreetingInput(
       nickname,
@@ -53,6 +90,14 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
 
       if (!response.ok) {
         throw new Error(data?.error || "Impossibile inviare il saluto in questo momento.");
+      }
+
+      // Salva il timestamp nel localStorage del dispositivo
+      try {
+        window.localStorage.setItem(STORAGE_KEY_LAST_GREETING, Date.now().toString());
+        setCooldownRemainingSec(300);
+      } catch {
+        // Ignora eventuali restrizioni di localStorage in modalità incognito
       }
 
       setSuccess(true);
@@ -105,6 +150,15 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
               </div>
             </div>
 
+            {isCooldownActive ? (
+              <div className="p-3.5 rounded-2xl bg-[#c59a47]/10 border border-[#c59a47]/30 flex items-center gap-3 text-xs text-[#f4e0ad]">
+                <Clock size={18} className="shrink-0 text-[#c59a47]" />
+                <p>
+                  Hai inviato un saluto di recente. Potrai inviarne un altro tra <strong>{cooldownFormatted}</strong>.
+                </p>
+              </div>
+            ) : null}
+
             <div className="space-y-3 pt-2">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#d9b66d] mb-1">
@@ -116,8 +170,9 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder="Es. Capitan Jack o Marco"
                   maxLength={24}
+                  disabled={isCooldownActive}
                   required
-                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors"
+                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors disabled:opacity-50"
                 />
               </div>
 
@@ -132,8 +187,9 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   placeholder="Es. 24"
                   min={10}
                   max={60}
+                  disabled={isCooldownActive}
                   required
-                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors"
+                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors disabled:opacity-50"
                 />
                 <p className="text-[11px] text-white/50 mt-1">
                   {ALLOWED_TABLE_RANGES_DESCRIPTION}
@@ -147,8 +203,9 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
+                    disabled={isCooldownActive}
                     onClick={() => setMessageType("brindisi")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer disabled:opacity-50 ${
                       messageType === "brindisi"
                         ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
                         : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
@@ -158,8 +215,9 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   </button>
                   <button
                     type="button"
+                    disabled={isCooldownActive}
                     onClick={() => setMessageType("saluto")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer disabled:opacity-50 ${
                       messageType === "saluto"
                         ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
                         : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
@@ -169,8 +227,9 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   </button>
                   <button
                     type="button"
+                    disabled={isCooldownActive}
                     onClick={() => setMessageType("compleanno")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer disabled:opacity-50 ${
                       messageType === "compleanno"
                         ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
                         : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
@@ -192,10 +251,11 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   <input
                     type="text"
                     value={customMessage}
+                    disabled={isCooldownActive}
                     onChange={(e) => setCustomMessage(e.target.value)}
                     placeholder="Es. Tanti auguri Capitano da tutta la ciurma!"
                     maxLength={50}
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors disabled:opacity-50"
                   />
                 </div>
               ) : null}
@@ -209,11 +269,15 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-[#a52b2b] to-[#8b2323] hover:from-[#b83232] hover:to-[#9e2727] text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              disabled={loading || isCooldownActive}
+              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-[#a52b2b] to-[#8b2323] hover:from-[#b83232] hover:to-[#9e2727] text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Sparkles size={16} />
-              {loading ? "Invio in corso..." : "Invia Saluto al Maxi-Schermo"}
+              {loading
+                ? "Invio in corso..."
+                : isCooldownActive
+                  ? `Disponibile tra ${cooldownFormatted}`
+                  : "Invia Saluto al Maxi-Schermo"}
             </button>
           </form>
         )}

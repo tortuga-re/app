@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 
 import { TORTUGA_LIVE_LOGO_URL } from "@/lib/live-tv/default-playlists";
 import type { LiveTvItem, LiveTvOverlay, LiveTvState, StageMode } from "@/lib/live-tv/types";
@@ -540,25 +540,48 @@ function RenderLiveTvItem({
 
 export function LiveTvStageController() {
   const [stageState, setStageState] = useState<LiveTvStageResponse | null>(null);
+  const [greetingQueue, setGreetingQueue] = useState<CustomerGreeting[]>([]);
   const [activeGreeting, setActiveGreeting] = useState<CustomerGreeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
   const lastUpdateIdRef = useRef<number | string>(0);
 
+  // Gestore della coda dei saluti (FIFO): ogni saluto va in onda per 12 secondi dedicati
+  useEffect(() => {
+    if (activeGreeting !== null || greetingQueue.length === 0) {
+      return;
+    }
+
+    const nextGreeting = greetingQueue[0];
+    setActiveGreeting(nextGreeting);
+    setGreetingQueue((prev) => prev.slice(1));
+
+    const timer = window.setTimeout(() => {
+      setActiveGreeting(null);
+    }, 12_000);
+
+    return () => window.clearTimeout(timer);
+  }, [activeGreeting, greetingQueue]);
+
+  const enqueueGreeting = useCallback((greeting: CustomerGreeting) => {
+    if (!greeting || !greeting.id) return;
+    setGreetingQueue((prev) => {
+      if (prev.some((g) => g.id === greeting.id)) return prev;
+      return [...prev, greeting];
+    });
+  }, []);
+
   useEffect(() => {
     const handleLocalGreeting = (e: Event) => {
       const custom = e as CustomEvent<CustomerGreeting>;
       if (custom.detail) {
-        setActiveGreeting(custom.detail);
-        window.setTimeout(() => {
-          setActiveGreeting((curr) => (curr?.id === custom.detail.id ? null : curr));
-        }, 12_000);
+        enqueueGreeting(custom.detail);
       }
     };
     window.addEventListener("tortuga_demo_greeting", handleLocalGreeting);
     return () => window.removeEventListener("tortuga_demo_greeting", handleLocalGreeting);
-  }, []);
+  }, [enqueueGreeting]);
 
   useEffect(() => {
     const updateScale = () => {
@@ -681,10 +704,7 @@ export function LiveTvStageController() {
       })
       .on("broadcast", { event: "customer_greeting" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         if (!mounted || !payload) return;
-        setActiveGreeting(payload as CustomerGreeting);
-        window.setTimeout(() => {
-          setActiveGreeting((curr) => (curr?.id === payload.id ? null : curr));
-        }, 12_000);
+        enqueueGreeting(payload as CustomerGreeting);
       })
       .subscribe();
 
