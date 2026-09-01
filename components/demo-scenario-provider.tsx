@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ChevronDown, FlaskConical, RotateCcw, X } from "lucide-react";
@@ -137,6 +137,39 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                 <Range label="Massimo Dobloni raggiunto" value={scenario.highestPoints} max={130} onChange={(highestPoints) => update({ highestPoints })} />
                 <Range label="Visite annuali" value={scenario.visits} max={25} onChange={(visits) => update({ visits })} />
                 <label className="demo-field"><span>Massimo rango storico</span><select value={scenario.historicalRank} onChange={(e) => update({ historicalRank: e.target.value as TortugaRankId })}><option value="mozzo">Mozzo</option><option value="corsaro">Corsaro</option><option value="capitano">Capitano</option><option value="leggenda">Leggenda</option></select><ChevronDown size={16} /></label>
+                
+                <div className="pt-2 border-t border-black/10 space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-black/60">Test Diretta TV</p>
+                  <button
+                    type="button"
+                    className="w-full py-2 px-3 rounded-xl bg-[#c59a47]/20 hover:bg-[#c59a47]/30 border border-[#c59a47]/40 text-[#151714] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={() => {
+                      const demoPayload = {
+                        id: String(Date.now()),
+                        nickname: "Capitan Demo",
+                        tableNumber: 24,
+                        messageType: "brindisi" as const,
+                        createdAt: Date.now(),
+                      };
+                      window.dispatchEvent(new CustomEvent("tortuga_demo_greeting", { detail: demoPayload }));
+                      void fetch("/api/live-tv/greeting", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(demoPayload),
+                      }).catch(() => undefined);
+                    }}
+                  >
+                    🍻 Invia Saluto Demo (Tavolo 24)
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full py-2 px-3 rounded-xl bg-black/5 hover:bg-black/10 border border-black/10 text-[#151714] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={() => window.open("/live", "_blank")}
+                  >
+                    📺 Apri Schermo Live TV
+                  </button>
+                </div>
+
                 <button className="demo-reset" onClick={() => update(defaults)}><RotateCcw size={15} /> Ripristina esempio</button>
               </div>
             </aside>

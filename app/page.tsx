@@ -1,6 +1,5 @@
-import { MinimalHomeScreen } from "@/components/minimal-home-screen";
+import { HomeScreen } from "@/components/home-screen";
 
 export default function HomePage() {
-  return <MinimalHomeScreen />;
+  return <HomeScreen />;
 }
-

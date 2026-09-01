@@ -85,6 +85,60 @@ function OverlayBanner({ overlay }: { overlay: LiveTvOverlay }) {
   );
 }
 
+export type CustomerGreeting = {
+  id: string;
+  nickname: string;
+  tableNumber: number;
+  messageType?: "brindisi" | "saluto" | "compleanno";
+  createdAt: number;
+};
+
+function GreetingBanner({ greeting }: { greeting: CustomerGreeting }) {
+  const isBirthday = greeting.messageType === "compleanno";
+  const isSaluto = greeting.messageType === "saluto";
+
+  const icon = isBirthday ? "🎂" : isSaluto ? "🎉" : "🍻";
+  const headline = isBirthday
+    ? "FESTA DI COMPLEANNO A BORDO!"
+    : isSaluto
+      ? "SALUTO DALLA CIURMA!"
+      : "BRINDISI AL TORTUGA!";
+
+  return (
+    <aside
+      role="alert"
+      aria-live="polite"
+      className="pointer-events-none fixed top-8 left-1/2 -translate-x-1/2 z-50 w-[min(94vw,960px)] animate-in slide-in-from-top-12 fade-in duration-500"
+    >
+      <div className="relative overflow-hidden rounded-[2.8rem] border-2 border-[#f0c970] bg-[#120f0c]/95 px-8 py-6 text-center shadow-[0_20px_100px_rgba(240,201,112,0.45)] backdrop-blur-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(216,176,106,0.25),transparent_70%)]" />
+
+        <div className="relative z-10 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-3 text-[clamp(2.4rem,4.2vw,3.8rem)]">
+            <span className="animate-bounce">{icon}</span>
+            <span className="text-[clamp(1.15rem,2.1vw,1.9rem)] font-black uppercase tracking-[0.26em] text-[#d9b66d]">
+              {headline}
+            </span>
+            <span className="animate-bounce">{icon}</span>
+          </div>
+
+          <p className="text-[clamp(1.8rem,3.2vw,3.2rem)] font-black uppercase leading-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+            {greeting.nickname} <span className="text-[#f0c970]">dal Tavolo {greeting.tableNumber}</span>
+          </p>
+
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#fffdf8]/80">
+            {isBirthday
+              ? "Tanti auguri da tutto il Tortuga Bay!"
+              : isSaluto
+                ? "Manda un caloroso saluto a tutta la sala!"
+                : "Offre idealmente un boccale a tutta la ciurma!"}
+          </p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 function StageBackdrop() {
   return (
     <>
@@ -479,10 +533,25 @@ function RenderLiveTvItem({
 
 export function LiveTvStageController() {
   const [stageState, setStageState] = useState<LiveTvStageResponse | null>(null);
+  const [activeGreeting, setActiveGreeting] = useState<CustomerGreeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
   const lastUpdateIdRef = useRef<number | string>(0);
+
+  useEffect(() => {
+    const handleLocalGreeting = (e: Event) => {
+      const custom = e as CustomEvent<CustomerGreeting>;
+      if (custom.detail) {
+        setActiveGreeting(custom.detail);
+        window.setTimeout(() => {
+          setActiveGreeting((curr) => (curr?.id === custom.detail.id ? null : curr));
+        }, 12_000);
+      }
+    };
+    window.addEventListener("tortuga_demo_greeting", handleLocalGreeting);
+    return () => window.removeEventListener("tortuga_demo_greeting", handleLocalGreeting);
+  }, []);
 
   useEffect(() => {
     const updateScale = () => {
@@ -603,6 +672,13 @@ export function LiveTvStageController() {
           void fetchState();
         }
       })
+      .on("broadcast", { event: "customer_greeting" }, ({ payload }: { payload: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (!mounted || !payload) return;
+        setActiveGreeting(payload as CustomerGreeting);
+        window.setTimeout(() => {
+          setActiveGreeting((curr) => (curr?.id === payload.id ? null : curr));
+        }, 12_000);
+      })
       .subscribe();
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -678,6 +754,7 @@ export function LiveTvStageController() {
     return (
       <>
         <LogoScreen scale={scale} />
+        {activeGreeting ? <GreetingBanner greeting={activeGreeting} /> : null}
         {isPortraitMobile ? <RotateOverlay /> : null}
       </>
     );
@@ -690,6 +767,7 @@ export function LiveTvStageController() {
     return (
       <>
         <BlackoutScreen />
+        {activeGreeting ? <GreetingBanner greeting={activeGreeting} /> : null}
         {isPortraitMobile ? <RotateOverlay /> : null}
       </>
     );
@@ -699,6 +777,7 @@ export function LiveTvStageController() {
     return (
       <>
         <LogoScreen overlay={overlayVisible} scale={scale} />
+        {activeGreeting ? <GreetingBanner greeting={activeGreeting} /> : null}
         {isPortraitMobile ? <RotateOverlay /> : null}
       </>
     );
@@ -711,6 +790,7 @@ export function LiveTvStageController() {
         overlay={overlayVisible}
         scale={scale}
       />
+      {activeGreeting ? <GreetingBanner greeting={activeGreeting} /> : null}
       {isPortraitMobile ? <RotateOverlay /> : null}
     </>
   );
