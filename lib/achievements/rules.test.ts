@@ -6,7 +6,9 @@ import {
   evaluateSpecialAchievements,
   hasConsecutiveVisitedMonths,
   hasDistinctVisitedMonths,
+  hasReturnAfterDays,
   hasReturnWithinHours,
+  hasVisitsInSameMonth,
   specialAchievementIds,
 } from "./rules.ts";
 
@@ -27,6 +29,16 @@ test("a valid return inside 72 hours unlocks the hidden achievement", () => {
   assert.equal(hasReturnWithinHours([start.toISOString(), new Date(start.getTime() + 71 * 60 * 60 * 1000).toISOString()], 72), true);
   assert.equal(hasReturnWithinHours([start.toISOString(), new Date(start.getTime() + 73 * 60 * 60 * 1000).toISOString()], 72), false);
   assert.equal(hasReturnWithinHours([start.toISOString(), start.toISOString()], 72), false);
+});
+
+test("a return after sixty days is identified from visit history", () => {
+  assert.equal(hasReturnAfterDays(["2026-01-01T20:00:00Z", "2026-03-02T20:00:00Z"], 60), true);
+  assert.equal(hasReturnAfterDays(["2026-01-01T20:00:00Z", "2026-03-01T20:00:00Z"], 60), false);
+});
+
+test("three visits in the same Rome calendar month are identified", () => {
+  assert.equal(hasVisitsInSameMonth(["2026-05-03T20:00:00Z", "2026-05-12T20:00:00Z", "2026-05-28T20:00:00Z"], 3), true);
+  assert.equal(hasVisitsInSameMonth(["2026-05-03T20:00:00Z", "2026-05-12T20:00:00Z", "2026-06-01T20:00:00Z"], 3), false);
 });
 
 test("all configured format weekdays are required", () => {

@@ -53,6 +53,25 @@ export const hasReturnWithinHours = (values: string[], hours: number) => {
   });
 };
 
+export const hasReturnAfterDays = (values: string[], days: number) => {
+  const dates = validDates(values);
+  const limit = days * 24 * 60 * 60 * 1000;
+  return dates.some((date, index) =>
+    index > 0 && date.getTime() - dates[index - 1].getTime() >= limit,
+  );
+};
+
+export const hasVisitsInSameMonth = (values: string[], requiredVisits: number) => {
+  const visitsByMonth = new Map<number, number>();
+  for (const date of validDates(values)) {
+    const key = monthKey(date);
+    const count = (visitsByMonth.get(key) ?? 0) + 1;
+    if (count >= requiredVisits) return true;
+    visitsByMonth.set(key, count);
+  }
+  return false;
+};
+
 export const completedFormats = (
   values: string[],
   formats: AchievementEvaluationInput["formats"],

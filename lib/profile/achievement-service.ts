@@ -1,10 +1,12 @@
 import "server-only";
 
-import { buildAchievementViews, evaluateSpecialAchievements, specialAchievementIds } from "@/lib/achievements/rules";
+import { buildAchievementViews, evaluateSpecialAchievements, hasReturnAfterDays, hasVisitsInSameMonth, specialAchievementIds } from "@/lib/achievements/rules";
 import type { AchievementDefinition, AchievementView } from "@/lib/achievements/types";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
+import { getRomeWeekday } from "@/lib/utils";
+import { missions } from "@/lib/missions";
 
 type ActivityRow = { activity_type: "visit" | "event"; activity_key: string | null; occurred_at: string };
 const specialDefinitions: AchievementDefinition[] = [
@@ -77,12 +79,23 @@ export const recordAchievementActivity = async (
   if (error) throw error;
 };
 
+const recordVisitAndRelatedAchievements = async (email: string, occurredAt: string) => {
+  const date = new Date(occurredAt);
+  if (Number.isNaN(date.getTime())) return;
+  const timestamp = date.toISOString();
+  await recordAchievementActivity(email, "visit", null, timestamp, `visit:${timestamp}`);
+
+  // I format della serata sono imprese permanenti: non devono sparire alla visita successiva.
+  const formatAchievementIds = tortugaInfoConfig.eveningProgram
+    .filter((format) => getRomeWeekday(date) === format.weekday)
+    .map((format) => format.id);
+  await persistUnlocks(email, formatAchievementIds);
+};
+
 const recordProfileLatestVisit = async (email: string, profile: ProfileResponse) => {
   const visitDate = profile.contact?.DataUltimaVisita;
   if (!visitDate) return;
-  const date = new Date(visitDate);
-  if (Number.isNaN(date.getTime())) return;
-  await recordAchievementActivity(email, "visit", null, date.toISOString(), `visit:${date.toISOString()}`);
+  await recordVisitAndRelatedAchievements(email, visitDate);
 };
 
 const getActivity = async (email: string): Promise<ActivityRow[]> => {
@@ -98,7 +111,22 @@ export async function evaluateCustomerAchievements(email: string, profile?: Prof
   const visitDates = activity.filter((item) => item.activity_type === "visit").map((item) => item.occurred_at);
   const eventKeys = activity.filter((item) => item.activity_type === "event" && item.activity_key).map((item) => item.activity_key as string);
   const evaluations = evaluateSpecialAchievements({ visitDates, eventKeys, unlockedIds: currentIds, formats });
-  const newIds = evaluations.filter((item) => item.unlocked && !currentIds.includes(item.id)).map((item) => item.id);
+  const specialIds = evaluations.filter((item) => item.unlocked && !currentIds.includes(item.id)).map((item) => item.id);
+  const activityMissionIds = [
+    hasReturnAfterDays(visitDates, 60) ? "ritorno-naufragio" : null,
+    hasVisitsInSameMonth(visitDates, 3) ? "stessa-rotta-3" : null,
+  ].filter((id): id is string => id !== null && !currentIds.includes(id));
+  const provisionalIds = [...new Set([...currentIds, ...specialIds, ...activityMissionIds])];
+  const profileWithUnlocks = profile
+    ? { ...profile, unlockedAchievementIds: provisionalIds }
+    : undefined;
+  const completionId = profileWithUnlocks && missions
+    .filter((mission) => mission.id !== "naufragio-perfetto")
+    .every((mission) => mission.isUnlocked(profileWithUnlocks))
+    ? ["naufragio-perfetto"]
+    : [];
+  const newIds = [...new Set([...specialIds, ...activityMissionIds, ...completionId])]
+    .filter((id) => !currentIds.includes(id));
   await persistUnlocks(email, newIds);
   const achievementIds = [...new Set([...currentIds, ...newIds])];
   const finalEvaluations = evaluateSpecialAchievements({ visitDates, eventKeys, unlockedIds: achievementIds, formats });
@@ -108,6 +136,6 @@ export async function evaluateCustomerAchievements(email: string, profile?: Prof
 export async function recordCustomerVisit(email: string, occurredAt: string) {
   const parsed = new Date(occurredAt);
   if (Number.isNaN(parsed.getTime())) return evaluateCustomerAchievements(email);
-  await recordAchievementActivity(email, "visit", null, parsed.toISOString(), `visit:${parsed.toISOString()}`);
+  await recordVisitAndRelatedAchievements(email, parsed.toISOString());
   return evaluateCustomerAchievements(email);
 }

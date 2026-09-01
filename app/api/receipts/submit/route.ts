@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { submitReceiptRequest } from "@/lib/receipts/supabase";
+import { unlockAchievement } from "@/lib/profile/achievement-service";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,10 @@ export async function POST(request: Request) {
       amount: amount,
       image_url: publicUrl
     });
+
+    // L'impresa premia l'invio della ricevuta, non la successiva verifica
+    // amministrativa (che resta invece necessaria per l'accredito dei Dobloni).
+    await unlockAchievement(email, "assaggiatore-ufficiale");
 
     return NextResponse.json({
       success: true,

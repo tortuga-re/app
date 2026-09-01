@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 import { createBooking } from "@/lib/cooperto/service";
 import type { BookingCreateInput } from "@/lib/cooperto/types";
+import { unlockAchievement } from "@/lib/profile/achievement-service";
 import { isValidProfileEmail } from "@/lib/profile/validation";
+import { buildCoopertoDateTime, getRomeWeekday } from "@/lib/utils";
 import {
   isValidItalianPhone,
   italianPhoneValidationError,
@@ -68,6 +70,17 @@ export async function POST(request: Request) {
 
   try {
     const data = await createBooking(payload as BookingCreateInput);
+    const email = payload.email?.trim().toLowerCase();
+    if (email) {
+      const achievementIds = [
+        payload.pax! >= 6 ? "capitano-tavolata" : null,
+        payload.pax! >= 10 ? "grande-ammutinamento" : null,
+        [3, 4].includes(getRomeWeekday(buildCoopertoDateTime(payload.date!, "12:00")))
+          ? "rotta-infrasettimanale"
+          : null,
+      ].filter((id): id is string => Boolean(id));
+      await Promise.all(achievementIds.map((achievementId) => unlockAchievement(email, achievementId)));
+    }
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(

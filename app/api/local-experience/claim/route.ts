@@ -64,6 +64,10 @@ export async function POST(request: Request) {
         contactCode,
         venueCode: localExperienceServerConfig.venueCode,
       });
+      const { recordCustomerVisit } = await import("@/lib/profile/achievement-service");
+      await recordCustomerVisit(email, visit.visitDate).catch((achievementError) => {
+        console.error("[Local experience] Achievement evaluation failed:", achievementError);
+      });
 
       return json({
         status: "claimed",

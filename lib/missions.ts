@@ -215,15 +215,7 @@ export const missions: Mission[] = [
     icon: "🏝️",
     image: "/badges/ritorno-naufragio.webp",
     category: "navigazione",
-    isUnlocked: (p) => {
-      if (p.unlockedAchievementIds?.includes("ritorno-naufragio")) return true;
-      if (!p.contact?.DataUltimaVisita) return false;
-      const lastVisit = new Date(p.contact.DataUltimaVisita);
-      const today = new Date();
-      const diffTime = Math.abs(today.getTime() - lastVisit.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays >= 60;
-    },
+    isUnlocked: (p) => p.unlockedAchievementIds?.includes("ritorno-naufragio") ?? false,
   },
   {
     id: "stessa-rotta-3",

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { requireAdminRequest } from "@/lib/admin/server-auth";
 import { getProfileData, createReservationMovement, createContactMovement, addPointsToContact, getContactReservations } from "@/lib/cooperto/service";
 import { updateReceiptStatus, isReceiptNumberUsed } from "@/lib/receipts/supabase";
+import { unlockAchievement } from "@/lib/profile/achievement-service";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
 
       const email = receiptReq.user_email;
       const amount = receiptReq.amount;
+
+      // Compatibilità per ricevute inviate prima dello sblocco immediato.
+      await unlockAchievement(email, "assaggiatore-ufficiale");
 
       // Find customer on Cooperto
       const profile = await getProfileData("email", email);

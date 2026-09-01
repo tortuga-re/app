@@ -5,6 +5,7 @@ import { saveLiveTvMediaFile } from "@/lib/live-tv/media-storage";
 import { sendNowPlaying } from "@/lib/live-tv/store";
 import type { LiveTvCustomerSubmission } from "@/lib/live-tv/types";
 import { updateProfileContact } from "@/lib/cooperto/service";
+import { unlockAchievement } from "@/lib/profile/achievement-service";
 import {
   attachCustomerSessionCookie,
   getCustomerSession,
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
     };
 
     await saveLiveTvCustomerSubmission(submission);
+    await unlockAchievement(identity.email, "fotografo-ciurma");
 
     await sendNowPlaying({
       type: "image",
