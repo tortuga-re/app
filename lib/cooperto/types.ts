@@ -114,7 +114,9 @@ export interface CoopertoCreateContactRequest {
 
 export interface CoopertoGenerateCouponRequest {
   Nome?: string;
+  Cognome?: string;
   Email?: string;
+  Telefono?: string;
   CodiceCoupon: string;
   DataPrivacy?: string;
   DataMarketing?: string;

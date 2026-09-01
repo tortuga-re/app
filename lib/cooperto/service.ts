@@ -870,6 +870,27 @@ export const updateProfileContact = async (
   }
 };
 
+export const upsertContactByEmail = async ({
+  firstName,
+  email,
+}: {
+  firstName: string;
+  email: string;
+}): Promise<CoopertoContact> => {
+  if (!hasCoopertoLiveConfig) {
+    throw new Error("Configurazione Cooperto non presente.");
+  }
+
+  return coopertoFetch<CoopertoContact>("/api/Contatti/Crea", {
+    method: "POST",
+    body: JSON.stringify({
+      Nome: firstName.trim(),
+      Email: email.trim().toLowerCase(),
+      SovrascriviDati: true,
+    } satisfies CoopertoCreateContactRequest),
+  });
+};
+
 export const generateContactCoupon = async (
   request: CoopertoGenerateCouponRequest,
 ): Promise<CoopertoGenerateCouponResponse> => {

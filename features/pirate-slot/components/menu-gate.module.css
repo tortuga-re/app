@@ -1,0 +1,65 @@
+.choiceBody {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 1rem;
+}
+
+.choiceBody > p,
+.formIntro {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.slotChoice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: center;
+  width: 100%;
+  border: 1px solid rgba(165, 43, 43, 0.2);
+  border-radius: 1.15rem;
+  background: #f2ebdf;
+  padding: 0.9rem;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slotChoice > span:first-child {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  color: white;
+}
+
+.slotChoice svg { width: 1.25rem; }
+.slotChoice strong, .slotChoice small { display: block; }
+.slotChoice strong { font-family: var(--font-serif), Georgia, serif; font-size: 1.05rem; }
+.slotChoice small { margin-top: 0.18rem; color: var(--text-muted); font-size: 0.68rem; line-height: 1.35; }
+
+.formIntro { margin: 0.9rem 0 0.2rem; }
+
+.prizePanel {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(239, 202, 97, 0.32);
+  border-radius: 1rem;
+  background: rgba(255, 249, 231, 0.08);
+  padding: 0.85rem;
+  color: #f7e6bd;
+  text-align: center;
+}
+
+.prizePanel > svg { width: 2rem; height: 2rem; color: #efca61; }
+.prizePanel > p { color: #efca61; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; }
+.prizePanel > strong { font-family: var(--font-serif), Georgia, serif; font-size: 1rem; }
+.prizePanel > small { color: #bfb09a; font-size: 0.62rem; line-height: 1.4; }
+.prizePanel > div:not([class]) span, .prizePanel > div:not([class]) strong { display: block; }
+.prizePanel > div:not([class]) span { color: #bfb09a; font-size: 0.56rem; text-transform: uppercase; }
+.prizePanel > div:not([class]) strong { margin-top: 0.15rem; color: #fff4d9; font-size: 0.75rem; overflow-wrap: anywhere; }
+.prizePanel button { border: 1px solid rgba(239, 202, 97, 0.45); border-radius: 999px; background: transparent; padding: 0.65rem 1rem; color: #efca61; cursor: pointer; font-size: 0.7rem; font-weight: 800; }

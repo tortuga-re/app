@@ -6,7 +6,6 @@ import path from "node:path";
 
 const optimizeBufferWithSharp = async (sourceBuffer: Buffer, isGif: boolean) => {
   try {
-    // @ts-expect-error optional sharp dependency for image compression
     const sharpModule = await import("sharp");
     const sharp = sharpModule.default || sharpModule;
     return await sharp(sourceBuffer, {
