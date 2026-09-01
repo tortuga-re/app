@@ -223,7 +223,7 @@ export function PirateSlot({
             onClick={spin}
             disabled={spinning || attemptsLeft <= 0}
           >
-            <span>GIRA</span>
+            <span>{attemptsLeft <= 0 ? "NON HAI VINTO" : "GIRA"}</span>
           </button>
 
           {spinError ? <p className={styles.spinError} role="alert">{spinError}</p> : null}
