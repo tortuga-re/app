@@ -547,21 +547,26 @@ export function LiveTvStageController() {
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
   const lastUpdateIdRef = useRef<number | string>(0);
 
-  // Gestore della coda dei saluti (FIFO): ogni saluto va in onda per 12 secondi dedicati
+  // Timer per il saluto attivo: garantisce 12 secondi esatti a schermo
   useEffect(() => {
-    if (activeGreeting !== null || greetingQueue.length === 0) {
-      return;
-    }
-
-    const nextGreeting = greetingQueue[0];
-    setActiveGreeting(nextGreeting);
-    setGreetingQueue((prev) => prev.slice(1));
+    if (!activeGreeting) return;
 
     const timer = window.setTimeout(() => {
       setActiveGreeting(null);
     }, 12_000);
 
     return () => window.clearTimeout(timer);
+  }, [activeGreeting?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Gestore della coda (FIFO): estrae il prossimo saluto appena lo schermo è libero
+  useEffect(() => {
+    if (activeGreeting !== null || greetingQueue.length === 0) {
+      return;
+    }
+
+    const nextGreeting = greetingQueue[0];
+    setGreetingQueue((prev) => prev.slice(1));
+    setActiveGreeting(nextGreeting);
   }, [activeGreeting, greetingQueue]);
 
   const enqueueGreeting = useCallback((greeting: CustomerGreeting) => {
