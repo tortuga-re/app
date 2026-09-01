@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { BookOpen, ExternalLink, X } from "lucide-react";
 import { BrandedIframe } from "@/components/branded-iframe";
 import { PirateSlotMenuGate } from "@/features/pirate-slot/components/PirateSlotMenuGate";
+import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { hasPlayedPirateSlotToday } from "@/lib/pirate-slot/client-state";
@@ -21,8 +22,10 @@ export function MenuOverlayProvider({ children }: { children: React.ReactNode })
   const [open, setOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [preloaded, setPreloaded] = useState(false);
+  const { scenario } = useDemoScenario();
   const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
   const { identity } = useCustomerIdentity();
+  const onPremise = scenario.enabled ? scenario.onPremise : hasOnPremiseAccess;
   const preloadTargets = useRef(new Set<HTMLElement>());
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -61,12 +64,12 @@ export function MenuOverlayProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const openMenu = useCallback(() => {
-    if (hasOnPremiseAccess && !hasPlayedPirateSlotToday(identity.email)) {
+    if (onPremise && !hasPlayedPirateSlotToday(identity.email)) {
       setGateOpen(true);
       return;
     }
     setOpen(true);
-  }, [hasOnPremiseAccess, identity.email]);
+  }, [onPremise, identity.email]);
 
   return <MenuContext.Provider value={{ openMenu, openMenuDirect, menuCtaRef }}>
     {children}
