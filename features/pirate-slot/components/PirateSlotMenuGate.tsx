@@ -189,7 +189,6 @@ export function PirateSlotMenuGate({
 
             {stage === "choice" ? (
               <div className={styles.choiceBody}>
-                <p>Vuoi guardare subito il menu o prima provi a vincere una bevuta omaggio?</p>
                 <button type="button" className={styles.slotChoice} onClick={handleSlotChoice} disabled={loading}>
                   <span><Beer /></span><span><strong>{loading ? "Preparazione in corso..." : "Slot Pirata"}</strong><small>Hai 5 tentativi per allineare cinque birre.</small></span>
                 </button>
