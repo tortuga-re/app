@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Award, CalendarDays, Check, Coins, Gift, LockKeyhole, Ship, Skull, Trophy, X } from "lucide-react";
+import { Award, CalendarDays, Check, Coins, Gift, LockKeyhole, Skull, Trophy, X } from "lucide-react";
 
 import { DragCarousel } from "@/components/drag-carousel";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
@@ -187,12 +187,6 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
 
     {selectedMission ? <MissionDetailModal mission={selectedMission} onClose={() => setSelectedMission(null)} /> : null}
 
-    {["kinderland.re@gmail.com", "casta9269@gmail.com"].includes(customer.email) ? (
-      <Link href="/admin" className="flex items-center justify-center gap-2 rounded-2xl border border-[rgba(197,154,71,0.3)] bg-[#fffdf8] px-5 py-3.5 text-sm font-bold text-[var(--accent)] transition-colors hover:bg-[#f5edd8]">
-        <Ship size={18} />
-        Plancia di comando
-      </Link>
-    ) : null}
   </div>;
 }
 

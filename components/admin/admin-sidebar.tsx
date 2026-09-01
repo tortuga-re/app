@@ -2,19 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper, Trophy } from "lucide-react";
+import { LayoutDashboard, Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper, Trophy, ReceiptText } from "lucide-react";
 import { useState } from "react";
 import { PanicButton } from "./panic-button";
 
-const navItems = [
-  { name: "Cruscotto", href: "/admin", icon: LayoutDashboard },
-  { name: "Live TV", href: "/admin/live-tv", icon: Tv },
-  { name: "Media Manager", href: "/admin/media", icon: ImageIcon },
-  { name: "Push & Promo", href: "/admin/push", icon: Megaphone },
-  { name: "Contenuti in evidenza", href: "/admin/highlights", icon: Newspaper },
-  { name: "Vincitori del Tortuga", href: "/admin/vincitori", icon: Trophy },
-  { name: "Giochi Live", href: "/admin/games", icon: Gamepad2 },
-];
+const navGroups = [
+  { label: "Operatività", items: [{ name: "Cruscotto", href: "/admin", icon: LayoutDashboard }, { name: "Live TV", href: "/admin/live-tv", icon: Tv }, { name: "Giochi Live", href: "/admin/games", icon: Gamepad2 }] },
+  { label: "Comunicazione", items: [{ name: "Notifiche e promo", href: "/admin/push", icon: Megaphone }, { name: "Contenuti in evidenza", href: "/admin/highlights", icon: Newspaper }] },
+  { label: "Gestione", items: [{ name: "Foto e media", href: "/admin/media", icon: ImageIcon }, { name: "Scontrini", href: "/admin/scontrini", icon: ReceiptText }, { name: "Vincitori", href: "/admin/vincitori", icon: Trophy }] },
+] as const;
 
 export function AdminSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -40,7 +36,7 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-40 w-64 border-r border-[var(--border)] bg-[#fffdf8] shadow-[10px_0_30px_rgba(45,35,23,.08)] transition-transform duration-300 ease-in-out lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[var(--border)] bg-[#fffdf8] shadow-[10px_0_30px_rgba(45,35,23,.08)] transition-transform duration-300 ease-in-out lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
@@ -50,33 +46,19 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
           </span>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
+        <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6">
+          {navGroups.map((group) => <section key={group.label}><p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-[var(--text-muted)]">{group.label}</p><div className="space-y-1">{group.items.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
             const Icon = item.icon;
-            
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className={[
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold",
-                  isActive ? "border border-[rgba(165,43,43,.28)] bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text-muted)] hover:bg-[#f2ebdf] hover:text-[var(--text)]",
-                ].join(" ")}
-              >
-                <Icon size={20} />
-                {item.name}
-              </Link>
-            );
-          })}
+            return <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)} className={["flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all", isActive ? "border border-[rgba(165,43,43,.28)] bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text-muted)] hover:bg-[#f2ebdf] hover:text-[var(--text)]"].join(" ")}><Icon size={18} />{item.name}</Link>;
+          })}</div></section>)}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 border-t border-[var(--border)] bg-[#fffdf8] p-4">
+        <div className="shrink-0 border-t border-[var(--border)] bg-[#fffdf8] p-4">
            <button 
              onClick={async () => {
                 await fetch('/api/admin/session/logout', { method: 'POST' });
-                window.location.href = '/admin';
+                window.location.href = '/';
              }}
              className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-400 hover:bg-red-500/10 transition-colors font-semibold"
            >

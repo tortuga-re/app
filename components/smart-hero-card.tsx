@@ -8,12 +8,10 @@ export function SmartHeroCard({
   hasMenuAccess,
   reservation,
   activeCouponsCount,
-  activeGames,
 }: {
   hasMenuAccess: boolean;
   reservation: UpcomingReservation | null;
   activeCouponsCount: number;
-  activeGames: { buzzer: boolean; matchDrink: boolean };
 }) {
   const hasFutureReservation = Boolean(reservation);
   const isTonight = reservation
@@ -26,11 +24,7 @@ export function SmartHeroCard({
       ? isTonight
         ? "Hai una prenotazione stasera."
         : "Hai una rotta gia fissata."
-      : activeCouponsCount > 0
-        ? `Hai ${activeCouponsCount} coupon pronti.`
-        : activeGames.buzzer || activeGames.matchDrink
-          ? "La serata è in movimento."
-          : "Pronti a salpare di nuovo?";
+      : activeCouponsCount > 0 ? `Hai ${activeCouponsCount} coupon pronti.` : "Pronti a salpare di nuovo?";
 
   const description = hasMenuAccess
     ? "Modalita locale attiva: menu, giochi e promo sono a un tap dalla tua mano."
@@ -40,9 +34,7 @@ export function SmartHeroCard({
         : "Hai gia una prenotazione futura: qui sotto trovi tutti i dettagli della tua prossima rotta."
       : activeCouponsCount > 0
         ? "Hai già bottino da spendere: tieni d'occhio la prossima serata utile."
-        : activeGames.buzzer || activeGames.matchDrink
-          ? "Tra quiz e matchmaking, questa è una di quelle sere in cui conviene esserci."
-          : "Prenotazioni, coupon e giochi live compariranno qui nel momento giusto.";
+        : "Prenotazioni, coupon e giochi live compariranno qui nel momento giusto.";
 
   return (
     <div className="panel rounded-[2rem] border-[var(--accent-strong)]/25 bg-[var(--accent-soft)]/6 p-5">

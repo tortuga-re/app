@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getProfileData, updateProfileContact } from "@/lib/cooperto/service";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import {
   attachCustomerSessionCookie,
   normalizeCustomerSessionIdentity,

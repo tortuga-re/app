@@ -34,13 +34,13 @@ import {
   useCustomerIdentity,
 } from "@/lib/customer-identity";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
-import { useActiveGamesStatus } from "@/lib/game/use-active-games";
 import { useHashScroll } from "@/lib/hash-scroll";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { PwaInstallCard } from "@/components/pwa-install-card";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 import type { RouteFallback } from "@/components/reservation-card";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
+import { getRomeTime, getRomeWeekday } from "@/lib/utils";
 
 const loadProfileData = async (email: string) => {
   const normalizedEmail = normalizeCustomerEmail(email);
@@ -113,16 +113,10 @@ function isVenueOpen(
     }
   }
 
-  const getCoopertoDayCode = (d: Date): number => {
-    const day = d.getDay();
-    return day === 0 ? 7 : day;
-  };
-
-  const nowDay = getCoopertoDayCode(now);
-
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayDay = getCoopertoDayCode(yesterday);
+  const getCoopertoDayCode = (day: number): number => (day === 0 ? 7 : day);
+  const nowDay = getCoopertoDayCode(getRomeWeekday(now));
+  const yesterdayDay = nowDay === 1 ? 7 : nowDay - 1;
+  const currentTime = getRomeTime(now);
 
   for (const hour of hours) {
     if (!hour.OraInizio || !hour.OraFine) continue;
@@ -142,36 +136,12 @@ function isVenueOpen(
 
     const wraps = endHour < startHour || (endHour === startHour && endMin < startMin);
 
-    if (slotDay === nowDay) {
-      const startDate = new Date(now);
-      startDate.setHours(startHour, startMin, 0, 0);
+    const startTime = `${String(startHour).padStart(2, "0")}:${String(startMin).padStart(2, "0")}`;
+    const endTime = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
 
-      const endDate = new Date(now);
-      if (wraps) {
-        endDate.setDate(endDate.getDate() + 1);
-      }
-      endDate.setHours(endHour, endMin, 0, 0);
-
-      if (now >= startDate && now < endDate) {
-        return true;
-      }
-    }
-
-    if (slotDay === yesterdayDay) {
-      const startDate = new Date(now);
-      startDate.setDate(startDate.getDate() - 1);
-      startDate.setHours(startHour, startMin, 0, 0);
-
-      const endDate = new Date(now);
-      if (!wraps) {
-        endDate.setDate(endDate.getDate() - 1);
-      }
-      endDate.setHours(endHour, endMin, 0, 0);
-
-      if (now >= startDate && now < endDate) {
-        return true;
-      }
-    }
+    if (slotDay === nowDay && !wraps && currentTime >= startTime && currentTime < endTime) return true;
+    if (slotDay === nowDay && wraps && currentTime >= startTime) return true;
+    if (slotDay === yesterdayDay && wraps && currentTime < endTime) return true;
   }
 
   return false;
@@ -228,7 +198,6 @@ export function HomeScreen() {
   const identityEmail = normalizeCustomerEmail(identity.email);
   const viewedReservationsKeyRef = useRef("");
   const { hasAccess: hasMenuAccess } = useOnPremiseAccess();
-  const activeGames = useActiveGamesStatus();
   const [profileState, setProfileState] = useState<{
     email: string;
     profile: ProfileResponse | null;
@@ -388,23 +357,15 @@ export function HomeScreen() {
         ? "on_premise"
         : primaryReservation
           ? "reservation"
-          : activeCoupons.length > 0
-            ? "coupon"
-            : activeGames.buzzer || activeGames.matchDrink
-              ? "live_games"
-              : "default";
+          : activeCoupons.length > 0 ? "coupon" : "default";
 
     trackAppEvent("home_context_view", {
       app_section: "home",
       home_context: context,
       has_menu_access: hasMenuAccess,
-      has_live_buzzer: activeGames.buzzer,
-      has_live_match_drink: activeGames.matchDrink,
     });
   }, [
     activeCoupons.length,
-    activeGames.buzzer,
-    activeGames.matchDrink,
     hasMenuAccess,
     loading,
     primaryReservation,
@@ -417,15 +378,11 @@ export function HomeScreen() {
 
     trackAppEvent("live_mode_view", {
       app_section: "home",
-      has_live_buzzer: activeGames.buzzer,
-      has_live_match_drink: activeGames.matchDrink,
       active_coupon_count: activeCoupons.length,
       has_reservation: Boolean(primaryReservation),
     });
   }, [
     activeCoupons.length,
-    activeGames.buzzer,
-    activeGames.matchDrink,
     hasMenuAccess,
     loading,
     primaryReservation,
@@ -457,10 +414,7 @@ export function HomeScreen() {
           <LoyaltyJourney />
           {hasMenuAccess ? (
             <>
-              <VenueModeCard
-                activeGames={activeGames}
-                onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)}
-              />
+              <VenueModeCard onOpenMenu={() => void registerVisit(profile?.contact?.CodiceContatto)} />
               <div id="contributi-live" className="hash-scroll-target rounded-[2rem]">
                 <LiveTvContributionCard
                   contact={profile?.contact ?? null}
@@ -473,7 +427,6 @@ export function HomeScreen() {
               hasMenuAccess={false}
               reservation={primaryReservation}
               activeCouponsCount={activeCoupons.length}
-              activeGames={activeGames}
             />
           ) : null}
           {!hasMenuAccess && isOpen ? (

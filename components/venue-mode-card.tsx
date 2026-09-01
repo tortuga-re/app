@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/haptics";
 import { tortugaInfoConfig } from "@/lib/config";
+import { getRomeWeekday } from "@/lib/utils";
 
 const getTodayPromo = () => {
-  const day = new Date().getDay();
+  const day = getRomeWeekday();
   const promoByDay: Record<number, (typeof tortugaInfoConfig.eveningProgram)[number] | null> = {
     0: tortugaInfoConfig.eveningProgram[4],
     1: null,
@@ -19,13 +20,7 @@ const getTodayPromo = () => {
   return promoByDay[day] ?? null;
 };
 
-export function VenueModeCard({
-  activeGames,
-  onOpenMenu,
-}: {
-  activeGames: { buzzer: boolean; matchDrink: boolean };
-  onOpenMenu?: () => void;
-}) {
+export function VenueModeCard({ onOpenMenu }: { onOpenMenu?: () => void }) {
   const todayPromo = getTodayPromo();
 
   return (

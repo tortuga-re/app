@@ -4,12 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { StatusBlock } from "@/components/status-block";
-import { AdminTopNav } from "@/components/admin/AdminTopNav";
 import { useAdminSession } from "@/lib/admin/use-admin-session";
 import { triggerHaptic } from "@/lib/haptics";
 
 export function AdminSessionGate({ children }: { children: React.ReactNode }) {
-  const { authenticated, loading, label, error, login, logout } = useAdminSession();
+  const { authenticated, loading, error, login } = useAdminSession();
   const [pin, setPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,41 +81,5 @@ export function AdminSessionGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-6xl p-6 pb-20">
-      <header className="mb-6 space-y-4">
-        <div className="panel flex flex-col gap-4 rounded-[2rem] p-5 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="eyebrow">Console Operativa</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-black uppercase italic text-white">
-                Plancia Tortuga
-              </h1>
-              <span className="rounded-full border border-[var(--accent-strong)]/20 bg-[var(--accent-soft)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                {label || "Admin"}
-              </span>
-            </div>
-            <p className="text-sm leading-6 text-[var(--text-muted)]">
-              Accesso unificato per giochi, push, scontrini e gestione serata.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm"
-            onClick={() => {
-              triggerHaptic();
-              void logout();
-            }}
-          >
-            Esci dalla plancia
-          </button>
-        </div>
-
-        <AdminTopNav />
-      </header>
-
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }

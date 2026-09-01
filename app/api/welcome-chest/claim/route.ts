@@ -6,7 +6,7 @@ import {
   generateContactCoupon,
   getProfileData,
 } from "@/lib/cooperto/service";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { unlockAchievement } from "@/lib/profile/achievement-service";
 import {
   attachCustomerSessionCookie,

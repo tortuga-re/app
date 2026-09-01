@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import fs from "fs";
 import path from "path";
 

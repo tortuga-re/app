@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     if (mode === "email") {
       const { getCustomerAvatar } = await import("@/lib/profile/avatar-service");
       const { evaluateCustomerAchievements } = await import("@/lib/profile/achievement-service");
-      const { getSupabaseAdmin } = await import("@/lib/match-drink/supabase");
+      const { getSupabaseAdmin } = await import("@/lib/supabase/client");
       
       const [avatarUrl, achievementState, legendResult] = await Promise.all([
         getCustomerAvatar(normalizedQuery).catch(() => null),

@@ -4,7 +4,7 @@ import { buildAchievementViews, evaluateSpecialAchievements, specialAchievementI
 import type { AchievementDefinition, AchievementView } from "@/lib/achievements/types";
 import { tortugaInfoConfig } from "@/lib/config";
 import type { ProfileResponse } from "@/lib/cooperto/types";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 
 type ActivityRow = { activity_type: "visit" | "event"; activity_key: string | null; occurred_at: string };
 const specialDefinitions: AchievementDefinition[] = [

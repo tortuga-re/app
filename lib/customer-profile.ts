@@ -5,6 +5,7 @@ import type {
   UpcomingReservation,
 } from "@/lib/cooperto/types";
 import type { FidelityRewardProgress } from "@/lib/fidelity-rewards";
+import { ROME_TIME_ZONE } from "@/lib/utils";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -48,6 +49,7 @@ export const formatCouponExpiry = (value?: string) => {
   }
 
   return new Intl.DateTimeFormat("it-IT", {
+    timeZone: ROME_TIME_ZONE,
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -201,6 +203,7 @@ export const getBirthdayInsight = (
     date: nextBirthday,
     daysUntil,
     label: new Intl.DateTimeFormat("it-IT", {
+      timeZone: ROME_TIME_ZONE,
       day: "numeric",
       month: "long",
     }).format(nextBirthday),

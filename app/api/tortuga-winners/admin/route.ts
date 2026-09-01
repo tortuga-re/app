@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdminRequest } from "@/lib/admin/server-auth";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 
 const evenings = new Set(["friday", "saturday", "sunday"]);
 

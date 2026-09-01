@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminRequest } from "@/lib/admin/server-auth";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { isLiveGameId } from "@/lib/live-game";
 import { recordAdminActivity } from "@/lib/admin/activity-log";
 export const dynamic = "force-dynamic";

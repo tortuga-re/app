@@ -18,9 +18,10 @@ import { useHashScroll } from "@/lib/hash-scroll";
 import { getFidelityRewardProgress } from "@/lib/fidelity-rewards";
 import type { EmailChangeRequestResponse } from "@/lib/profile-email-change/types";
 import { triggerHaptic } from "@/lib/haptics";
-import { cn } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
-import { isAdmin } from "@/lib/live-buzzer/admin";
+import { useDemoScenario } from "@/components/demo-scenario-provider";
+import { isAdmin } from "@/lib/admin/identity";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 import {
   italianPhoneValidationError,
@@ -43,6 +44,7 @@ export function CiurmaScreen() {
     updateIdentity,
     clearCustomerContext,
   } = useCustomerIdentity();
+  const { scenario } = useDemoScenario();
   const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
   const [lookupEmail, setLookupEmail] = useState("");
   const [isEditingLookup, setIsEditingLookup] = useState(false);
@@ -63,7 +65,6 @@ export function CiurmaScreen() {
   const [verifyingEmailChange, setVerifyingEmailChange] = useState(false);
   const [resendingEmailChange, setResendingEmailChange] = useState(false);
   const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
-  const [activeGames, setActiveGames] = useState({ buzzer: false, matchDrink: false });
   const [isOnline, setIsOnline] = useState(true);
   const [selectedMission, setSelectedMission] = useState<import("@/lib/missions").Mission | null>(null);
   const [loginMode, setLoginMode] = useState<"lookup" | "confirm" | "otp">("lookup");
@@ -142,9 +143,7 @@ export function CiurmaScreen() {
   };
 
   const identityEmail = normalizeCustomerEmail(identity.email);
-  const isLoggedAdmin = isAdmin(identity.email);
-  const showUnifiedCommandDeck =
-    identityEmail === "kinderland.re@gmail.com";
+  const isLoggedAdmin = isAdmin(identity.email) || (scenario.enabled && scenario.demoAdmin);
   const { registerVisit } = useVisitRegistration();
   const hasProfile = Boolean(data?.contact);
   const profileName =
@@ -176,17 +175,14 @@ export function CiurmaScreen() {
     0,
   );
   const emailChangeExpiresAtLabel = emailChangeRequest
-    ? new Intl.DateTimeFormat("it-IT", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(emailChangeRequest.expiresAt))
+    ? formatTime(emailChangeRequest.expiresAt)
     : "";
     
   const loginResendAt = loginRequest ? Date.parse(loginRequest.resendAvailableAt) : 0;
   const loginCanResend = Boolean(loginRequest && emailChangeNow >= loginResendAt);
   const loginResendSeconds = Math.max(Math.ceil((loginResendAt - emailChangeNow) / 1000), 0);
   const loginExpiresAtLabel = loginRequest
-    ? new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(loginRequest.expiresAt))
+    ? formatTime(loginRequest.expiresAt)
     : "";
 
   useHashScroll(
@@ -215,20 +211,6 @@ export function CiurmaScreen() {
       window.removeEventListener("online", update);
       window.removeEventListener("offline", update);
     };
-  }, []);
-
-  useEffect(() => {
-    const fetchActiveGames = async () => {
-      try {
-        const games = await requestJson<{ buzzer: boolean; matchDrink: boolean }>("/api/game/active-status", { cache: "no-store" });
-        setActiveGames(games);
-      } catch (err) {
-        console.error("Failed to fetch active games status", err);
-      }
-    };
-    void fetchActiveGames();
-    const intervalId = window.setInterval(fetchActiveGames, 10000); // Poll ogni 10 secondi per stabilità
-    return () => window.clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -968,13 +950,9 @@ export function CiurmaScreen() {
           />
           <ProfileGamesAndAdmin
             data={data}
-            identityEmail={identityEmail}
             isLoggedAdmin={isLoggedAdmin}
-            showUnifiedCommandDeck={showUnifiedCommandDeck}
             hasOnPremiseAccess={hasOnPremiseAccess}
-            activeGames={activeGames}
             registerVisit={registerVisit}
-            triggerHaptic={triggerHaptic}
           />
 
           <ProfilePassport

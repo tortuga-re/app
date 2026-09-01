@@ -2,15 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 
-import { BuzzerStage } from "@/components/live-buzzer/BuzzerStage";
-import { MatchDrinkStage } from "@/components/match-drink/MatchDrinkStage";
 import { TORTUGA_LIVE_LOGO_URL } from "@/lib/live-tv/default-playlists";
 import type { LiveTvItem, LiveTvOverlay, LiveTvState, StageMode } from "@/lib/live-tv/types";
-import { getSupabase } from "@/lib/match-drink/supabase";
+import { getSupabase } from "@/lib/supabase/client";
 
-type LiveTvStageResponse = LiveTvState & {
-  activeMatchDrinkSessionId?: string | null;
-};
+type LiveTvStageResponse = LiveTvState;
 
 function QrBlock({ value, label }: { value: string; label?: string }) {
   const [svgMarkup, setSvgMarkup] = useState("");
@@ -602,7 +598,6 @@ export function LiveTvStageController() {
           setStageState((previous) => ({
             ...(previous || {}),
             ...payload,
-            activeMatchDrinkSessionId: previous?.activeMatchDrinkSessionId ?? null,
           }));
           setLoading(false);
           void fetchState();
@@ -706,23 +701,6 @@ export function LiveTvStageController() {
         <LogoScreen overlay={overlayVisible} scale={scale} />
         {isPortraitMobile ? <RotateOverlay /> : null}
       </>
-    );
-  }
-
-  if (stageMode === "buzzer") {
-    return <BuzzerStage />;
-  }
-
-  if (stageMode === "match_drink") {
-    if (stageState?.activeMatchDrinkSessionId) {
-      return <MatchDrinkStage sessionId={stageState.activeMatchDrinkSessionId} />;
-    }
-
-    return (
-      <StageShell
-        title="Stage in preparazione"
-        scale={scale}
-      />
     );
   }
 

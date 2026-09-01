@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 
 /**
  * Recupera l'URL dell'avatar associato a un'email.

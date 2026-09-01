@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/haptics";
+import { formatInRome, formatTime } from "@/lib/utils";
 import type { UpcomingReservation } from "@/lib/cooperto/types";
 
 export type RouteFallback = {
@@ -15,18 +16,12 @@ export type RouteFallback = {
 
 const getReservationManageHref = () => null;
 
-const formatRouteDate = (value: string) =>
-  new Intl.DateTimeFormat("it-IT", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-  }).format(new Date(value));
-
-const formatRouteTime = (value: string) =>
-  new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+const formatRouteDate = (value: string) => formatInRome(value, {
+  weekday: "short",
+  day: "numeric",
+  month: "long",
+});
+const formatRouteTime = formatTime;
 
 function ReservationStat({ label, value }: { label: string; value: string }) {
   return (

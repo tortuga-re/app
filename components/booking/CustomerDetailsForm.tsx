@@ -3,6 +3,7 @@
 import type { BookingDraft, BookingFieldErrors, BookingFieldName, DecoratedSlot } from "./types";
 import { isValidCustomerEmail } from "@/lib/customer-identity";
 import { triggerHaptic } from "@/lib/haptics";
+import { formatInRome } from "@/lib/utils";
 
 type CustomerDetailsFormProps = {
   draft: BookingDraft;
@@ -87,14 +88,9 @@ export function CustomerDetailsForm({
         <p className="text-sm leading-6 text-white">
           Prenotazione per{" "}
           <span className="font-semibold">
-            {new Intl.DateTimeFormat("it-IT", {
-              weekday: "long",
-            }).format(new Date(selectedSlot.date))}
+            {formatInRome(selectedSlot.date, { weekday: "long" })}
             ,{" "}
-            {new Intl.DateTimeFormat("it-IT", {
-              day: "2-digit",
-              month: "2-digit",
-            }).format(new Date(selectedSlot.date))}
+            {formatInRome(selectedSlot.date, { day: "2-digit", month: "2-digit" })}
           </span>
           , alle ore <span className="font-semibold">{selectedSlot.time}</span> per{" "}
           <span className="font-semibold">

@@ -10,6 +10,7 @@ import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { useMenuOverlay } from "@/components/menu-overlay";
 import { PwaInstallCard } from "@/components/pwa-install-card";
+import { formatInRome, formatTime } from "@/lib/utils";
 
 export function MinimalHomeScreen() {
   const [now] = useState(() => Date.now());
@@ -25,10 +26,10 @@ export function MinimalHomeScreen() {
     : customer.profile?.upcomingReservations[0] ?? null;
   const reservationDate = nextReservation ? new Date(nextReservation.dateTime) : null;
   const reservationDateLabel = reservationDate && !Number.isNaN(reservationDate.getTime())
-    ? new Intl.DateTimeFormat("it-IT", { weekday: "short", day: "numeric", month: "short" }).format(reservationDate)
+    ? formatInRome(reservationDate, { weekday: "short", day: "numeric", month: "short" })
     : "Data da confermare";
   const reservationTimeLabel = reservationDate && !Number.isNaN(reservationDate.getTime())
-    ? new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(reservationDate)
+    ? formatTime(reservationDate.toISOString())
     : "Orario da confermare";
   const beforeHighlights = <>
     {nextReservation ? <article className="upcoming-reservation-card"><header><p className="minimal-eyebrow">Prossima prenotazione</p></header><div className="reservation-details"><div><CalendarDays aria-hidden="true" /><span>{reservationDateLabel}</span></div><div><Clock3 aria-hidden="true" /><span>{reservationTimeLabel}</span></div><div><Users aria-hidden="true" /><span>{nextReservation.pax ?? "—"}</span></div></div></article> : null}

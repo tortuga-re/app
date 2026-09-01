@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { submitReceiptRequest } from "@/lib/receipts/supabase";
 
 export const dynamic = "force-dynamic";

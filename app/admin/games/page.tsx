@@ -1,29 +1,52 @@
 "use client";
-import Link from "next/link";
-import { Gamepad2, Music } from "lucide-react";
+
+import { Gamepad2, Radio, TimerReset } from "lucide-react";
 import { useEffect, useState } from "react";
+
 import { liveGames, type LiveGameId, type LiveGameState } from "@/lib/live-game";
+import { formatTime } from "@/lib/utils";
 
 export default function GamesAdminPage() {
   const [game, setGame] = useState<LiveGameState | null>(null);
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    try {
+      const response = await fetch("/api/admin/live-game", { cache: "no-store" });
+      const body = await response.json();
+      setGame(body.game ?? null);
+    } catch {
+      setMessage("Impossibile leggere lo stato dei giochi.");
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/admin/live-game").then((response) => response.json()).then((body) => setGame(body.game ?? null)).catch(() => setMessage("Impossibile caricare lo stato dei giochi."));
+    // Initial asynchronous synchronization with the admin API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
   }, []);
 
   const setActive = async (value: LiveGameId | null) => {
-    const response = await fetch("/api/admin/live-game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ game: value }) });
-    const body = await response.json();
-    setMessage(response.ok ? value ? `${liveGames[value].label} attivo per 3 ore.` : "Nessun gioco attivo." : body.error ?? "Errore.");
-    if (response.ok) setGame(body.game);
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/live-game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game: value }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Operazione non riuscita.");
+      setGame(body.game ?? null);
+      setMessage(value ? `${liveGames[value].label} è visibile nell'app per 3 ore.` : "Istruzioni gioco disattivate.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Operazione non riuscita.");
+    } finally { setBusy(false); }
   };
 
-  return <main className="p-6 pb-32 lg:p-10 text-white">
-    <header className="mb-10"><p className="mb-2 text-xs font-black uppercase tracking-[.3em] text-[var(--accent-strong)]">Plancia Admin</p><h1 className="text-4xl font-black uppercase italic">Giochi Live</h1><p className="mt-2 text-sm font-semibold text-white/50">Gestisci le plance e scegli l’unico gioco mostrato nell’app per le prossime 3 ore.</p></header>
-    <div className="grid max-w-2xl gap-4">
-      <Link href="/admin/buzzer" className="flex items-center gap-4 rounded-[1.5rem] border border-white/10 bg-[#111] p-5 transition hover:border-white/20"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400"><Music /></span><span><strong className="block uppercase italic">Tortuga Music Quiz</strong><small className="mt-1 block text-white/50">Apri la plancia, assegna punti e controlla il buzzer.</small></span></Link>
-      <section className="rounded-[1.5rem] border border-white/10 bg-[#111] p-5"><div className="mb-4 flex items-center gap-3"><Gamepad2 className="text-[var(--accent-strong)]"/><div><strong className="block uppercase italic">Gioco visibile nell’app</strong><small className="text-white/50">Un solo gioco può essere attivo.</small></div></div><div className="grid gap-3">{(Object.keys(liveGames) as LiveGameId[]).map((id) => <button key={id} type="button" onClick={() => void setActive(id)} className={`rounded-xl border p-4 text-left ${game?.active_game === id ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/15" : "border-white/15 bg-white/5"}`}><strong>{liveGames[id].label}</strong><span className="mt-1 block text-xs text-white/60">{liveGames[id].url}</span>{game?.active_game === id && game.expires_at ? <span className="mt-2 block text-xs font-bold text-[var(--accent-strong)]">Attivo fino alle {new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(game.expires_at))}</span> : null}</button>)}<button type="button" onClick={() => void setActive(null)} className="rounded-xl border border-white/15 px-4 py-3 text-sm text-white/75">Disattiva gioco</button></div></section>
-    </div>{message ? <p className="mt-4 text-sm text-[var(--accent-strong)]">{message}</p> : null}
+  return <main className="min-h-screen bg-[#f4efe5] p-5 text-[var(--text)] md:p-8 lg:p-10">
+    <header className="max-w-3xl"><p className="eyebrow">Operatività serata</p><h1 className="mt-2 font-display text-4xl">Giochi Live</h1><p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">Può essere attivo un solo gioco alla volta. Le istruzioni restano visibili nell’app per tre ore, anche fuori dal locale.</p></header>
+    <section className="mt-7 grid max-w-3xl gap-4 md:grid-cols-2">{(Object.keys(liveGames) as LiveGameId[]).map((id) => { const definition = liveGames[id]; const active = game?.active_game === id; return <button key={id} type="button" onClick={() => void setActive(id)} disabled={busy} className={`rounded-[2rem] border p-6 text-left transition ${active ? "border-[var(--accent)] bg-[#f2e5d5] shadow-[0_12px_28px_rgba(165,43,43,.12)]" : "border-[var(--border)] bg-[#fffdf8] hover:border-[var(--accent)]/40"}`}><div className="flex items-start justify-between gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]"><Gamepad2 size={21} /></span>{active ? <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-black uppercase tracking-[.15em] text-white">Attivo</span> : null}</div><h2 className="mt-6 font-display text-2xl">{definition.label}</h2><p className="mt-2 break-all text-sm text-[var(--text-muted)]">{definition.url}</p>{active && game?.expires_at ? <p className="mt-5 flex items-center gap-2 text-xs font-bold text-[var(--accent)]"><TimerReset size={15} />Scade alle {formatTime(game.expires_at)}</p> : null}</button>})}</section>
+    <div className="mt-4 flex max-w-3xl flex-wrap items-center gap-3"><button type="button" className="button-secondary inline-flex min-h-11 items-center gap-2 px-5" onClick={() => void setActive(null)} disabled={busy}><Radio size={16} />Disattiva gioco</button>{message ? <p className="text-sm font-semibold text-[var(--accent)]">{message}</p> : null}</div>
   </main>;
 }

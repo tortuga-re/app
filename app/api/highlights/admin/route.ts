@@ -1,10 +1,10 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAdminRequest } from "@/lib/admin/server-auth";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { recordAdminActivity } from "@/lib/admin/activity-log";
 export const dynamic = "force-dynamic";
 const fields =
-  "id,eyebrow,title,description,cta_label,cta_url,starts_at,ends_at,background_image_url,overlay_color,priority,published";
+  "id,eyebrow,title,description,cta_label,cta_url,detail_title,detail_text,starts_at,ends_at,background_image_url,overlay_color,priority,published";
 const italianDateTimePattern = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 
 const toItalianUtcDateTime = (value: unknown) => {
@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
     description: String(body.description ?? "").trim(),
     cta_label: String(body.cta_label ?? "").trim(),
     cta_url: String(body.cta_url ?? "").trim(),
+    detail_title: String(body.detail_title ?? "").trim() || null,
+    detail_text: String(body.detail_text ?? "").trim() || null,
     starts_at: toItalianUtcDateTime(body.starts_at),
     ends_at: body.ends_at ? toItalianUtcDateTime(body.ends_at) : null,
     background_image_url: body.background_image_url || null,
@@ -76,8 +78,6 @@ export async function POST(request: NextRequest) {
   if (
     !item.title ||
     !item.description ||
-    !item.cta_label ||
-    !item.cta_url ||
     !item.starts_at
   )
     return NextResponse.json(

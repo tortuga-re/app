@@ -24,10 +24,7 @@ export type BookingFieldName =
   | "lastName"
   | "email"
   | "phone"
-  | "privacyAccepted"
-  | "matchDrinkMen"
-  | "matchDrinkWomen"
-  | "matchDrinkAgeGroup";
+  | "privacyAccepted";
 
 export type BookingFieldErrors = Partial<Record<BookingFieldName, string>>;
 

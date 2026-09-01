@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Upload, Trash2, Image as ImageIcon, Film, Loader2 } from "lucide-react";
+import { formatInRome } from "@/lib/utils";
 
 type LiveTvMediaAsset = {
   id: string;
@@ -191,7 +192,7 @@ export default function MediaManagerPage() {
                   {asset.title}
                 </p>
                 <p className="mt-1 text-[0.65rem] text-white/40">
-                  {new Date(asset.createdAt).toLocaleDateString()} • {(asset.sizeBytes / 1024 / 1024).toFixed(1)}MB
+                  {formatInRome(asset.createdAt, { dateStyle: "short" })} • {(asset.sizeBytes / 1024 / 1024).toFixed(1)}MB
                 </p>
               </div>
             </div>

@@ -19,6 +19,7 @@ export type DemoScenario = {
   demoBirthday: boolean;
   demoEditorial: boolean;
   demoReceiptPending: boolean;
+  demoAdmin: boolean;
   demoLastVisitDate: string;
   welcomeChestDevice: "none" | "iphone" | "android";
   demoWeekday: number;
@@ -41,6 +42,7 @@ const defaults: DemoScenario = {
   demoBirthday: false,
   demoEditorial: false,
   demoReceiptPending: false,
+  demoAdmin: false,
   demoLastVisitDate: "",
   welcomeChestDevice: "none",
   demoWeekday: -1,
@@ -125,6 +127,7 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                   <Toggle label="Compleanno" checked={scenario.demoBirthday} onChange={(demoBirthday) => update({ demoBirthday })} />
                   <Toggle label="Contenuto editoriale" checked={scenario.demoEditorial} onChange={(demoEditorial) => update({ demoEditorial })} />
                   <Toggle label="Scontrino da caricare" checked={scenario.demoReceiptPending} onChange={(demoReceiptPending) => update({ demoReceiptPending })} />
+                  <Toggle label="Modalità admin" checked={scenario.demoAdmin} onChange={(demoAdmin) => update({ demoAdmin })} />
                 <label className="demo-field"><span>Data ultima visita</span><input type="date" value={scenario.demoLastVisitDate} onChange={(event) => update({ demoLastVisitDate: event.target.value })} /></label>
                 <label className="demo-field"><span>Anteprima Baule</span><select value={scenario.welcomeChestDevice} onChange={(event) => update({ welcomeChestDevice: event.target.value as DemoScenario["welcomeChestDevice"] })}><option value="none">Nessuna</option><option value="iphone">iPhone</option><option value="android">Android</option></select><ChevronDown size={16} /></label>
                 <label className="demo-field"><span>Giorno simulato</span><select value={scenario.demoWeekday} onChange={(event) => update({ demoWeekday: Number(event.target.value) })}><option value={-1}>Reale</option><option value={1}>Lunedi</option><option value={2}>Martedi</option><option value={3}>Mercoledi</option><option value={4}>Giovedi</option><option value={5}>Venerdi</option><option value={6}>Sabato</option><option value={0}>Domenica</option></select><ChevronDown size={16} /></label>

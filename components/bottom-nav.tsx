@@ -3,12 +3,14 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
 import { usePathname } from "next/navigation";
-import { BarChart3, Home, Info, Sparkles, Users } from "lucide-react";
+import { BarChart3, Home, Info, LayoutDashboard, Sparkles, Users } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { useBookingOverlay } from "@/components/booking-overlay";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
+import { useCustomerIdentity } from "@/lib/customer-identity";
+import { isAdmin } from "@/lib/admin/identity";
 
 // Icona personalizzata: Teschio con ossa incrociate (Jolly Roger)
 function SkullCrossbones({ size = 21, strokeWidth = 1.7 }: { size?: number; strokeWidth?: number }) {
@@ -78,11 +80,15 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
   const { openBooking, showBookingButton, bookingCtaRef } = useBookingOverlay();
   const { scenario } = useDemoScenario();
   const { hasAccess } = useOnPremiseAccess();
+  const { identity } = useCustomerIdentity();
   const isOnPremise = scenario.enabled ? scenario.onPremise : hasAccess;
-  const showCenterAction = isOnPremise || showBookingButton;
+  const isAdministrator = isAdmin(identity.email) || (scenario.enabled && scenario.demoAdmin);
+  const showCenterAction = isAdministrator || isOnPremise || showBookingButton;
 
   const navItems = [...baseItems];
-  if (isOnPremise) {
+  if (isAdministrator) {
+    navItems.splice(2, 0, { href: "/admin", label: "Plancia", Icon: LayoutDashboard });
+  } else if (isOnPremise) {
     navItems.splice(2, 0, { href: "/stasera", label: "Stasera", Icon: Sparkles });
   } else if (showBookingButton) {
     // Inserisce il pulsante Prenota con icona SkullCrossbones al centro.
@@ -95,7 +101,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
       showCenterAction ? "grid-cols-5" : "grid-cols-4"
     )}>
       {navItems.map((item) => {
-        const active = pathname === item.href;
+        const active = pathname === item.href || (item.href === "/admin" && pathname.startsWith("/admin/"));
         const Icon = item.Icon;
 
         if ('isAction' in item && item.isAction) {

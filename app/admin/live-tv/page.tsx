@@ -1,10 +1,10 @@
 "use client";
 
-import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
 
 import { StatusBlock } from "@/components/status-block";
-import { getSupabase } from "@/lib/match-drink/supabase";
-import { LIVE_TV_PRESETS } from "@/lib/live-tv/default-playlists";
+import { getSupabase } from "@/lib/supabase/client";
+import { formatDateTime } from "@/lib/utils";
 import {
   LIVE_TV_ITEM_TYPES,
   type LiveTvCustomerSubmission,
@@ -12,35 +12,20 @@ import {
   STAGE_MODE_VALUES,
   type LiveTvItem,
   type LiveTvMediaAsset,
-  type LiveTvPresetId,
-  type LiveTvScheduleEntry,
   type LiveTvState,
   type LiveTvStyleVariant,
   type LiveTvUpsertItemInput,
   type StageMode,
 } from "@/lib/live-tv/types";
 
-type LiveTvPageState = LiveTvState & {
-  activeMatchDrinkSessionId?: string | null;
-};
+type LiveTvPageState = LiveTvState;
 
-type AdminDashboardResponse = {
-  receiptsPending: number;
-  pushSubscriptions: number;
-  liveBuzzerActive: boolean;
-  matchDrinkActive: boolean;
-  latestMatchDrinkTitle: string | null;
-  liveTvMode: StageMode;
-  liveTvScheduleEnabled: boolean;
-  liveTvMediaAssets: number;
-  savedPushSegments: number;
-  savedPushCampaigns: number;
-  matchDrinkAnalytics?: {
-    signups?: number;
-    matchesCalculated?: number;
-    acceptedMatches?: number;
-    drinksRedeemed?: number;
-  } | null;
+type LiveTvPlaylistTemplate = {
+  id: string;
+  name: string;
+  items: LiveTvUpsertItemInput[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 type CustomerSubmissionsResponse = {
@@ -48,31 +33,8 @@ type CustomerSubmissionsResponse = {
   error?: string;
 } | null;
 
-const WEEKDAY_OPTIONS = [
-  { value: 1, label: "Lun" },
-  { value: 2, label: "Mar" },
-  { value: 3, label: "Mer" },
-  { value: 4, label: "Gio" },
-  { value: 5, label: "Ven" },
-  { value: 6, label: "Sab" },
-  { value: 0, label: "Dom" },
-] as const;
-
-const createEmptyScheduleEntry = (): LiveTvScheduleEntry => ({
-  id: crypto.randomUUID(),
-  label: "",
-  startTime: "18:00",
-  endTime: "20:00",
-  daysOfWeek: [4],
-  stageMode: "live_tv",
-  presetId: "generica",
-  enabled: true,
-});
-
 const stageModeLabels: Record<StageMode, string> = {
   live_tv: "Live TV",
-  buzzer: "Tortuga Music Quiz",
-  match_drink: "Match & Drink",
   blackout: "Blackout",
   logo: "Logo fisso",
 };
@@ -305,6 +267,10 @@ function PlaylistItemEditor({
   onMoveDown,
   onSendNow,
   onDuplicate,
+  onDragStart,
+  onDropOnItem,
+  onDragEnd,
+  dragging,
   busy,
 }: {
   item: LiveTvItem;
@@ -315,6 +281,10 @@ function PlaylistItemEditor({
   onMoveDown: (id: string) => Promise<void>;
   onSendNow: (item: LiveTvItem) => Promise<void>;
   onDuplicate: (item: LiveTvItem) => Promise<void>;
+  onDragStart: (itemId: string) => void;
+  onDropOnItem: (itemId: string) => void;
+  onDragEnd: () => void;
+  dragging: boolean;
   busy: boolean;
 }) {
   const [draft, setDraft] = useState<LiveTvUpsertItemInput>({
@@ -332,7 +302,14 @@ function PlaylistItemEditor({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="panel rounded-[1.8rem] p-0 overflow-hidden">
+    <div
+      className={`panel rounded-[1.8rem] p-0 overflow-hidden transition ${dragging ? "opacity-50 ring-2 ring-[var(--accent)]" : ""}`}
+      draggable={!busy}
+      onDragStart={() => onDragStart(item.id)}
+      onDragOver={(event: DragEvent<HTMLDivElement>) => event.preventDefault()}
+      onDrop={() => onDropOnItem(item.id)}
+      onDragEnd={onDragEnd}
+    >
       {/* Header always visible, clickable to expand/collapse */}
       <div className="flex w-full items-center justify-between gap-3 p-5 text-left">
         <button
@@ -359,6 +336,7 @@ function PlaylistItemEditor({
           </div>
         </button>
         <div className="flex shrink-0 items-center gap-2">
+          <span className="cursor-grab select-none rounded-lg px-2 py-1 text-lg text-[var(--accent)]" title="Trascina per riordinare" aria-label="Trascina per riordinare">⠿</span>
           <button
             type="button"
             className="button-secondary text-xs px-3 py-1"
@@ -418,7 +396,6 @@ function PlaylistItemEditor({
 
 export default function AdminLiveTvPage() {
   const [state, setState] = useState<LiveTvPageState | null>(null);
-  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
   const [mediaLibrary, setMediaLibrary] = useState<LiveTvMediaAsset[]>([]);
   const [customerSubmissions, setCustomerSubmissions] = useState<LiveTvCustomerSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -431,12 +408,12 @@ export default function AdminLiveTvPage() {
     durationSeconds: 10,
   });
   const [sendNowAlsoAdd, setSendNowAlsoAdd] = useState(false);
-  const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(false);
-  const [scheduleDraft, setScheduleDraft] = useState<LiveTvScheduleEntry[]>([]);
-  const [presetActionId, setPresetActionId] = useState<LiveTvPresetId | null>(null);
   const [sendNowExpanded, setSendNowExpanded] = useState(true);
   const [submissionsExpanded, setSubmissionsExpanded] = useState(false);
   const [mediaLibraryExpanded, setMediaLibraryExpanded] = useState(false);
+  const [templates, setTemplates] = useState<LiveTvPlaylistTemplate[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
 
   const orderedItems = useMemo(
     () => [...(state?.playlist || [])].sort((a, b) => a.order - b.order),
@@ -488,8 +465,6 @@ export default function AdminLiveTvPage() {
 
     const nextState = body as LiveTvPageState;
     setState(nextState);
-    setAutoScheduleEnabled(Boolean(nextState.autoScheduleEnabled));
-    setScheduleDraft(nextState.schedule ?? []);
     setError("");
   }, []);
 
@@ -508,18 +483,13 @@ export default function AdminLiveTvPage() {
   }, []);
 
   const loadSupportData = useCallback(async () => {
-    const [mediaResponse, dashboardResponse, submissionsResponse] = await Promise.all([
+    const [mediaResponse, submissionsResponse] = await Promise.all([
       fetch("/api/live-tv/admin/media-library", { cache: "no-store" }),
-      fetch("/api/admin/dashboard", { cache: "no-store" }),
       fetch("/api/live-tv/admin/customer-submissions", { cache: "no-store" }),
     ]);
 
     const mediaBody = (await mediaResponse.json().catch(() => null)) as
       | { assets?: LiveTvMediaAsset[]; error?: string }
-      | null;
-    const dashboardBody = (await dashboardResponse.json().catch(() => null)) as
-      | AdminDashboardResponse
-      | { error?: string }
       | null;
     const submissionsBody = (await submissionsResponse.json().catch(() => null)) as CustomerSubmissionsResponse;
 
@@ -527,13 +497,15 @@ export default function AdminLiveTvPage() {
       setMediaLibrary(mediaBody?.assets ?? []);
     }
 
-    if (dashboardResponse.ok) {
-      setDashboard(dashboardBody as AdminDashboardResponse);
-    }
-
     if (submissionsResponse.ok) {
       setCustomerSubmissions(submissionsBody?.submissions ?? []);
     }
+  }, []);
+
+  const loadTemplates = useCallback(async () => {
+    const response = await fetch("/api/live-tv/admin/templates", { cache: "no-store" });
+    const body = await response.json().catch(() => null) as { templates?: LiveTvPlaylistTemplate[] } | null;
+    if (response.ok) setTemplates(body?.templates ?? []);
   }, []);
 
   useEffect(() => {
@@ -541,12 +513,10 @@ export default function AdminLiveTvPage() {
     const run = async () => {
       try {
         const nextState = await readLiveTvState();
-        await loadSupportData();
+        await Promise.all([loadSupportData(), loadTemplates()]);
         if (cancelled) return;
         startTransition(() => {
           setState(nextState);
-          setAutoScheduleEnabled(Boolean(nextState.autoScheduleEnabled));
-          setScheduleDraft(nextState.schedule ?? []);
           setError("");
           setLoading(false);
         });
@@ -564,7 +534,7 @@ export default function AdminLiveTvPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadSupportData, readLiveTvState]);
+  }, [loadSupportData, loadTemplates, readLiveTvState]);
 
   useEffect(() => {
     if (loading) {
@@ -598,8 +568,6 @@ export default function AdminLiveTvPage() {
           const nextState = payload.payload as LiveTvPageState;
           startTransition(() => {
             setState(nextState);
-            setAutoScheduleEnabled(Boolean(nextState.autoScheduleEnabled));
-            setScheduleDraft(nextState.schedule ?? []);
           });
         })
         .subscribe((status) => {
@@ -642,8 +610,6 @@ export default function AdminLiveTvPage() {
 
       if (body?.state) {
         setState(body.state);
-        setAutoScheduleEnabled(Boolean(body.state.autoScheduleEnabled));
-        setScheduleDraft(body.state.schedule ?? []);
       } else {
         await loadState();
       }
@@ -740,8 +706,6 @@ export default function AdminLiveTvPage() {
 
         if (body.state) {
           setState(body.state);
-          setAutoScheduleEnabled(Boolean(body.state.autoScheduleEnabled));
-          setScheduleDraft(body.state.schedule ?? []);
         }
 
         await loadSupportData();
@@ -769,37 +733,32 @@ export default function AdminLiveTvPage() {
     await runAction("/api/live-tv/admin/reorder", { ids: nextIds });
   };
 
-  const updateScheduleEntry = (
-    scheduleEntryId: string,
-    patch: Partial<LiveTvScheduleEntry>,
-  ) => {
-    setScheduleDraft((current) =>
-      current.map((entry) =>
-        entry.id === scheduleEntryId
-          ? {
-              ...entry,
-              ...patch,
-            }
-          : entry,
-      ),
-    );
+  const dropItem = async (targetId: string) => {
+    const sourceId = draggedItemId;
+    setDraggedItemId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const ids = orderedItems.map((item) => item.id);
+    const sourceIndex = ids.indexOf(sourceId);
+    const targetIndex = ids.indexOf(targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    ids.splice(sourceIndex, 1);
+    ids.splice(targetIndex, 0, sourceId);
+    await runAction("/api/live-tv/admin/reorder", { ids });
   };
 
-  const toggleScheduleDay = (scheduleEntryId: string, dayValue: number) => {
-    setScheduleDraft((current) =>
-      current.map((entry) => {
-        if (entry.id !== scheduleEntryId) {
-          return entry;
-        }
-
-        return {
-          ...entry,
-          daysOfWeek: entry.daysOfWeek.includes(dayValue)
-            ? entry.daysOfWeek.filter((day) => day !== dayValue)
-            : [...entry.daysOfWeek, dayValue].sort(),
-        };
-      }),
-    );
+  const templateAction = async (action: "save" | "apply" | "delete", id?: string) => {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/live-tv/admin/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, id, name: templateName }) });
+      const body = await response.json().catch(() => null) as { error?: string; templates?: LiveTvPlaylistTemplate[]; state?: LiveTvPageState } | null;
+      if (!response.ok) throw new Error(body?.error ?? "Operazione template non riuscita.");
+      setTemplates(body?.templates ?? []);
+      if (body?.state) setState(body.state);
+      if (action === "save") setTemplateName("");
+      setError("");
+    } catch (templateError) {
+      setError(templateError instanceof Error ? templateError.message : "Operazione template non riuscita.");
+    } finally { setBusy(false); }
   };
 
   return (
@@ -828,61 +787,7 @@ export default function AdminLiveTvPage() {
 
       {state ? (
         <>
-          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="panel rounded-[1.8rem] p-5">
-              <p className="eyebrow">Quadro operativo</p>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <div className="panel-muted rounded-[1.35rem] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                    Ricevute in attesa
-                  </p>
-                  <p className="mt-2 text-3xl font-black text-white">{dashboard?.receiptsPending ?? 0}</p>
-                </div>
-                <div className="panel-muted rounded-[1.35rem] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                    Push registrate
-                  </p>
-                  <p className="mt-2 text-3xl font-black text-white">{dashboard?.pushSubscriptions ?? 0}</p>
-                </div>
-                <div className="panel-muted rounded-[1.35rem] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                    Media in libreria
-                  </p>
-                  <p className="mt-2 text-3xl font-black text-white">{dashboard?.liveTvMediaAssets ?? mediaLibrary.length}</p>
-                </div>
-                <div className="panel-muted rounded-[1.35rem] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                    Buzzer
-                  </p>
-                  <p className="mt-2 text-xl font-black text-white">
-                    {dashboard?.liveBuzzerActive ? "LIVE" : "Spento"}
-                  </p>
-                </div>
-                <div className="panel-muted rounded-[1.35rem] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                    Match & Drink
-                  </p>
-                  <p className="mt-2 text-xl font-black text-white">
-                    {dashboard?.matchDrinkActive ? "ATTIVO" : "Spento"}
-                  </p>
-                  {dashboard?.latestMatchDrinkTitle ? (
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">{dashboard.latestMatchDrinkTitle}</p>
-                  ) : null}
-                </div>
-                <div className="panel-muted rounded-[1.35rem] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent-strong)]">
-                    Campagne push
-                  </p>
-                  <p className="mt-2 text-xl font-black text-white">
-                    {dashboard?.savedPushCampaigns ?? 0} template
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    Segmenti salvati: {dashboard?.savedPushSegments ?? 0}
-                  </p>
-                </div>
-              </div>
-            </div>
-
+          <div className="grid gap-4">
             <div className="panel rounded-[1.8rem] p-5">
               <p className="eyebrow">Stato attuale</p>
               <div className="mt-4 space-y-3 text-sm text-[var(--text-muted)]">
@@ -902,7 +807,7 @@ export default function AdminLiveTvPage() {
                   <span className="font-black text-white">Prossimo:</span> {nextItem?.title || "Nessuno"}
                 </p>
                 <p>
-                  <span className="font-black text-white">Ultimo update:</span> {new Date(state.updatedAt).toLocaleString("it-IT")}
+                  <span className="font-black text-white">Ultimo update:</span> {formatDateTime(state.updatedAt)}
                 </p>
               </div>
             </div>
@@ -1035,7 +940,7 @@ export default function AdminLiveTvPage() {
                             Foto Live mandata in diretta
                           </p>
                           <p className="text-[11px] text-[var(--text-muted)]">
-                            {new Date(submission.createdAt).toLocaleString("it-IT")}
+                            {formatDateTime(submission.createdAt)}
                           </p>
                         </div>
                         <div className="mt-4 grid gap-2">
@@ -1089,8 +994,8 @@ export default function AdminLiveTvPage() {
                             <p className="text-sm font-semibold text-white">{submission.title}</p>
                             <p className="text-[11px] text-[var(--text-muted)]">
                               {submission.resolvedAt
-                                ? new Date(submission.resolvedAt).toLocaleString("it-IT")
-                                : new Date(submission.createdAt).toLocaleString("it-IT")}
+                                ? formatDateTime(submission.resolvedAt)
+                                : formatDateTime(submission.createdAt)}
                             </p>
                           </div>
                           <span
@@ -1199,7 +1104,17 @@ export default function AdminLiveTvPage() {
             ) : null}
           </div>
 
+          <section className="panel rounded-[1.8rem] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><p className="eyebrow">Scalette salvate</p><h3 className="mt-1 text-lg font-black text-white">Riusa una serata in un attimo</h3><p className="mt-1 text-sm text-[var(--text-muted)]">Salva la scaletta attuale come modello, poi applicala quando serve.</p></div>
+              <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-[var(--accent)]">{templates.length} template</span>
+            </div>
+            <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]"><input className="field" value={templateName} onChange={(event) => setTemplateName(event.target.value)} placeholder="Es. Mercoledì Burger Night" maxLength={80} /><button type="button" className="button-primary min-h-12 px-5 text-sm" onClick={() => void templateAction("save")} disabled={busy || !templateName.trim()}>Salva scaletta</button></div>
+            {templates.length ? <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{templates.map((template) => <div key={template.id} className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-black/15 p-3"><div className="min-w-0"><strong className="block truncate text-sm text-white">{template.name}</strong><small className="text-[11px] text-[var(--text-muted)]">{template.items.length} elementi</small></div><div className="flex shrink-0 gap-2"><button type="button" className="button-secondary px-3 py-2 text-[11px]" onClick={() => void templateAction("apply", template.id)} disabled={busy}>Applica</button><button type="button" className="px-2 text-[var(--danger)]" aria-label={`Elimina ${template.name}`} onClick={() => void templateAction("delete", template.id)} disabled={busy}>×</button></div></div>)}</div> : null}
+          </section>
+
           <div className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3 px-1"><div><p className="eyebrow">Scaletta attuale</p><h3 className="mt-1 text-xl font-black text-white">Trascina gli elementi per cambiare l&apos;ordine</h3></div><p className="text-xs text-[var(--text-muted)]">Puoi ancora usare le frecce come alternativa.</p></div>
             {orderedItems.map((item) => (
               <PlaylistItemEditor
                 key={`${item.id}-${item.updatedAt}`}
@@ -1242,6 +1157,10 @@ export default function AdminLiveTvPage() {
                     styleVariant: current.styleVariant,
                   })
                 }
+                onDragStart={setDraggedItemId}
+                onDropOnItem={(itemId) => void dropItem(itemId)}
+                onDragEnd={() => setDraggedItemId(null)}
+                dragging={draggedItemId === item.id}
               />
             ))}
           </div>

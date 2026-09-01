@@ -7,6 +7,7 @@ import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
 import { ChevronLeft, Check, X, Eye, Receipt, User, Calendar, ExternalLink } from "lucide-react";
 import type { ReceiptRequest } from "@/lib/receipts/supabase";
+import { formatDateTime, formatInRome } from "@/lib/utils";
 
 export default function AdminReceiptsPage() {
   const [requests, setRequests] = useState<ReceiptRequest[]>([]);
@@ -191,7 +192,7 @@ export default function AdminReceiptsPage() {
                   <X className="w-4 h-4" />
                 </button>
                 <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                  {new Date(req.created_at).toLocaleDateString('it-IT')}
+                  {formatInRome(req.created_at, { dateStyle: "short" })}
                 </p>
                 <div className="flex items-center gap-1 text-[var(--accent-strong)] mt-1">
                   <Eye className="w-4 h-4" />
@@ -260,7 +261,7 @@ export default function AdminReceiptsPage() {
                       <Calendar className="w-5 h-5 text-[var(--accent-strong)] mt-0.5" />
                       <div>
                         <p className="text-xs text-[var(--text-muted)] uppercase font-bold tracking-wider">Inviato il</p>
-                        <p className="text-white">{new Date(selectedRequest.created_at).toLocaleString('it-IT')}</p>
+                        <p className="text-white">{formatDateTime(selectedRequest.created_at)}</p>
                       </div>
                     </div>
                   </div>

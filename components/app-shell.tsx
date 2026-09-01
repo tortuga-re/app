@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const customerStatus = useCustomerStatus(identity.email);
 
   const pathname = usePathname();
-  const isStageOrAdmin = pathname.startsWith("/stage") || pathname.startsWith("/live") || pathname.startsWith("/admin/");
+  const isStageOrAdmin = pathname.startsWith("/stage") || pathname.startsWith("/live") || pathname === "/admin" || pathname.startsWith("/admin/");
 
   useEffect(() => {
     const handleError = (e: ErrorEvent) => {
@@ -116,6 +116,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("unhandledrejection", handleRejection);
     };
   }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || !isStageOrAdmin) {
+      return;
+    }
+
+    // In locale la PWA può trattenere una shell precedente tra un riavvio
+    // di Next e l'altro. Le rotte operative non devono mai usare quella cache.
+    void (async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      } catch {
+        // Il cruscotto resta comunque disponibile senza PWA locale.
+      }
+    })();
+  }, [isStageOrAdmin]);
 
   if (isStageOrAdmin) {
     return (

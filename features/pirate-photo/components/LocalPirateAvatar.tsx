@@ -131,7 +131,7 @@ export function LocalPirateAvatar({ customerKey, label, onUpload }: LocalPirateA
       setAvatar(dataUrl);
       
       // Upload to server
-      const res = await fetch("/api/match-drink/upload-avatar", {
+      const res = await fetch("/api/pirate-photo/avatar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

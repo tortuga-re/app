@@ -19,11 +19,6 @@ export const LIVE_TV_PRESETS: LiveTvPresetDefinition[] = [
     description: "Focus su burger night, promo midweek e chiamata alla prenotazione.",
   },
   {
-    id: "giovedi_match_drink",
-    label: "Giovedi Match & Drink",
-    description: "Promo pre-game e call to action per partecipare al Match & Drink.",
-  },
-  {
     id: "venerdi_kantaquiz",
     label: "Venerdi Kantaquiz",
     description: "Serata quiz, palco acceso e invito alla ciurma del venerdi.",
@@ -94,7 +89,7 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "event",
     title: "Prossima rotta",
-    body: "Mercoledi Burger Night, Giovedi Match & Drink, Venerdi Kantaquiz, Sabato Notte del Capitano.",
+    body: "Mercoledi Burger Night, Venerdi Kantaquiz, Sabato Notte del Capitano e Domenica Cervellone.",
     qrUrl: PROGRAM_URL,
     qrLabel: "Programmazione Tortuga",
     durationSeconds: 14,
@@ -144,23 +139,6 @@ const presetVariants: Record<LiveTvPresetId, () => LiveTvUpsertItemInput[]> = {
       styleVariant: "promo",
     },
     ...genericItems().slice(2),
-  ],
-  giovedi_match_drink: () => [
-    genericItems()[0],
-    genericItems()[1],
-    {
-      type: "promo",
-      title: "Giovedi Match & Drink",
-      body: "Apri l'app, entra in Ciurma e preparati al gioco. Il match vero parte solo sullo stage dedicato.",
-      qrUrl: APP_URL,
-      qrLabel: "Apri Tortuga App",
-      durationSeconds: 16,
-      enabled: true,
-      styleVariant: "gold",
-    },
-    genericItems()[3],
-    genericItems()[5],
-    genericItems()[2],
   ],
   venerdi_kantaquiz: () => [
     genericItems()[0],

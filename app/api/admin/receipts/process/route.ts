@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 3. Process with Cooperto
-      const { getSupabaseAdmin } = await import("@/lib/match-drink/supabase");
+      const { getSupabaseAdmin } = await import("@/lib/supabase/client");
       const supabase = getSupabaseAdmin();
       const { data: receiptReq, error: dbError } = await supabase
         .from('receipt_requests')

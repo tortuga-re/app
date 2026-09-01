@@ -2,7 +2,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
+import { getRomeTime, getRomeWeekday } from "@/lib/utils";
 
 import { buildPresetPlaylist } from "./default-playlists";
 import type {
@@ -38,14 +39,12 @@ const matchesScheduleEntry = (entry: LiveTvScheduleEntry, now: Date) => {
     return false;
   }
 
-  const currentDay = now.getDay();
+  const currentDay = getRomeWeekday(now);
   if (!entry.daysOfWeek.includes(currentDay)) {
     return false;
   }
 
-  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
-    now.getMinutes(),
-  ).padStart(2, "0")}`;
+  const currentTime = getRomeTime(now);
 
   return entry.startTime <= currentTime && currentTime < entry.endTime;
 };
@@ -118,8 +117,6 @@ const createInitialState = (): LiveTvState => {
     nowPlayingStartedAt: null,
     overlay: null,
     isBlackout: false,
-    autoReturnAfterBuzzer: false,
-    autoReturnAfterMatchDrink: false,
     autoScheduleEnabled: false,
     activeScheduleId: null,
     schedule: [],

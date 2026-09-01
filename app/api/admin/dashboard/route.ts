@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdminRequest } from "@/lib/admin/server-auth";
-import { getState } from "@/lib/live-buzzer/store";
 import { listLiveTvMediaAssets } from "@/lib/live-tv/media-library";
 import { getLiveTvState } from "@/lib/live-tv/store";
-import { getActiveSession } from "@/lib/match-drink/storage";
 import { listSavedPushLibrary } from "@/lib/push/library";
 import { listPushSubscriptions } from "@/lib/push/subscription-store";
 import { getPendingReceiptRequests } from "@/lib/receipts/supabase";
 import { listLiveTvCustomerSubmissions } from "@/lib/live-tv/customer-submissions";
 import { listAdminActivity } from "@/lib/admin/activity-log";
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { getVenuesData } from "@/lib/cooperto/service";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +21,6 @@ export async function GET(request: NextRequest) {
 
   try {
     const [
-      buzzerState,
-      matchDrinkSession,
       receiptRequests,
       pushSubscriptions,
       liveTvState,
@@ -38,8 +34,6 @@ export async function GET(request: NextRequest) {
       coopertoHealth,
     ] =
       await Promise.all([
-        getState(),
-        getActiveSession(),
         getPendingReceiptRequests().catch(() => []),
         listPushSubscriptions().catch(() => []),
         getLiveTvState().catch(() => null),
@@ -59,15 +53,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       receiptsPending: receiptRequests.length,
       pushSubscriptions: pushSubscriptions.length,
-      liveBuzzerActive: Boolean(buzzerState.isLive),
-      matchDrinkActive: Boolean(matchDrinkSession),
-      latestMatchDrinkTitle: matchDrinkSession?.title ?? null,
       liveTvMode: liveTvState?.stageMode ?? "logo",
       liveTvScheduleEnabled: Boolean(liveTvState?.autoScheduleEnabled),
       liveTvMediaAssets: liveTvMediaAssets.length,
       savedPushSegments: pushLibrary.segments.length,
       savedPushCampaigns: pushLibrary.campaigns.length,
-      matchDrinkAnalytics: matchDrinkSession?.analytics ?? null,
       photosPending: photoSubmissions.filter((submission: { status: string }) => submission.status === "pending").length,
       liveGame,
       activeHighlight,

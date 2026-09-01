@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from "@/lib/match-drink/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 
 export type ReceiptRequest = {
   id: string;

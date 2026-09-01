@@ -1,4 +1,5 @@
 import type { ProfileResponse } from "@/lib/cooperto/types";
+import { getRomeWeekday } from "@/lib/utils";
 
 export type Mission = {
   id: string;
@@ -92,7 +93,7 @@ export const missions: Mission[] = [
     isUnlocked: (p) => {
       if (p.unlockedAchievementIds?.includes("kantaquiz")) return true;
       if (!p.contact?.DataUltimaVisita) return false;
-      return new Date(p.contact.DataUltimaVisita).getDay() === 5;
+      return getRomeWeekday(p.contact.DataUltimaVisita) === 5;
     },
   },
   {
@@ -105,13 +106,13 @@ export const missions: Mission[] = [
     isUnlocked: (p) => {
       if (p.unlockedAchievementIds?.includes("cervellone")) return true;
       if (!p.contact?.DataUltimaVisita) return false;
-      return new Date(p.contact.DataUltimaVisita).getDay() === 0;
+      return getRomeWeekday(p.contact.DataUltimaVisita) === 0;
     },
   },
   {
     id: "mai-normale",
     label: "Mai una serata normale",
-    description: "Partecipa a 3 serate diverse.",
+    description: "Partecipa a 2 serate diverse.",
     icon: "🎭",
     image: "/badges/mai-normale.webp",
     category: "eventi",
@@ -120,13 +121,11 @@ export const missions: Mission[] = [
       const eventIds = [
         "kantaquiz",
         "cervellone",
-        "assalto-buzzer",
-        "match-drink-complete",
       ];
       const unlockedCount = eventIds.filter((id) =>
         p.unlockedAchievementIds?.includes(id),
       ).length;
-      return unlockedCount >= 3;
+      return unlockedCount >= 2;
     },
   },
 
@@ -206,7 +205,7 @@ export const missions: Mission[] = [
     isUnlocked: (p) =>
       p.unlockedAchievementIds?.includes("rotta-infrasettimanale") ||
       p.upcomingReservations.some((r) =>
-        [3, 4].includes(new Date(r.dateTime).getDay()),
+        [3, 4].includes(getRomeWeekday(r.dateTime)),
       ),
   },
   {

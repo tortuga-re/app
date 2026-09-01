@@ -4,16 +4,57 @@ export const cn = (...values: Array<string | false | null | undefined>) =>
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+/** The venue's canonical display and calendar timezone. */
+export const ROME_TIME_ZONE = "Europe/Rome";
+
+type RomeDatePart = "year" | "month" | "day" | "hour" | "minute" | "second";
+
+export const getRomeDateParts = (value: Date | string | number = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ROME_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value));
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type as RomeDatePart, part.value]),
+  ) as Record<RomeDatePart, string>;
+  return values;
+};
+
+export const getRomeWeekday = (value: Date | string | number = new Date()) => {
+  const day = new Intl.DateTimeFormat("en-US", {
+    timeZone: ROME_TIME_ZONE,
+    weekday: "short",
+  }).format(new Date(value));
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(day);
+};
+
+export const getRomeTime = (value: Date | string | number = new Date()) => {
+  const { hour, minute } = getRomeDateParts(value);
+  return `${hour}:${minute}`;
+};
+
+export const formatInRome = (
+  value: Date | string | number,
+  options: Intl.DateTimeFormatOptions,
+) => new Intl.DateTimeFormat("it-IT", { ...options, timeZone: ROME_TIME_ZONE }).format(new Date(value));
+
 export const todayIso = (now = new Date()) => {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+  const { year, month, day } = getRomeDateParts(now);
 
   return `${year}-${month}-${day}`;
 };
 
 export const formatLongDate = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
+    timeZone: ROME_TIME_ZONE,
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -22,12 +63,14 @@ export const formatLongDate = (value: string) =>
 
 export const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
+    timeZone: ROME_TIME_ZONE,
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
 
 export const formatTime = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
+    timeZone: ROME_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
@@ -39,7 +82,7 @@ const getOffsetMinutesForRome = (date: string, time: string) => {
   const [hour, minute] = time.split(":").map(Number);
   const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute));
   const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Rome",
+    timeZone: ROME_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -82,7 +125,7 @@ export const buildCoopertoDateTime = (date: string, time: string) => {
 
 export const buildCoopertoNowDateTime = (now = new Date()) => {
   const formatter = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Rome",
+    timeZone: ROME_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

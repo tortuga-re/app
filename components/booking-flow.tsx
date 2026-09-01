@@ -42,7 +42,7 @@ import {
 } from "@/lib/local-storage-state";
 import { scrollToFormField } from "@/lib/form-focus";
 import { useHashScroll } from "@/lib/hash-scroll";
-import { formatLongDate, todayIso } from "@/lib/utils";
+import { formatLongDate, getRomeWeekday, todayIso } from "@/lib/utils";
 import {
   italianPhoneValidationError,
   normalizeItalianPhone,
@@ -90,9 +90,6 @@ export function BookingFlow() {
 
   const [customModuleCode, setCustomModuleCode] = useState("");
   const [isRoomSelectionDisabled, setIsRoomSelectionDisabled] = useState(false);
-  const [matchDrinkMen, setMatchDrinkMen] = useState("0");
-  const [matchDrinkWomen, setMatchDrinkWomen] = useState("0");
-  const [matchDrinkAgeGroup, setMatchDrinkAgeGroup] = useState("");
 
   const customerDetailsStepRef = useRef<HTMLDivElement | null>(null);
   const hasAutoScrolledToCustomerStepRef = useRef(false);
@@ -132,9 +129,6 @@ export function BookingFlow() {
     const fieldOrder: BookingFieldName[] = [
       "date",
       "pax",
-      "matchDrinkMen",
-      "matchDrinkWomen",
-      "matchDrinkAgeGroup",
       "selectedTime",
       "childrenCount",
       "firstName",
@@ -149,9 +143,6 @@ export function BookingFlow() {
       const fieldMap: Record<BookingFieldName, HTMLElement | null> = {
         date: dateFieldRef.current,
         pax: paxFieldRef.current,
-        matchDrinkMen: dateFieldRef.current,
-        matchDrinkWomen: dateFieldRef.current,
-        matchDrinkAgeGroup: dateFieldRef.current,
         selectedTime: selectedTimeFieldRef.current,
         childrenCount: childrenCountFieldRef.current,
         firstName: firstNameFieldRef.current,
@@ -197,30 +188,6 @@ export function BookingFlow() {
         errors.childrenCount = "Inserisci il numero di bambini.";
       } else if (!childrenCount) {
         errors.childrenCount = "Inserisci un numero di bambini valido.";
-      }
-    }
-
-    if (isMatchDrinkActive) {
-      if (!matchDrinkAgeGroup) {
-        errors.matchDrinkAgeGroup = "Seleziona almeno una fascia d'età.";
-      }
-      const men = parseInt(matchDrinkMen, 10);
-      const women = parseInt(matchDrinkWomen, 10);
-      let hasMenError = false;
-      let hasWomenError = false;
-
-      if (isNaN(men) || men < 0) {
-        errors.matchDrinkMen = "Inserisci un numero valido di uomini.";
-        hasMenError = true;
-      }
-      if (isNaN(women) || women < 0) {
-        errors.matchDrinkWomen = "Inserisci un numero valido di donne.";
-        hasWomenError = true;
-      }
-
-      if (!hasMenError && !hasWomenError && men === 0 && women === 0) {
-        errors.matchDrinkMen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
-        errors.matchDrinkWomen = "Almeno uno tra uomini e donne deve essere maggiore di 0.";
       }
     }
 
@@ -316,19 +283,9 @@ export function BookingFlow() {
   const isAreaFamily = activeRoomCode === AREA_FAMILY_ROOM_CODE;
   const selectedRoom =
     bootstrap?.rooms.find((room) => room.code === activeRoomCode) ?? null;
-  const isThursdaySelected = Boolean(
-    draft.date &&
-      !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) &&
-      new Date(`${draft.date}T00:00:00`).getDay() === 4,
-  );
-  const isMatchDrinkActive = Boolean(isThursdaySelected && customModuleCode);
-  const matchDrinkNote = isMatchDrinkActive
-    ? `Uomini: ${matchDrinkMen} | Donne: ${matchDrinkWomen} | Fascia età: ${matchDrinkAgeGroup}`
-    : "";
   const composedCustomerNote = [
     draft.isAfterDinner ? "INGRESSO DOPO CENA" : "",
     isAreaFamily && draft.childrenCount ? `Bambini: ${draft.childrenCount}` : "",
-    matchDrinkNote,
     draft.note.trim(),
   ]
     .filter(Boolean)
@@ -352,7 +309,7 @@ export function BookingFlow() {
     ? visibleSlots.find((slot) => slot.time === selectedTime) ?? null
     : null;
   const isSundaySelected = Boolean(
-    draft.date && !Number.isNaN(Date.parse(`${draft.date}T00:00:00`)) && new Date(`${draft.date}T00:00:00`).getDay() === 0,
+    draft.date && !Number.isNaN(Date.parse(`${draft.date}T12:00:00Z`)) && getRomeWeekday(`${draft.date}T12:00:00Z`) === 0,
   );
   const unavailableMessage = availability?.days[0]?.unavailableMessage || (availability && visibleSlots.length === 0 ? "Giorno di chiusura" : undefined);
   const displayedSlots = visibleSlots.length > 0
@@ -850,13 +807,6 @@ export function BookingFlow() {
                 bootstrap={bootstrap}
                 showRoomDropdown={showRoomDropdown}
                 activeRoomCode={activeRoomCode}
-                isMatchDrinkActive={isMatchDrinkActive}
-                matchDrinkMen={matchDrinkMen}
-                setMatchDrinkMen={setMatchDrinkMen}
-                matchDrinkWomen={matchDrinkWomen}
-                setMatchDrinkWomen={setMatchDrinkWomen}
-                matchDrinkAgeGroup={matchDrinkAgeGroup}
-                setMatchDrinkAgeGroup={setMatchDrinkAgeGroup}
                 setSelectedTime={setSelectedTime}
                 setCustomModuleCode={setCustomModuleCode}
                 setIsRoomSelectionDisabled={setIsRoomSelectionDisabled}

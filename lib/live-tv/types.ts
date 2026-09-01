@@ -1,7 +1,5 @@
 export const STAGE_MODE_VALUES = [
   "live_tv",
-  "buzzer",
-  "match_drink",
   "blackout",
   "logo",
 ] as const;
@@ -44,7 +42,6 @@ export type LiveTvOverlayVariant = (typeof LIVE_TV_OVERLAY_VARIANTS)[number];
 export const LIVE_TV_PRESET_IDS = [
   "generica",
   "mercoledi_burger",
-  "giovedi_match_drink",
   "venerdi_kantaquiz",
   "sabato_notte_capitano",
   "domenica_cervellone",
@@ -137,8 +134,6 @@ export type LiveTvState = {
   nowPlayingStartedAt?: string | null;
   overlay?: LiveTvOverlay | null;
   isBlackout?: boolean;
-  autoReturnAfterBuzzer?: boolean;
-  autoReturnAfterMatchDrink?: boolean;
   autoScheduleEnabled?: boolean;
   activeScheduleId?: string | null;
   schedule?: LiveTvScheduleEntry[];
