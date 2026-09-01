@@ -174,7 +174,10 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                     className="w-full py-1.5 px-3 rounded-xl bg-black/5 hover:bg-black/10 border border-black/10 text-black/70 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     onClick={() => {
                       clearPirateSlotPlayedToday();
-                      alert("Giocata del giorno azzerata! Ora puoi ritestare il gate.");
+                      if (typeof window !== "undefined") {
+                        window.sessionStorage.setItem("tortuga_demo_bypass_daily_limit", "true");
+                      }
+                      alert("Giocata del giorno azzerata per i test! Ora puoi ritestare la Slot.");
                     }}
                   >
                     🔄 Azzera giocata del giorno

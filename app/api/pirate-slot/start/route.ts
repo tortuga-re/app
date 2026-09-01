@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as { name?: string; email?: string } | null;
+  const body = (await request.json().catch(() => null)) as { name?: string; email?: string; resetToday?: boolean } | null;
   const name = body?.name?.trim() ?? "";
   const email = body?.email?.trim().toLowerCase() ?? "";
 
@@ -32,6 +32,15 @@ export async function POST(request: NextRequest) {
     });
 
     const playDate = getTortugaCalendarDate();
+
+    if (body?.resetToday || request.headers.get("x-demo-bypass-daily-limit") === "true") {
+      await getSupabaseAdmin()
+        .from("pirate_slot_daily_plays")
+        .delete()
+        .eq("customer_email", email)
+        .eq("play_date", playDate);
+    }
+
     const { data: play, error: playError } = await getSupabaseAdmin()
       .from("pirate_slot_daily_plays")
       .insert({ contact_code: contactCode, customer_email: email, play_date: playDate })

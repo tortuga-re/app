@@ -90,11 +90,12 @@ export function PirateSlotMenuGate({
 
     setLoading(true);
     setError("");
+    const bypassLimit = typeof window !== "undefined" && window.sessionStorage.getItem("tortuga_demo_bypass_daily_limit") === "true";
     try {
       const response = await fetch("/api/pirate-slot/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: normalizedName, email: normalizedEmail }),
+        body: JSON.stringify({ name: normalizedName, email: normalizedEmail, resetToday: bypassLimit }),
       });
       const data = (await response.json().catch(() => null)) as StartResponse | null;
       if (!data) throw new Error("Risposta Slot non valida.");
