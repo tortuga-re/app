@@ -801,6 +801,12 @@ export default function AdminLiveTvPage() {
                   <span className="font-black text-white">Palinsesto:</span> {state.autoScheduleEnabled ? "attivo" : "manuale"}
                 </p>
                 <p>
+                  <span className="font-black text-white">Saluti dal Tavolo:</span>{" "}
+                  <span className={state.greetingsEnabled !== false ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
+                    {state.greetingsEnabled !== false ? "Attivi" : "Disabilitati"}
+                  </span>
+                </p>
+                <p>
                   <span className="font-black text-white">Ora in onda:</span> {currentItem?.title || "Logo fallback"}
                 </p>
                 <p>
@@ -809,6 +815,35 @@ export default function AdminLiveTvPage() {
                 <p>
                   <span className="font-black text-white">Ultimo update:</span> {formatDateTime(state.updatedAt)}
                 </p>
+              </div>
+            </div>
+
+            {/* Interruttore Saluti dal Tavolo */}
+            <div className="panel rounded-[1.8rem] p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <p className="eyebrow">Interazione Tavoli</p>
+                  <h3 className="text-base font-black text-white">Saluti & Brindisi in Diretta TV</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5 max-w-xl">
+                    Permetti o blocca l&apos;invio di saluti, brindisi e auguri sui maxi-schermi da parte dei clienti al tavolo.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={`min-h-12 px-6 rounded-2xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                    state.greetingsEnabled !== false
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
+                      : "bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30"
+                  }`}
+                  onClick={() =>
+                    void runAction("/api/live-tv/admin/toggle-greetings", {
+                      enabled: state.greetingsEnabled === false,
+                    })
+                  }
+                  disabled={busy}
+                >
+                  {state.greetingsEnabled !== false ? "✓ Abilitati (Attivi)" : "✕ Disabilitati (Bloccati)"}
+                </button>
               </div>
             </div>
           </div>

@@ -14,6 +14,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
   const [nickname, setNickname] = useState(defaultNickname);
   const [tableNumber, setTableNumber] = useState("");
   const [messageType, setMessageType] = useState<"brindisi" | "saluto" | "compleanno">("brindisi");
+  const [customMessage, setCustomMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -24,7 +25,11 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
     e.preventDefault();
     setError("");
 
-    const validation = validateGreetingInput(nickname, tableNumber);
+    const validation = validateGreetingInput(
+      nickname,
+      tableNumber,
+      messageType === "compleanno" ? customMessage : undefined,
+    );
     if (!validation.valid) {
       setError(validation.error || "Compila tutti i campi correttamente.");
       return;
@@ -40,6 +45,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
           nickname: validation.cleanNickname,
           tableNumber: validation.cleanTableNumber,
           messageType,
+          customMessage: validation.cleanCustomMessage,
         }),
       });
 
@@ -52,6 +58,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
+        setCustomMessage("");
         onClose();
       }, 2500);
     } catch (err) {
@@ -63,14 +70,14 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-[#151714] border border-[#c59a47]/40 rounded-3xl p-6 shadow-2xl text-[#fffdf8] overflow-hidden">
+      <div className="relative w-full max-w-md bg-[#151714] border border-[#c59a47]/40 rounded-3xl p-6 shadow-2xl text-[#fffdf8] overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Glow header */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#c59a47] to-transparent opacity-80" />
 
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-white/50 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+          className="absolute top-4 right-4 p-2 text-white/50 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
           aria-label="Chiudi"
         >
           <X size={20} />
@@ -83,7 +90,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
             </div>
             <h3 className="text-xl font-bold text-[#d9b66d]">Saluto inviato al Maxi-Schermo!</h3>
             <p className="text-sm text-white/70 max-w-xs">
-              Guarda i display del Tortuga: il tuo brindisi dal Tavolo <strong>{tableNumber}</strong> sta andando in onda! 🍻🏴‍☠️
+              Guarda i display del Tortuga: il tuo brindisi dal Tavolo <strong>{tableNumber}</strong> sta andando in onda per 12 secondi! 🍻🏴‍☠️
             </p>
           </div>
         ) : (
@@ -141,7 +148,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   <button
                     type="button"
                     onClick={() => setMessageType("brindisi")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
                       messageType === "brindisi"
                         ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
                         : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
@@ -152,7 +159,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   <button
                     type="button"
                     onClick={() => setMessageType("saluto")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
                       messageType === "saluto"
                         ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
                         : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
@@ -163,7 +170,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   <button
                     type="button"
                     onClick={() => setMessageType("compleanno")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
                       messageType === "compleanno"
                         ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
                         : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
@@ -173,6 +180,25 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                   </button>
                 </div>
               </div>
+
+              {messageType === "compleanno" ? (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[#d9b66d]">
+                      Messaggio di Auguri (opzionale)
+                    </label>
+                    <span className="text-[10px] text-white/40">{customMessage.length}/50</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    placeholder="Es. Tanti auguri Capitano da tutta la ciurma!"
+                    maxLength={50}
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors"
+                  />
+                </div>
+              ) : null}
             </div>
 
             {error ? (

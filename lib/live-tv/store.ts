@@ -120,6 +120,7 @@ const createInitialState = (): LiveTvState => {
     autoScheduleEnabled: false,
     activeScheduleId: null,
     schedule: [],
+    greetingsEnabled: true,
     lastUpdateId: "init",
     updatedAt: timestamp,
   };
@@ -173,6 +174,7 @@ const normalizeState = (state: LiveTvState, timestamp = nowIso()) => {
     autoScheduleEnabled: Boolean(state.autoScheduleEnabled),
     activeScheduleId: state.activeScheduleId ?? null,
     schedule: (state.schedule ?? []).map(normalizeScheduleEntry),
+    greetingsEnabled: state.greetingsEnabled !== false,
   };
 
   if (nextState.overlay && isExpiredAt(nextState.overlay.expiresAt)) {
@@ -660,3 +662,9 @@ export const getLiveTvDisplayedItem = async () => {
   const state = await getLiveTvState();
   return getDisplayedItem(state);
 };
+
+export const setLiveTvGreetingsEnabled = async (enabled: boolean) =>
+  updateLiveTvState((state) => ({
+    ...state,
+    greetingsEnabled: enabled,
+  }));

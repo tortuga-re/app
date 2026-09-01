@@ -27,7 +27,14 @@ export const isValidTortugaTableNumber = (tableNum: unknown): boolean => {
 export const validateGreetingInput = (
   nickname: unknown,
   tableNumber: unknown,
-): { valid: boolean; error?: string; cleanNickname?: string; cleanTableNumber?: number } => {
+  customMessage?: unknown,
+): {
+  valid: boolean;
+  error?: string;
+  cleanNickname?: string;
+  cleanTableNumber?: number;
+  cleanCustomMessage?: string;
+} => {
   if (typeof nickname !== "string" || !nickname.trim()) {
     return { valid: false, error: "Inserisci il tuo nome o nickname." };
   }
@@ -49,9 +56,22 @@ export const validateGreetingInput = (
     };
   }
 
+  let cleanCustomMessage: string | undefined = undefined;
+  if (typeof customMessage === "string" && customMessage.trim()) {
+    const trimmed = customMessage.trim();
+    if (trimmed.length > 50) {
+      return {
+        valid: false,
+        error: "Il messaggio personalizzato può contenere al massimo 50 caratteri.",
+      };
+    }
+    cleanCustomMessage = trimmed;
+  }
+
   return {
     valid: true,
     cleanNickname,
     cleanTableNumber: num,
+    cleanCustomMessage,
   };
 };

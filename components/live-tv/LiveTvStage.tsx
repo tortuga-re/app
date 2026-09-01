@@ -90,6 +90,7 @@ export type CustomerGreeting = {
   nickname: string;
   tableNumber: number;
   messageType?: "brindisi" | "saluto" | "compleanno";
+  customMessage?: string | null;
   createdAt: number;
 };
 
@@ -108,25 +109,31 @@ function GreetingBanner({ greeting }: { greeting: CustomerGreeting }) {
     <aside
       role="alert"
       aria-live="polite"
-      className="pointer-events-none fixed top-8 left-1/2 -translate-x-1/2 z-50 w-[min(94vw,960px)] animate-in slide-in-from-top-12 fade-in duration-500"
+      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-12 animate-in zoom-in-90 fade-in duration-500"
     >
-      <div className="relative overflow-hidden rounded-[2.8rem] border-2 border-[#f0c970] bg-[#120f0c]/95 px-8 py-6 text-center shadow-[0_20px_100px_rgba(240,201,112,0.45)] backdrop-blur-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(216,176,106,0.25),transparent_70%)]" />
+      <div className="relative overflow-hidden rounded-[3.2rem] border-3 border-[#f0c970] bg-[#120f0c]/98 px-10 py-10 sm:px-16 sm:py-12 text-center shadow-[0_0_120px_rgba(240,201,112,0.55)] backdrop-blur-3xl max-w-4xl w-full">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(216,176,106,0.3),transparent_75%)]" />
 
-        <div className="relative z-10 flex flex-col items-center gap-2">
-          <div className="flex items-center gap-3 text-[clamp(2.4rem,4.2vw,3.8rem)]">
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div className="flex items-center justify-center gap-4 text-[clamp(2.8rem,5vw,4.5rem)]">
             <span className="animate-bounce">{icon}</span>
-            <span className="text-[clamp(1.15rem,2.1vw,1.9rem)] font-black uppercase tracking-[0.26em] text-[#d9b66d]">
+            <span className="text-[clamp(1.2rem,2.4vw,2.2rem)] font-black uppercase tracking-[0.28em] text-[#d9b66d]">
               {headline}
             </span>
             <span className="animate-bounce">{icon}</span>
           </div>
 
-          <p className="text-[clamp(1.8rem,3.2vw,3.2rem)] font-black uppercase leading-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+          <p className="text-[clamp(2rem,3.8vw,3.6rem)] font-black uppercase leading-tight text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
             {greeting.nickname} <span className="text-[#f0c970]">dal Tavolo {greeting.tableNumber}</span>
           </p>
 
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#fffdf8]/80">
+          {greeting.customMessage ? (
+            <p className="mt-2 text-[clamp(1.2rem,2.4vw,2rem)] font-bold italic text-[#f4e0ad] bg-black/45 border border-white/15 rounded-2xl px-6 py-3.5 shadow-inner max-w-2xl">
+              &ldquo;{greeting.customMessage}&rdquo;
+            </p>
+          ) : null}
+
+          <p className="text-sm sm:text-base font-semibold uppercase tracking-[0.22em] text-[#fffdf8]/80 mt-1">
             {isBirthday
               ? "Tanti auguri da tutto il Tortuga Bay!"
               : isSaluto

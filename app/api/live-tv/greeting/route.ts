@@ -2,10 +2,24 @@ import { NextResponse } from "next/server";
 import { validateGreetingInput } from "@/lib/live-tv/table-validation";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { checkRateLimit, getClientIp, recordFailedAttempt, resetFailedAttempts } from "@/lib/security/rate-limiter";
+import { getLiveTvState } from "@/lib/live-tv/store";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  // Verifica se i saluti sono abilitati dal pannello admin
+  try {
+    const currentState = await getLiveTvState();
+    if (currentState.greetingsEnabled === false) {
+      return NextResponse.json(
+        { error: "I saluti in diretta TV sono momentaneamente disattivati dal locale." },
+        { status: 403 },
+      );
+    }
+  } catch (err) {
+    console.warn("[LiveTvGreeting] Impossibile verificare stato abilitazione:", err);
+  }
+
   const ip = getClientIp(request);
   // Rate limit: max 10 saluti per IP ogni 15 minuti per prevenire spam sui display
   const rateLimit = checkRateLimit(ip, "tv_greeting", 10, 15 * 60 * 1000);
@@ -15,9 +29,9 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => null);
-    const { nickname, tableNumber, messageType } = body || {};
+    const { nickname, tableNumber, messageType, customMessage } = body || {};
 
-    const validation = validateGreetingInput(nickname, tableNumber);
+    const validation = validateGreetingInput(nickname, tableNumber, customMessage);
     if (!validation.valid) {
       recordFailedAttempt(ip, "tv_greeting", 10, 15 * 60 * 1000);
       return NextResponse.json({ error: validation.error }, { status: 400 });
@@ -28,6 +42,7 @@ export async function POST(request: Request) {
       nickname: validation.cleanNickname,
       tableNumber: validation.cleanTableNumber,
       messageType: messageType || "brindisi",
+      customMessage: validation.cleanCustomMessage || null,
       createdAt: Date.now(),
     };
 

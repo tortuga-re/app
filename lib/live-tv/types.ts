@@ -137,6 +137,7 @@ export type LiveTvState = {
   autoScheduleEnabled?: boolean;
   activeScheduleId?: string | null;
   schedule?: LiveTvScheduleEntry[];
+  greetingsEnabled?: boolean;
   lastUpdateId: number | string;
   updatedAt: string;
 };
