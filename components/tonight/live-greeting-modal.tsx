@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Clock, Sparkles, Tv, X } from "lucide-react";
 import { ALLOWED_TABLE_RANGES_DESCRIPTION, validateGreetingInput } from "@/lib/live-tv/table-validation";
 
 const GREETING_COOLDOWN_MS = 5 * 60 * 1000; // 5 minuti
@@ -251,6 +251,44 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
                 />
               </label>
             ) : null}
+
+            {/* Anteprima del testo in TV */}
+            <div className="rounded-2xl border border-[#d8c39d] bg-[#faf5ec] p-3.5 space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+                <span className="flex items-center gap-1.5">
+                  <Tv size={13} /> Anteprima sul Maxi-Schermo TV
+                </span>
+                <span className="text-[var(--text-muted)] font-semibold">12s in onda</span>
+              </div>
+
+              <div className="bg-[#fffdf8] border border-[var(--border)] rounded-xl p-3 text-center space-y-1 shadow-inner">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c59a47]">
+                  {messageType === "brindisi"
+                    ? "🍻 BRINDISI AL TORTUGA!"
+                    : messageType === "saluto"
+                      ? "🎉 SALUTO DALLA CIURMA!"
+                      : "🎂 FESTA DI COMPLEANNO A BORDO!"}
+                </p>
+                <p className="font-serif text-[0.95rem] font-bold text-[var(--text)] leading-tight">
+                  {nickname.trim() || "Il tuo Nickname"}{" "}
+                  <span className="text-[var(--accent-strong)]">
+                    dal Tavolo {tableNumber || "24"}
+                  </span>
+                </p>
+                {messageType === "compleanno" && customMessage.trim() ? (
+                  <p className="text-xs italic text-[var(--text)] bg-[#f5efe6] rounded-lg py-1 px-2.5 font-semibold inline-block max-w-full">
+                    &ldquo;{customMessage.trim()}&rdquo;
+                  </p>
+                ) : null}
+                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                  {messageType === "brindisi"
+                    ? "Offre idealmente un boccale a tutta la ciurma!"
+                    : messageType === "saluto"
+                      ? "Manda un caloroso saluto a tutta la sala!"
+                      : "Tanti auguri anche dalla Ciurma del Tortuga!"}
+                </p>
+              </div>
+            </div>
 
             <button
               type="submit"
