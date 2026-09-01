@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
         : null;
   if (!payload)
     return NextResponse.json({ error: "Gioco non valido." }, { status: 400 });
-  const { data, error } = await getSupabaseAdmin()
-    .from("live_game_state")
+  const { data, error } = await (getSupabaseAdmin()
+    .from("live_game_state") as any)
     .upsert(payload)
     .select("active_game,activated_at,expires_at")
     .single();

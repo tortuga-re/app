@@ -68,6 +68,23 @@ export function PwaController() {
   const [, setPushError] = useState("");
   const [evaluationNow, setEvaluationNow] = useState(0);
 
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  const applyUpdate = useCallback(() => {
+    if (serviceWorkerRegistration?.waiting) {
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        () => {
+          window.location.reload();
+        },
+        { once: true },
+      );
+      serviceWorkerRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+    } else {
+      window.location.reload();
+    }
+  }, [serviceWorkerRegistration]);
+
   useEffect(() => {
     let cancelled = false;
     const initFrame = window.requestAnimationFrame(() => {
@@ -117,38 +134,25 @@ export function PwaController() {
         // Force an update check on registration
         void registration.update();
 
-        // Listen for updates – reload ONCE when a new SW takes control.
-        // We use sessionStorage to prevent infinite reload loops: if the new
-        // SW is installed but the page keeps erroring, we stop reloading.
+        // Se un nuovo worker è già in attesa (es. download completato in precedenza)
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          setUpdateAvailable(true);
+        }
+
+        // Intercetta quando un nuovo Service Worker finisce il download
         registration.onupdatefound = () => {
           const newWorker = registration.installing;
           if (!newWorker) return;
 
           newWorker.onstatechange = () => {
-            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              const RELOAD_KEY = "tortuga.sw-reload-at";
-              const lastReload = Number(sessionStorage.getItem(RELOAD_KEY) ?? "0");
-              const now = Date.now();
-
-              // Guard: non ricaricare più di una volta ogni 30 secondi
-              if (now - lastReload < 30_000) {
-                console.log("SW update trovato ma reload troppo recente – skip.");
-                return;
-              }
-
-              console.log("Nuova versione trovata. Ricarico l'app...");
-              sessionStorage.setItem(RELOAD_KEY, String(now));
-              window.location.reload();
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              setUpdateAvailable(true);
             }
           };
         };
-
-        // Forza il nuovo SW in attesa a prendere controllo immediatamente
-        // (evita che rimanga bloccato in "waiting" per sempre)
-        const waitingWorker = registration.waiting;
-        if (waitingWorker) {
-          waitingWorker.postMessage({ type: "SKIP_WAITING" });
-        }
 
         setServiceWorkerRegistration(registration);
 
@@ -310,38 +314,56 @@ export function PwaController() {
     };
   }, [clientReady, ensurePushSubscription, pushPermission]);
 
-  const pushSnoozed =
-    pushDismissedAt !== null &&
-    evaluationNow - pushDismissedAt < pwaConfig.pushReminderWindowMs;
+  // Controllo proattivo periodico degli aggiornamenti Service Worker
+  useEffect(() => {
+    if (!serviceWorkerRegistration) return;
 
-  const pushCardMode = (() => {
-    if (clientReady && pushEnabled && !pushSnoozed) {
-      return "enabled";
-    }
+    const checkForUpdates = () => {
+      serviceWorkerRegistration.update().catch(() => undefined);
+    };
 
-    if (
-      !clientReady ||
-      pushSnoozed ||
-      pushEnabled ||
-      !serviceWorkerRegistration ||
-      pushPermission === "unsupported"
-    ) {
-      return null;
-    }
+    // Controlla ogni 15 minuti in background
+    const intervalId = window.setInterval(checkForUpdates, 15 * 60 * 1000);
 
-    if (pushPermission === "denied") {
-      return "denied";
-    }
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        checkForUpdates();
+      }
+    };
 
-    if (pushPermission === "granted") {
-      return "retry";
-    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", checkForUpdates);
 
-    return "invite";
-  })();
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", checkForUpdates);
+    };
+  }, [serviceWorkerRegistration]);
 
-  if (pushCardMode === "enabled" || !pushCardMode) {
-    return null;
+  if (updateAvailable) {
+    return (
+      <aside
+        role="alert"
+        aria-live="polite"
+        className="fixed bottom-[calc(var(--bottom-nav-clearance)+0.75rem)] inset-x-3 z-[99] mx-auto max-w-sm flex items-center justify-between gap-3 p-3.5 bg-[#151714]/95 text-[#fffdf8] border border-[#c59a47]/50 rounded-2xl shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5"
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-xl shrink-0">🦜</span>
+          <div className="text-xs leading-tight">
+            <strong className="block text-sm text-[#d9b66d]">Nuova rotta pronta!</strong>
+            <span className="text-white/70">Aggiorna per caricare le novità.</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={applyUpdate}
+          className="px-3.5 py-1.5 rounded-xl bg-[#a52b2b] hover:bg-[#852222] text-white text-xs font-bold shrink-0 transition-all shadow-md active:scale-95 cursor-pointer"
+        >
+          Aggiorna
+        </button>
+      </aside>
+    );
   }
 
   return null;

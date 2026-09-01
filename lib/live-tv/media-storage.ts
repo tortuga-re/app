@@ -3,7 +3,30 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import sharp from "sharp";
+
+const optimizeBufferWithSharp = async (sourceBuffer: Buffer, isGif: boolean) => {
+  try {
+    // @ts-expect-error optional sharp dependency for image compression
+    const sharpModule = await import("sharp");
+    const sharp = sharpModule.default || sharpModule;
+    return await sharp(sourceBuffer, {
+      animated: isGif,
+      failOn: "error",
+      limitInputPixels: 40_000_000,
+    })
+      .rotate()
+      .resize({
+        width: 1920,
+        height: 1080,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 82, effort: 4, smartSubsample: true })
+      .toBuffer();
+  } catch {
+    return sourceBuffer;
+  }
+};
 
 import type { LiveTvMediaAsset } from "@/lib/live-tv/types";
 
@@ -111,20 +134,7 @@ export const saveLiveTvMediaFile = async (
   const targetPath = path.join(config.targetDir, fileName);
 
   const buffer = optimizeImage
-    ? await sharp(sourceBuffer, {
-      animated: file.type === "image/gif",
-      failOn: "error",
-      limitInputPixels: 40_000_000,
-    })
-      .rotate()
-      .resize({
-        width: 1920,
-        height: 1080,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 82, effort: 4, smartSubsample: true })
-      .toBuffer()
+    ? await optimizeBufferWithSharp(sourceBuffer, file.type === "image/gif")
     : sourceBuffer;
 
   await mkdir(config.targetDir, { recursive: true });
