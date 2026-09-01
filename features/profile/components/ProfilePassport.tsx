@@ -12,8 +12,6 @@ import dynamic from "next/dynamic";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FidelityActivationPanel = dynamic<any>(() => import("@/components/fidelity-activation-panel").then(mod => mod.FidelityActivationPanel).catch(() => ({ default: () => null } as any)), { ssr: false });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const LocalPirateAvatar = dynamic<any>(() => import("@/features/pirate-photo/components/LocalPirateAvatar").then(mod => mod.LocalPirateAvatar).catch(() => ({ default: () => null } as any)), { ssr: false });
 
 export interface ProfilePassportProps {
   data: ProfileResponse;
@@ -84,15 +82,6 @@ export function ProfilePassport({
       </div>
 
       <div className="relative z-20 flex min-w-0 items-center gap-4">
-        <LocalPirateAvatar
-          customerKey={
-            contactSnapshot.email ||
-            identityEmail ||
-            data.contact?.CodiceContatto ||
-            profileName
-          }
-          label={profileName}
-        />
         <div className="min-w-0 flex-1 space-y-2">
           <h2 className="truncate text-2xl font-semibold text-white">
             {profileName}
