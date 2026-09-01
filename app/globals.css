@@ -736,10 +736,9 @@ body {
 .minimal-primary { display:inline-flex; min-height:2.9rem; align-items:center; justify-content:center; gap:.5rem; border:0; border-radius:999px; background:var(--accent); color:white; padding:.75rem 1rem; font-size:.78rem; font-weight:750; }
 .section-heading { margin:1.5rem .15rem .75rem; }
 .section-heading h2,.page-title h1 { margin-top:.18rem; font-family:var(--font-serif); font-size:1.7rem; font-weight:650; }
-.snap-slides,.rank-slides { display:flex; gap:.8rem; margin-inline:-1rem; overflow-x:auto; scroll-snap-type:x mandatory; padding:0 1rem .65rem; scrollbar-width:none; }
-.rank-slides { scroll-snap-type:none; scroll-behavior:auto; }
+.snap-slides,.rank-slides { display:flex; gap:.85rem; margin-inline:-1rem; overflow-x:auto; scroll-snap-type:none; scroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:0 1rem 1rem; scrollbar-width:none; }
 .snap-slides::-webkit-scrollbar,.rank-slides::-webkit-scrollbar { display:none; }
-.feature-slide { min-width:82%; scroll-snap-align:center; border-radius:1.55rem; padding:1.25rem; color:white; box-shadow:0 12px 28px rgba(24,24,20,.12); }
+.feature-slide { flex:0 0 min(82vw,22rem); scroll-snap-align:none; border-radius:1.55rem; padding:1.25rem; color:white; box-shadow:0 12px 28px rgba(24,24,20,.12); }
 .feature-slide p { margin-top:1.3rem; font-size:.64rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; opacity:.72; }
 .feature-slide h3 { margin-top:.35rem; font-family:var(--font-serif); font-size:1.45rem; line-height:1.1; }
 .feature-slide>span { display:block; margin-top:.55rem; max-width:16rem; font-size:.76rem; line-height:1.45; opacity:.78; }

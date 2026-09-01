@@ -34,8 +34,11 @@ export const siteConfig = {
 
 export const analyticsConfig = {
   gtmId: process.env.NEXT_PUBLIC_GTM_ID?.trim() || "GTM-5G5QFPBF",
-  metaPixelId:
-    process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || "1168283681896161",
+  ga4Id: process.env.NEXT_PUBLIC_GA4_ID?.trim() || "G-81WZ3B0PXM",
+  metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || "1168283681896161",
+  metaCapiToken:
+    process.env.META_CAPI_TOKEN?.trim() ||
+    "EAAFsAhVxRnQBQSbc22TkXip5vSEsSNn2w5m1anfMTLRtWLO4HlKvZBTaPpTUZBJbDDNiTx9cvOmZAlHLaY9FZB4EuDyTDaU63aiBFYivYUAhWblVcN1HAlcHNzvZBhHxhjJibExidd0UPBL8yZAvjriHZC19Auno8sveZAtBiqbATUodMXH2wSQNsW3ylzlbX8CQZBwZBZD",
   siteArea: "app",
   appDomain: "app.tortugabay.it",
   eventSource: "tortuga_web_app",

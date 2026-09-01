@@ -18,7 +18,9 @@ export type AppAnalyticsEventName =
   | "match_drink_signup"
   | "match_drink_matches_calculated"
   | "match_drink_match_confirmed"
-  | "match_drink_drink_redeemed";
+  | "match_drink_drink_redeemed"
+  | "pirate_slot_played"
+  | "pirate_slot_won";
 
 export type AppAnalyticsPayload = Record<
   string,
@@ -28,6 +30,7 @@ export type AppAnalyticsPayload = Record<
 declare global {
   interface Window {
     dataLayer?: Array<Record<string, unknown>>;
+    fbq?: (action: string, eventName: string, params?: Record<string, unknown>) => void;
   }
 }
 
@@ -40,6 +43,8 @@ const metaEventNames: Partial<Record<AppAnalyticsEventName, string>> = {
   booking_request_submit: "Lead",
   view_fidelity_qr: "ViewContent",
   app_page_view: "PageView",
+  pirate_slot_played: "FindLocation",
+  pirate_slot_won: "EarnReward",
 };
 
 const cleanPayload = (payload: Record<string, unknown>) =>
@@ -84,6 +89,7 @@ export const trackAppEvent = (
   }
 
   const pagePath = window.location.pathname;
+  const metaEventName = metaEventNames[eventName] ?? eventName;
   const dataLayerPayload = cleanPayload({
     event: eventName,
     site_area: analyticsConfig.siteArea,
@@ -93,13 +99,39 @@ export const trackAppEvent = (
     event_source: analyticsConfig.eventSource,
     page_path: pagePath,
     page_location: window.location.href,
+    ga4_id: analyticsConfig.ga4Id,
     meta_pixel_id: analyticsConfig.metaPixelId,
-    meta_event_name: metaEventNames[eventName] ?? eventName,
+    meta_event_name: metaEventName,
     ...payload,
   });
 
+  // 1. Google Tag Manager & GA4 dataLayer
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push(dataLayerPayload);
+
+  // 2. Meta Pixel Client-Side Event
+  if (typeof window.fbq === "function") {
+    try {
+      window.fbq("track", metaEventName, cleanPayload(payload));
+    } catch {
+      // Suppress pixel error
+    }
+  }
+
+  // 3. Meta Conversions API (CAPI) Server-Side Event
+  void fetch("/api/tracking/meta-capi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      eventName: metaEventName,
+      eventSourceUrl: window.location.href,
+      email: typeof payload.email === "string" ? payload.email : undefined,
+      phone: typeof payload.phone === "string" ? payload.phone : undefined,
+      firstName: typeof payload.firstName === "string" ? payload.firstName : undefined,
+      lastName: typeof payload.lastName === "string" ? payload.lastName : undefined,
+      customData: cleanPayload(payload),
+    }),
+  }).catch(() => undefined);
 };
 
 export const trackAppPageView = (pathname: string) => {
