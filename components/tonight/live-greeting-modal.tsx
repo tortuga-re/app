@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock, Sparkles, Tv, X } from "lucide-react";
+import { CheckCircle2, Clock, Sparkles, X } from "lucide-react";
 import { ALLOWED_TABLE_RANGES_DESCRIPTION, validateGreetingInput } from "@/lib/live-tv/table-validation";
 
 const GREETING_COOLDOWN_MS = 5 * 60 * 1000; // 5 minuti
@@ -97,7 +97,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
         window.localStorage.setItem(STORAGE_KEY_LAST_GREETING, Date.now().toString());
         setCooldownRemainingSec(300);
       } catch {
-        // Ignora eventuali restrizioni di localStorage in modalità incognito
+        // Ignora restrizioni localStorage
       }
 
       setSuccess(true);
@@ -114,163 +114,148 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-[#151714] border border-[#c59a47]/40 rounded-3xl p-6 shadow-2xl text-[#fffdf8] overflow-hidden max-h-[90vh] overflow-y-auto">
-        {/* Glow header */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#c59a47] to-transparent opacity-80" />
+    <div
+      className="profile-edit-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="live-greeting-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="profile-edit-modal">
+        <header>
+          <div>
+            <p className="minimal-eyebrow">Diretta Maxi-Schermo</p>
+            <h2 id="live-greeting-title">Saluta in diretta TV</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Chiudi popup">
+            <X size={18} />
+          </button>
+        </header>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-white/50 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
-          aria-label="Chiudi"
-        >
-          <X size={20} />
-        </button>
+        {isCooldownActive ? (
+          <div className="profile-edit-alert info mt-3 flex items-center gap-2 bg-[#fdf5e6] text-[#7a581e] border border-[#ecd5a5] rounded-xl p-3 text-xs">
+            <Clock size={16} className="shrink-0 text-[#b58a4d]" />
+            <span>
+              Hai inviato un saluto di recente. Potrai inviarne un altro tra <strong>{cooldownFormatted}</strong>.
+            </span>
+          </div>
+        ) : null}
+
+        {error ? <div className="profile-edit-alert error mt-3">{error}</div> : null}
 
         {success ? (
-          <div className="py-8 flex flex-col items-center text-center gap-3 animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-              <CheckCircle2 size={36} />
+          <div className="py-6 flex flex-col items-center text-center gap-3 animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-600">
+              <CheckCircle2 size={32} />
             </div>
-            <h3 className="text-xl font-bold text-[#d9b66d]">Saluto inviato al Maxi-Schermo!</h3>
-            <p className="text-sm text-white/70 max-w-xs">
-              Guarda i display del Tortuga: il tuo brindisi dal Tavolo <strong>{tableNumber}</strong> sta andando in onda per 12 secondi! 🍻🏴‍☠️
+            <h3 className="text-xl font-serif font-bold text-[var(--text)]">Saluto inviato al Maxi-Schermo!</h3>
+            <p className="text-xs text-[var(--text-muted)] max-w-xs leading-relaxed">
+              Guarda i display del Tortuga: il tuo messaggio dal Tavolo <strong>{tableNumber}</strong> sta andando in onda per 12 secondi! 🍻🏴‍☠️
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#c59a47]/15 border border-[#c59a47]/30 flex items-center justify-center text-[#d9b66d]">
-                <Tv size={20} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white leading-tight">Saluta in diretta TV</h3>
-                <p className="text-xs text-white/60">Fai apparire il tuo saluto sui display del locale</p>
+          <form onSubmit={handleSubmit} className="profile-edit-form space-y-4 mt-3">
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              Fai apparire il tuo saluto o brindisi dal tavolo in tempo reale sui display del locale.
+            </p>
+
+            <label className="profile-edit-field">
+              <span>Nome o Nickname</span>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="Es. Capitan Jack o Marco"
+                maxLength={24}
+                disabled={isCooldownActive || loading}
+                required
+              />
+            </label>
+
+            <label className="profile-edit-field">
+              <span>Numero del Tavolo</span>
+              <input
+                type="number"
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+                placeholder="Es. 24"
+                min={10}
+                max={60}
+                disabled={isCooldownActive || loading}
+                required
+              />
+              <small className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                {ALLOWED_TABLE_RANGES_DESCRIPTION}
+              </small>
+            </label>
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] block ml-2">
+                Tipo di Saluto
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  disabled={isCooldownActive || loading}
+                  onClick={() => setMessageType("brindisi")}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                    messageType === "brindisi"
+                      ? "bg-[var(--accent-soft)] border-[var(--accent-strong)] text-[var(--accent-strong)] shadow-sm"
+                      : "bg-[#f5efe6] border-[var(--border)] text-[var(--text)] hover:bg-[#ebe2d5]"
+                  }`}
+                >
+                  🍻 Brindisi
+                </button>
+                <button
+                  type="button"
+                  disabled={isCooldownActive || loading}
+                  onClick={() => setMessageType("saluto")}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                    messageType === "saluto"
+                      ? "bg-[var(--accent-soft)] border-[var(--accent-strong)] text-[var(--accent-strong)] shadow-sm"
+                      : "bg-[#f5efe6] border-[var(--border)] text-[var(--text)] hover:bg-[#ebe2d5]"
+                  }`}
+                >
+                  🎉 Saluto
+                </button>
+                <button
+                  type="button"
+                  disabled={isCooldownActive || loading}
+                  onClick={() => setMessageType("compleanno")}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                    messageType === "compleanno"
+                      ? "bg-[var(--accent-soft)] border-[var(--accent-strong)] text-[var(--accent-strong)] shadow-sm"
+                      : "bg-[#f5efe6] border-[var(--border)] text-[var(--text)] hover:bg-[#ebe2d5]"
+                  }`}
+                >
+                  🎂 Auguri
+                </button>
               </div>
             </div>
 
-            {isCooldownActive ? (
-              <div className="p-3.5 rounded-2xl bg-[#c59a47]/10 border border-[#c59a47]/30 flex items-center gap-3 text-xs text-[#f4e0ad]">
-                <Clock size={18} className="shrink-0 text-[#c59a47]" />
-                <p>
-                  Hai inviato un saluto di recente. Potrai inviarne un altro tra <strong>{cooldownFormatted}</strong>.
-                </p>
-              </div>
-            ) : null}
-
-            <div className="space-y-3 pt-2">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#d9b66d] mb-1">
-                  Nome o Nickname
-                </label>
+            {messageType === "compleanno" ? (
+              <label className="profile-edit-field animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="flex items-center justify-between">
+                  <span>Messaggio di Auguri (opzionale)</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-normal">{customMessage.length}/50</span>
+                </div>
                 <input
                   type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="Es. Capitan Jack o Marco"
-                  maxLength={24}
-                  disabled={isCooldownActive}
-                  required
-                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors disabled:opacity-50"
+                  value={customMessage}
+                  disabled={isCooldownActive || loading}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  placeholder="Es. Tanti auguri Capitano da tutta la ciurma!"
+                  maxLength={50}
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#d9b66d] mb-1">
-                  Numero del Tavolo
-                </label>
-                <input
-                  type="number"
-                  value={tableNumber}
-                  onChange={(e) => setTableNumber(e.target.value)}
-                  placeholder="Es. 24"
-                  min={10}
-                  max={60}
-                  disabled={isCooldownActive}
-                  required
-                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors disabled:opacity-50"
-                />
-                <p className="text-[11px] text-white/50 mt-1">
-                  {ALLOWED_TABLE_RANGES_DESCRIPTION}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#d9b66d] mb-1.5">
-                  Tipo di Saluto
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    disabled={isCooldownActive}
-                    onClick={() => setMessageType("brindisi")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer disabled:opacity-50 ${
-                      messageType === "brindisi"
-                        ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
-                        : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
-                    }`}
-                  >
-                    🍻 Brindisi
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isCooldownActive}
-                    onClick={() => setMessageType("saluto")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer disabled:opacity-50 ${
-                      messageType === "saluto"
-                        ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
-                        : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
-                    }`}
-                  >
-                    🎉 Saluto
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isCooldownActive}
-                    onClick={() => setMessageType("compleanno")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer disabled:opacity-50 ${
-                      messageType === "compleanno"
-                        ? "bg-[#c59a47]/20 border-[#c59a47] text-[#f4e0ad]"
-                        : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
-                    }`}
-                  >
-                    🎂 Auguri
-                  </button>
-                </div>
-              </div>
-
-              {messageType === "compleanno" ? (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[#d9b66d]">
-                      Messaggio di Auguri (opzionale)
-                    </label>
-                    <span className="text-[10px] text-white/40">{customMessage.length}/50</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={customMessage}
-                    disabled={isCooldownActive}
-                    onChange={(e) => setCustomMessage(e.target.value)}
-                    placeholder="Es. Tanti auguri Capitano da tutta la ciurma!"
-                    maxLength={50}
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#c59a47] transition-colors disabled:opacity-50"
-                  />
-                </div>
-              ) : null}
-            </div>
-
-            {error ? (
-              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl">
-                {error}
-              </p>
+              </label>
             ) : null}
 
             <button
               type="submit"
               disabled={loading || isCooldownActive}
-              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-[#a52b2b] to-[#8b2323] hover:from-[#b83232] hover:to-[#9e2727] text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="minimal-primary w-full mt-3 flex items-center justify-center gap-2"
             >
               <Sparkles size={16} />
               {loading
@@ -281,7 +266,7 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
             </button>
           </form>
         )}
-      </div>
+      </section>
     </div>
   );
 }
