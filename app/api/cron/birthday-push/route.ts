@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     let sentToday = 0;
     const currentYear = new Date().getFullYear();
 
-    for (const [email, userSubs] of emailToSubs.entries()) {
+    for (const email of emailToSubs.keys()) {
       try {
         const profile = await getProfileData("email", email);
         const birthDate = profile.contact?.DataDiNascita;

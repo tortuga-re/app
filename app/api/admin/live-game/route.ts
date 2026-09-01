@@ -21,7 +21,13 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
   const body = await request.json();
   const now = new Date();
-  const payload =
+  type LiveGamePayload = {
+    id: boolean;
+    active_game: string | null;
+    activated_at: string | null;
+    expires_at: string | null;
+  };
+  const payload: LiveGamePayload | null =
     body.game === null
       ? { id: true, active_game: null, activated_at: null, expires_at: null }
       : isLiveGameId(body.game)
@@ -34,8 +40,8 @@ export async function POST(request: NextRequest) {
         : null;
   if (!payload)
     return NextResponse.json({ error: "Gioco non valido." }, { status: 400 });
-  const { data, error } = await (getSupabaseAdmin()
-    .from("live_game_state") as any)
+  const { data, error } = await getSupabaseAdmin()
+    .from("live_game_state")
     .upsert(payload)
     .select("active_game,activated_at,expires_at")
     .single();

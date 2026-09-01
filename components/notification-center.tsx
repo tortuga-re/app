@@ -104,7 +104,7 @@ export function NotificationCenter() {
     if (hasReachedRank) result.push({ id: `rank-${rank.id}`, title: `Rango raggiunto: ${rank.label}`, description: rank.description, href: "/ciurma?tab=ranks", Icon: Award });
     if (hasReachedRank && rank.id === "leggenda" && !legendNickname) result.push({ id: "legend-nickname", title: "Scegli il tuo nickname", description: "Incidi il tuo nome nella Hall of Legends.", href: "/ciurma", Icon: Award });
     return result;
-  }, [customer.hasProfile, customer.points, customer.profile, customer.visits, game?.active_game, scenario]);
+  }, [customer.hasProfile, customer.points, customer.profile, customer.visits, game?.active_game, game?.activated_at, scenario]);
 
   const visibleNotices = notices.filter((notice) => !dismissedNoticeIds.includes(notice.id));
   const markNoticeAsRead = (noticeId: string) => {

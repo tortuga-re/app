@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronRight, Tv } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useBookingOverlay } from "@/components/booking-overlay";

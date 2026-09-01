@@ -19,8 +19,7 @@ export function HomeScreen() {
   const { openMenu, menuCtaRef } = useMenuOverlay();
   const customer = useCurrentCustomerStatus();
   const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
-  const hasReservation = scenario.enabled ? scenario.hasReservation : customer.hasReservation;
-  const onPremise = scenario.enabled ? scenario.onPremise : hasOnPremiseAccess;
+  const onPremise = scenario.enabled ? scenario.enabled && scenario.onPremise : hasOnPremiseAccess;
   const nextReservation = scenario.enabled && scenario.hasReservation
     ? { dateTime: new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString(), pax: 4, roomName: "Tavolo Tortuga", stateLabel: "Confermata" }
     : customer.profile?.upcomingReservations[0] ?? null;

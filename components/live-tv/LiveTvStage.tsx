@@ -573,33 +573,24 @@ function RenderLiveTvItem({
 export function LiveTvStageController() {
   const [stageState, setStageState] = useState<LiveTvStageResponse | null>(null);
   const [greetingQueue, setGreetingQueue] = useState<CustomerGreeting[]>([]);
-  const [activeGreeting, setActiveGreeting] = useState<CustomerGreeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
   const lastUpdateIdRef = useRef<number | string>(0);
 
-  // Timer per il saluto attivo: garantisce 12 secondi esatti a schermo
+  const activeGreeting = greetingQueue[0] ?? null;
+  const activeGreetingId = activeGreeting?.id;
+
+  // Timer per il saluto attivo: 12 secondi esatti a schermo, poi avanza la coda
   useEffect(() => {
-    if (!activeGreeting) return;
+    if (!activeGreetingId) return;
 
     const timer = window.setTimeout(() => {
-      setActiveGreeting(null);
+      setGreetingQueue((prev) => prev.slice(1));
     }, 12_000);
 
     return () => window.clearTimeout(timer);
-  }, [activeGreeting?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Gestore della coda (FIFO): estrae il prossimo saluto appena lo schermo è libero
-  useEffect(() => {
-    if (activeGreeting !== null || greetingQueue.length === 0) {
-      return;
-    }
-
-    const nextGreeting = greetingQueue[0];
-    setGreetingQueue((prev) => prev.slice(1));
-    setActiveGreeting(nextGreeting);
-  }, [activeGreeting, greetingQueue]);
+  }, [activeGreetingId]);
 
   const enqueueGreeting = useCallback((greeting: CustomerGreeting) => {
     if (!greeting || !greeting.id) return;
@@ -757,7 +748,7 @@ export function LiveTvStageController() {
       if (requestTimeout) window.clearTimeout(requestTimeout);
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [enqueueGreeting]);
 
   const enabledItems = useMemo(() => {
     if (!stageState) return [];

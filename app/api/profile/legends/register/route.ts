@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         if (!fs.existsSync(LOCAL_LEGENDS_FILE)) return [];
         const content = fs.readFileSync(LOCAL_LEGENDS_FILE, "utf8");
         return JSON.parse(content) || [];
-      } catch (err) {
+      } catch {
         return [];
       }
     }
