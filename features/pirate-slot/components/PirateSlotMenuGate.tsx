@@ -72,16 +72,19 @@ export function PirateSlotMenuGate({
     onOpenMenu();
   };
 
-  const submitDetails = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const normalizedName = name.trim();
+  const isLoggedIn = Boolean(identity.email.trim() && identity.firstName.trim());
+
+  const startSlotWithData = async (inputName: string, inputEmail: string) => {
+    const normalizedName = inputName.trim();
     if (!normalizedName) {
       setError("Inserisci il tuo nome.");
+      setStage("details");
       return;
     }
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = inputEmail.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setError("Inserisci un indirizzo email valido.");
+      setStage("details");
       return;
     }
 
@@ -119,9 +122,23 @@ export function PirateSlotMenuGate({
       setSlotOpen(true);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Non siamo riusciti a registrarti.");
+      if (!isLoggedIn) setStage("details");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSlotChoice = () => {
+    if (isLoggedIn) {
+      void startSlotWithData(identity.firstName, identity.email);
+    } else {
+      showDetails();
+    }
+  };
+
+  const submitDetails = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await startSlotWithData(name, email);
   };
 
   const resolveSpin = async () => {
@@ -172,8 +189,8 @@ export function PirateSlotMenuGate({
             {stage === "choice" ? (
               <div className={styles.choiceBody}>
                 <p>Vuoi guardare subito il menu o prima provi a vincere una bevuta omaggio?</p>
-                <button type="button" className={styles.slotChoice} onClick={showDetails}>
-                  <span><Beer /></span><span><strong>Slot Pirata</strong><small>Hai 5 tentativi per allineare cinque birre.</small></span>
+                <button type="button" className={styles.slotChoice} onClick={handleSlotChoice} disabled={loading}>
+                  <span><Beer /></span><span><strong>{loading ? "Preparazione in corso..." : "Slot Pirata"}</strong><small>Hai 5 tentativi per allineare cinque birre.</small></span>
                 </button>
                 <button type="button" className="minimal-primary w-full" onClick={openMenu}>
                   <BookOpen size={17} /> Vedi menu
