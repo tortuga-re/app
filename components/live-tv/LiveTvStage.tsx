@@ -135,7 +135,7 @@ function GreetingBanner({ greeting }: { greeting: CustomerGreeting }) {
 
           <p className="text-sm sm:text-base font-semibold uppercase tracking-[0.22em] text-[#fffdf8]/80 mt-1">
             {isBirthday
-              ? "Tanti auguri da tutto il Tortuga Bay!"
+              ? "Tanti auguri anche dalla Ciurma del Tortuga!"
               : isSaluto
                 ? "Manda un caloroso saluto a tutta la sala!"
                 : "Offre idealmente un boccale a tutta la ciurma!"}
