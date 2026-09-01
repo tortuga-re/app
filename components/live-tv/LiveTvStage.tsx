@@ -324,6 +324,7 @@ function MediaStageItem({
   kind: "image" | "video";
 }) {
   const [mediaFailed, setMediaFailed] = useState(false);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
   const { orientation, handleImageLoad, handleVideoLoaded } = useMediaOrientation();
 
   if (!item.mediaUrl || mediaFailed) {
@@ -360,8 +361,11 @@ function MediaStageItem({
               <img
                 src={item.mediaUrl}
                 alt={title}
-                className="max-h-full max-w-full object-contain"
-                onLoad={handleImageLoad}
+                className={`max-h-full max-w-full object-contain transition-opacity duration-500 ${mediaLoaded ? "opacity-100" : "opacity-0"}`}
+                onLoad={(e) => {
+                  setMediaLoaded(true);
+                  handleImageLoad(e);
+                }}
                 onError={() => setMediaFailed(true)}
               />
             ) : (
@@ -372,8 +376,13 @@ function MediaStageItem({
                 muted
                 loop
                 playsInline
-                className="max-h-full max-w-full object-contain"
-                onLoadedMetadata={handleVideoLoaded}
+                preload="auto"
+                className={`max-h-full max-w-full object-contain transition-opacity duration-500 ${mediaLoaded ? "opacity-100" : "opacity-0"}`}
+                onLoadedMetadata={(e) => {
+                  setMediaLoaded(true);
+                  handleVideoLoaded(e);
+                }}
+                onPlaying={() => setMediaLoaded(true)}
                 onError={() => setMediaFailed(true)}
               />
             )}
@@ -385,6 +394,29 @@ function MediaStageItem({
       </div>
     </StageShell>
   );
+}
+
+function MediaPreloader({ item }: { item: LiveTvItem | null }) {
+  if (!item?.mediaUrl) return null;
+
+  if (item.type === "video") {
+    return (
+      <div className="hidden" aria-hidden="true">
+        <video src={item.mediaUrl} preload="auto" muted playsInline />
+      </div>
+    );
+  }
+
+  if (item.type === "image") {
+    return (
+      <div className="hidden" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={item.mediaUrl} alt="" fetchPriority="high" />
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function RenderLiveTvItem({
@@ -741,6 +773,12 @@ export function LiveTvStageController() {
     return enabledItems[stageState.currentItemIndex] ?? enabledItems[0] ?? null;
   }, [enabledItems, stageState]);
 
+  const nextItem = useMemo(() => {
+    if (!stageState || !enabledItems.length) return null;
+    const nextIndex = (stageState.currentItemIndex + 1) % enabledItems.length;
+    return enabledItems[nextIndex] ?? null;
+  }, [enabledItems, stageState]);
+
   useEffect(() => {
     if (!stageState || stageState.stageMode !== "live_tv" || !currentItem) {
       return;
@@ -822,6 +860,7 @@ export function LiveTvStageController() {
         overlay={overlayVisible}
         scale={scale}
       />
+      <MediaPreloader item={nextItem} />
       {activeGreeting ? <GreetingBanner greeting={activeGreeting} /> : null}
       {isPortraitMobile ? <RotateOverlay /> : null}
     </>
