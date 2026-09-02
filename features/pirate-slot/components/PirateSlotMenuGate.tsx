@@ -7,6 +7,7 @@ import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { formatCouponExpiry } from "@/lib/customer-profile";
 import { rememberPirateSlotPlayedToday } from "@/lib/pirate-slot/client-state";
+import { pirateSlotConfig } from "@/lib/pirate-slot/config";
 import { requestWelcomeChest } from "@/lib/welcome-chest/client-flow";
 import { PirateSlotModal } from "@/features/pirate-slot/components/PirateSlotModal";
 
@@ -17,6 +18,7 @@ type StartResponse = {
   playDate: string;
   email: string;
   alreadyPlayed?: boolean;
+  exhausted?: boolean;
   error?: string;
   identity?: {
     email: string;
@@ -113,6 +115,11 @@ export function PirateSlotMenuGate({
       }
       if (!response.ok) {
         if (data.alreadyPlayed) {
+          if (data.exhausted) {
+            closeGate();
+            setChestOfferOpen(true);
+            return;
+          }
           if (entryMode === "menu") openMenu();
           else closeGate();
           return;
@@ -225,6 +232,7 @@ export function PirateSlotMenuGate({
       <PirateSlotModal
         open={slotOpen}
         onClose={() => setSlotOpen(false)}
+        maxAttempts={pirateSlotConfig.maxAttempts}
         resolveSpin={resolveSpin}
         allowReset={false}
         onWin={() => void claimPrize()}

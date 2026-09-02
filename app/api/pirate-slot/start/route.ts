@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { coopertoConfig } from "@/lib/config";
 import { getProfileData, registerContactVisit, upsertContactByEmail } from "@/lib/cooperto/service";
-import { getTortugaCalendarDate } from "@/lib/pirate-slot/config";
+import { getTortugaCalendarDate, pirateSlotConfig } from "@/lib/pirate-slot/config";
 import { attachCustomerSessionCookie, normalizeCustomerSessionIdentity } from "@/lib/session/customer-session";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 
@@ -61,9 +61,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (playError?.code === "23505") {
+      const { data: existingPlay } = await getSupabaseAdmin()
+        .from("pirate_slot_daily_plays")
+        .select("status,attempts_used")
+        .eq("customer_email", email)
+        .eq("play_date", playDate)
+        .maybeSingle<{ status: string; attempts_used: number }>();
+      const exhausted = existingPlay?.status === "lost" ||
+        (existingPlay?.attempts_used ?? 0) >= pirateSlotConfig.maxAttempts;
       const response = NextResponse.json({
         error: "Hai già giocato oggi. La Slot Pirata tornerà disponibile domani.",
         alreadyPlayed: true,
+        exhausted,
         email,
         playDate,
         identity,

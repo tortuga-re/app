@@ -85,8 +85,8 @@ export type PirateSlotProps = {
 };
 
 export function PirateSlot({
-  maxAttempts = 5,
-  winProbability = 0.05,
+  maxAttempts = 3,
+  winProbability = 0,
   resolveSpin,
   allowReset = true,
   winContent,
