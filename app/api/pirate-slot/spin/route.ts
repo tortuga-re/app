@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { getTortugaCalendarDate, pirateSlotConfig } from "@/lib/pirate-slot/config";
@@ -35,8 +34,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "I tentativi di oggi sono terminati." }, { status: 409 });
   }
 
-  const forceWin = Boolean(body?.forceWin) || request.headers.get("x-demo-force-win") === "true";
-  const won = forceWin ? true : randomInt(10_000) < pirateSlotConfig.winProbability * 10_000;
+  // Il Baule di benvenuto e' il bottino previsto al termine della Slot.
+  // La decisione resta lato server per evitare vincite ottenute dal client.
+  const won = false;
   const attemptsUsed = play.attempts_used + 1;
   const status = won ? "won" : attemptsUsed >= pirateSlotConfig.maxAttempts ? "lost" : "started";
   const { data: updated, error: updateError } = await database

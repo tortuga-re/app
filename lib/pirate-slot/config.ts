@@ -1,7 +1,8 @@
 export const pirateSlotConfig = {
   couponCode: "8b47ac05-f273-4ee2-8a91-1815781eb7f2",
-  maxAttempts: 5,
-  winProbability: 0.05,
+  maxAttempts: 3,
+  // La Slot accompagna sempre al Baule: il premio diretto non e' ottenibile.
+  winProbability: 0,
   timeZone: "Europe/Rome",
 } as const;
 

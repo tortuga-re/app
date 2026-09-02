@@ -81,6 +81,7 @@ export type PirateSlotProps = {
   allowReset?: boolean;
   winContent?: ReactNode;
   onWin?: () => void;
+  onAttemptsExhausted?: () => void;
 };
 
 export function PirateSlot({
@@ -90,6 +91,7 @@ export function PirateSlot({
   allowReset = true,
   winContent,
   onWin,
+  onAttemptsExhausted,
 }: PirateSlotProps) {
   const [reels, setReels] = useState<SlotSymbolId[]>(DEFAULT_REELS);
   const [attemptsLeft, setAttemptsLeft] = useState(maxAttempts);
@@ -149,6 +151,7 @@ export function PirateSlot({
       setResult(won ? "won" : "lost");
       spinTimers.current = [];
       if (won) onWin?.();
+      if (!won && nextAttempts === 0) onAttemptsExhausted?.();
     }, FIRST_REEL_STOP_MS + finalReels.length * REEL_STOP_GAP_MS);
     spinTimers.current.push(finishTimer);
   };
@@ -176,7 +179,7 @@ export function PirateSlot({
         </div>
         <p>Il gioco del Capitano</p>
         <h2>Slot Pirata</h2>
-        <span>Allinea cinque birre e conquista il bottino</span>
+        <span>3 tentativi, una cena OMAGGIO in palio.</span>
       </header>
 
       <div className={styles.reelFrame} data-result={result}>

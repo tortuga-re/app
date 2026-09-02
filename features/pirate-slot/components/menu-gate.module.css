@@ -43,6 +43,17 @@
 
 .formIntro { margin: 0.9rem 0 0.2rem; }
 
+.rewardList {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .prizePanel {
   display: grid;
   justify-items: center;

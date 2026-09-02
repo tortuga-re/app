@@ -9,6 +9,8 @@ import { getSupabaseAdmin } from "@/lib/supabase/client";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const welcomeChestCouponCode = "BAULE-DI-BENVENUTO";
+
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as { name?: string; email?: string; resetToday?: boolean } | null;
   const name = body?.name?.trim() ?? "";
@@ -19,6 +21,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const profileBeforeSlot = await getProfileData("email", email).catch(() => null);
+    const wasExistingCustomer = Boolean(
+      profileBeforeSlot?.source === "live" && profileBeforeSlot.contact?.CodiceContatto,
+    );
     const contact = await upsertContactByEmail({
       firstName: name,
       email,
@@ -66,9 +72,31 @@ export async function POST(request: NextRequest) {
     }
     if (playError || !play) throw playError ?? new Error("Tentativo Slot non disponibile.");
 
+    // La Slot crea il contatto per applicare il limite giornaliero. Conserviamo
+    // qui la sua condizione iniziale, cosi' il Baule assegna anche rango e
+    // missioni a chi non era ancora cliente prima di giocare.
+    const rewards = getSupabaseAdmin().from("welcome_chest_rewards");
+    const { data: existingReward, error: rewardLookupError } = await rewards
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+    if (rewardLookupError) throw rewardLookupError;
+    if (!existingReward) {
+      const { error: rewardInsertError } = await rewards.insert({
+        email,
+        status: "prepared",
+        is_new_customer: !wasExistingCustomer,
+        coupon_code: welcomeChestCouponCode,
+      });
+      if (rewardInsertError) throw rewardInsertError;
+    }
+
     if (email) {
-      const { recordCustomerVisit } = await import("@/lib/profile/achievement-service");
-      await recordCustomerVisit(email, new Date().toISOString()).catch(() => undefined);
+      const { recordCustomerVisit, unlockAchievement } = await import("@/lib/profile/achievement-service");
+      await Promise.all([
+        recordCustomerVisit(email, new Date().toISOString()),
+        unlockAchievement(email, "slot-pirata"),
+      ]).catch(() => undefined);
     }
 
     const profile = await getProfileData("contactCode", contactCode).catch(() => null);

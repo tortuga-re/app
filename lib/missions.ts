@@ -12,6 +12,24 @@ export type Mission = {
 };
 
 export const missions: Mission[] = [
+  {
+    id: "baule-benvenuto",
+    label: "Baule di Benvenuto",
+    description: "Completa l'imbarco e apri il tuo Baule.",
+    icon: "🧰",
+    image: "/badges/baule-benvenuto.png",
+    category: "bottino",
+    isUnlocked: (p) => p.unlockedAchievementIds?.includes("baule-benvenuto") ?? false,
+  },
+  {
+    id: "slot-pirata",
+    label: "Slot Pirata",
+    description: "Tenta la fortuna nella Slot del Capitano.",
+    icon: "🎰",
+    image: "/badges/slot-pirata.png",
+    category: "bottino",
+    isUnlocked: (p) => p.unlockedAchievementIds?.includes("slot-pirata") ?? false,
+  },
   // Navigazione
   {
     id: "primo-approdo",

@@ -15,6 +15,8 @@ import type { ProfileResponse } from "@/lib/cooperto/types";
 import { fidelityRewardTiers } from "@/lib/fidelity-rewards.config";
 import { getActiveRank, getRankIndex, tortugaRanks } from "@/lib/loyalty-ranks";
 import { missions } from "@/lib/missions";
+import { useCustomerIdentity } from "@/lib/customer-identity";
+import { requestWelcomeChest } from "@/lib/welcome-chest/client-flow";
 
 type Tab = "rewards" | "ranks" | "achievements";
 type DisplayMission = { id: string; label: string; description: string; icon: string; image?: string; unlocked: boolean };
@@ -202,6 +204,7 @@ function HallOfLegends({ legends }: { legends: { nickname: string; legend_number
 
 function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onClose: () => void }) {
   const { unlocked } = mission;
+  const { identity } = useCustomerIdentity();
   const { openBooking, showBookingButton, bookingCtaRef } = useBookingOverlay();
   const bookingMissionIds = new Set([
     "primo-approdo", "membro-ciurma", "pirati-fiducia", "leggenda-tortuga",
@@ -227,6 +230,8 @@ function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onC
       {eventMissionIds.has(mission.id) && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vedi il programma</Link> : null}
       {mission.id === "fotografo-ciurma" && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vai a Foto Live</Link> : null}
       {bookingMissionIds.has(mission.id) && !unlocked && showBookingButton ? <button ref={bookingCtaRef} type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); openBooking(); }}>Prenota</button> : null}
+      {mission.id === "baule-benvenuto" && !unlocked ? <button type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); requestWelcomeChest({ firstName: identity.firstName, email: identity.email }); }}>Completa impresa</button> : null}
+      {mission.id === "slot-pirata" && !unlocked ? <button type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); window.dispatchEvent(new Event("tortuga:open-pirate-slot")); }}>Tenta la Slot</button> : null}
       <button className="minimal-primary achievement-modal-action" onClick={onClose}>Chiudi</button>
     </div>
   </div>;

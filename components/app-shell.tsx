@@ -18,6 +18,7 @@ import { CustomerStatusProvider } from "@/components/customer-status-context";
 import { MenuOverlayProvider, useMenuOverlay } from "@/components/menu-overlay";
 import { RoutePrefetcher } from "@/components/route-prefetcher";
 import { NotificationCenter } from "@/components/notification-center";
+import { PwaInstallCard } from "@/components/pwa-install-card";
 
 const RECOVERY_KEY = "tortuga.chunk-recovery-at";
 const RECOVERY_COOLDOWN_MS = 30_000;
@@ -186,6 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="flex flex-1 flex-col gap-5">
           <PwaController />
+          <PwaInstallCard />
 
           <main className="flex-1">
             <div className="space-y-5">{children}</div>
@@ -214,14 +216,14 @@ function AppHeader({ firstName, fallbackGreeting }: { firstName: string; fallbac
 
 function HeaderScannerButton() {
   const [scannerOpen, setScannerOpen] = useState(false);
-  const { openMenuDirect } = useMenuOverlay();
+  const { openMenu } = useMenuOverlay();
   return <>
     <button type="button" className="header-scan-button" onClick={() => setScannerOpen(true)} aria-label="Scansiona QR del locale"><ScanLine /></button>
     {scannerOpen ? <div className="header-scanner-overlay" role="dialog" aria-modal="true" aria-labelledby="header-scanner-title">
       <div className="header-scanner-card">
         <header><div><p className="minimal-eyebrow">Check-in Tortuga</p><h2 id="header-scanner-title">Scansiona il QR del tavolo</h2></div><button onClick={() => setScannerOpen(false)} aria-label="Chiudi scanner"><X /></button></header>
         <p>Punta la fotocamera sul codice presente nel locale per abilitare il menu.</p>
-        <QRScanner onSuccess={() => { setScannerOpen(false); openMenuDirect(); }} onCancel={() => setScannerOpen(false)} />
+        <QRScanner onSuccess={() => { setScannerOpen(false); openMenu(); }} onCancel={() => setScannerOpen(false)} />
       </div>
     </div> : null}
   </>;

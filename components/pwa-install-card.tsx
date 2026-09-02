@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import { pwaConfig, storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
@@ -13,9 +13,12 @@ import {
   ensureCurrentPushSubscription,
   isStandalonePwa,
 } from "@/lib/push/client-subscription";
+import { welcomeChestStartEvent } from "@/lib/welcome-chest/client-flow";
 
 type InstallCardMode = "prompt" | "fallback-ios" | "fallback-browser";
 const welcomeChestPendingKey = "tortuga-welcome-chest-pending";
+const welcomeChestRequestedKey = "tortuga-welcome-chest-requested";
+const welcomeChestIdentityKey = "tortuga-welcome-chest-identity";
 
 interface DeferredPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -57,6 +60,7 @@ export function PwaInstallCard() {
   const [isIos, setIsIos] = useState(false);
   const [evaluationNow, setEvaluationNow] = useState(0);
   const [showAsPopup, setShowAsPopup] = useState(false);
+  const [welcomeRequested, setWelcomeRequested] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [pushReady, setPushReady] = useState(false);
@@ -65,6 +69,12 @@ export function PwaInstallCard() {
   const [error, setError] = useState("");
   const [reward, setReward] = useState<{ coupon: CoopertoCoupon; profile: ProfileResponse; pointsAwarded: number } | null>(null);
   const welcomeChestPreview = scenario.enabled ? scenario.welcomeChestDevice : "none";
+  const identityRef = useRef(identity);
+  const welcomeRequestedRef = useRef(false);
+
+  useEffect(() => {
+    identityRef.current = identity;
+  }, [identity]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -80,8 +90,19 @@ export function PwaInstallCard() {
       setIsIos(isIosDevice());
       setEvaluationNow(Date.now());
 
+      const requestedIdentity = window.localStorage.getItem(welcomeChestIdentityKey);
+      if (requestedIdentity) {
+        try {
+          const pending = JSON.parse(requestedIdentity) as { firstName?: string; email?: string };
+          setFirstName(pending.firstName ?? "");
+          setEmail(pending.email ?? "");
+        } catch {
+          window.localStorage.removeItem(welcomeChestIdentityKey);
+        }
+      }
+
       const pendingChest = window.localStorage.getItem(welcomeChestPendingKey);
-      if (installed && pendingChest) {
+      if (pendingChest) {
         try {
           const pending = JSON.parse(pendingChest) as { firstName?: string; email?: string };
           setFirstName(pending.firstName ?? "");
@@ -91,12 +112,10 @@ export function PwaInstallCard() {
           window.localStorage.removeItem(welcomeChestPendingKey);
         }
       }
-
-      // Se non è installata e non è mai stata rifiutata, mostriamo il popup
-      if (!installed && dismissedAt === null) {
-        setShowAsPopup(true);
-      }
-      if (installed) setShowAsPopup(true);
+      const requested = window.localStorage.getItem(welcomeChestRequestedKey) === "true";
+      welcomeRequestedRef.current = requested;
+      setWelcomeRequested(requested);
+      if (requested) setShowAsPopup(true);
     });
 
     const handleBeforeInstall = (event: Event) => {
@@ -109,17 +128,37 @@ export function PwaInstallCard() {
       setShowAsPopup(false);
     };
 
+    const handleWelcomeChestStart = (event: Event) => {
+      const currentIdentity = identityRef.current;
+      const requestedIdentity = (event as CustomEvent<{ firstName?: string; email?: string }>).detail;
+      window.localStorage.setItem(welcomeChestRequestedKey, "true");
+      welcomeRequestedRef.current = true;
+      setWelcomeRequested(true);
+      setFirstName(requestedIdentity?.firstName ?? currentIdentity.firstName);
+      setEmail(requestedIdentity?.email ?? currentIdentity.email);
+      window.localStorage.setItem(welcomeChestIdentityKey, JSON.stringify({
+        firstName: requestedIdentity?.firstName ?? currentIdentity.firstName,
+        email: requestedIdentity?.email ?? currentIdentity.email,
+      }));
+      setChestPrepared(false);
+      setReward(null);
+      setPushReady(false);
+      setError("");
+      window.localStorage.removeItem(storageKeys.installPromptDismissedAt);
+      setInstallDismissedAt(null);
+      setShowAsPopup(true);
+    };
+
     const handleProfileUpdate = () => {
-      // Quando il profilo viene aggiornato (login o salvataggio), cancelliamo lo snooze
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(storageKeys.installPromptDismissedAt);
-      }
+      if (!welcomeRequestedRef.current) return;
+      window.localStorage.removeItem(storageKeys.installPromptDismissedAt);
       setInstallDismissedAt(null);
       setShowAsPopup(true);
     };
  
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handleInstalled);
+    window.addEventListener(welcomeChestStartEvent, handleWelcomeChestStart);
     window.addEventListener("tortuga:profile-updated", handleProfileUpdate);
  
     const timer = setTimeout(() => setInstallFallbackReady(true), 1500);
@@ -127,6 +166,7 @@ export function PwaInstallCard() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleInstalled);
+      window.removeEventListener(welcomeChestStartEvent, handleWelcomeChestStart);
       window.removeEventListener("tortuga:profile-updated", handleProfileUpdate);
       clearTimeout(timer);
     };
@@ -139,7 +179,7 @@ export function PwaInstallCard() {
   }, [welcomeChestPreview]);
 
 
-  const prepareChest = useCallback(async () => {
+  const prepareChest = useCallback(async (): Promise<boolean> => {
     setBusy(true); setError("");
     try {
       const response = await requestJson<{ profile: ProfileResponse }>('/api/welcome-chest/prepare', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
@@ -147,8 +187,10 @@ export function PwaInstallCard() {
       window.localStorage.setItem(welcomeChestPendingKey, JSON.stringify({ firstName, email }));
       setChestPrepared(true);
       window.dispatchEvent(new Event("tortuga:profile-updated"));
+      return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Non siamo riusciti a preparare il Baule.");
+      return false;
     } finally { setBusy(false); }
   }, [email, firstName, updateIdentity]);
 
@@ -156,6 +198,7 @@ export function PwaInstallCard() {
     const response = await requestJson<{ profile: ProfileResponse; coupon: CoopertoCoupon; pointsAwarded: number }>('/api/welcome-chest/claim', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
     setReward({ profile: response.profile, coupon: response.coupon, pointsAwarded: response.pointsAwarded ?? 0 });
     window.localStorage.removeItem(welcomeChestPendingKey);
+    window.localStorage.removeItem(welcomeChestIdentityKey);
     window.dispatchEvent(new CustomEvent("tortuga:profile-updated", { detail: { profile: response.profile } }));
   }, [email, firstName]);
 
@@ -168,6 +211,7 @@ export function PwaInstallCard() {
       setError("Le notifiche non sono supportate o configurate su questo dispositivo.");
       return;
     }
+    if (!chestPrepared && !await prepareChest()) return;
     setBusy(true); setError("");
     try {
       const permission = await Notification.requestPermission();
@@ -180,7 +224,7 @@ export function PwaInstallCard() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad attivare le notifiche.");
     } finally { setBusy(false); }
-  }, [claimChest, email, firstName]);
+  }, [chestPrepared, claimChest, email, firstName, prepareChest]);
 
   const dismissPopup = useCallback(() => {
     setShowAsPopup(false);
@@ -206,15 +250,15 @@ export function PwaInstallCard() {
   const mode = useMemo<InstallCardMode | null>(() => {
     if (welcomeChestPreview === "iphone") return "fallback-ios";
     if (welcomeChestPreview === "android") return "prompt";
-    if (!clientReady || isInstalled || installSnoozed || !isProbablyMobile || !installFallbackReady) {
+    if (!clientReady || isInstalled || (!welcomeRequested && installSnoozed) || !isProbablyMobile || !installFallbackReady) {
       return null;
     }
     if (promptEvent) return "prompt";
     return isIos ? "fallback-ios" : "fallback-browser";
-  }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos, welcomeChestPreview]);
-  const showFullRewards = (welcomeChestPreview !== "none" || !isInstalled) && !identity.email;
+  }, [clientReady, isInstalled, installSnoozed, isProbablyMobile, installFallbackReady, promptEvent, isIos, welcomeChestPreview, welcomeRequested]);
+  const showFullRewards = welcomeRequested || welcomeChestPreview !== "none" || !isInstalled;
 
-  if (welcomeChestPreview === "none" && isInstalled && showAsPopup && (!identity.email || chestPrepared || reward)) {
+  if ((welcomeRequested || welcomeChestPreview !== "none") && isInstalled && showAsPopup) {
     return <div className="fixed inset-0 z-[120] flex items-center justify-center px-5 py-6">
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <section className="relative w-full max-w-sm panel rounded-[2.4rem] border border-[rgba(216,176,106,.28)] p-6 shadow-2xl">
@@ -226,17 +270,18 @@ export function PwaInstallCard() {
           <h2 className="text-3xl font-black uppercase italic text-white">Baule aperto</h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">Hai ricevuto {reward.pointsAwarded} Dobloni e il tuo premio da usare al Tortuga.</p>
           <div className="rounded-[1.6rem] border border-[rgba(216,176,106,.24)] bg-black/20 p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-[var(--accent-strong)]">{getCouponDisplayCode(reward.coupon).replace(/-/g, " ")}</p><div className="mx-auto mt-3 w-fit rounded-2xl bg-white p-3"><FidelityQrCode value={getCouponQrValue(reward.coupon)} label="QR coupon Baule di benvenuto" variant="coupon" /></div>{reward.coupon.DataScadenza ? <p className="mt-3 text-xs text-[var(--text-muted)]">Valido fino al {formatCouponExpiry(reward.coupon.DataScadenza)}</p> : null}</div>
-          <button type="button" className="button-primary w-full py-3" onClick={() => setShowAsPopup(false)}>Vai alla mia Ciurma</button>
+          <button type="button" className="button-primary w-full py-3" onClick={() => { window.localStorage.removeItem(welcomeChestRequestedKey); window.localStorage.removeItem(welcomeChestIdentityKey); welcomeRequestedRef.current = false; setWelcomeRequested(false); setShowAsPopup(false); }}>Vai alla mia Ciurma</button>
         </div> : <div className="space-y-5">
           <div><p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p><h2 className="mt-2 text-2xl font-black uppercase italic text-white">Completa l&apos;imbarco</h2><p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Attiva le notifiche e apri il tuo Baule con 5 Dobloni e un premio da mostrare al personale.</p></div>
-          {!chestPrepared ? <><label className="block text-sm text-[var(--text-muted)]">Nome<input className="field mt-1" value={firstName} onChange={(event) => setFirstName(event.target.value)} /></label><label className="block text-sm text-[var(--text-muted)]">Email<input className="field mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label></> : <p className="text-sm leading-6 text-[var(--text-muted)]">Un ultimo passo e il premio è tuo: attiva le notifiche push.</p>}
+          <p className="text-sm leading-6 text-[var(--text-muted)]">Un ultimo passo e il premio è tuo: attiva le notifiche push.</p>
           {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
-          <button type="button" className="button-primary w-full py-3" disabled={busy || pushReady} onClick={() => void (chestPrepared ? enablePush() : prepareChest())}>{busy ? "Preparazione..." : chestPrepared ? "Attiva notifiche" : "Richiedi premio"}</button>
+          <button type="button" className="button-primary w-full py-3" disabled={busy || pushReady} onClick={() => void enablePush()}>{busy ? "Preparazione..." : "Attiva notifiche"}</button>
         </div>}
       </section>
     </div>;
   }
 
+  if (!welcomeRequested && welcomeChestPreview === "none") return null;
   if (!mode) return null;
 
   const content = (

@@ -7,6 +7,7 @@ import { FidelityQrCode } from "@/components/fidelity-qr-code";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { formatCouponExpiry } from "@/lib/customer-profile";
 import { rememberPirateSlotPlayedToday } from "@/lib/pirate-slot/client-state";
+import { requestWelcomeChest } from "@/lib/welcome-chest/client-flow";
 import { PirateSlotModal } from "@/features/pirate-slot/components/PirateSlotModal";
 
 import styles from "./menu-gate.module.css";
@@ -33,10 +34,12 @@ export function PirateSlotMenuGate({
   open,
   onClose,
   onOpenMenu,
+  entryMode = "menu",
 }: {
   open: boolean;
   onClose: () => void;
   onOpenMenu: () => void;
+  entryMode?: "menu" | "adventure";
 }) {
   const { identity, updateIdentity } = useCustomerIdentity();
   const [stage, setStage] = useState<"choice" | "details">("choice");
@@ -49,6 +52,7 @@ export function PirateSlotMenuGate({
   const [prize, setPrize] = useState<Prize | null>(null);
   const [claimingPrize, setClaimingPrize] = useState(false);
   const [prizeError, setPrizeError] = useState("");
+  const [chestOfferOpen, setChestOfferOpen] = useState(false);
 
   const resetGate = () => {
     setStage("choice");
@@ -109,7 +113,8 @@ export function PirateSlotMenuGate({
       }
       if (!response.ok) {
         if (data.alreadyPlayed) {
-          openMenu();
+          if (entryMode === "menu") openMenu();
+          else closeGate();
           return;
         }
         throw new Error(data.error || "Slot Pirata non disponibile.");
@@ -143,11 +148,10 @@ export function PirateSlotMenuGate({
   };
 
   const resolveSpin = async () => {
-    const forceWin = typeof window !== "undefined" && window.sessionStorage.getItem("tortuga_demo_force_slot_win") === "true";
     const response = await fetch("/api/pirate-slot/spin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playId, forceWin }),
+      body: JSON.stringify({ playId }),
     });
     const data = (await response.json().catch(() => null)) as { won?: boolean; error?: string } | null;
     if (!response.ok || typeof data?.won !== "boolean") {
@@ -183,7 +187,7 @@ export function PirateSlotMenuGate({
             <header>
               <div>
                 <p className="minimal-eyebrow">Sei al Tortuga</p>
-                <h2 id="slot-menu-title">{stage === "choice" ? "Prima il menu o tenti la sorte?" : "Preparati a giocare"}</h2>
+                <h2 id="slot-menu-title">{stage === "choice" ? entryMode === "adventure" ? "Tenta la fortuna" : "Prima il menu o tenti la sorte?" : "Preparati a giocare"}</h2>
               </div>
               <button type="button" onClick={closeGate} aria-label="Chiudi popup"><X size={18} /></button>
             </header>
@@ -191,11 +195,11 @@ export function PirateSlotMenuGate({
             {stage === "choice" ? (
               <div className={styles.choiceBody}>
                 <button type="button" className={styles.slotChoice} onClick={handleSlotChoice} disabled={loading}>
-                  <span><Beer /></span><span><strong>{loading ? "Preparazione in corso..." : "Slot Pirata"}</strong><small>Hai 5 tentativi per allineare cinque birre.</small></span>
+                  <span><Beer /></span><span><strong>{loading ? "Preparazione in corso..." : "Slot Pirata"}</strong><small>3 tentativi, una cena OMAGGIO in palio.</small></span>
                 </button>
-                <button type="button" className="minimal-primary w-full" onClick={openMenu}>
+                {entryMode === "menu" ? <button type="button" className="minimal-primary w-full" onClick={openMenu}>
                   <BookOpen size={17} /> Vedi menu
-                </button>
+                </button> : null}
               </div>
             ) : (
               <form className="profile-edit-form" onSubmit={submitDetails}>
@@ -224,6 +228,10 @@ export function PirateSlotMenuGate({
         resolveSpin={resolveSpin}
         allowReset={false}
         onWin={() => void claimPrize()}
+        onAttemptsExhausted={() => {
+          setSlotOpen(false);
+          setChestOfferOpen(true);
+        }}
         winContent={(
           <div className={styles.prizePanel}>
             {claimingPrize ? <><Gift /><strong>Prepariamo il tuo coupon...</strong><small>I dobloni continuano a cadere mentre carichiamo il QR.</small></> : null}
@@ -232,6 +240,31 @@ export function PirateSlotMenuGate({
           </div>
         )}
       />
+
+      {chestOfferOpen ? <div className="profile-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="welcome-chest-offer-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setChestOfferOpen(false); }}>
+        <section className="profile-edit-modal">
+          <header>
+            <div>
+              <p className="minimal-eyebrow">Il Capitano ha pensato a te</p>
+              <h2 id="welcome-chest-offer-title">Un Baule di benvenuto ti aspetta</h2>
+            </div>
+            <button type="button" onClick={() => setChestOfferOpen(false)} aria-label="Chiudi popup"><X size={18} /></button>
+          </header>
+          <div className={styles.choiceBody}>
+            <p className={styles.formIntro}>Il Capitano non lascia sola la sua ciurma. Ha pronto per te un Baule di benvenuto.</p>
+            <ul className={styles.rewardList}>
+              <li>5 Dobloni - Pari a 50 euro di spesa</li>
+              <li>Porzione di Gnocco/Tigelle</li>
+              <li>Card Fidelity attivata</li>
+              <li>Rango Mozzo conquistato</li>
+              <li>2 missioni sbloccate</li>
+            </ul>
+            <button type="button" className="minimal-primary w-full" onClick={() => { setChestOfferOpen(false); requestWelcomeChest({ firstName: name, email }); }}>
+              <Gift size={17} /> Lo voglio
+            </button>
+          </div>
+        </section>
+      </div> : null}
     </>
   );
 }

@@ -116,12 +116,13 @@ export async function POST(request: NextRequest) {
       note: "Baule di benvenuto Tortuga",
     });
 
-    if (isNewCustomer) {
-      await Promise.all([
+    await Promise.all([
+      unlockAchievement(email, "baule-benvenuto"),
+      ...(isNewCustomer ? [
         unlockAchievement(email, "primo-approdo"),
         unlockAchievement(email, "mozzo-di-bordo"),
-      ]);
-    }
+      ] : []),
+    ]);
 
     profile = await getProfileData("email", email);
     const welcomeCoupon = profile.coupons.find(
