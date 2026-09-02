@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper, Trophy, ReceiptText } from "lucide-react";
+import { LayoutDashboard, Tv, Megaphone, Gamepad2, ImageIcon, LogOut, Menu, X, Newspaper, Trophy, ReceiptText, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { PanicButton } from "./panic-button";
 
 const navGroups = [
   { label: "Operatività", items: [{ name: "Cruscotto", href: "/admin", icon: LayoutDashboard }, { name: "Live TV", href: "/admin/live-tv", icon: Tv }, { name: "Giochi Live", href: "/admin/games", icon: Gamepad2 }] },
   { label: "Comunicazione", items: [{ name: "Notifiche e promo", href: "/admin/push", icon: Megaphone }, { name: "Contenuti in evidenza", href: "/admin/highlights", icon: Newspaper }] },
-  { label: "Gestione", items: [{ name: "Foto e media", href: "/admin/media", icon: ImageIcon }, { name: "Scontrini", href: "/admin/scontrini", icon: ReceiptText }, { name: "Vincitori", href: "/admin/vincitori", icon: Trophy }] },
+  { label: "Gestione", items: [{ name: "Merchandise", href: "/admin/merchandise", icon: ShoppingBag }, { name: "Foto e media", href: "/admin/media", icon: ImageIcon }, { name: "Scontrini", href: "/admin/scontrini", icon: ReceiptText }, { name: "Vincitori", href: "/admin/vincitori", icon: Trophy }] },
 ] as const;
 
 export function AdminSidebar({ children }: { children: React.ReactNode }) {

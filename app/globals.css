@@ -832,6 +832,26 @@ body {
 .gift-card-cover:disabled { cursor:default; opacity:1; }
 .gift-card-cover:not(:disabled):hover { transform:translateY(-2px); box-shadow:0 6px 14px rgba(35,27,18,.18); }
 .gift-card-cover:focus-visible { outline:3px solid rgba(178,42,42,.28); outline-offset:3px; }
+.merchandise-collection { margin-bottom: 1.2rem; }
+.merchandise-row { -webkit-overflow-scrolling: touch; scroll-padding-inline: 1.2rem; scroll-snap-type: x proximity; }
+.merchandise-collection > header { display: block; padding: 0 1.2rem .65rem; }
+.merchandise-collection > header h2 { margin-top: .45rem; color: var(--text); font-family: var(--font-serif); font-size: 1.55rem; font-weight: 400; letter-spacing: normal; line-height: 1.08; text-transform: none; }
+.merchandise-card { flex: 0 0 min(74vw, 21rem); overflow: hidden; scroll-snap-align: start; border: 1px solid rgba(37,31,24,.14); border-radius: 1.35rem; background: #fffdf8; box-shadow: 0 2px 5px rgba(35,27,18,.14); }
+.merchandise-images, .merchandise-image-placeholder { position: relative; aspect-ratio: 1.35 / 1; overflow: hidden; background: #eee5d6; pointer-events: none; user-select: none; }
+.merchandise-images img { object-fit: cover; opacity: 0; transition: opacity .45s ease; }
+.merchandise-images img.is-visible { opacity: 1; }
+.merchandise-card-copy { display: grid; gap: .48rem; padding: 1rem; }
+.merchandise-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.merchandise-card-copy h3 { font-family: var(--font-display, Georgia, serif); font-size: 1.25rem; line-height: 1.05; }
+.merchandise-card-copy p { color: var(--text-muted); font-size: .83rem; line-height: 1.45; }
+.merchandise-price { flex: 0 0 auto; color: var(--accent-strong); font-size: 1rem; }
+.merchandise-order-button, .merchandise-order-unavailable { display: flex; min-height: 2.85rem; align-items: center; justify-content: center; border-radius: 999px; padding: .6rem 1rem; font-size: .82rem; font-weight: 800; text-align: center; }
+.merchandise-order-button { background: var(--accent-strong); color: #fff; }
+.merchandise-order-unavailable { border: 1px solid rgba(37,31,24,.14); color: var(--text-muted); }
+.merchandise-lock { display: flex; align-items: center; gap: .45rem; border-bottom: 1px solid rgba(37,31,24,.1); background: #f1eadc; padding: .68rem 1rem; color: #6b6153; font-size: .74rem; font-weight: 700; }
+.admin-shell input, .admin-shell select, .admin-shell textarea { border: 1px solid rgba(37,31,24,.22); border-radius: .7rem; background: #fffdf8; color: var(--text); padding: .62rem .75rem; }
+.admin-shell input:focus, .admin-shell select:focus, .admin-shell textarea:focus { outline: 2px solid rgba(178,42,42,.3); outline-offset: 1px; }
+.admin-shell input[type="checkbox"] { accent-color: var(--accent-strong); }
 .booking-fab { position:fixed; right:max(1rem,calc((100vw - 28rem)/2 + 1rem)); bottom:calc(var(--bottom-nav-clearance) + .2rem); z-index:45; display:flex; width:7.75rem; min-width:3.15rem; min-height:3.15rem; align-items:center; justify-content:center; gap:.5rem; overflow:hidden; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:#a52b2b; color:white; padding:.75rem 1rem; box-shadow:0 12px 28px rgba(102,22,22,.28); font-size:.72rem; font-weight:850; letter-spacing:.06em; transition:width .22s ease,padding .22s ease,gap .22s ease,transform .16s ease; }
 .booking-fab.compact { width:3.15rem; gap:0; padding:.75rem; }
 .booking-fab span { max-width:5.5rem; overflow:hidden; opacity:1; padding-right:.08rem; transition:max-width .2s ease,opacity .14s ease; white-space:nowrap; }

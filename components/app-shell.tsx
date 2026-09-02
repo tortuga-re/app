@@ -181,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {pathname === "/stasera" && <SectionHeader title="Cose da fare stasera" />}
         {pathname === "/ciurma" && <SectionHeader title="La tua Ciurma" />}
         {pathname === "/classifiche" && <SectionHeader title="Classifiche" />}
-        {pathname === "/gift" && <SectionHeader title="Gift card" />}
+        {pathname === "/gift" && <SectionHeader title="Regala il Tortuga" />}
         {pathname === "/info" && <SectionHeader title="Info Tortuga" />}
 
         <div className="flex flex-1 flex-col gap-5">

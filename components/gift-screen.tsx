@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { ExternalLink, Gift, X } from "lucide-react";
 import { DragCarousel } from "@/components/drag-carousel";
 import { BrandedIframe } from "@/components/branded-iframe";
+import { MerchandiseCatalog } from "@/components/merchandise-catalog";
 
 type GiftCard = { id: string; title: string; image: string; purchaseUrl: string | null };
 
@@ -36,6 +37,7 @@ const collections = [
 export function GiftScreen() {
   const [selectedCard, setSelectedCard] = useState<GiftCard | null>(null);
   return <section className="minimal-page minimal-overlap-sheet gift-catalog">
+    <MerchandiseCatalog />
     <header className="overlap-sheet-intro gift-catalog-intro">
       <p className="minimal-eyebrow">Regala Tortuga</p>
       <h1>Una rotta per ogni occasione.</h1>
