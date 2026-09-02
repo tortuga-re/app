@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+// Entry point usato da Hostinger tramite lo script `npm start`.
 // LIMITAZIONE RISORSE PER HOSTINGER
 process.env.UV_THREADPOOL_SIZE = 1;
 
