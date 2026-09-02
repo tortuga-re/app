@@ -1,6 +1,7 @@
 "use client";
 
 import { Beer, BookOpen, Gift, X } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 
 import { FidelityQrCode } from "@/components/fidelity-qr-code";
@@ -260,6 +261,13 @@ export function PirateSlotMenuGate({
           </header>
           <div className={styles.choiceBody}>
             <p className={styles.formIntro}>Il Capitano non lascia sola la sua ciurma. Ha pronto per te un Baule di benvenuto.</p>
+            <Image
+              src="/images/gift-card-treasure-chest-background.webp"
+              alt="Baule aperto con monete e tesori"
+              width={1536}
+              height={1024}
+              className={styles.welcomeChestImage}
+            />
             <ul className={styles.rewardList}>
               <li>5 Dobloni - Pari a 50 euro di spesa</li>
               <li>Porzione di Gnocco/Tigelle</li>

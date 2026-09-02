@@ -9,6 +9,7 @@ import { useBookingOverlay } from "@/components/booking-overlay";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { useMenuOverlay } from "@/components/menu-overlay";
+import { PwaInstallCard } from "@/components/pwa-install-card";
 import { formatInRome, formatTime } from "@/lib/utils";
 
 export function HomeScreen() {
@@ -92,6 +93,7 @@ export function HomeScreen() {
           <ChevronRight />
         </Link>
       </div>
+      <PwaInstallCard />
     </section>
   );
 }

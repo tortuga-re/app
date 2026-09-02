@@ -43,6 +43,15 @@
 
 .formIntro { margin: 0.9rem 0 0.2rem; }
 
+.welcomeChestImage {
+  width: 100%;
+  height: 9rem;
+  border: 1px solid rgba(216, 176, 106, 0.28);
+  border-radius: 1rem;
+  object-fit: cover;
+  object-position: 74% center;
+}
+
 .rewardList {
   display: grid;
   gap: 0.35rem;

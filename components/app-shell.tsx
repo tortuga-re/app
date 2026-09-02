@@ -187,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="flex flex-1 flex-col gap-5">
           <PwaController />
-          <PwaInstallCard />
+          {pathname !== "/" ? <PwaInstallCard /> : null}
 
           <main className="flex-1">
             <div className="space-y-5">{children}</div>
