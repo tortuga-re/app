@@ -229,6 +229,20 @@ function MissionDetailModal({ missions, initialMissionId, onClose }: { missions:
     return () => window.cancelAnimationFrame(frame);
   }, [initialIndex, missionIds]);
 
+  useEffect(() => {
+    // The modal owns the gesture: without this, mobile Safari can scroll the
+    // page behind the overlay while a finger is moving across a slide.
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousOverscroll = body.style.overscrollBehavior;
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.overscrollBehavior = previousOverscroll;
+    };
+  }, []);
+
   const finishDrag = (element: HTMLDivElement) => {
     const width = element.clientWidth;
     if (!width) return;
@@ -243,7 +257,7 @@ function MissionDetailModal({ missions, initialMissionId, onClose }: { missions:
       <div
         ref={carouselRef}
         className="achievement-modal-carousel flex w-full cursor-grab select-none active:cursor-grabbing"
-        style={{ overflowX: "hidden", touchAction: "pan-y" }}
+        style={{ overflowX: "hidden", touchAction: "none" }}
         aria-label="Dettagli delle imprese"
         onPointerDown={(event) => {
           if ((event.target as HTMLElement).closest("button, a")) return;
@@ -254,6 +268,7 @@ function MissionDetailModal({ missions, initialMissionId, onClose }: { missions:
         onPointerMove={(event) => {
           const drag = dragRef.current;
           if (!drag || drag.pointerId !== event.pointerId) return;
+          event.preventDefault();
           event.currentTarget.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startX);
         }}
         onPointerUp={(event) => {
