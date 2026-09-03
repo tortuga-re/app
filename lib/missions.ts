@@ -11,6 +11,29 @@ export type Mission = {
   isUnlocked: (profile: ProfileResponse) => boolean;
 };
 
+/**
+ * Presentation order follows a typical customer journey. It is deliberately
+ * separate from unlock rules, so changing the carousel never changes rewards.
+ */
+export const achievementDisplayOrder = [
+  "slot-pirata", "baule-benvenuto",
+  "mozzo-di-bordo", "primo-approdo", "membro-ciurma", "pirati-fiducia",
+  "capitano", "leggenda-tortuga", "stessa-rotta-3",
+  "non-riesci-stare-lontano", "ritorno-naufragio", "maledizione-tortuga", "veterano-ciurma",
+  "rotta-infrasettimanale", "capitano-tavolata", "grande-ammutinamento",
+  "kantaquiz", "cervellone", "mai-normale", "fotografo-ciurma",
+  "assaggiatore-ufficiale", "cacciatore-bottino", "chiave-oro",
+  "giro-sette-mari", "naufragio-perfetto",
+] as const;
+
+const achievementOrderIndex = new Map<string, number>(achievementDisplayOrder.map((id, index) => [id, index]));
+
+export const orderAchievementsForDisplay = <T extends { id: string }>(items: T[]) =>
+  [...items].sort((left, right) =>
+    (achievementOrderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+    (achievementOrderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+  );
+
 export const missions: Mission[] = [
   {
     id: "baule-benvenuto",

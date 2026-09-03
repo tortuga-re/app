@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { missions } from "@/lib/missions";
+import { orderAchievementsForDisplay } from "@/lib/missions";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -67,6 +68,7 @@ export function CiurmaScreen() {
   const [showActivatedCardPanel, setShowActivatedCardPanel] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [selectedMission, setSelectedMission] = useState<import("@/lib/missions").Mission | null>(null);
+  const [activeMissionIndex, setActiveMissionIndex] = useState(0);
   const [loginMode, setLoginMode] = useState<"lookup" | "confirm" | "otp">("lookup");
   const [loginRequest, setLoginRequest] = useState<{
     requestId: string;
@@ -85,6 +87,7 @@ export function CiurmaScreen() {
     Partial<Record<"firstName" | "lastName" | "email" | "phone", string>>
   >({});
   const longPressRef = useRef<number | null>(null);
+  const missionCarouselRef = useRef<HTMLDivElement | null>(null);
   const autoLoadedKeyRef = useRef("");
   const fieldRefs = useRef<Partial<Record<ProfileFieldName, HTMLElement | null>>>({});
   const setFieldRef = (field: ProfileFieldName) => (element: HTMLElement | null) => {
@@ -154,6 +157,10 @@ export function CiurmaScreen() {
   );
   const activeCardCode = data?.contact?.CodiceCard?.trim() ?? "";
   const contactCode = data?.contact?.CodiceContatto?.trim() ?? "";
+  const orderedMissions = orderAchievementsForDisplay(missions);
+  const selectedMissionIndex = selectedMission
+    ? Math.max(0, orderedMissions.findIndex((mission) => mission.id === selectedMission.id))
+    : 0;
   const showLookupPanel = (isEditingLookup || !hasIdentity) && !isRegistering;
   const contactSnapshot = buildContactForm(data?.contact ?? undefined);
   const didProfileStartWithPhone = Boolean(contactSnapshot.phone.trim());
@@ -188,6 +195,15 @@ export function CiurmaScreen() {
   useHashScroll(
     `${loading}:${showLookupPanel}:${isRegistering}:${hasProfile}:${hasOnPremiseAccess}:${isEditingProfile}:${Boolean(contactMessage)}:${loginMode}`,
   );
+
+  useEffect(() => {
+    if (!selectedMission) return;
+    const frame = window.requestAnimationFrame(() => {
+      setActiveMissionIndex(selectedMissionIndex);
+      missionCarouselRef.current?.scrollTo({ left: missionCarouselRef.current.clientWidth * selectedMissionIndex });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedMission, selectedMissionIndex]);
 
   useEffect(() => {
     if (!emailChangeRequest && !loginRequest) {
@@ -987,45 +1003,35 @@ export function CiurmaScreen() {
             className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#121212] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mt-4 flex flex-col items-center gap-6">
-              <div 
-                className={cn(
-                  "flex h-48 w-48 items-center justify-center rounded-full border shadow-2xl overflow-hidden",
-                  selectedMission.isUnlocked(data!) 
-                    ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_30px_rgba(216,176,106,0.2)]" 
-                    : "border-white/5 bg-white/5 grayscale opacity-30"
-                )}
-              >
-                {selectedMission.image ? (
-                  <img 
-                    src={selectedMission.image} 
-                    alt={selectedMission.label} 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-8xl">{selectedMission.icon}</span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-                  {selectedMission.isUnlocked(data!) ? "Missione Compiuta" : "Missione Segreta"}
-                </p>
-                <h3 className="text-2xl font-bold text-white uppercase italic">
-                  {selectedMission.label}
-                </h3>
-              </div>
-
-              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-                {selectedMission.description}
-              </p>
-
-              <button
-                onClick={() => setSelectedMission(null)}
-                className="button-primary mt-4 w-full rounded-2xl py-4 text-sm font-bold uppercase tracking-widest"
-              >
-                Chiudi
-              </button>
+            <div
+              ref={missionCarouselRef}
+              className="flex snap-x snap-mandatory overflow-x-auto scrollbar-hidden"
+              aria-label="Dettagli delle imprese"
+              onScroll={(event) => {
+                const viewport = event.currentTarget.clientWidth;
+                if (viewport) setActiveMissionIndex(Math.round(event.currentTarget.scrollLeft / viewport));
+              }}
+            >
+              {orderedMissions.map((mission) => {
+                const unlocked = mission.isUnlocked(data!);
+                return <section key={mission.id} className="mt-4 flex w-full shrink-0 snap-center flex-col items-center gap-6 px-0.5 text-center">
+                  <div className={cn(
+                    "flex h-48 w-48 items-center justify-center overflow-hidden rounded-full border shadow-2xl",
+                    unlocked ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_30px_rgba(216,176,106,0.2)]" : "border-white/5 bg-white/5 grayscale opacity-30",
+                  )}>
+                    {mission.image ? <img src={mission.image} alt={mission.label} className="h-full w-full object-cover" /> : <span className="text-8xl">{mission.icon}</span>}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent-strong)]">{unlocked ? "Missione Compiuta" : "Missione Segreta"}</p>
+                    <h3 className="text-2xl font-bold uppercase italic text-white">{mission.label}</h3>
+                  </div>
+                  <p className="text-sm leading-relaxed text-[var(--text-muted)]">{mission.description}</p>
+                  <button onClick={() => setSelectedMission(null)} className="button-primary mt-4 w-full rounded-2xl py-4 text-sm font-bold uppercase tracking-widest">Chiudi</button>
+                </section>;
+              })}
+            </div>
+            <div className="mt-4 flex justify-center gap-1.5" aria-label={`Impresa ${activeMissionIndex + 1} di ${orderedMissions.length}`}>
+              {orderedMissions.map((mission, index) => <i key={mission.id} className={`h-1.5 rounded-full transition-all ${index === activeMissionIndex ? "w-4 bg-[var(--accent-strong)]" : "w-1.5 bg-white/25"}`} />)}
             </div>
           </div>
           {/* Backdrop click to close */}

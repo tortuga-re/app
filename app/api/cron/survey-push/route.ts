@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listVisitsForDate, updateVisitSurveyStatus, listPushSubscriptions } from "@/lib/push/subscription-store";
 import { sendPushToSubscription } from "@/lib/push/send";
+import { getRomeDateIsoWithOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Non autorizzato. Segreto mancante o errato." }, { status: 401 });
   }
 
-  // Calcoliamo la data di ieri (ISO: YYYY-MM-DD)
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const dateIso = yesterday.toISOString().split("T")[0];
+  // La visita e il promemoria seguono il calendario del locale, non UTC.
+  const dateIso = getRomeDateIsoWithOffset(-1);
 
   try {
     const visits = await listVisitsForDate(dateIso);

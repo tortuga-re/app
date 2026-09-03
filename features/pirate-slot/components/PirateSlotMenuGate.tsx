@@ -9,6 +9,7 @@ import { useCustomerIdentity } from "@/lib/customer-identity";
 import { formatCouponExpiry } from "@/lib/customer-profile";
 import { rememberPirateSlotPlayedToday } from "@/lib/pirate-slot/client-state";
 import { pirateSlotConfig } from "@/lib/pirate-slot/config";
+import { isStandalonePwa } from "@/lib/push/client-subscription";
 import { requestWelcomeChest } from "@/lib/welcome-chest/client-flow";
 import { PirateSlotModal } from "@/features/pirate-slot/components/PirateSlotModal";
 
@@ -56,6 +57,7 @@ export function PirateSlotMenuGate({
   const [claimingPrize, setClaimingPrize] = useState(false);
   const [prizeError, setPrizeError] = useState("");
   const [chestOfferOpen, setChestOfferOpen] = useState(false);
+  const [lossOfferOpen, setLossOfferOpen] = useState(false);
 
   const resetGate = () => {
     setStage("choice");
@@ -187,6 +189,24 @@ export function PirateSlotMenuGate({
     }
   };
 
+  const showAfterSlotLoss = async () => {
+    setSlotOpen(false);
+    try {
+      const response = await fetch("/api/welcome-chest/status", { cache: "no-store" });
+      const data = await response.json().catch(() => null) as { status?: string | null } | null;
+      const hasCompletedWelcomeChest = data?.status === "completed";
+      const isFullyOnboarded = isLoggedIn && isStandalonePwa() && typeof Notification !== "undefined" && Notification.permission === "granted";
+      if (hasCompletedWelcomeChest && isFullyOnboarded) {
+        setLossOfferOpen(true);
+        return;
+      }
+    } catch {
+      // If the status cannot be read, preserve the existing safe path: offer
+      // the chest rather than incorrectly hiding an eligible reward.
+    }
+    setChestOfferOpen(true);
+  };
+
   return (
     <>
       {open ? (
@@ -237,10 +257,7 @@ export function PirateSlotMenuGate({
         resolveSpin={resolveSpin}
         allowReset={false}
         onWin={() => void claimPrize()}
-        onAttemptsExhausted={() => {
-          setSlotOpen(false);
-          setChestOfferOpen(true);
-        }}
+        onAttemptsExhausted={() => void showAfterSlotLoss()}
         winContent={(
           <div className={styles.prizePanel}>
             {claimingPrize ? <><Gift /><strong>Prepariamo il tuo coupon...</strong><small>I dobloni continuano a cadere mentre carichiamo il QR.</small></> : null}
@@ -277,6 +294,27 @@ export function PirateSlotMenuGate({
             </ul>
             <button type="button" className="minimal-primary w-full" onClick={() => { setChestOfferOpen(false); requestWelcomeChest({ firstName: name, email }); }}>
               <Gift size={17} /> Lo voglio
+            </button>
+          </div>
+        </section>
+      </div> : null}
+
+      {lossOfferOpen ? <div className="profile-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="slot-loss-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setLossOfferOpen(false); }}>
+        <section className="profile-edit-modal">
+          <header>
+            <div>
+              <p className="minimal-eyebrow">La sorte non è stata dalla tua parte</p>
+              <h2 id="slot-loss-title">Questa volta non hai vinto</h2>
+            </div>
+            <button type="button" onClick={() => setLossOfferOpen(false)} aria-label="Chiudi popup"><X size={18} /></button>
+          </header>
+          <div className={styles.choiceBody}>
+            <p className={styles.formIntro}>Ci spiace, riprova alla prossima visita. Nel frattempo puoi dare un&apos;occhiata alla linea Tortuga o consultare il menu.</p>
+            <button type="button" className="minimal-primary w-full" onClick={() => { setLossOfferOpen(false); window.location.assign("/gift#merchandise"); }}>
+              <Gift size={17} /> Linea Tortuga
+            </button>
+            <button type="button" className="minimal-secondary w-full" onClick={() => { setLossOfferOpen(false); onOpenMenu(); }}>
+              <BookOpen size={17} /> Vedi menu
             </button>
           </div>
         </section>

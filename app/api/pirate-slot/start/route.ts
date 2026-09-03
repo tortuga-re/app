@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { coopertoConfig } from "@/lib/config";
-import { getProfileData, registerContactVisit, upsertContactByEmail } from "@/lib/cooperto/service";
+import { getProfileData, upsertContactByEmail } from "@/lib/cooperto/service";
 import { getTortugaCalendarDate, pirateSlotConfig } from "@/lib/pirate-slot/config";
 import { attachCustomerSessionCookie, normalizeCustomerSessionIdentity } from "@/lib/session/customer-session";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
@@ -31,11 +30,6 @@ export async function POST(request: NextRequest) {
     });
     const contactCode = contact.CodiceContatto?.trim() ?? "";
     if (!contactCode) throw new Error("Cooperto non ha restituito il codice contatto.");
-
-    await registerContactVisit({
-      contactCode,
-      venueCode: coopertoConfig.sedeCode,
-    });
 
     const playDate = getTortugaCalendarDate();
 
@@ -81,9 +75,9 @@ export async function POST(request: NextRequest) {
     }
     if (playError || !play) throw playError ?? new Error("Tentativo Slot non disponibile.");
 
-    // La Slot crea il contatto per applicare il limite giornaliero. Conserviamo
-    // qui la sua condizione iniziale, cosi' il Baule assegna anche rango e
-    // missioni a chi non era ancora cliente prima di giocare.
+    // La Slot può creare il contatto per applicare il limite giornaliero, ma
+    // non equivale mai a una presenza nel locale: le visite vengono registrate
+    // esclusivamente dai flussi on-premise.
     const rewards = getSupabaseAdmin().from("welcome_chest_rewards");
     const { data: existingReward, error: rewardLookupError } = await rewards
       .select("email")
@@ -101,11 +95,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (email) {
-      const { recordCustomerVisit, unlockAchievement } = await import("@/lib/profile/achievement-service");
-      await Promise.all([
-        recordCustomerVisit(email, new Date().toISOString()),
-        unlockAchievement(email, "slot-pirata"),
-      ]).catch(() => undefined);
+      const { unlockAchievement } = await import("@/lib/profile/achievement-service");
+      await unlockAchievement(email, "slot-pirata").catch(() => undefined);
     }
 
     const profile = await getProfileData("contactCode", contactCode).catch(() => null);

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Award, CalendarDays, Check, Coins, Gift, LockKeyhole, Skull, Trophy, X } from "lucide-react";
 
 import { DragCarousel } from "@/components/drag-carousel";
@@ -14,7 +14,7 @@ import { useBookingOverlay } from "@/components/booking-overlay";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import { fidelityRewardTiers } from "@/lib/fidelity-rewards.config";
 import { getActiveRank, getRankIndex, tortugaRanks } from "@/lib/loyalty-ranks";
-import { missions } from "@/lib/missions";
+import { missions, orderAchievementsForDisplay } from "@/lib/missions";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { requestWelcomeChest } from "@/lib/welcome-chest/client-flow";
 
@@ -75,10 +75,10 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
   const profile = scenario.enabled ? buildDemoProfile(visits, points, scenario.hasCoupon) : customer.profile;
   const isUserRegistered = scenario.enabled ? scenario.loggedIn : customer.hasProfile;
   const visibleMissions = missions.filter((mission) => mission.id !== "ritorno-naufragio" || Boolean(profile && mission.isUnlocked(profile)));
-  const displayMissions: DisplayMission[] = [
+  const displayMissions: DisplayMission[] = orderAchievementsForDisplay([
     ...(profile?.achievementViews ?? []).map((achievement) => ({ ...achievement })),
     ...visibleMissions.map((mission) => ({ ...mission, unlocked: Boolean(profile && mission.isUnlocked(profile)) })),
-  ];
+  ]);
   const unlockedMissionCount = displayMissions.filter((mission) => mission.unlocked).length;
   const hasRedeemableReward = fidelityRewardTiers.some((reward) => points >= reward.threshold);
 
@@ -179,7 +179,12 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
       <header><p className="minimal-eyebrow">Le tue imprese</p><span>{unlockedMissionCount} / {displayMissions.length} sbloccate</span></header>
       <DragCarousel className="achievement-pages" label="Le tue imprese Tortuga">
         {displayMissions.map((mission) => { const unlocked = mission.unlocked; return <article className={unlocked ? "unlocked" : "locked"} key={mission.id} title={mission.description} role="button" tabIndex={0} onClick={() => setSelectedMission(mission)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedMission(mission); } }}>
-          <div className="achievement-icon">{mission.image ? <Image src={mission.image} alt="" fill sizes="64px" /> : <span>{mission.icon}</span>}</div>
+          <div
+            className="achievement-icon"
+            style={unlocked
+              ? { borderColor: "#d8b06a", boxShadow: "0 7px 16px rgba(30,25,19,.14)" }
+              : { borderColor: "#a9a39a", boxShadow: "0 0 0 1px rgba(169,163,154,.18), 0 0 10px rgba(118,113,104,.22), 0 7px 16px rgba(30,25,19,.1)" }}
+          >{mission.image ? <Image src={mission.image} alt="" fill sizes="64px" /> : <span>{mission.icon}</span>}</div>
           <h3>{mission.label}</h3>
         </article>; })}
       </DragCarousel>
@@ -187,7 +192,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
 
     <HallOfLegends legends={displayLegends} />
 
-    {selectedMission ? <MissionDetailModal mission={selectedMission} onClose={() => setSelectedMission(null)} /> : null}
+    {selectedMission ? <MissionDetailModal missions={displayMissions} initialMissionId={selectedMission.id} onClose={() => setSelectedMission(null)} /> : null}
 
   </div>;
 }
@@ -202,37 +207,95 @@ function HallOfLegends({ legends }: { legends: { nickname: string; legend_number
   </div>;
 }
 
-function MissionDetailModal({ mission, onClose }: { mission: DisplayMission; onClose: () => void }) {
-  const { unlocked } = mission;
+function MissionDetailModal({ missions, initialMissionId, onClose }: { missions: DisplayMission[]; initialMissionId: string; onClose: () => void }) {
   const { identity } = useCustomerIdentity();
   const { openBooking, showBookingButton, bookingCtaRef } = useBookingOverlay();
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startScrollLeft: number } | null>(null);
+  const missionIds = missions.map((mission) => mission.id).join(",");
+  const initialIndex = Math.max(0, missions.findIndex((mission) => mission.id === initialMissionId));
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const bookingMissionIds = new Set([
     "primo-approdo", "membro-ciurma", "pirati-fiducia", "leggenda-tortuga",
     "capitano", "capitano-tavolata", "grande-ammutinamento",
     "rotta-infrasettimanale", "ritorno-naufragio", "stessa-rotta-3",
   ]);
   const eventMissionIds = new Set(["kantaquiz", "cervellone", "mai-normale"]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setActiveIndex(initialIndex);
+      carouselRef.current?.scrollTo({ left: carouselRef.current.clientWidth * initialIndex });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialIndex, missionIds]);
+
+  const finishDrag = (element: HTMLDivElement) => {
+    const width = element.clientWidth;
+    if (!width) return;
+    const nextIndex = Math.max(0, Math.min(missions.length - 1, Math.round(element.scrollLeft / width)));
+    element.scrollTo({ left: nextIndex * width, behavior: "smooth" });
+    setActiveIndex(nextIndex);
+  };
+
   return <div className="achievement-modal" role="dialog" aria-modal="true" aria-labelledby="achievement-modal-title" onClick={onClose}>
     <div className="achievement-modal-card" onClick={(event) => event.stopPropagation()}>
       <button className="achievement-modal-close" onClick={onClose} aria-label="Chiudi dettagli impresa"><X /></button>
-      <div className={`achievement-modal-image ${unlocked ? "unlocked" : "locked"}`}>
-        {mission.image ? <Image src={mission.image} alt={mission.label} fill sizes="160px" priority /> : <span>{mission.icon}</span>}
+      <div
+        ref={carouselRef}
+        className="achievement-modal-carousel flex w-full cursor-grab select-none active:cursor-grabbing"
+        style={{ overflowX: "hidden", touchAction: "pan-y" }}
+        aria-label="Dettagli delle imprese"
+        onPointerDown={(event) => {
+          if ((event.target as HTMLElement).closest("button, a")) return;
+          const element = event.currentTarget;
+          dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: element.scrollLeft };
+          element.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          const drag = dragRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          event.currentTarget.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startX);
+        }}
+        onPointerUp={(event) => {
+          const drag = dragRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          dragRef.current = null;
+          finishDrag(event.currentTarget);
+        }}
+        onPointerCancel={(event) => {
+          if (dragRef.current?.pointerId !== event.pointerId) return;
+          dragRef.current = null;
+          finishDrag(event.currentTarget);
+        }}
+      >
+        {missions.map((mission) => {
+          const unlocked = mission.unlocked;
+          return <section className="achievement-modal-slide block min-w-full max-w-full shrink-0" style={{ flex: "0 0 100%", scrollSnapStop: "always" }} key={mission.id}>
+            <div className={`achievement-modal-image ${unlocked ? "unlocked" : "locked"}`}>
+              {mission.image ? <Image src={mission.image} alt={mission.label} fill sizes="160px" priority={mission.id === initialMissionId} /> : <span>{mission.icon}</span>}
+            </div>
+            <p className="minimal-eyebrow">{unlocked ? "Impresa compiuta" : "Impresa da sbloccare"}</p>
+            <h2 id={mission.id === initialMissionId ? "achievement-modal-title" : undefined}>{mission.label}</h2>
+            <p className="achievement-modal-description">{mission.description}</p>
+            <div className={`achievement-modal-status ${unlocked ? "unlocked" : "locked"}`}>{unlocked ? <Check /> : <LockKeyhole />}<span>{unlocked ? "Sbloccata" : "Non ancora sbloccata"}</span></div>
+            {mission.id === "assaggiatore-ufficiale" && !unlocked ? <Link href="/ciurma/carica-scontrino" className="minimal-primary achievement-modal-action">Carica scontrino</Link> : null}
+            {mission.id === "mozzo-di-bordo" && !unlocked ? <Link href="/ciurma#attiva-fidelity" className="minimal-primary achievement-modal-action">Attiva la Fidelity</Link> : null}
+            {eventMissionIds.has(mission.id) && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vedi il programma</Link> : null}
+            {mission.id === "fotografo-ciurma" && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vai a Foto Live</Link> : null}
+            {bookingMissionIds.has(mission.id) && !unlocked && showBookingButton ? <button ref={bookingCtaRef} type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); openBooking(); }}>Prenota</button> : null}
+            {mission.id === "baule-benvenuto" && !unlocked ? <button type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); requestWelcomeChest({ firstName: identity.firstName, email: identity.email }); }}>Completa impresa</button> : null}
+            {mission.id === "slot-pirata" && !unlocked ? <button type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); window.dispatchEvent(new Event("tortuga:open-pirate-slot")); }}>Tenta la Slot</button> : null}
+            <button className="minimal-primary achievement-modal-action" onClick={onClose}>Chiudi</button>
+          </section>;
+        })}
       </div>
-      <p className="minimal-eyebrow">{unlocked ? "Impresa compiuta" : "Impresa da sbloccare"}</p>
-      <h2 id="achievement-modal-title">{mission.label}</h2>
-      <p className="achievement-modal-description">{mission.description}</p>
-      <div className={`achievement-modal-status ${unlocked ? "unlocked" : "locked"}`}>
-        {unlocked ? <Check /> : <LockKeyhole />}
-        <span>{unlocked ? "Sbloccata" : "Non ancora sbloccata"}</span>
+      <div className="achievement-modal-dots mt-3 flex justify-center gap-1.5" aria-label={`Impresa ${activeIndex + 1} di ${missions.length}`}>
+        {missions.map((mission, index) => {
+          const active = index === activeIndex;
+          const color = active ? "#b52b2b" : mission.unlocked ? "#d8b06a" : "rgba(117,111,102,.32)";
+          return <i key={mission.id} aria-hidden="true" style={{ display: "block", width: active ? "1rem" : "0.38rem", height: "0.38rem", borderRadius: "999px", background: color, transition: "width .18s ease, background .18s ease" }} />;
+        })}
       </div>
-      {mission.id === "assaggiatore-ufficiale" && !unlocked ? <Link href="/ciurma/carica-scontrino" className="minimal-primary achievement-modal-action">Carica scontrino</Link> : null}
-      {mission.id === "mozzo-di-bordo" && !unlocked ? <Link href="/ciurma#attiva-fidelity" className="minimal-primary achievement-modal-action">Attiva la Fidelity</Link> : null}
-      {eventMissionIds.has(mission.id) && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vedi il programma</Link> : null}
-      {mission.id === "fotografo-ciurma" && !unlocked ? <Link href="/stasera" className="minimal-primary achievement-modal-action">Vai a Foto Live</Link> : null}
-      {bookingMissionIds.has(mission.id) && !unlocked && showBookingButton ? <button ref={bookingCtaRef} type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); openBooking(); }}>Prenota</button> : null}
-      {mission.id === "baule-benvenuto" && !unlocked ? <button type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); requestWelcomeChest({ firstName: identity.firstName, email: identity.email }); }}>Completa impresa</button> : null}
-      {mission.id === "slot-pirata" && !unlocked ? <button type="button" className="minimal-primary achievement-modal-action" onClick={() => { onClose(); window.dispatchEvent(new Event("tortuga:open-pirate-slot")); }}>Tenta la Slot</button> : null}
-      <button className="minimal-primary achievement-modal-action" onClick={onClose}>Chiudi</button>
     </div>
   </div>;
 }

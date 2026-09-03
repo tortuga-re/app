@@ -3,7 +3,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import type { FidelityRewardProgress } from "@/lib/fidelity-rewards";
-import type { Mission } from "@/lib/missions";
+import { orderAchievementsForDisplay, type Mission } from "@/lib/missions";
 
 export interface ProfileDashboardProps {
   data: ProfileResponse;
@@ -22,6 +22,7 @@ export function ProfileDashboard({
   triggerHaptic,
   hasOnPremiseAccess,
 }: ProfileDashboardProps) {
+  const orderedMissions = orderAchievementsForDisplay(missions);
   return (
     <div className="panel mb-5 rounded-[2rem] p-5">
       <div className="flex items-start justify-between gap-4">
@@ -87,7 +88,7 @@ export function ProfileDashboard({
         </div>
 
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden mask-fade-right">
-          {missions.map((mission) => {
+          {orderedMissions.map((mission) => {
             const isUnlocked = mission.isUnlocked(data);
             return (
               <button
@@ -102,8 +103,8 @@ export function ProfileDashboard({
                   className={cn(
                     "relative flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-500 overflow-hidden",
                     isUnlocked
-                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] shadow-[0_0_15px_rgba(216,176,106,0.3)]"
-                      : "border-white/5 bg-white/5 grayscale opacity-30"
+                      ? "border-[#d8b06a] bg-[var(--accent-soft)] shadow-[0_0_15px_rgba(216,176,106,0.45)]"
+                      : "border-[#a9a39a] bg-white/5 grayscale opacity-30 shadow-[0_0_10px_rgba(118,113,104,0.2)]"
                   )}
                 >
                   {mission.image ? (

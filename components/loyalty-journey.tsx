@@ -18,6 +18,7 @@ import { LegendNicknameModal } from "@/components/legend-nickname-modal";
 import { useBookingOverlay } from "@/components/booking-overlay";
 import { BrandedIframe } from "@/components/branded-iframe";
 import { getBirthdayInsight, sortActiveCoupons, formatCouponExpiry, getCouponDisplayCode, getCouponQrValue } from "@/lib/customer-profile";
+import { getRomeCalendarDayDifference } from "@/lib/utils";
 import type { HighlightContent } from "@/lib/highlight-content";
 
 const CiurmaRecognition = dynamic(() => import("@/components/profile-screen").then((module) => module.CiurmaScreen), { ssr: false });
@@ -91,7 +92,14 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
       ? scenario.demoReceiptPending
       : !customer.profile?.unlockedAchievementIds?.includes("assaggiatore-ufficiale");
   }, [loggedIn, now, scenario.enabled, scenario.demoLastVisitDate, scenario.demoReceiptPending, customer.profile?.contact?.DataUltimaVisita, customer.profile?.unlockedAchievementIds]);
-  const surveyEligible = useMemo(() => { if (!loggedIn) return false; const lastVisit = customer.profile?.contact?.DataUltimaVisita; if (scenario.enabled) { const demoTime = Date.parse(scenario.demoLastVisitDate); return !Number.isNaN(demoTime) && now - demoTime <= 3 * 24 * 60 * 60 * 1000 && now >= demoTime; } if (!lastVisit) return false; const elapsed = now - Date.parse(lastVisit); return Number.isFinite(elapsed) && elapsed >= 0 && elapsed <= 3 * 24 * 60 * 60 * 1000; }, [loggedIn, now, scenario.enabled, scenario.demoLastVisitDate, customer.profile?.contact?.DataUltimaVisita]);
+  const surveyEligible = useMemo(() => {
+    if (!loggedIn) return false;
+    const lastVisit = scenario.enabled ? scenario.demoLastVisitDate : customer.profile?.contact?.DataUltimaVisita;
+    const visitTimestamp = Date.parse(lastVisit ?? "");
+    if (Number.isNaN(visitTimestamp)) return false;
+    const daysSinceVisit = getRomeCalendarDayDifference(visitTimestamp, now);
+    return daysSinceVisit >= 1 && daysSinceVisit <= 3;
+  }, [loggedIn, now, scenario.enabled, scenario.demoLastVisitDate, customer.profile?.contact?.DataUltimaVisita]);
   useEffect(() => { if (scenario.enabled) return; fetch("/api/highlights").then((r) => r.ok ? r.json() : null).then((body) => setEditorial(body?.highlight ?? null)).catch(() => setEditorial(null)); }, [scenario.enabled]);
 
   /* â”€â”€ Birthday promo: show for the 14 days before the birthday (and on the day itself).

@@ -4,8 +4,6 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import { pwaConfig, storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
-import { FidelityQrCode } from "@/components/fidelity-qr-code";
-import { getCouponDisplayCode, getCouponQrValue, formatCouponExpiry } from "@/lib/customer-profile";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
@@ -178,6 +176,31 @@ export function PwaInstallCard() {
     return () => window.clearTimeout(timer);
   }, [welcomeChestPreview]);
 
+  useEffect(() => {
+    if (!clientReady || !isInstalled || welcomeRequestedRef.current) return;
+
+    let cancelled = false;
+    void fetch("/api/welcome-chest/status")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { pending?: boolean; identity?: { firstName?: string; email?: string } } | null) => {
+        if (cancelled || !data?.pending || !data.identity?.email) return;
+        const restoredIdentity = {
+          firstName: data.identity.firstName ?? "",
+          email: data.identity.email,
+        };
+        window.localStorage.setItem(welcomeChestRequestedKey, "true");
+        window.localStorage.setItem(welcomeChestIdentityKey, JSON.stringify(restoredIdentity));
+        welcomeRequestedRef.current = true;
+        setFirstName(restoredIdentity.firstName);
+        setEmail(restoredIdentity.email);
+        setWelcomeRequested(true);
+        setShowAsPopup(true);
+      })
+      .catch(() => undefined);
+
+    return () => { cancelled = true; };
+  }, [clientReady, isInstalled]);
+
 
   const prepareChest = useCallback(async (): Promise<boolean> => {
     setBusy(true); setError("");
@@ -269,7 +292,7 @@ export function PwaInstallCard() {
           <p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p>
           <h2 className="text-3xl font-black uppercase italic text-white">Baule aperto</h2>
           <p className="text-sm leading-6 text-[var(--text-muted)]">Hai ricevuto {reward.pointsAwarded} Dobloni e il tuo premio da usare al Tortuga.</p>
-          <div className="rounded-[1.6rem] border border-[rgba(216,176,106,.24)] bg-black/20 p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-[var(--accent-strong)]">{getCouponDisplayCode(reward.coupon).replace(/-/g, " ")}</p><div className="mx-auto mt-3 w-fit rounded-2xl bg-white p-3"><FidelityQrCode value={getCouponQrValue(reward.coupon)} label="QR coupon Baule di benvenuto" variant="coupon" /></div>{reward.coupon.DataScadenza ? <p className="mt-3 text-xs text-[var(--text-muted)]">Valido fino al {formatCouponExpiry(reward.coupon.DataScadenza)}</p> : null}</div>
+          <div className="rounded-[1.6rem] border border-[rgba(216,176,106,.24)] bg-black/20 p-4 text-sm leading-6 text-[var(--text-muted)]">Il coupon con il QR code da mostrare al personale del Tortuga ti arriverà a breve sulla tua email.</div>
           <button type="button" className="button-primary w-full py-3" onClick={() => { window.localStorage.removeItem(welcomeChestRequestedKey); window.localStorage.removeItem(welcomeChestIdentityKey); welcomeRequestedRef.current = false; setWelcomeRequested(false); setShowAsPopup(false); }}>Vai alla mia Ciurma</button>
         </div> : <div className="space-y-5">
           <div><p className="eyebrow text-[var(--accent-strong)]">Baule di benvenuto</p><h2 className="mt-2 text-2xl font-black uppercase italic text-white">Completa l&apos;imbarco</h2><p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Attiva le notifiche e apri il tuo Baule con 5 Dobloni e un premio da mostrare al personale.</p></div>

@@ -52,6 +52,25 @@ export const todayIso = (now = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+/** Returns a Rome calendar date shifted by whole calendar days (not 24-hour intervals). */
+export const getRomeDateIsoWithOffset = (offsetDays: number, now = new Date()) => {
+  const { year, month, day } = getRomeDateParts(now);
+  const shifted = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day) + offsetDays));
+  return shifted.toISOString().slice(0, 10);
+};
+
+/** Difference between two calendar days in Rome, resilient to daylight-saving changes. */
+export const getRomeCalendarDayDifference = (
+  from: Date | string | number,
+  to: Date | string | number = new Date(),
+) => {
+  const start = getRomeDateParts(from);
+  const end = getRomeDateParts(to);
+  const startDay = Date.UTC(Number(start.year), Number(start.month) - 1, Number(start.day));
+  const endDay = Date.UTC(Number(end.year), Number(end.month) - 1, Number(end.day));
+  return Math.round((endDay - startDay) / (24 * 60 * 60 * 1000));
+};
+
 export const formatLongDate = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
     timeZone: ROME_TIME_ZONE,
