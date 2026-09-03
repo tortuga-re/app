@@ -211,7 +211,8 @@ function MissionDetailModal({ missions, initialMissionId, onClose }: { missions:
   const { identity } = useCustomerIdentity();
   const { openBooking, showBookingButton, bookingCtaRef } = useBookingOverlay();
   const carouselRef = useRef<HTMLDivElement | null>(null);
-  const dragRef = useRef<{ pointerId: number; startX: number; startScrollLeft: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startScrollLeft: number; moved: boolean } | null>(null);
+  const suppressClickRef = useRef(false);
   const missionIds = missions.map((mission) => mission.id).join(",");
   const initialIndex = Math.max(0, missions.findIndex((mission) => mission.id === initialMissionId));
   const [activeIndex, setActiveIndex] = useState(initialIndex);
@@ -257,30 +258,38 @@ function MissionDetailModal({ missions, initialMissionId, onClose }: { missions:
       <div
         ref={carouselRef}
         className="achievement-modal-carousel flex w-full cursor-grab select-none active:cursor-grabbing"
-        style={{ overflowX: "hidden", touchAction: "none" }}
+        style={{ overflowX: "auto", scrollSnapType: "none", scrollBehavior: "auto", touchAction: "none" }}
         aria-label="Dettagli delle imprese"
         onPointerDown={(event) => {
-          if ((event.target as HTMLElement).closest("button, a")) return;
           const element = event.currentTarget;
-          dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: element.scrollLeft };
+          dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: element.scrollLeft, moved: false };
           element.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
           const drag = dragRef.current;
           if (!drag || drag.pointerId !== event.pointerId) return;
           event.preventDefault();
-          event.currentTarget.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startX);
+          const distance = event.clientX - drag.startX;
+          if (Math.abs(distance) > 7) drag.moved = true;
+          event.currentTarget.scrollLeft = drag.startScrollLeft - distance;
         }}
         onPointerUp={(event) => {
           const drag = dragRef.current;
           if (!drag || drag.pointerId !== event.pointerId) return;
           dragRef.current = null;
+          suppressClickRef.current = drag.moved;
           finishDrag(event.currentTarget);
         }}
         onPointerCancel={(event) => {
           if (dragRef.current?.pointerId !== event.pointerId) return;
           dragRef.current = null;
           finishDrag(event.currentTarget);
+        }}
+        onClickCapture={(event) => {
+          if (!suppressClickRef.current) return;
+          suppressClickRef.current = false;
+          event.preventDefault();
+          event.stopPropagation();
         }}
       >
         {missions.map((mission) => {
