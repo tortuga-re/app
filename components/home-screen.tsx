@@ -5,7 +5,6 @@ import { useState } from "react";
 import { BookOpen, CalendarDays, ChevronRight, Clock3, Gift, Users, UtensilsCrossed } from "lucide-react";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
-import { useBookingOverlay } from "@/components/booking-overlay";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { useMenuOverlay } from "@/components/menu-overlay";
@@ -15,7 +14,6 @@ import { formatInRome, formatTime } from "@/lib/utils";
 export function HomeScreen() {
   const [now] = useState(() => Date.now());
   const { scenario } = useDemoScenario();
-  const { showBookingButton } = useBookingOverlay();
   const { openMenu, menuCtaRef } = useMenuOverlay();
   const customer = useCurrentCustomerStatus();
   const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
@@ -74,16 +72,14 @@ export function HomeScreen() {
     <section className="minimal-home space-y-5">
       <LoyaltyJourney beforeHighlights={beforeHighlights} />
       <div className="home-actions">
-        {showBookingButton ? (
-          <Link href="/gift">
-            <Gift />
-            <span>
-              <strong>Gift</strong>
-              <small>Regala Tortuga</small>
-            </span>
-            <ChevronRight />
-          </Link>
-        ) : null}
+        <Link href="/gift">
+          <Gift />
+          <span>
+            <strong>Gift</strong>
+            <small>Regala Tortuga</small>
+          </span>
+          <ChevronRight />
+        </Link>
         <Link href="/info#programmazione">
           <UtensilsCrossed />
           <span>
