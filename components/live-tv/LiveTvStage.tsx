@@ -14,7 +14,7 @@ function resolveLiveTvMediaUrl(url?: string | null): string {
   if (url.includes("cropped-TORTUGA-FAVICON-SMALL.png")) return "/images/cropped-TORTUGA-FAVICON-SMALL.png";
   if (url.includes("TOP-3-TRIPADVISOR.png")) return "/images/TOP-3-TRIPADVISOR.png";
   if (url.startsWith("https://tortugabay.it/wp-content/uploads/")) {
-    return url.replace("https://tortugabay.it", "");
+    return url;
   }
   return url;
 }
@@ -344,7 +344,7 @@ function MediaStageItem({
   const { orientation, handleImageLoad, handleVideoLoaded } = useMediaOrientation();
 
   if (!item.mediaUrl || mediaFailed) {
-    return null;
+    return <LogoScreen overlay={overlay} />;
   }
   const title = item.title || "Tortuga Live";
   const titleClass = title.length > 34

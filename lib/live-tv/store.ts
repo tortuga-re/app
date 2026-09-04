@@ -138,7 +138,7 @@ const sanitizeMediaUrl = (url?: string | null): string | undefined => {
   if (url.includes("cropped-TORTUGA-FAVICON-SMALL.png")) return "/images/cropped-TORTUGA-FAVICON-SMALL.png";
   if (url.includes("TOP-3-TRIPADVISOR.png")) return "/images/TOP-3-TRIPADVISOR.png";
   if (url.startsWith("https://tortugabay.it/wp-content/uploads/")) {
-    return url.replace("https://tortugabay.it", "");
+    return url;
   }
   return url;
 };
