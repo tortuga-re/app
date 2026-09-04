@@ -114,6 +114,81 @@ export function PwaInstallCard() {
       welcomeRequestedRef.current = requested;
       setWelcomeRequested(requested);
       if (requested) setShowAsPopup(true);
+
+      // Check URL parameters for post-booking handoff from website
+      try {
+        const url = new URL(window.location.href);
+        const actionParam = url.searchParams.get("action");
+        const emailParam = url.searchParams.get("email");
+        const nameParam = url.searchParams.get("name") || url.searchParams.get("firstName");
+        const phoneParam = url.searchParams.get("phone");
+
+        if ((actionParam === "welcome-chest" || actionParam === "welcome_chest") && emailParam && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailParam.trim())) {
+          const cleanEmail = emailParam.trim().toLowerCase();
+          const cleanName = (nameParam || "").trim();
+          const cleanPhone = (phoneParam || "").trim();
+
+          setFirstName(cleanName);
+          setEmail(cleanEmail);
+          setWelcomeRequested(true);
+          welcomeRequestedRef.current = true;
+          setShowAsPopup(true);
+          window.localStorage.removeItem(storageKeys.installPromptDismissedAt);
+          setInstallDismissedAt(null);
+
+          window.localStorage.setItem(welcomeChestRequestedKey, "true");
+          window.localStorage.setItem(welcomeChestIdentityKey, JSON.stringify({ firstName: cleanName, email: cleanEmail }));
+          window.localStorage.setItem(welcomeChestPendingKey, JSON.stringify({ firstName: cleanName, email: cleanEmail }));
+
+          updateIdentity({
+            email: cleanEmail,
+            firstName: cleanName,
+            phone: cleanPhone,
+            marketingConsent: true,
+          });
+
+          // Clean URL params so they are not retained on reload
+          url.searchParams.delete("action");
+          url.searchParams.delete("email");
+          url.searchParams.delete("name");
+          url.searchParams.delete("firstName");
+          url.searchParams.delete("phone");
+          window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : "") + url.hash);
+
+          // Background auto-login and prepare welcome chest
+          void requestJson<{ profile: ProfileResponse; alreadyClaimed?: boolean }>('/api/welcome-chest/prepare', {
+            method: "POST",
+            body: JSON.stringify({
+              firstName: cleanName,
+              email: cleanEmail,
+              phone: cleanPhone,
+              marketingConsent: true,
+            }),
+          }).then((res) => {
+            if (res?.alreadyClaimed) {
+              window.localStorage.removeItem(welcomeChestRequestedKey);
+              window.localStorage.removeItem(welcomeChestIdentityKey);
+              welcomeRequestedRef.current = false;
+              setWelcomeRequested(false);
+              setShowAsPopup(false);
+            } else if (res?.profile) {
+              updateIdentity({
+                email: cleanEmail,
+                firstName: res.profile.contact?.Nome || cleanName,
+                lastName: res.profile.contact?.Cognome || "",
+                phone: res.profile.contact?.Telefono || cleanPhone,
+                marketingConsent: true,
+              });
+              setChestPrepared(true);
+            }
+            window.dispatchEvent(new Event("tortuga:profile-updated"));
+          }).catch((err) => {
+            console.error("[Welcome Chest Auto-Prepare]", err);
+          });
+        }
+      } catch (e) {
+        console.error("[Welcome Chest URL Parsing]", e);
+      }
     });
 
     const handleBeforeInstall = (event: Event) => {
@@ -205,8 +280,31 @@ export function PwaInstallCard() {
   const prepareChest = useCallback(async (): Promise<boolean> => {
     setBusy(true); setError("");
     try {
-      const response = await requestJson<{ profile: ProfileResponse }>('/api/welcome-chest/prepare', { method: "POST", body: JSON.stringify({ firstName, email, marketingConsent: true }) });
-      updateIdentity({ email, firstName: response.profile.contact?.Nome || firstName, lastName: response.profile.contact?.Cognome || "", phone: response.profile.contact?.Telefono || "", marketingConsent: true });
+      const response = await requestJson<{ profile: ProfileResponse; alreadyClaimed?: boolean }>('/api/welcome-chest/prepare', {
+        method: "POST",
+        body: JSON.stringify({
+          firstName,
+          email,
+          phone: identityRef.current.phone,
+          marketingConsent: true,
+        }),
+      });
+      if (response.alreadyClaimed) {
+        window.localStorage.removeItem(welcomeChestRequestedKey);
+        window.localStorage.removeItem(welcomeChestIdentityKey);
+        welcomeRequestedRef.current = false;
+        setWelcomeRequested(false);
+        setShowAsPopup(false);
+        window.dispatchEvent(new Event("tortuga:profile-updated"));
+        return true;
+      }
+      updateIdentity({
+        email,
+        firstName: response.profile.contact?.Nome || firstName,
+        lastName: response.profile.contact?.Cognome || "",
+        phone: response.profile.contact?.Telefono || identityRef.current.phone || "",
+        marketingConsent: true,
+      });
       window.localStorage.setItem(welcomeChestPendingKey, JSON.stringify({ firstName, email }));
       setChestPrepared(true);
       window.dispatchEvent(new Event("tortuga:profile-updated"));
@@ -273,7 +371,7 @@ export function PwaInstallCard() {
   const mode = useMemo<InstallCardMode | null>(() => {
     if (welcomeChestPreview === "iphone") return "fallback-ios";
     if (welcomeChestPreview === "android") return "prompt";
-    if (!clientReady || isInstalled || (!welcomeRequested && installSnoozed) || !isProbablyMobile || !installFallbackReady) {
+    if (!clientReady || isInstalled || (!welcomeRequested && installSnoozed) || (!welcomeRequested && !isProbablyMobile) || (!welcomeRequested && !installFallbackReady && !isIos)) {
       return null;
     }
     if (promptEvent) return "prompt";

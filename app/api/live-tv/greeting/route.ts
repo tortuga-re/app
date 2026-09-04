@@ -56,6 +56,16 @@ export async function POST(request: Request) {
       payload: greetingPayload,
     });
 
+    // Salva nei saluti persistenti della serata per il live feed
+    try {
+      const { getAppStateJson, setAppStateJson } = await import("@/lib/server/app-state");
+      const existingGreetings = await getAppStateJson<any[]>("live_tv_customer_greetings", []);
+      const nextGreetings = [greetingPayload, ...existingGreetings].slice(0, 50);
+      await setAppStateJson("live_tv_customer_greetings", nextGreetings);
+    } catch (saveErr) {
+      console.warn("[LiveTvGreeting] Impossibile salvare saluto in app_state:", saveErr);
+    }
+
     resetFailedAttempts(ip, "tv_greeting");
 
     return NextResponse.json({

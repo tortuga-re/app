@@ -22,10 +22,11 @@ type RewardRow = {
 
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as
-    | { email?: string; firstName?: string; marketingConsent?: boolean }
+    | { email?: string; firstName?: string; phone?: string; marketingConsent?: boolean }
     | null;
   const email = normalizeEmail(body?.email);
   const firstName = cleanText(body?.firstName);
+  const phone = cleanText(body?.phone);
 
   if (!isValidEmail(email) || !firstName) {
     return NextResponse.json({ error: "Inserisci nome ed email validi." }, { status: 400 });
@@ -43,7 +44,25 @@ export async function POST(request: NextRequest) {
   }
 
   if (existingReward?.status === "completed") {
-    return NextResponse.json({ error: "Questo Baule e gia stato aperto." }, { status: 409 });
+    try {
+      const profile = await getProfileData("email", email);
+      const identity = normalizeCustomerSessionIdentity({
+        email,
+        firstName: profile.contact?.Nome || firstName,
+        lastName: profile.contact?.Cognome || "",
+        phone: profile.contact?.Telefono || phone,
+        marketingConsent: Boolean(body?.marketingConsent),
+      });
+      const response = NextResponse.json({
+        profile,
+        alreadyClaimed: true,
+        isNewCustomer: false,
+        message: "Bentornato a bordo!",
+      });
+      return identity ? attachCustomerSessionCookie(response, identity) : response;
+    } catch {
+      return NextResponse.json({ error: "Questo Baule e gia stato aperto." }, { status: 409 });
+    }
   }
 
   try {
@@ -55,7 +74,7 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName: "",
         email,
-        phone: "",
+        phone,
         marketingConsent: Boolean(body?.marketingConsent),
       });
     }
@@ -82,7 +101,7 @@ export async function POST(request: NextRequest) {
       email,
       firstName: profile.contact.Nome || firstName,
       lastName: profile.contact.Cognome || "",
-      phone: profile.contact.Telefono || "",
+      phone: profile.contact.Telefono || phone,
       marketingConsent: Boolean(body?.marketingConsent),
     });
     const response = NextResponse.json({ profile, isNewCustomer });
