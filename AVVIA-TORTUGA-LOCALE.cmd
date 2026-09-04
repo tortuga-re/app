@@ -25,7 +25,7 @@ echo Lascia aperta questa finestra. Per arrestare il server premi Ctrl+C.
 echo.
 
 start "" powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 4; Start-Process 'http://localhost:3000'"
-"%TORTUGA_NODE%" "node_modules\next\dist\bin\next" dev
+"%TORTUGA_NODE%" "node_modules\next\dist\bin\next" dev --webpack
 
 echo.
 echo Il server Tortuga si e arrestato.

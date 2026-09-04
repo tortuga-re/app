@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listLiveTvCustomerSubmissions } from "@/lib/live-tv/customer-submissions";
+import { findLiveTvMediaFilePath } from "@/lib/live-tv/media-storage";
 import { getAppStateJson } from "@/lib/server/app-state";
 
 export const dynamic = "force-dynamic";
@@ -45,23 +46,38 @@ export async function GET() {
     const isDayOpen = !weekdayPart.includes("lun") && !weekdayPart.includes("mar");
     const isLive = isDayOpen && (hourPart >= 19 || hourPart < 2 || (weekdayPart.includes("dom") && hourPart >= 12 && hourPart <= 15));
 
-    // Normalizza mediaUrl delle foto rendendole assolute
+    // Normalizza mediaUrl delle foto rendendole assolute e verifica esistenza su disco
     const BASE_APP_URL = "https://app.tortugabay.it";
-    const photos = rawSubmissions
-      .filter((sub) => sub.kind === "image" && sub.mediaUrl)
-      .slice(0, 30)
-      .map((sub) => {
-        let fullUrl = sub.mediaUrl;
-        if (fullUrl.startsWith("/")) {
-          fullUrl = `${BASE_APP_URL}${fullUrl}`;
+    const imageSubmissions = rawSubmissions.filter(
+      (sub) => sub.kind === "image" && sub.mediaUrl,
+    );
+
+    const photos: Array<{
+      id: string;
+      mediaUrl: string;
+      uploaderName: string;
+      createdAt: string;
+    }> = [];
+
+    for (const sub of imageSubmissions) {
+      const fileName = sub.fileName || sub.mediaUrl.split("/").pop();
+      if (fileName) {
+        const filePath = await findLiveTvMediaFilePath("image", fileName);
+        if (filePath) {
+          let fullUrl = sub.mediaUrl;
+          if (fullUrl.startsWith("/")) {
+            fullUrl = `${BASE_APP_URL}${fullUrl}`;
+          }
+          photos.push({
+            id: sub.id,
+            mediaUrl: fullUrl,
+            uploaderName: sub.uploaderName || "Ospite al tavolo",
+            createdAt: sub.createdAt,
+          });
         }
-        return {
-          id: sub.id,
-          mediaUrl: fullUrl,
-          uploaderName: sub.uploaderName || "Ospite al tavolo",
-          createdAt: sub.createdAt,
-        };
-      });
+      }
+      if (photos.length >= 30) break;
+    }
 
     const greetings = rawGreetings.slice(0, 30).map((g) => ({
       id: g.id,

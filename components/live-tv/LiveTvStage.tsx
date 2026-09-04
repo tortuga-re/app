@@ -413,21 +413,22 @@ function MediaStageItem({
 }
 
 function MediaPreloader({ item }: { item: LiveTvItem | null }) {
-  if (!item?.mediaUrl) return null;
+  const mediaUrl = resolveLiveTvMediaUrl(item?.mediaUrl);
+  if (!mediaUrl) return null;
 
-  if (item.type === "video") {
+  if (item?.type === "video") {
     return (
       <div className="hidden" aria-hidden="true">
-        <video src={item.mediaUrl} preload="auto" muted playsInline />
+        <video src={mediaUrl} preload="auto" muted playsInline onError={(e) => { e.currentTarget.style.display = "none"; }} />
       </div>
     );
   }
 
-  if (item.type === "image") {
+  if (item?.type === "image") {
     return (
       <div className="hidden" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={item.mediaUrl} alt="" fetchPriority="high" />
+        <img src={mediaUrl} alt="" fetchPriority="high" onError={(e) => { e.currentTarget.style.display = "none"; }} />
       </div>
     );
   }
