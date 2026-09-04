@@ -28,8 +28,8 @@ export const siteConfig = {
   productionUrl: "https://app.tortugabay.it",
   accent: "#b58a4d",
   accentSoft: "#f1d8a1",
-  logoUrl: "https://tortugabay.it/wp-content/uploads/2025/08/cropped-TORTUGA-FAVICON-SMALL.png",
-  ogImageUrl: "https://tortugabay.it/wp-content/uploads/2026/05/LOGO-TORTUGA-2.png",
+  logoUrl: "/images/cropped-TORTUGA-FAVICON-SMALL.png",
+  ogImageUrl: "/images/LOGO-TORTUGA-2.png",
 };
 
 export const analyticsConfig = {
@@ -60,7 +60,7 @@ export const tortugaInfoConfig = {
       description:
         "Il più venduto del Tortuga, oltre 600 al mese, in formula 2x1.",
       imageUrl:
-        "https://tortugabay.it/wp-content/uploads/2026/06/perla-nera-day-mercoledi-tortuga-reggio-emilia.png",
+        "/images/events/perla-nera-day-mercoledi-tortuga-reggio-emilia.png",
       detailUrl: "https://tortugabay.it/mercoledi",
     },
     {
@@ -71,7 +71,7 @@ export const tortugaInfoConfig = {
       description:
         "Vuoi conoscere persone con i tuoi stessi interessi? Tra una risposta e l'altra, potrebbe nascere anche qualcosa di romantico.",
       imageUrl:
-        "https://tortugabay.it/wp-content/uploads/2026/06/giovedi-the-social-game-tortuga-nuove-amicizie-e-conoscenze-a-reggio-emilia.png",
+        "/images/events/giovedi-the-social-game-tortuga-nuove-amicizie-e-conoscenze-a-reggio-emilia.png",
       detailUrl: "https://tortugabay.it/giovedi",
     },
     {
@@ -82,7 +82,7 @@ export const tortugaInfoConfig = {
       description:
         "Quiz, musica, risate e gente che si scatena. Non è solo cena: è il venerdì del Tortuga.",
       imageUrl:
-        "https://tortugabay.it/wp-content/uploads/2026/06/venerdi-kanta-quiz-tortuga-reggio-emilia.png",
+        "/images/events/venerdi-kanta-quiz-tortuga-reggio-emilia.png",
       detailUrl: "https://tortugabay.it/venerdi",
     },
     {
@@ -92,7 +92,7 @@ export const tortugaInfoConfig = {
       title: "LA NOTTE DEL CAPITANO",
       description: "Atmosfera, gioco, musica e ciurma pronta a fare casino.",
       imageUrl:
-        "https://tortugabay.it/wp-content/uploads/2026/06/sabato-notte-del-capitano-cena-con-spettacolo-karaoke-tortuga-reggio-emilia.png",
+        "/images/events/sabato-notte-del-capitano-cena-con-spettacolo-karaoke-tortuga-reggio-emilia.png",
       detailUrl: "https://tortugabay.it/sabato",
     },
     {
@@ -103,7 +103,7 @@ export const tortugaInfoConfig = {
       description:
         "La domenica si chiude con amici e famigliari: tavoli, sfide e cervelli messi alla prova fino all’ultima risposta.",
       imageUrl:
-        "https://tortugabay.it/wp-content/uploads/2026/06/domenica-cervellone-day-quiz-sfida-amici-e-familiari-tortuga-reggio-emilia.png",
+        "/images/events/domenica-cervellone-day-quiz-sfida-amici-e-familiari-tortuga-reggio-emilia.png",
       detailUrl: undefined,
     },
   ],

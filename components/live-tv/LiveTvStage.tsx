@@ -8,6 +8,17 @@ import { getSupabase } from "@/lib/supabase/client";
 
 type LiveTvStageResponse = LiveTvState;
 
+function resolveLiveTvMediaUrl(url?: string | null): string {
+  if (!url) return TORTUGA_LIVE_LOGO_URL;
+  if (url.includes("LOGO-TORTUGA-2.png")) return "/images/LOGO-TORTUGA-2.png";
+  if (url.includes("cropped-TORTUGA-FAVICON-SMALL.png")) return "/images/cropped-TORTUGA-FAVICON-SMALL.png";
+  if (url.includes("TOP-3-TRIPADVISOR.png")) return "/images/TOP-3-TRIPADVISOR.png";
+  if (url.startsWith("https://tortugabay.it/wp-content/uploads/")) {
+    return url.replace("https://tortugabay.it", "");
+  }
+  return url;
+}
+
 function QrBlock({ value, label }: { value: string; label?: string }) {
   const [svgMarkup, setSvgMarkup] = useState("");
 
@@ -302,6 +313,11 @@ function LogoScreen({ overlay, scale = 1 }: { overlay?: LiveTvOverlay | null; sc
         <img
           src={TORTUGA_LIVE_LOGO_URL}
           alt="Logo Tortuga"
+          onError={(e) => {
+            if (e.currentTarget.src !== "/images/LOGO-TORTUGA-2.png") {
+              e.currentTarget.src = "/images/LOGO-TORTUGA-2.png";
+            }
+          }}
           className="max-h-[72vh] w-auto max-w-[72vw] object-contain drop-shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
         />
       </div>
@@ -359,7 +375,7 @@ function MediaStageItem({
             {kind === "image" ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={item.mediaUrl}
+                src={resolveLiveTvMediaUrl(item.mediaUrl)}
                 alt={title}
                 className={`max-h-full max-w-full object-contain transition-opacity duration-500 ${mediaLoaded ? "opacity-100" : "opacity-0"}`}
                 onLoad={(e) => {
@@ -371,7 +387,7 @@ function MediaStageItem({
             ) : (
               <video
                 key={item.id}
-                src={item.mediaUrl}
+                src={resolveLiveTvMediaUrl(item.mediaUrl)}
                 autoPlay
                 muted
                 loop
@@ -507,8 +523,13 @@ function RenderLiveTvItem({
         <div className="flex w-full max-w-[1500px] flex-col items-center gap-4 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={item.mediaUrl || TORTUGA_LIVE_LOGO_URL}
+            src={resolveLiveTvMediaUrl(item.mediaUrl) || TORTUGA_LIVE_LOGO_URL}
             alt={item.title || "Logo Tortuga"}
+            onError={(e) => {
+              if (e.currentTarget.src !== "/images/LOGO-TORTUGA-2.png") {
+                e.currentTarget.src = "/images/LOGO-TORTUGA-2.png";
+              }
+            }}
             className="h-auto w-full max-w-[clamp(18rem,42vw,46rem)] object-contain drop-shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
           />
           {item.body ? (

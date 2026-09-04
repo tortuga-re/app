@@ -23,7 +23,7 @@ export function ReviewsCard() {
           <div className="overflow-hidden rounded-[1.2rem] border border-[rgba(255,216,156,0.2)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://tortugabay.it/wp-content/uploads/2025/09/TOP-3-TRIPADVISOR.png"
+              src="/images/TOP-3-TRIPADVISOR.png"
               alt="Top 3 TripAdvisor"
               className="w-full h-auto object-cover"
               loading="lazy"

@@ -132,11 +132,23 @@ const stampUpdate = (state: LiveTvState, timestamp = nowIso()) => ({
   lastUpdateId: Date.now(),
 });
 
+const sanitizeMediaUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  if (url.includes("LOGO-TORTUGA-2.png")) return "/images/LOGO-TORTUGA-2.png";
+  if (url.includes("cropped-TORTUGA-FAVICON-SMALL.png")) return "/images/cropped-TORTUGA-FAVICON-SMALL.png";
+  if (url.includes("TOP-3-TRIPADVISOR.png")) return "/images/TOP-3-TRIPADVISOR.png";
+  if (url.startsWith("https://tortugabay.it/wp-content/uploads/")) {
+    return url.replace("https://tortugabay.it", "");
+  }
+  return url;
+};
+
 const reindexPlaylist = (playlist: LiveTvItem[]) =>
   [...playlist]
     .sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt))
     .map((item, index) => ({
       ...item,
+      mediaUrl: sanitizeMediaUrl(item.mediaUrl),
       order: index,
     }));
 
@@ -166,7 +178,12 @@ const normalizeState = (state: LiveTvState, timestamp = nowIso()) => {
     playlist: reindexPlaylist(state.playlist),
     activePresetId: state.activePresetId ?? null,
     overlay: state.overlay ?? null,
-    nowPlayingOverride: state.nowPlayingOverride ?? null,
+    nowPlayingOverride: state.nowPlayingOverride
+      ? {
+          ...state.nowPlayingOverride,
+          mediaUrl: sanitizeMediaUrl(state.nowPlayingOverride.mediaUrl),
+        }
+      : null,
     nowPlayingStartedAt: state.nowPlayingStartedAt ?? null,
     currentItemStartedAt: state.currentItemStartedAt || timestamp,
     updatedAt: state.updatedAt || timestamp,

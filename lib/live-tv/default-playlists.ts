@@ -39,8 +39,7 @@ const APP_URL = siteConfig.productionUrl;
 const MENU_URL = tortugaInfoConfig.menuUrl;
 const PROGRAM_URL = tortugaInfoConfig.programmazioneUrl;
 const REVIEW = tortugaInfoConfig.reviews[0];
-export const TORTUGA_LIVE_LOGO_URL =
-  "https://tortugabay.it/wp-content/uploads/2026/05/LOGO-TORTUGA-2.png";
+export const TORTUGA_LIVE_LOGO_URL = "/images/LOGO-TORTUGA-2.png";
 const createId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `live-tv-${Math.random().toString(36).slice(2, 10)}`;
