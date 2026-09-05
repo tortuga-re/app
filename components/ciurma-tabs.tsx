@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -7,6 +7,7 @@ import { Award, CalendarDays, Check, Coins, Gift, LockKeyhole, Skull, Trophy, X 
 
 import { DragCarousel } from "@/components/drag-carousel";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
+import { CiurmaSurveySection } from "@/components/ciurma-survey-section";
 import { RankBadge } from "@/components/rank-badge";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
@@ -158,6 +159,7 @@ export function CiurmaTabs({ initialTab = "rewards" }: { initialTab?: Tab }) {
 
   return <div className="space-y-5">
     <LoyaltyJourney compact />
+    <CiurmaSurveySection />
     <div className="loyalty-tabs" role="tablist">
       <button className={tab === "rewards" ? "active" : ""} onClick={() => setTab("rewards")}><Gift />Premi</button>
       <button className={tab === "ranks" ? "active" : ""} onClick={() => setTab("ranks")}><Award />Ranghi</button>

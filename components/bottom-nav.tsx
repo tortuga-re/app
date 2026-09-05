@@ -61,11 +61,21 @@ function SkullCrossbones({ size = 21, strokeWidth = 1.7 }: { size?: number; stro
   );
 }
 
+function LivePulseDotIcon() {
+  return (
+    <span className="relative flex h-3.5 w-3.5 items-center justify-center my-0.5">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-80" />
+      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
+    </span>
+  );
+}
+
 interface NavItem {
   href: string;
   label: string;
   Icon: ComponentType<{ size?: number; strokeWidth?: number }>;
   isAction?: boolean;
+  isLive?: boolean;
 }
 
 const baseItems: NavItem[] = [
@@ -89,7 +99,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
   if (isAdministrator) {
     navItems.splice(2, 0, { href: "/admin", label: "Plancia", Icon: LayoutDashboard });
   } else if (isOnPremise) {
-    navItems.splice(2, 0, { href: "/stasera", label: "Stasera", Icon: Sparkles });
+    navItems.splice(2, 0, { href: "/stasera", label: "LIVE", Icon: LivePulseDotIcon, isLive: true });
   } else if (showBookingButton) {
     // Inserisce il pulsante Prenota con icona SkullCrossbones al centro.
     navItems.splice(2, 0, { href: "#prenota", label: "Prenota", Icon: SkullCrossbones, isAction: true });
@@ -103,6 +113,7 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
       {navItems.map((item) => {
         const active = pathname === item.href || (item.href === "/admin" && pathname.startsWith("/admin/"));
         const Icon = item.Icon;
+        const isLiveItem = 'isLive' in item && item.isLive;
 
         if ('isAction' in item && item.isAction) {
           return <button
@@ -119,8 +130,22 @@ export function BottomNav({ isVip = false }: { isVip?: boolean }) {
           </button>;
         }
 
-        return <Link key={item.href} href={item.href} prefetch onClick={() => triggerHaptic()} className={cn("minimal-nav-item", active && "active", item.href === "/ciurma" && isVip && "vip")}>
-          <Icon size={21} strokeWidth={active ? 2.2 : 1.7} /><span>{item.label}</span>
+        return <Link
+          key={item.href}
+          href={item.href}
+          prefetch
+          onClick={() => triggerHaptic()}
+          className={cn(
+            "minimal-nav-item",
+            active && "active",
+            item.href === "/ciurma" && isVip && "vip",
+            isLiveItem && "!text-red-500 font-extrabold"
+          )}
+        >
+          <Icon size={21} strokeWidth={active ? 2.2 : 1.7} />
+          <span className={cn(isLiveItem ? "!text-red-500 font-black tracking-wider" : "")}>
+            {item.label}
+          </span>
         </Link>;
       })}
     </nav>

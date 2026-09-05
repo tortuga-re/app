@@ -111,6 +111,8 @@ export type LiveTvCustomerSubmission = {
   resolvedAt?: string | null;
   resolution?: LiveTvCustomerSubmissionResolution;
   linkedAssetId?: string | null;
+  likesCount?: number;
+  likedByDevices?: string[];
 };
 
 export type LiveTvScheduleEntry = {

@@ -1,0 +1,4135 @@
+[
+  {
+    "id": "song-1",
+    "title": "Come mai",
+    "artist": "883",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-2",
+    "title": "Gli anni",
+    "artist": "883",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-3",
+    "title": "Hanno ucciso l'uomo ragno",
+    "artist": "883",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-4",
+    "title": "La dura legge del gol",
+    "artist": "883",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-5",
+    "title": "La lunga estate caldissima",
+    "artist": "883",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-6",
+    "title": "Nord sud ovest est",
+    "artist": "883",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-7",
+    "title": "Sei Fantastica",
+    "artist": "883",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-8",
+    "title": "Tieni il Tempo",
+    "artist": "883",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-9",
+    "title": "Una canzone d'amore",
+    "artist": "883",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-10",
+    "title": "Amor",
+    "artist": "Achille Lauro",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-11",
+    "title": "Amore disperato",
+    "artist": "Achille Lauro",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-12",
+    "title": "Incoscienti giovani",
+    "artist": "Achille Lauro",
+    "genre": "ROCK",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-13",
+    "title": "Perdutamente",
+    "artist": "Achille Lauro",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-14",
+    "title": "Fragole",
+    "artist": "Achille Lauro ft Rose Villain",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-15",
+    "title": "Azzurro",
+    "artist": "Adriano Celentano",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-16",
+    "title": "Una carezza in un pugno",
+    "artist": "Adriano Celentano",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-17",
+    "title": "Ricominciamo",
+    "artist": "Adriano Pappalardo",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-18",
+    "title": "Tu sei l'unica donna per me",
+    "artist": "Alan Sorrenti",
+    "genre": "DANCE",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-19",
+    "title": "Felicità",
+    "artist": "Albano e Romina",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-20",
+    "title": "Non amarmi",
+    "artist": "Aleandro Baldi e Francesca Alotta",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-21",
+    "title": "Comunque andare",
+    "artist": "Alessandra Amoroso",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-22",
+    "title": "Immobile",
+    "artist": "Alessandra Amoroso",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-23",
+    "title": "Mezzo rotto",
+    "artist": "Alessandra Amoroso",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-24",
+    "title": "Si mette male",
+    "artist": "Alessandra Amoroso",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-25",
+    "title": "Urlo e non mi senti",
+    "artist": "Alessandra Amoroso",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-26",
+    "title": "Karaoke",
+    "artist": "Amoroso-Boomdabash",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-27",
+    "title": "Me so 'mbriacato",
+    "artist": "Alessandro Mannarino",
+    "genre": "AMARCORD",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-28",
+    "title": "7000 caffè",
+    "artist": "Alex Britti",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-29",
+    "title": "Oggi sono io",
+    "artist": "Alex Britti",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-30",
+    "title": "Una su un milione",
+    "artist": "Alex Britti",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-31",
+    "title": "Bellissimissima",
+    "artist": "Alfa",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-32",
+    "title": "Il filo rosso",
+    "artist": "Alfa",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-33",
+    "title": "Vabbè ciao",
+    "artist": "Alfa",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-34",
+    "title": "A me mi piace",
+    "artist": "Alfa feat Manu Chao",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-35",
+    "title": "Sofia",
+    "artist": "Alvaro Soler",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-36",
+    "title": "T'appartengo",
+    "artist": "Ambra Angiolini",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-37",
+    "title": "Vattene amore",
+    "artist": "Amedeo Minghi e Mietta",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-38",
+    "title": "Vivo per lei",
+    "artist": "Andrea Bocelli e Giorgia",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-39",
+    "title": "Abbracciame",
+    "artist": "Andrea Sannino",
+    "genre": "AMARCORD",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-40",
+    "title": "Ci pensiamo domani",
+    "artist": "Angelina Mango",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-41",
+    "title": "La noia",
+    "artist": "Angelina Mango",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-42",
+    "title": "Tu si a fine do munno",
+    "artist": "Angelo Famao",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-43",
+    "title": "Desolee",
+    "artist": "Anna",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-44",
+    "title": "Un'emozione da poco",
+    "artist": "Anna Oxa",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-45",
+    "title": "Ti lascerò",
+    "artist": "Anna Oxa e Fausto Leali",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-46",
+    "title": "30°",
+    "artist": "Anna Pepe",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-47",
+    "title": "Ragazza di periferia",
+    "artist": "Anna Tatangelo",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-48",
+    "title": "Bellissima",
+    "artist": "Annalisa",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-49",
+    "title": "Canzone estiva",
+    "artist": "Annalisa",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-50",
+    "title": "Esibizionista",
+    "artist": "Annalisa",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-51",
+    "title": "Maschio",
+    "artist": "Annalisa",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-52",
+    "title": "Mon amour",
+    "artist": "Annalisa",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-53",
+    "title": "Sinceramente",
+    "artist": "Annalisa",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-54",
+    "title": "Storie brevi",
+    "artist": "Annalisa e Tananai",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-55",
+    "title": "Notte prima degli esami",
+    "artist": "Antonello Venditti",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-56",
+    "title": "La notte",
+    "artist": "Arisa",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-57",
+    "title": "Domani smetto",
+    "artist": "Articolo 31",
+    "genre": "RAP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-58",
+    "title": "Ohi Maria",
+    "artist": "Articolo 31",
+    "genre": "HIP HOP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-59",
+    "title": "Obsesion",
+    "artist": "Aventura",
+    "genre": "DANCE",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-60",
+    "title": "Da zero a cento",
+    "artist": "Baby K",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-61",
+    "title": "Non mi basta più",
+    "artist": "Baby K",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-62",
+    "title": "Roma Bangkok",
+    "artist": "Baby K ft Giusy Ferreri",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-63",
+    "title": "I Want It That Way",
+    "artist": "Backstreet Boys",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-64",
+    "title": "Bam Bam",
+    "artist": "Banfy ft. Sheridan",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-65",
+    "title": "Dove e quando",
+    "artist": "Benji & Fede",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-66",
+    "title": "Mille",
+    "artist": "Berti-Fedez-Lauro",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-67",
+    "title": "Iris",
+    "artist": "Biagio Antonacci",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-68",
+    "title": "Non vivo più senza te",
+    "artist": "Biagio Antonacci",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-69",
+    "title": "Quanto tempo e ancora",
+    "artist": "Biagio Antonacci",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-70",
+    "title": "Piangere a 90",
+    "artist": "Blanco",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-71",
+    "title": "Sfera Ebbasta - Mi fai impazzire",
+    "artist": "Blanco",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-72",
+    "title": "A chi mi dice",
+    "artist": "Blue",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-73",
+    "title": "Ti Sento",
+    "artist": "Bob Sinclair & Matia Bazar",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-74",
+    "title": "Una lacrima sul viso",
+    "artist": "Bobby Solo",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-75",
+    "title": "It's my life",
+    "artist": "Bon Jovi",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-76",
+    "title": "Tropicana",
+    "artist": "Boomdabash e Annalisa",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-77",
+    "title": "La tana del granchio",
+    "artist": "Bresh",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-78",
+    "title": "Fuori dal tunnel",
+    "artist": "Caparezza",
+    "genre": "HIP HOP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-79",
+    "title": "E' qui l'Africa",
+    "artist": "Carnevale Sciacca",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-80",
+    "title": "La Bufala non...",
+    "artist": "Carnevale Sciacca",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-81",
+    "title": "Le false verità",
+    "artist": "Carnevale Sciacca",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-82",
+    "title": "Schiuma di Bocca",
+    "artist": "Carnevale Sciacca",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-83",
+    "title": "Schumi Di Lacrime",
+    "artist": "Carnevale Sciacca",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-84",
+    "title": "All' Arrembaggio!",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-85",
+    "title": "C'era una volta Pollon",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-86",
+    "title": "Daitarn 3",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-87",
+    "title": "Dragon Ball Gt",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-88",
+    "title": "Heidi",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-89",
+    "title": "Il grande Mazinga",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-90",
+    "title": "Jeeg robot d'acciaio",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-91",
+    "title": "Ken il guerriero",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-92",
+    "title": "Lady Oscar",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-93",
+    "title": "Lamù",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-94",
+    "title": "Lupin - L'incorregibile Lupin",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-95",
+    "title": "Magica, magica Emi",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-96",
+    "title": "Mila e Shiro due cuori nella pallavolo",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-97",
+    "title": "Naruto - Io credo in me",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-98",
+    "title": "Noi Puffi siam così",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-99",
+    "title": "Occhi di gatto",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-100",
+    "title": "Pokemon - Gotta catch 'em all",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-101",
+    "title": "Sailor Moon",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-102",
+    "title": "Ufo Robot",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-103",
+    "title": "What's my destiny Dragon Ball",
+    "artist": "Cartoni Animati",
+    "genre": "CARTONI",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-104",
+    "title": "Nessuno mi può giudicare",
+    "artist": "Caterina Caselli",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-105",
+    "title": "Iu Nun Ti Pozzu Amari",
+    "artist": "Cecè Barretta",
+    "genre": "AMARCORD",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-106",
+    "title": "U vinu di Cirò",
+    "artist": "Cecè Barretta",
+    "genre": "AMARCORD",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-107",
+    "title": "My heart will go on",
+    "artist": "Celine Dion",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-108",
+    "title": "La nuova stella di Broadway",
+    "artist": "Cesare Cremonini",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-109",
+    "title": "Ora che non ho più te",
+    "artist": "Cesare Cremonini",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-110",
+    "title": "Angela",
+    "artist": "Checco Zalone",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-111",
+    "title": "I uomini sessuali",
+    "artist": "Checco Zalone",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-112",
+    "title": "Lo sto sognando",
+    "artist": "Checco Zalone",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-113",
+    "title": "Siamo una squadra fortissimi",
+    "artist": "Checco Zalone",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-114",
+    "title": "Non succederà più",
+    "artist": "Claudia Mori",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-115",
+    "title": "Avrai",
+    "artist": "Claudio Baglioni",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-116",
+    "title": "Mille giorni di te e di me",
+    "artist": "Claudio Baglioni",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-117",
+    "title": "Questo piccolo grande amore",
+    "artist": "Claudio Baglioni",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-118",
+    "title": "Strada facendo",
+    "artist": "Claudio Baglioni",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-119",
+    "title": "Gioca Jouer",
+    "artist": "Claudio Cecchetto",
+    "genre": "DANCE",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-120",
+    "title": "P.E.S.",
+    "artist": "Club Dogo ft Giuliano Palma",
+    "genre": "HIP HOP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-121",
+    "title": "La musica non c'è",
+    "artist": "Coez",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-122",
+    "title": "Musica leggerissima",
+    "artist": "Colapesce Dimartino",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-123",
+    "title": "La Gelosia",
+    "artist": "Coma Cose",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-124",
+    "title": "Cuoricini",
+    "artist": "Coma_Cose",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-125",
+    "title": "Malavita",
+    "artist": "Coma_Cose",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-126",
+    "title": "Limbo",
+    "artist": "Daddy Yankee",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-127",
+    "title": "Salirò",
+    "artist": "Daniele Silvestri",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-128",
+    "title": "Dove si balla",
+    "artist": "Dargen D'Amico",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-129",
+    "title": "Onda alta",
+    "artist": "Dargen D'Amico",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-130",
+    "title": "L'amico è",
+    "artist": "Dario Baldan Bembo",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-131",
+    "title": "Heroes",
+    "artist": "David Bowie",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-132",
+    "title": "Fai rumore",
+    "artist": "Diodato",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-133",
+    "title": "Aladdin - Il mondo è mio",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-134",
+    "title": "Aladdin - Notti D'Oriente",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-135",
+    "title": "Biancaneve e i sette nani",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-136",
+    "title": "Cenerentola - I sogni son desideri",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-137",
+    "title": "Coco - In ogni parte del mio cuor",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-138",
+    "title": "Coco - Un poco loco",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-139",
+    "title": "Encanto - Non si nomina Bruno",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-140",
+    "title": "Frozen - All'alba sorgerò",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-141",
+    "title": "Frozen - Facciamo un Pupazzo insieme?",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-142",
+    "title": "Frozen - La Mia Occasione",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-143",
+    "title": "Frozen - Oggi, per la Prima Volta",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-144",
+    "title": "Frozen 2 - Mostrati",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-145",
+    "title": "Hercules - Ti vada o no",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-146",
+    "title": "Il pianeta del tesoro - Ci sono anch'io",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-147",
+    "title": "Il Re Leone - Hakuna Matata",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-148",
+    "title": "Il Re Leone - Il cerchio della vita",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-149",
+    "title": "Il re leone - Voglio diventar presto un re",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-150",
+    "title": "La bella e la bestia - Duetto",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-151",
+    "title": "La bella e la bestia - E' una storia sai",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-152",
+    "title": "La bella e la bestia - Stia con noi",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-153",
+    "title": "La sirenetta - In fondo al mar",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-154",
+    "title": "Mary Poppins - Un poco di zucchero",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-155",
+    "title": "Mulan - Farò di te un uomo",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-156",
+    "title": "Nightmare before christmas",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-157",
+    "title": "Oceania - Oltre l'orizzonte",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-158",
+    "title": "Pocahontas - I colori del vento",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-159",
+    "title": "Tarzan - In tuo figlio",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-160",
+    "title": "Toy Story - Un amico in me",
+    "artist": "Disney",
+    "genre": "DISNEY",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-161",
+    "title": "La canzone del capitano",
+    "artist": "Dj Francesco",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-162",
+    "title": "Danza Kuduro",
+    "artist": "Don Omar ft. Lucenzo",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-163",
+    "title": "Il gatto e la volpe",
+    "artist": "Edoardo Bennato",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-164",
+    "title": "Sono solo canzonette",
+    "artist": "Edoardo Bennato",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-165",
+    "title": "Ancora",
+    "artist": "Edoardo De Crescenzo",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-166",
+    "title": "I Watussi",
+    "artist": "Edoardo Vianello",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-167",
+    "title": "Alfredo Mazzucchi",
+    "artist": "Eduardo Di Capua",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-168",
+    "title": "Blue (da ba dee)",
+    "artist": "Eiffel 65",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-169",
+    "title": "Pistolero",
+    "artist": "Elettra Lamborghini",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-170",
+    "title": "Luce",
+    "artist": "Elisa",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-171",
+    "title": "Margarita",
+    "artist": "Elodie & Marracash",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-172",
+    "title": "Black Nirvana",
+    "artist": "Elodie",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-173",
+    "title": "Ciclone",
+    "artist": "Elodie e Takagi & Ketra",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-174",
+    "title": "L'amore non mi basta",
+    "artist": "Emma",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-175",
+    "title": "Gente De Zona",
+    "artist": "Enrique Iglesias",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-176",
+    "title": "Superclassico",
+    "artist": "Ernia",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-177",
+    "title": "Adesso tu",
+    "artist": "Eros Ramazzotti",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-178",
+    "title": "Più bella cosa",
+    "artist": "Eros Ramazzotti",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-179",
+    "title": "Terra Promessa",
+    "artist": "Eros Ramazzotti",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-180",
+    "title": "Domo Mia",
+    "artist": "Eros Ramazzotti Feat Tazenda",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-181",
+    "title": "Andiamo a comandare",
+    "artist": "Fabio Rovazzi",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-182",
+    "title": "Applausi per Fibra",
+    "artist": "FABRI FIBRA",
+    "genre": "HIP HOP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-183",
+    "title": "In Italia",
+    "artist": "Fabri Fibra",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-184",
+    "title": "Che gusto c'è",
+    "artist": "Fabri Fibra ft. Tredici Pietro",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-185",
+    "title": "Battito",
+    "artist": "Fedez",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-186",
+    "title": "La dolce vita",
+    "artist": "Fedez, Mara Sattei e Tananai",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-187",
+    "title": "Disco paradise",
+    "artist": "Fedez-Annalisa-Articolo31",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-188",
+    "title": "Non voglio mica la luna",
+    "artist": "Fiordaliso",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-189",
+    "title": "Quello che le donne non dicono",
+    "artist": "Fiorella Mannoia",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-190",
+    "title": "Francesco D'Aleo feat Daniele de Martino",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-191",
+    "title": "La donna cannone",
+    "artist": "Francesco De Gregori",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-192",
+    "title": "Vasco Rossi",
+    "artist": "Francesco De Gregori",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-193",
+    "title": "Occidentali's Karma",
+    "artist": "Francesco Gabbani",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-194",
+    "title": "Raccontami",
+    "artist": "Francesco Renga",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-195",
+    "title": "Tracce di te",
+    "artist": "Francesco Renga",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-196",
+    "title": "Centro di gravità permanente",
+    "artist": "Franco Battiato",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-197",
+    "title": "La Cura",
+    "artist": "Franco Battiato",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-198",
+    "title": "Tutto il resto è noia",
+    "artist": "Franco Califano",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-199",
+    "title": "Trapanarella",
+    "artist": "Franco Staco",
+    "genre": "AMARCORD",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-200",
+    "title": "Barrio lambada",
+    "artist": "Fred De Palma",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-201",
+    "title": "D'estate non vale",
+    "artist": "Fred De Palma ft. Ana Mena",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-202",
+    "title": "Una volta ancora",
+    "artist": "Fred De Palma ft. Ana Mena",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-203",
+    "title": "Fred de Palma, Anitta, Emis Killa",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-204",
+    "title": "La Danza Delle Streghe",
+    "artist": "Gabry Ponte",
+    "genre": "DANCE",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-205",
+    "title": "Ma che ne sanno i 2000",
+    "artist": "Gabry Ponte",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-206",
+    "title": "Tutta L'Italia",
+    "artist": "Gabry Ponte",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-207",
+    "title": "Freed from desire",
+    "artist": "Gala",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-208",
+    "title": "Mary",
+    "artist": "Gemelli Diversi",
+    "genre": "HIP HOP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-209",
+    "title": "Un attimo ancora",
+    "artist": "Gemelli Diversi",
+    "genre": "RAP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-210",
+    "title": "L'ultima poesia",
+    "artist": "Geolier feat Ultimo",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-211",
+    "title": "Barcellona",
+    "artist": "Ghali",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-212",
+    "title": "Cara italia",
+    "artist": "Ghali",
+    "genre": "HIP HOP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-213",
+    "title": "Niente panico",
+    "artist": "Ghali",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-214",
+    "title": "L'aiuola",
+    "artist": "Gianluca Grignani",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-215",
+    "title": "La mia storia tra le dita",
+    "artist": "Gianluca Grignani",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-216",
+    "title": "America",
+    "artist": "Gianna Nannini",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-217",
+    "title": "Meravigliosa Creatura",
+    "artist": "Gianna Nannini",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-218",
+    "title": "Sei nell'anima",
+    "artist": "Gianna Nannini",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-219",
+    "title": "Fiky Fiky",
+    "artist": "Gianni Drudi",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-220",
+    "title": "C'era un ragazzo",
+    "artist": "Gianni Morandi",
+    "genre": "ROCK",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-221",
+    "title": "Grazie perchè",
+    "artist": "Gianni Morandi",
+    "genre": "AMARCORD",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-222",
+    "title": "Bandiera Gialla",
+    "artist": "Gianni Pettenati",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-223",
+    "title": "Luna",
+    "artist": "Gianni Togni",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-224",
+    "title": "L'amour toujours",
+    "artist": "Gigi D'Agostino",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-225",
+    "title": "Mon Amour",
+    "artist": "Gigi D'Alessio",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-226",
+    "title": "Un nuovo bacio",
+    "artist": "Gigi D'Alessio e Anna Tatangelo",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-227",
+    "title": "Il cielo in una stanza",
+    "artist": "Gino Paoli",
+    "genre": "POP",
+    "decade": "Anni '50",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-228",
+    "title": "Di sole e d'azzurro",
+    "artist": "Giorgia",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-229",
+    "title": "La cura per me",
+    "artist": "Giorgia",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-230",
+    "title": "Il ballo di Simone",
+    "artist": "Giuliano dei Notturni",
+    "genre": "DANCE",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-231",
+    "title": "Un'estate al mare",
+    "artist": "Giuni Russo",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-232",
+    "title": "Faccia di trudda",
+    "artist": "Giuseppe Manca",
+    "genre": "AMARCORD",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-233",
+    "title": "Amore e Capoeira",
+    "artist": "Giusy Ferreri",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-234",
+    "title": "Tropicana",
+    "artist": "Gruppo Italiano",
+    "genre": "DANCE",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-235",
+    "title": "GUE FEAT. ANNA E SFERA EBBASTA",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-236",
+    "title": "Knockin' on Heaven's Door",
+    "artist": "Guns N' Roses",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-237",
+    "title": "Sweet child o' mine",
+    "artist": "Guns N' Roses",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-238",
+    "title": "Cicale",
+    "artist": "Heather Parisi",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-239",
+    "title": "Made in...",
+    "artist": "I desideri feat Clementino",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-240",
+    "title": "Settimana Bianca",
+    "artist": "Il Pagante",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-241",
+    "title": "Grande amore",
+    "artist": "Il Volo",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-242",
+    "title": "LENTAMENTE",
+    "artist": "IRAMA",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-243",
+    "title": "Nera",
+    "artist": "Irama",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-244",
+    "title": "La mia banda suona il rock",
+    "artist": "Ivano Fossati",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-245",
+    "title": "You're Beautiful",
+    "artist": "James Blunt",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-246",
+    "title": "Senza pagare",
+    "artist": "J-Ax e Fedez",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-247",
+    "title": "Vorrei ma non posto",
+    "artist": "J-Ax e Fedez",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-248",
+    "title": "Maria Salvador",
+    "artist": "J-Ax ft. Il Cile",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-249",
+    "title": "A te",
+    "artist": "Jovanotti",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-250",
+    "title": "Un raggio di sole",
+    "artist": "JOVANOTTI",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-251",
+    "title": "Se mi lasci non vale",
+    "artist": "Julio Iglesias",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-252",
+    "title": "Nuovo Range",
+    "artist": "Junior K, Sfera Ebbasta, Rkomi",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-253",
+    "title": "La Bomba",
+    "artist": "King Africa",
+    "genre": "DANCE",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-254",
+    "title": "Ciao ciao",
+    "artist": "La Rappresentante di Lista",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-255",
+    "title": "Sotto questo sole",
+    "artist": "Ladri di biciclette",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-256",
+    "title": "Abracadabra",
+    "artist": "Lady Gaga",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-257",
+    "title": "Shallow",
+    "artist": "Lady Gaga feat Bradley Cooper",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-258",
+    "title": "Asereje",
+    "artist": "Las Ketchup4",
+    "genre": "DANCE",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-259",
+    "title": "E ritorno da te",
+    "artist": "Laura Pausini",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-260",
+    "title": "Incancellabile",
+    "artist": "Laura Pausini",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-261",
+    "title": "La solitudine",
+    "artist": "Laura Pausini",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-262",
+    "title": "Non c'è",
+    "artist": "Laura Pausini",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-263",
+    "title": "Tra te e il mare",
+    "artist": "Laura Pausini",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-264",
+    "title": "100 Messaggi",
+    "artist": "Lazza",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-265",
+    "title": "Cenere",
+    "artist": "Lazza",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-266",
+    "title": "Molotov",
+    "artist": "Lazza",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-267",
+    "title": "Vieni da me",
+    "artist": "Le Vibrazioni",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-268",
+    "title": "Balliamo sul mondo",
+    "artist": "Ligabue",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-269",
+    "title": "Certe Notti",
+    "artist": "Ligabue",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-270",
+    "title": "Le Donne lo Sanno",
+    "artist": "Ligabue",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-271",
+    "title": "Urlando contro il cielo",
+    "artist": "Ligabue",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-272",
+    "title": "Happy Hour",
+    "artist": "Luciano Ligabue",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-273",
+    "title": "Regina di Cuori",
+    "artist": "Litfiba",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-274",
+    "title": "E la luna bussò",
+    "artist": "Loredana Bertè",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-275",
+    "title": "Non sono una signora",
+    "artist": "Loredana Bertè",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-276",
+    "title": "La notte vola",
+    "artist": "Lorella Cuccarini",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-277",
+    "title": "Maledetta Primavera",
+    "artist": "Loretta Goggi",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-278",
+    "title": "Macarena",
+    "artist": "Los Del Rio",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-279",
+    "title": "Maracaibo",
+    "artist": "Lu Colombo",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-280",
+    "title": "Calma e sangue freddo",
+    "artist": "Luca Dirisio",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-281",
+    "title": "Acqua azzurra, acqua chiara",
+    "artist": "Lucio Battisti",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-282",
+    "title": "Con il nastro rosa",
+    "artist": "Lucio Battisti",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-283",
+    "title": "Dieci Ragazze",
+    "artist": "Lucio Battisti",
+    "genre": "HIP HOP",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-284",
+    "title": "La Canzone del Sole",
+    "artist": "Lucio Battisti",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-285",
+    "title": "Un' avventura",
+    "artist": "Lucio Battisti",
+    "genre": "HIP HOP",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-286",
+    "title": "Volevo essere un duro",
+    "artist": "Lucio Corsi",
+    "genre": "ROCK",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-287",
+    "title": "Attenti al lupo",
+    "artist": "Lucio Dalla",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-288",
+    "title": "Canzone",
+    "artist": "Lucio Dalla",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-289",
+    "title": "Caruso",
+    "artist": "Lucio Dalla",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-290",
+    "title": "L'anno che verrà",
+    "artist": "Lucio Dalla",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-291",
+    "title": "Piazza grande",
+    "artist": "Lucio Dalla",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-292",
+    "title": "Despacito",
+    "artist": "Luis Fonsi",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-293",
+    "title": "50 Special",
+    "artist": "Lunapop",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-294",
+    "title": "Ra ta ta",
+    "artist": "Mahmood",
+    "genre": "AMARCORD",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-295",
+    "title": "Tuta Gold",
+    "artist": "Mahmood",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-296",
+    "title": "Torna a casa",
+    "artist": "Maneskin",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-297",
+    "title": "Teorema",
+    "artist": "Marco Ferradini",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-298",
+    "title": "Due vite",
+    "artist": "Marco Mengoni",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-299",
+    "title": "Ragione e sentimento",
+    "artist": "Maria Nazionale",
+    "genre": "AMARCORD",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-300",
+    "title": "Primavera",
+    "artist": "Marina Rei",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-301",
+    "title": "Voglio vederti danzare",
+    "artist": "Marvin ft. Prezioso",
+    "genre": "DANCE",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-302",
+    "title": "Perdere l'amore",
+    "artist": "Massimo Ranieri",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-303",
+    "title": "Rose rosse",
+    "artist": "Massimo Ranieri",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-304",
+    "title": "Se bruciasse la città",
+    "artist": "Massimo Ranieri",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-305",
+    "title": "Massimo Ranieri feat Roby Santini",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-306",
+    "title": "Bambola",
+    "artist": "Matteo Milazzo",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-307",
+    "title": "Zeta reticoli",
+    "artist": "Meganoidi",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-308",
+    "title": "Almeno tu nell'universo",
+    "artist": "Mia Martini",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-309",
+    "title": "Gli uomini non cambiano",
+    "artist": "Mia Martini",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-310",
+    "title": "Ai se eu te pego",
+    "artist": "Michael Telo",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-311",
+    "title": "Cinque Giorni",
+    "artist": "Michele Zarrillo",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-312",
+    "title": "La notte dei pensieri",
+    "artist": "Michele Zarrillo",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-313",
+    "title": "Una Rosa blu",
+    "artist": "Michele Zarrillo",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-314",
+    "title": "Celentano - Acqua e sale",
+    "artist": "Mina",
+    "genre": "AMARCORD",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-315",
+    "title": "Ancora ancora ancora",
+    "artist": "Mina (Mark Ronson Remix)",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-316",
+    "title": "Come un pittore",
+    "artist": "Modà",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-317",
+    "title": "La notte",
+    "artist": "Modà",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-318",
+    "title": "Tappeto di fragole",
+    "artist": "Modà",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-319",
+    "title": "Arriverà",
+    "artist": "Modà feat Emma",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-320",
+    "title": "Cuore e vento",
+    "artist": "Modà ft. Tazenda",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-321",
+    "title": "Nel blu dipinto di blu",
+    "artist": "Modugno feat Roby Santini",
+    "genre": "POP",
+    "decade": "Anni '50",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-322",
+    "title": "Supereroi",
+    "artist": "Mr. Rain",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-323",
+    "title": "Ma che freddo fà",
+    "artist": "Nada",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-324",
+    "title": "Bennato - Un'estate italiana",
+    "artist": "Nannini",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-325",
+    "title": "A natale puoi",
+    "artist": "NATALE",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-326",
+    "title": "All I want for Christmas is you",
+    "artist": "NATALE",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-327",
+    "title": "Last Christmas",
+    "artist": "NATALE",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-328",
+    "title": "Estate",
+    "artist": "Negramaro",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-329",
+    "title": "Meraviglioso",
+    "artist": "Negramaro",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-330",
+    "title": "Mama Maé",
+    "artist": "Negrita",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-331",
+    "title": "Almeno stavolta",
+    "artist": "Nek",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-332",
+    "title": "Se telefonando",
+    "artist": "Nek",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-333",
+    "title": "Se una regola c'è",
+    "artist": "Nek",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-334",
+    "title": "Marì",
+    "artist": "Nino D'Angelo",
+    "genre": "AMARCORD",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-335",
+    "title": "Io Vagabondo",
+    "artist": "Nomadi",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-336",
+    "title": "Io voglio vivere",
+    "artist": "Nomadi",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-337",
+    "title": "Balorda nostalgia",
+    "artist": "Olly",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-338",
+    "title": "Depresso fortunato",
+    "artist": "Olly",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-339",
+    "title": "Questa domenica",
+    "artist": "Olly",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-340",
+    "title": "Per due come noi",
+    "artist": "Olly feat. Angelina Mango",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-341",
+    "title": "Vamos a bailar",
+    "artist": "Paola e Chiara",
+    "genre": "DANCE",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-342",
+    "title": "Balla (Come sei bella)",
+    "artist": "Paps'n'Skar",
+    "genre": "DANCE",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-343",
+    "title": "La bambola",
+    "artist": "Patty Pravo",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-344",
+    "title": "Champagne",
+    "artist": "Peppino di Capri",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-345",
+    "title": "Bergamo",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-346",
+    "title": "Islanda",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-347",
+    "title": "La storia infinita",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-348",
+    "title": "Pastello bianco",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-349",
+    "title": "Romantico ma muori",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "ROCK",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-350",
+    "title": "Rubami la notte",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-351",
+    "title": "Scrivile scemo",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "ROCK",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-352",
+    "title": "Tetris",
+    "artist": "Pinguini Tattici Nucleari",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-353",
+    "title": "Pinguini Tattici Nucleari feat Max Pezzali",
+    "genre": "ROCK",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-354",
+    "title": "Wish You were here",
+    "artist": "Pink Floyd",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-355",
+    "title": "Amore senza fine",
+    "artist": "Pino Daniele",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-356",
+    "title": "Je so' pazzo",
+    "artist": "Pino Daniele",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-357",
+    "title": "Stare bene a metà",
+    "artist": "Pino Daniele",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-358",
+    "title": "Vento di passione",
+    "artist": "Pino Daniele",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-359",
+    "title": "Io che non vivo (senza te)",
+    "artist": "Pino Donaggio",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-360",
+    "title": "Tanta voglia di lei",
+    "artist": "Pooh",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-361",
+    "title": "Gelato al cioccolato",
+    "artist": "Pupo",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-362",
+    "title": "Su di noi",
+    "artist": "Pupo",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-363",
+    "title": "A far l'amore comincia tu",
+    "artist": "Raffaella Carrà",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-364",
+    "title": "Ballo ballo",
+    "artist": "Raffaella Carra'",
+    "genre": "CARTONI",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-365",
+    "title": "Pedro",
+    "artist": "Raffaella Carrà",
+    "genre": "DANCE",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-366",
+    "title": "Tanti auguri",
+    "artist": "Raffaella Carrà",
+    "genre": "CARTONI",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-367",
+    "title": "I migliori anni della nostra vita",
+    "artist": "Renato Zero",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-368",
+    "title": "Mentre aspetto che ritorni",
+    "artist": "Renato Zero",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-369",
+    "title": "Triangolo",
+    "artist": "Renato Zero",
+    "genre": "DANCE",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-370",
+    "title": "Cacao meravigliao",
+    "artist": "Renzo Arbore",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-371",
+    "title": "Margherita",
+    "artist": "Riccardo Cocciante",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-372",
+    "title": "Storie di tutti i giorni",
+    "artist": "Riccardo Fogli",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-373",
+    "title": "Sarà perchè ti amo",
+    "artist": "Ricchi & Poveri",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-374",
+    "title": "Ma non tutta la vita",
+    "artist": "Ricchi e Poveri",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-375",
+    "title": "Mamma Maria",
+    "artist": "Ricchi e Poveri",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-376",
+    "title": "A mano a mano",
+    "artist": "Rino Gaetano",
+    "genre": "AMARCORD",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-377",
+    "title": "Gianna",
+    "artist": "Rino Gaetano",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-378",
+    "title": "Ma il cielo è sempre più blu",
+    "artist": "Rino Gaetano",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-379",
+    "title": "Il ballo del mattone",
+    "artist": "Rita Pavone",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-380",
+    "title": "Voglio una donna",
+    "artist": "Roberto Vecchioni",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-381",
+    "title": "Mille volte ancora",
+    "artist": "Rocco Hunt",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-382",
+    "title": "Non litighiamo più",
+    "artist": "Rocco Hunt",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-383",
+    "title": "Ti volevo dedicare",
+    "artist": "Rocco Hunt",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-384",
+    "title": "A un passo dalla luna",
+    "artist": "Rocco Hunt ft. Ana Mena",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-385",
+    "title": "Un bacio all'improvviso",
+    "artist": "Rocco Hunt ft. Ana Mena",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-386",
+    "title": "Oh ma",
+    "artist": "Rocco Hunt ft. Noemi",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-387",
+    "title": "Rocco Hunt, Elettra Lamborghini",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-388",
+    "title": "Stasera mi butto",
+    "artist": "Rocky Roberts",
+    "genre": "AMARCORD",
+    "decade": "Anni '60",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-389",
+    "title": "Despechà",
+    "artist": "Rosalia",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-390",
+    "title": "Click Boom!",
+    "artist": "Rose Villain",
+    "genre": "ROCK",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-391",
+    "title": "Fuorilegge",
+    "artist": "Rose Villain",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-392",
+    "title": "Come un tuono",
+    "artist": "Rose Villain",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-393",
+    "title": "Siamo donne",
+    "artist": "Sabrina Salerno & Jò Squillo",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-394",
+    "title": "Rossetto e caffè",
+    "artist": "Sal Da Vinci",
+    "genre": "AMARCORD",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-395",
+    "title": "Giudizi universali",
+    "artist": "Samuele Bersani",
+    "genre": "POP",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-396",
+    "title": "Halo",
+    "artist": "Samurai Jay",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-397",
+    "title": "Farfalle",
+    "artist": "Sangiovanni",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-398",
+    "title": "Aka7 e LDA - Poesie clandestine",
+    "artist": "Sanremo26",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-399",
+    "title": "Ditonellapiaga - Che fastidio",
+    "artist": "Sanremo26",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-400",
+    "title": "Elettra Lamborghini - Voce",
+    "artist": "Sanremo26",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-401",
+    "title": "J-Ax - Italia starter pack",
+    "artist": "Sanremo26",
+    "genre": "RAP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-402",
+    "title": "Luchè - Labirinto",
+    "artist": "Sanremo26",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-403",
+    "title": "Sal Da Vinci - Per sempre",
+    "artist": "Sanremo26",
+    "genre": "AMARCORD",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-404",
+    "title": "Samurai Jay - Ossessione",
+    "artist": "Sanremo26",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-405",
+    "title": "Sayf - Tu mi piaci tanto",
+    "artist": "Sanremo26",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-406",
+    "title": "Wind of Change",
+    "artist": "Scorpions",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-407",
+    "title": "Anema e core",
+    "artist": "Serena Brancale",
+    "genre": "AMARCORD",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-408",
+    "title": "Serena Brancale e Alessandra Amoroso",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-409",
+    "title": "Bene ma non benissimo",
+    "artist": "Shade",
+    "genre": "RAP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-410",
+    "title": "Waka Waka",
+    "artist": "Shakira",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-411",
+    "title": "Don't You (Forget About Me)",
+    "artist": "Simple Minds",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-412",
+    "title": "L'amore",
+    "artist": "Sonohra",
+    "genre": "ROCK",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-413",
+    "title": "Wanna be",
+    "artist": "Spice Girls",
+    "genre": "DANCE",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-414",
+    "title": "Curnutone",
+    "artist": "Squallor",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-415",
+    "title": "Everyday",
+    "artist": "Takagi & Ketra feat Geolier Shiva Michelangelo",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-416",
+    "title": "L'esercito del selfie",
+    "artist": "Takagi e Ketra feat Arisa/Lorenzo Fragola",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-417",
+    "title": "RAGNI",
+    "artist": "TANANAI",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-418",
+    "title": "Tango",
+    "artist": "Tananai",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-419",
+    "title": "Italodisco",
+    "artist": "The Kolors",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-420",
+    "title": "Karma",
+    "artist": "The Kolors",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-421",
+    "title": "Pronto come va",
+    "artist": "The Kolors",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-422",
+    "title": "Tu con chi fai l'amore",
+    "artist": "The Kolors",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-423",
+    "title": "Un ragazzo una ragazza",
+    "artist": "The Kolors",
+    "genre": "DANCE",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-424",
+    "title": "Completamente",
+    "artist": "Thegiornalisti",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-425",
+    "title": "Felicità puttana",
+    "artist": "Thegiornalisti",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-426",
+    "title": "Questa nostra stupida canzone d'amore",
+    "artist": "Thegiornalisti",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-427",
+    "title": "Riccione",
+    "artist": "Thegiornalisti",
+    "genre": "DANCE",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-428",
+    "title": "Ed ero contentissimo",
+    "artist": "Tiziano Ferro",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-429",
+    "title": "Rosso relativo",
+    "artist": "Tiziano Ferro",
+    "genre": "HIP HOP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-430",
+    "title": "Sere Nere",
+    "artist": "Tiziano Ferro",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-431",
+    "title": "Sesso e Samba",
+    "artist": "Tony Effe e Gaia",
+    "genre": "HIP HOP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-432",
+    "title": "Culo",
+    "artist": "Tony Pitony",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-433",
+    "title": "Donne ricche",
+    "artist": "Tony Pitony",
+    "genre": "POP",
+    "decade": "Anni 2020",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-434",
+    "title": "L'italiano",
+    "artist": "Toto Cutugno",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-435",
+    "title": "Raf - Gente di mare",
+    "artist": "Tozzi",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-436",
+    "title": "Si può dare di più",
+    "artist": "Tozzi-Ruggeri-Morandi",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-437",
+    "title": "I tuoi particolari",
+    "artist": "Ultimo",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-438",
+    "title": "Piccola Stella",
+    "artist": "Ultimo",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-439",
+    "title": "Sogni appesi",
+    "artist": "Ultimo",
+    "genre": "POP",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-440",
+    "title": "Balla",
+    "artist": "Umberto Balsamo",
+    "genre": "DANCE",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-441",
+    "title": "Gloria",
+    "artist": "Umberto Tozzi",
+    "genre": "DANCE",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-442",
+    "title": "Ti amo",
+    "artist": "Umberto Tozzi",
+    "genre": "AMARCORD",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-443",
+    "title": "Tu",
+    "artist": "Umberto Tozzi",
+    "genre": "ROCK",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-444",
+    "title": "Tre Parole",
+    "artist": "Valeria Rossi",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-445",
+    "title": "Jump",
+    "artist": "Van Halen",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-446",
+    "title": "Albachiara",
+    "artist": "Vasco Rossi",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-447",
+    "title": "Come nelle favole",
+    "artist": "Vasco Rossi",
+    "genre": "ROCK",
+    "decade": "Anni 2010",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-448",
+    "title": "Liberi Liberi",
+    "artist": "Vasco Rossi",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-449",
+    "title": "Non l'hai mica capito",
+    "artist": "Vasco Rossi",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-450",
+    "title": "Ogni volta",
+    "artist": "Vasco Rossi",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-451",
+    "title": "Rewind",
+    "artist": "Vasco Rossi",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-452",
+    "title": "Sally",
+    "artist": "Vasco Rossi",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-453",
+    "title": "Siamo solo Noi",
+    "artist": "Vasco Rossi",
+    "genre": "SQUARCIAGOLA",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-454",
+    "title": "Vita spericolata",
+    "artist": "Vasco Rossi",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-455",
+    "title": "Y.M.C.A.",
+    "artist": "Village People",
+    "genre": "DANCE",
+    "decade": "Anni '70",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-456",
+    "title": "Last Christmas INGLESE",
+    "artist": "Wham!",
+    "genre": "POP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-457",
+    "title": "Per Dimenticare",
+    "artist": "Zero Assoluto",
+    "genre": "POP",
+    "decade": "Anni 2000",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-458",
+    "title": "Con le mani",
+    "artist": "Zucchero",
+    "genre": "HIP HOP",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-459",
+    "title": "Donne",
+    "artist": "Zucchero",
+    "genre": "ROCK",
+    "decade": "Anni '80",
+    "votesCount": 0,
+    "voterIds": []
+  },
+  {
+    "id": "song-460",
+    "title": "Per colpa di chi",
+    "artist": "Zucchero",
+    "genre": "ROCK",
+    "decade": "Anni '90",
+    "votesCount": 0,
+    "voterIds": []
+  }
+]

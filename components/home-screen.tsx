@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { BookOpen, CalendarDays, ChevronRight, Clock3, Gift, Users, UtensilsCrossed } from "lucide-react";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
+import { CiurmaSurveySection } from "@/components/ciurma-survey-section";
+import { LiveGameCard } from "@/components/live-game-card";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
@@ -71,6 +73,8 @@ export function HomeScreen() {
   return (
     <section className="minimal-home space-y-5">
       <LoyaltyJourney beforeHighlights={beforeHighlights} />
+      <LiveGameCard />
+      <CiurmaSurveySection />
       <div className="home-actions">
         <Link href="/gift">
           <Gift />

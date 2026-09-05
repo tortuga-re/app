@@ -16,3 +16,4 @@ pnpm-debug.log*
 checkpoints
 tsconfig.tsbuildinfo
 supabase/.temp
+lib/server/local-app-state.json
