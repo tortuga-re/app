@@ -103,6 +103,10 @@ export function LiveGameCard({ activeGameProp, alwaysShow = false }: { activeGam
     );
   }
 
+  const gameDefinition = activeGame && liveGames[activeGame] 
+    ? liveGames[activeGame] 
+    : { label: "Gioco Live", url: "https://drwhy.tortugabay.it" };
+
   const handleOpenGame = () => {
     setShowGameIframe(true);
     try {
