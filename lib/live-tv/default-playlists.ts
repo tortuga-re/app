@@ -65,6 +65,74 @@ const createItem = (
   updatedAt: timestamp,
 });
 
+export const LIVE_APP_FEATURE_CARDS: Array<{
+  id: string;
+  name: string;
+  description: string;
+  item: LiveTvUpsertItemInput;
+}> = [
+  {
+    id: "foto_live",
+    name: "📸 Foto Live sul Maxischermo",
+    description: "Invita i tavoli a scattare e caricare foto per vederle in diretta in TV.",
+    item: {
+      type: "qr",
+      title: "📸 Mostra la tua Foto in TV!",
+      body: "Inquadra il QR con lo smartphone, carica le foto del tuo tavolo e guardale comparire sul maxischermo del Tortuga!",
+      qrUrl: `${APP_URL}/stasera?tab=bottiglia`,
+      qrLabel: "Carica Foto in TV",
+      durationSeconds: 25,
+      enabled: true,
+      styleVariant: "gold",
+    },
+  },
+  {
+    id: "saluti_live",
+    name: "🥂 Saluti e Brindisi in TV",
+    description: "Invita la sala a mandare messaggi, auguri e brindisi sul maxischermo.",
+    item: {
+      type: "qr",
+      title: "🥂 Manda un Saluto sul Palco!",
+      body: "Vuoi fare un brindisi speciale, fare gli auguri o mandare un saluto a tutta la sala? Invia il tuo messaggio in diretta dall'app!",
+      qrUrl: `${APP_URL}/stasera?tab=saluti`,
+      qrLabel: "Invia Saluto Live",
+      durationSeconds: 20,
+      enabled: true,
+      styleVariant: "urgent",
+    },
+  },
+  {
+    id: "sfida_bottiglia",
+    name: "🍾 Sfida della Bottiglia",
+    description: "Votazione foto più bella della serata: la vincitrice riceve 1 bottiglia.",
+    item: {
+      type: "qr",
+      title: "🍾 Sfida della Bottiglia: Vota!",
+      body: "La foto più votata della serata vince 1 bottiglia omaggio offerta dal Tortuga! Guarda la gallery e vota la tua preferita!",
+      qrUrl: `${APP_URL}/stasera?tab=bottiglia`,
+      qrLabel: "Vota e Vinci la Bottiglia",
+      durationSeconds: 25,
+      enabled: true,
+      styleVariant: "gold",
+    },
+  },
+  {
+    id: "kantaquiz_canzoni",
+    name: "🎤 Vota Canzone / Kanta Quiz",
+    description: "Invita i tavoli a scegliere i brani da cantare e partecipare al quiz.",
+    item: {
+      type: "qr",
+      title: "🎤 Scegli la Canzone Live!",
+      body: "Decidi cosa si canta stasera al Tortuga! Inquadra il QR, vota il tuo brano preferito e preparati a cantare con tutta la ciurma!",
+      qrUrl: `${APP_URL}/stasera?tab=canzoni`,
+      qrLabel: "Vota la Canzone",
+      durationSeconds: 20,
+      enabled: true,
+      styleVariant: "promo",
+    },
+  },
+];
+
 const genericItems = (): LiveTvUpsertItemInput[] => [
   {
     type: "logo",
@@ -75,6 +143,7 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
     enabled: true,
     styleVariant: "gold",
   },
+  LIVE_APP_FEATURE_CARDS[0].item, // Foto Live sul Maxischermo
   {
     type: "qr",
     title: "Scansiona e sali a bordo",
@@ -85,6 +154,7 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
     enabled: true,
     styleVariant: "default",
   },
+  LIVE_APP_FEATURE_CARDS[2].item, // Sfida della Bottiglia
   {
     type: "event",
     title: "Prossima rotta",
@@ -95,6 +165,7 @@ const genericItems = (): LiveTvUpsertItemInput[] => [
     enabled: true,
     styleVariant: "promo",
   },
+  LIVE_APP_FEATURE_CARDS[1].item, // Saluti e Brindisi
   {
     type: "review",
     title: "La ciurma dice di noi",
@@ -141,51 +212,26 @@ const presetVariants: Record<LiveTvPresetId, () => LiveTvUpsertItemInput[]> = {
   ],
   venerdi_kantaquiz: () => [
     genericItems()[0],
-    {
-      type: "promo",
-      title: "Venerdi Kantaquiz",
-      body: "Scansiona, preparati e resta sintonizzato: il palco si accende quando il Capitano da il via.",
-      qrUrl: APP_URL,
-      qrLabel: "Apri Tortuga App",
-      durationSeconds: 16,
-      enabled: true,
-      styleVariant: "promo",
-    },
-    genericItems()[1],
-    genericItems()[3],
-    genericItems()[5],
+    LIVE_APP_FEATURE_CARDS[3].item, // Vota Canzone / Kanta Quiz
+    LIVE_APP_FEATURE_CARDS[0].item, // Foto Live
+    LIVE_APP_FEATURE_CARDS[1].item, // Saluti Live
     genericItems()[2],
+    genericItems()[4],
   ],
   sabato_notte_capitano: () => [
     genericItems()[0],
-    {
-      type: "message",
-      title: "Notte del Capitano",
-      body: "Musica, luci basse e tavoli caldi: se devi fare una mossa, questo e il momento.",
-      durationSeconds: 12,
-      enabled: true,
-      styleVariant: "gold",
-    },
-    genericItems()[1],
-    genericItems()[4],
-    genericItems()[3],
+    LIVE_APP_FEATURE_CARDS[1].item, // Saluti Live
+    LIVE_APP_FEATURE_CARDS[0].item, // Foto Live
+    LIVE_APP_FEATURE_CARDS[2].item, // Sfida della Bottiglia
     genericItems()[2],
+    genericItems()[4],
   ],
   domenica_cervellone: () => [
     genericItems()[0],
-    {
-      type: "event",
-      title: "Domenica Cervellone",
-      body: "Una rotta piu rilassata, ma nessuno regala punti. Prenota il tavolo e porta la tua squadra.",
-      qrUrl: `${APP_URL}/prenota`,
-      qrLabel: "Prenota un tavolo",
-      durationSeconds: 14,
-      enabled: true,
-      styleVariant: "default",
-    },
-    genericItems()[1],
-    genericItems()[3],
-    genericItems()[5],
+    LIVE_APP_FEATURE_CARDS[0].item, // Foto Live
+    LIVE_APP_FEATURE_CARDS[2].item, // Sfida della Bottiglia
+    LIVE_APP_FEATURE_CARDS[1].item, // Saluti Live
+    genericItems()[2],
     genericItems()[4],
   ],
 };

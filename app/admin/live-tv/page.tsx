@@ -17,6 +17,7 @@ import {
   type LiveTvUpsertItemInput,
   type StageMode,
 } from "@/lib/live-tv/types";
+import { LIVE_APP_FEATURE_CARDS } from "@/lib/live-tv/default-playlists";
 
 type LiveTvPageState = LiveTvState;
 
@@ -1146,6 +1147,58 @@ export default function AdminLiveTvPage() {
             </div>
             <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]"><input className="field" value={templateName} onChange={(event) => setTemplateName(event.target.value)} placeholder="Es. Mercoledì Burger Night" maxLength={80} /><button type="button" className="button-primary min-h-12 px-5 text-sm" onClick={() => void templateAction("save")} disabled={busy || !templateName.trim()}>Salva scaletta</button></div>
             {templates.length ? <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{templates.map((template) => <div key={template.id} className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-black/15 p-3"><div className="min-w-0"><strong className="block truncate text-sm text-white">{template.name}</strong><small className="text-[11px] text-[var(--text-muted)]">{template.items.length} elementi</small></div><div className="flex shrink-0 gap-2"><button type="button" className="button-secondary px-3 py-2 text-[11px]" onClick={() => void templateAction("apply", template.id)} disabled={busy}>Applica</button><button type="button" className="px-2 text-[var(--danger)]" aria-label={`Elimina ${template.name}`} onClick={() => void templateAction("delete", template.id)} disabled={busy}>×</button></div></div>)}</div> : null}
+          </section>
+
+          {/* Card Pronte Funzioni Live */}
+          <section className="panel rounded-[1.8rem] p-5 border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-black/20 to-transparent">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="eyebrow text-amber-400">⚡ Novità Live App</p>
+                <h3 className="mt-1 text-lg font-black text-white">Card Pronte Funzioni Live</h3>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                  Aggiungi con un solo click le card per coinvolgere i tavoli: foto sul maxischermo, saluti, sfida della bottiglia e voto canzoni.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="button-primary min-h-10 px-4 text-xs font-black"
+                onClick={async () => {
+                  for (const card of LIVE_APP_FEATURE_CARDS) {
+                    await runAction("/api/live-tv/admin/add-item", card.item);
+                  }
+                }}
+                disabled={busy}
+              >
+                + Aggiungi Tutte le 4 Card Live
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {LIVE_APP_FEATURE_CARDS.map((card) => (
+                <div
+                  key={card.id}
+                  className="flex flex-col justify-between rounded-2xl border border-white/10 bg-black/25 p-4 hover:border-amber-500/40 transition-colors"
+                >
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                      Funzione Live
+                    </span>
+                    <h4 className="text-sm font-black text-white">{card.name}</h4>
+                    <p className="text-xs text-[var(--text-muted)] line-clamp-2">
+                      {card.description}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="button-secondary mt-3 w-full py-2 text-xs font-bold text-center"
+                    onClick={() => void runAction("/api/live-tv/admin/add-item", card.item)}
+                    disabled={busy}
+                  >
+                    + Aggiungi alla Scaletta
+                  </button>
+                </div>
+              ))}
+            </div>
           </section>
 
           <div className="space-y-4">

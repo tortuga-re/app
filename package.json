@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node scripts/ensure-media-links.mjs",
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

@@ -34,6 +34,14 @@ export function TonightExperience() {
   const [activeTab, setActiveTab] = useState<LivePageTab | null>("bottiglia");
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as LivePageTab | null;
+      if (tabParam && (tabParam === "saluti" || tabParam === "bottiglia" || tabParam === "canzoni")) {
+        setActiveTab(tabParam);
+      }
+    }
+
     void fetch("/api/live-game")
       .then((response) => (response.ok ? response.json() : null))
       .then((body) => setLiveGame(body?.game ?? null))
