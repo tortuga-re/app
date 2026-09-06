@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 import { Gamepad2, Wifi, ChevronRight, Sparkles, Copy, Check } from "lucide-react";
 import { liveGames, type LiveGameId, type LiveGameState } from "@/lib/live-game";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
-import { GameIframeModal } from "@/components/game-iframe-modal";
 
 export function LiveGameCard({ activeGameProp, alwaysShow = false }: { activeGameProp?: LiveGameId | null; alwaysShow?: boolean }) {
   const { scenario } = useDemoScenario();
   const [liveGame, setLiveGame] = useState<LiveGameState | null>(null);
-  const [showGameIframe, setShowGameIframe] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
   const wifiSsid = "Tortuga";
@@ -108,7 +106,6 @@ export function LiveGameCard({ activeGameProp, alwaysShow = false }: { activeGam
     : { label: "Gioco Live", url: "https://drwhy.tortugabay.it" };
 
   const handleOpenGame = () => {
-    setShowGameIframe(true);
     try {
       let deviceId = typeof window !== "undefined" ? localStorage.getItem("tortuga_app_device_id") : null;
       if (!deviceId && typeof window !== "undefined") {
@@ -119,6 +116,7 @@ export function LiveGameCard({ activeGameProp, alwaysShow = false }: { activeGam
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deviceId, gameId: activeGame }),
+        keepalive: true,
       });
     } catch (err) {
       console.warn("Impossibile registrare click squadra:", err);
@@ -186,11 +184,13 @@ export function LiveGameCard({ activeGameProp, alwaysShow = false }: { activeGam
             </button>
           </div>
 
-          {/* Step 2: Full-screen Game inside App */}
-          <button
-            type="button"
+          {/* Step 2: Open Game in Native Mobile Browser */}
+          <a
+            href={gameDefinition.url}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={handleOpenGame}
-            className="minimal-primary p-3.5 flex items-center justify-between gap-2 cursor-pointer active:scale-[0.98] transition-all"
+            className="minimal-primary p-3.5 flex items-center justify-between gap-2 cursor-pointer active:scale-[0.98] transition-all no-underline text-white"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <Sparkles size={16} className="shrink-0" />
@@ -202,16 +202,9 @@ export function LiveGameCard({ activeGameProp, alwaysShow = false }: { activeGam
               </div>
             </div>
             <ChevronRight size={18} className="shrink-0 group-hover:translate-x-0.5 transition-transform" />
-          </button>
+          </a>
         </div>
       </section>
-
-      <GameIframeModal
-        open={showGameIframe}
-        onClose={() => setShowGameIframe(false)}
-        gameUrl={gameDefinition.url}
-        gameTitle={gameDefinition.label}
-      />
     </>
   );
 }
