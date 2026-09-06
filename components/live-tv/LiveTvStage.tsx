@@ -289,6 +289,7 @@ function StageShell({
   scale = 1,
   transitionIndex = 0,
   transitionKey,
+  isVideo = false,
 }: {
   children?: React.ReactNode;
   title?: string;
@@ -296,6 +297,7 @@ function StageShell({
   scale?: number;
   transitionIndex?: number;
   transitionKey?: string | number;
+  isVideo?: boolean;
 }) {
   return (
     <main className="relative flex h-[100dvh] flex-col overflow-hidden bg-black text-white select-none">
@@ -321,7 +323,7 @@ function StageShell({
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden w-full">
           <div
             key={`content-${transitionKey ?? "static"}`}
-            className="flex w-full items-center justify-center live-tv-card-enter"
+            className={`flex w-full items-center justify-center ${isVideo ? "transition-opacity duration-300" : "live-tv-card-enter"}`}
             style={{
               transform: `scale(${scale})`,
               transformOrigin: "center center",
@@ -491,14 +493,21 @@ function MediaStageItem({
   const title = item.title || "Tortuga Live";
   const isPortrait = orientation === "portrait";
 
+  const isVideo = kind === "video";
+
   return (
     <StageShell
       overlay={overlay}
       transitionIndex={transitionIndex}
       transitionKey={item.id}
+      isVideo={isVideo}
     >
       <div className="relative z-10 flex h-full min-h-0 w-full flex-col items-center justify-center p-2 md:p-4">
-        <div className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-[2.6rem] border-2 border-[var(--accent-strong)]/50 bg-black/40 p-2 shadow-[0_32px_100px_rgba(0,0,0,0.7),0_0_50px_rgba(240,201,112,0.15)] backdrop-blur-md ${isPortrait ? "max-w-[58vw]" : "max-w-[94vw]"}`}>
+        <div
+          className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-[2.6rem] border-2 border-[var(--accent-strong)]/50 bg-black/60 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.85)] ${
+            isVideo ? "" : "backdrop-blur-md"
+          } ${isPortrait ? "max-w-[58vw]" : "max-w-[94vw]"}`}
+        >
           {kind === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
