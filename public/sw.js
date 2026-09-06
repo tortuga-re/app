@@ -33,9 +33,13 @@ const isPublicCacheableApi = (url) =>
     "/api/classifiche",
   ].includes(url.pathname);
 
+const isVideoAsset = (url) =>
+  /\.(mp4|webm|ogv|mov)$/i.test(url.pathname);
+
 const isLiveTvMedia = (url) =>
   url.pathname.startsWith("/wp-content/uploads/") ||
   url.pathname.startsWith("/live-tv-media/") ||
+  url.pathname.startsWith("/images/live-tv/") ||
   url.pathname === "/images/LOGO-TORTUGA-2.png";
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -145,13 +149,12 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Live TV Media (Videos, Images, Logo): CACHE FIRST on SSD
-  if (isLiveTvMedia(url)) {
-    // If request is a Range request (HTML5 <video> seeking/buffering), let the browser's
-    // native HTTP cache handle it directly from SSD without blocking the SW thread with arrayBuffer()
-    if (request.headers.get("range")) {
-      return;
-    }
+  // Videos use HTTP byte-range streaming (status 206) which cannot and should not be passed to Cache.put()
+  if (isVideoAsset(url) || request.headers.get("range")) {
+    return;
+  }
 
+  if (isLiveTvMedia(url)) {
     event.respondWith(
       (async () => {
         try {
@@ -184,9 +187,9 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && response.status === 200) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
           }
           return response;
         })
@@ -204,9 +207,9 @@ self.addEventListener("fetch", (event) => {
       caches.match(request).then((cachedResponse) => {
         const networkFetch = fetch(request)
           .then((response) => {
-            if (response.ok) {
+            if (response.ok && response.status === 200) {
               const copy = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
             }
             return response;
           })
@@ -223,9 +226,9 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then((cachedResponse) => {
       const networkFetch = fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && response.status === 200) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
           }
           return response;
         })
