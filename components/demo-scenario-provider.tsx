@@ -198,6 +198,14 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                         createdAt: Date.now(),
                       };
                       window.dispatchEvent(new CustomEvent("tortuga_demo_greeting", { detail: demoPayload }));
+                      try {
+                        const channel = new BroadcastChannel("tortuga_live_greetings");
+                        channel.postMessage(demoPayload);
+                        channel.close();
+                      } catch {}
+                      try {
+                        localStorage.setItem("tortuga_last_demo_greeting", JSON.stringify(demoPayload));
+                      } catch {}
                       void fetch("/api/live-tv/greeting", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },

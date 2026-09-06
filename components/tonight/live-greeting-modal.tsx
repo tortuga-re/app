@@ -100,6 +100,17 @@ export function LiveGreetingModal({ open, onClose, defaultNickname = "" }: LiveG
         // Ignora restrizioni localStorage
       }
 
+      if (data?.greeting) {
+        try {
+          const bc = new BroadcastChannel("tortuga_live_greetings");
+          bc.postMessage(data.greeting);
+          bc.close();
+        } catch {}
+        try {
+          localStorage.setItem("tortuga_last_demo_greeting", JSON.stringify(data.greeting));
+        } catch {}
+      }
+
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);

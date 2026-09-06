@@ -22,11 +22,12 @@ export const getSupabase = () => {
 export const getSupabaseAdmin = () => {
   if (supabaseAdminInstance) return supabaseAdminInstance;
 
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+  const keyToUse = supabaseServiceRoleKey || supabaseAnonKey;
+  if (!supabaseUrl || !keyToUse) {
     return createClient("https://placeholder.supabase.co", "placeholder");
   }
 
-  supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  supabaseAdminInstance = createClient(supabaseUrl, keyToUse, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -34,3 +35,4 @@ export const getSupabaseAdmin = () => {
   });
   return supabaseAdminInstance;
 };
+

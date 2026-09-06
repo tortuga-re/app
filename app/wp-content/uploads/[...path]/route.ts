@@ -46,6 +46,58 @@ export async function GET(
   }
 
   if (!foundPath) {
+    // Fallback: proxy from production and cache to local disk
+    try {
+      const prodUrl = `https://app.tortugabay.it/wp-content/uploads/${relativePath}`;
+      const forwardHeaders = new Headers();
+      const rangeHeader = request.headers.get("range");
+      if (rangeHeader) {
+        forwardHeaders.set("range", rangeHeader);
+      }
+
+      const prodRes = await fetch(prodUrl, { headers: forwardHeaders });
+      if (prodRes.ok || prodRes.status === 206) {
+        const responseHeaders = new Headers();
+        const allowedHeaders = [
+          "content-type",
+          "content-length",
+          "content-range",
+          "accept-ranges",
+          "cache-control",
+          "last-modified",
+          "etag",
+        ];
+        prodRes.headers.forEach((val, key) => {
+          if (allowedHeaders.includes(key.toLowerCase())) {
+            responseHeaders.set(key, val);
+          }
+        });
+        if (!responseHeaders.has("accept-ranges")) {
+          responseHeaders.set("accept-ranges", "bytes");
+        }
+
+        // Cache file to local disk in background if full 200 response
+        if (prodRes.status === 200) {
+          try {
+            const clone = prodRes.clone();
+            const localDest = path.join(process.cwd(), "public", "wp-content", "uploads", relativePath);
+            import("node:fs/promises").then(async ({ mkdir, writeFile }) => {
+              await mkdir(path.dirname(localDest), { recursive: true });
+              const buf = Buffer.from(await clone.arrayBuffer());
+              await writeFile(localDest, buf);
+            }).catch(() => {});
+          } catch {}
+        }
+
+        return new NextResponse(prodRes.body, {
+          status: prodRes.status,
+          headers: responseHeaders,
+        });
+      }
+    } catch (proxyErr) {
+      console.warn("[wp-content proxy] Error:", proxyErr);
+    }
+
     return new NextResponse("Not Found", { status: 404 });
   }
 

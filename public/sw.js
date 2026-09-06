@@ -1,4 +1,5 @@
 const CACHE_NAME = "tortuga-shell-v6";
+const LIVE_TV_MEDIA_CACHE = "tortuga-live-tv-media-v1";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
   OFFLINE_URL,
@@ -32,6 +33,11 @@ const isPublicCacheableApi = (url) =>
     "/api/classifiche",
   ].includes(url.pathname);
 
+const isLiveTvMedia = (url) =>
+  url.pathname.startsWith("/wp-content/uploads/") ||
+  url.pathname.startsWith("/live-tv-media/") ||
+  url.pathname === "/images/LOGO-TORTUGA-2.png";
+
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
 self.addEventListener("install", (event) => {
@@ -50,7 +56,8 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys.map((key) => {
-            if (key !== CACHE_NAME) {
+            // Keep LIVE_TV_MEDIA_CACHE on SSD across SW versions
+            if (key !== CACHE_NAME && key !== LIVE_TV_MEDIA_CACHE) {
               return caches.delete(key);
             }
             return Promise.resolve(true);
@@ -133,6 +140,38 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() => caches.match(OFFLINE_URL)),
+    );
+    return;
+  }
+
+  // Live TV Media (Videos, Images, Logo): CACHE FIRST on SSD
+  if (isLiveTvMedia(url)) {
+    // If request is a Range request (HTML5 <video> seeking/buffering), let the browser's
+    // native HTTP cache handle it directly from SSD without blocking the SW thread with arrayBuffer()
+    if (request.headers.get("range")) {
+      return;
+    }
+
+    event.respondWith(
+      (async () => {
+        try {
+          const cache = await caches.open(LIVE_TV_MEDIA_CACHE);
+          const cachedResponse = await cache.match(request.url);
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          // If not in cache, fetch from network and save to SSD cache
+          const networkResponse = await fetch(request);
+          if (networkResponse.ok && networkResponse.status === 200) {
+            void cache.put(request.url, networkResponse.clone()).catch(() => undefined);
+          }
+          return networkResponse;
+        } catch (err) {
+          const fallback = await caches.match(request.url);
+          return fallback ?? Response.error();
+        }
+      })()
     );
     return;
   }
