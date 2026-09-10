@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getProfileData, registerContactVisit } from "@/lib/cooperto/service";
+import {
+  addTagsToContact,
+  getProfileData,
+  registerContactVisit,
+} from "@/lib/cooperto/service";
 import { coopertoConfig } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +39,12 @@ export async function POST(request: Request) {
     const result = await registerContactVisit({
       contactCode: payload.contactCode,
       venueCode,
+    });
+
+    await addTagsToContact({
+      contactCode: payload.contactCode,
+      venueCode,
+      tags: ["VISITA-EFFETTUATA"],
     });
 
     const profileAfter = await getProfileData(lookupMode, payload.contactCode).catch(() => null);

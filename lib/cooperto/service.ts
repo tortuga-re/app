@@ -38,6 +38,7 @@ import type {
   CoopertoListResponse,
   CoopertoRegisterVisitRequest,
   CoopertoRegisterVisitResponse,
+  CoopertoAddContactTagsRequest,
   CoopertoUpdateFidelityCardRequest,
   CoopertoReservation,
   CoopertoWaitlistEntry,
@@ -1050,6 +1051,38 @@ export const registerContactVisit = async ({
     visit,
     visitDate,
   };
+};
+
+export const addTagsToContact = async ({
+  contactCode,
+  venueCode,
+  tags,
+}: {
+  contactCode: string;
+  venueCode: string;
+  tags: string[];
+}) => {
+  if (!hasCoopertoLiveConfig) {
+    throw new Error("Configurazione Cooperto non presente.");
+  }
+
+  const requestBody: CoopertoAddContactTagsRequest = {
+    CodiceSede: venueCode,
+    CodiceContatto: contactCode,
+    CreaTagSeNonPresente: true,
+    Tags: tags,
+  };
+
+  const added = await coopertoFetch<boolean>("/api/Contatti/AggiungiTags", {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!added) {
+    throw new Error("Cooperto non ha confermato l'associazione del tag visita.");
+  }
+
+  return added;
 };
 
 export const getVenuesData = async (): Promise<VenueResponse> => {

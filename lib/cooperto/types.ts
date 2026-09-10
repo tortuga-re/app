@@ -140,6 +140,13 @@ export interface CoopertoRegisterVisitRequest {
   dataVisita: string;
 }
 
+export interface CoopertoAddContactTagsRequest {
+  CodiceSede: string;
+  CodiceContatto: string;
+  CreaTagSeNonPresente: boolean;
+  Tags: string[];
+}
+
 export interface CoopertoAddPointsRequest {
   codiceContatto: string;
   punti: number;
