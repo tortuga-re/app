@@ -13,6 +13,8 @@ import type {
   SavePushSubscriptionResponse,
 } from "@/lib/push/types";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
+import { clearPendingVisit, usePendingVisit } from "@/lib/pending-visit";
+import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
 
 type DeferredPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -53,6 +55,8 @@ const isPushSupported = () =>
 
 export function PwaController() {
   const { identity } = useCustomerIdentity();
+  const { registerVisit } = useVisitRegistration();
+  const pendingVisit = usePendingVisit();
   const { expiresAt: venueExpiresAt } = useOnPremiseAccess();
   const [clientReady, setClientReady] = useState(false);
   const [pushDismissedAt, setPushDismissedAt] = useState<number | null>(null);
@@ -69,6 +73,29 @@ export function PwaController() {
   const [evaluationNow, setEvaluationNow] = useState(0);
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  useEffect(() => {
+    if (!pendingVisit) {
+      return;
+    }
+
+    if (pendingVisit.expiresAt <= Date.now()) {
+      clearPendingVisit(pendingVisit.id);
+      return;
+    }
+
+    if (!identity.email) return;
+
+    let cancelled = false;
+    const pendingId = pendingVisit.id;
+    void registerVisit(identity.email).then((registered) => {
+      if (!cancelled && registered) clearPendingVisit(pendingId);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [identity.email, pendingVisit, registerVisit]);
 
   const applyUpdate = useCallback(() => {
     if (serviceWorkerRegistration?.waiting) {

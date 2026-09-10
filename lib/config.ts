@@ -181,6 +181,7 @@ export const storageKeys = {
   lastReservation: "tortuga.last-reservation",
   localExperienceClaims: "tortuga.local-experience-claims",
   menuAccessExpiresAt: "tortuga.menu-access-expires-at",
+  pendingVisit: "tortuga.pending-visit",
   installPromptDismissedAt: "tortuga.install-prompt-dismissed-at",
   pushPromptDismissedAt: "tortuga.push-prompt-dismissed-at",
   surveyPushSentAt: "tortuga.survey-push-sent-at",

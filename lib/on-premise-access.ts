@@ -3,6 +3,7 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { storageKeys } from "@/lib/config";
+import { rememberPendingVisit } from "@/lib/pending-visit";
 
 export const onPremiseAccessDurationMs = 4 * 60 * 60 * 1000;
 
@@ -67,6 +68,7 @@ export const writeStoredOnPremiseAccessExpiry = (expiresAt: number) => {
   }
 
   window.localStorage.setItem(storageKeys.menuAccessExpiresAt, String(expiresAt));
+  rememberPendingVisit(expiresAt);
   notifyOnPremiseAccessChanged();
 };
 
