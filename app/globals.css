@@ -671,10 +671,11 @@ body {
   color:var(--text);
   background-color:#f4efe5;
   background-image:
-    linear-gradient(180deg,rgba(12,14,12,.22) 0 9rem,#f4efe5 9rem 100%);
-  background-position:center top;
-  background-repeat:no-repeat;
-  background-size:100% 100%;
+    linear-gradient(180deg,rgba(12,14,12,.22) 0 9rem,#f4efe5 9rem 100%),
+    url("/nautical-map.webp");
+  background-position:center top,center top;
+  background-repeat:no-repeat,no-repeat;
+  background-size:100% 100%,100% auto;
 }
 .app-shell-content { padding-bottom: calc(var(--bottom-nav-clearance) + 1rem); }
 .minimal-bottom-nav { border: 1px solid rgba(25,25,22,.1); border-radius: 1.45rem; background: rgba(255,253,248,.94); box-shadow: 0 16px 40px rgba(18,17,14,.16); backdrop-filter: blur(18px); }
