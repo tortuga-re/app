@@ -21,5 +21,6 @@ public/wp-content/uploads/**/*.mp4
 public/live-tv-media/
 work-lighthouse*.json
 online-*.json
+final-*.json
 vecchia conversazione.txt
 
