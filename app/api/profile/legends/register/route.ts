@@ -40,9 +40,9 @@ export async function POST(request: Request) {
     const points = profile.contact?.SaldoPuntiCard ?? 0;
     const realName = profile.contact?.Nome?.trim() || "Pirata";
 
-    if (visits < 20 || points < 100) {
+    if (visits < 20) {
       return NextResponse.json(
-        { error: "Non soddisfi ancora i requisiti del rango Leggenda (20 visite e 100 Dobloni)." },
+        { error: "Non soddisfi ancora i requisiti del rango Leggenda (20 visite)." },
         { status: 403 },
       );
     }

@@ -31,19 +31,19 @@ export const fidelityLoyaltyTiers: FidelityLoyaltyTier[] = [
   {
     minPoints: 30,
     label: "Corsaro",
-    description: "5 visite e 30 Dobloni raggiunti.",
+    description: "5 visite raggiunte.",
     image: "/badges/loyalty-corsaro.webp",
   },
   {
     minPoints: 60,
     label: "Capitano",
-    description: "10 visite e 60 Dobloni raggiunti.",
+    description: "10 visite raggiunte.",
     image: "/badges/loyalty-capitano.webp",
   },
   {
     minPoints: 100,
     label: "Leggenda del Tortuga",
-    description: "20 visite e 100 Dobloni raggiunti.",
+    description: "20 visite raggiunte.",
     image: "/badges/loyalty-leggenda.webp",
   },
 ];

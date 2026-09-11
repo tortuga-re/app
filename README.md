@@ -13,7 +13,7 @@ L'applicazione è una Progressive Web App (PWA) ad alte prestazioni sviluppata p
 - **Incentivo alla PWA e Notifiche Push**: Lo sblocco delle offerte speciali guida l'utente all'installazione dell'app sulla schermata home e all'abilitazione delle notifiche push.
 
 ### 🏴‍☠️ Sistema Loyalty "La Ciurma" & Hall of Legends
-- **Progressione a Ranghi**: Avanzamento da *Mozzo* fino a *Leggenda del Tortuga* basato su visite annuali e Dobloni guadagnati.
+- **Progressione a Ranghi**: Avanzamento da *Mozzo* fino a *Leggenda del Tortuga* basato sul numero di visite effettuate.
 - **Hall of Legends**: Albo d'oro pubblico per i pirati che raggiungono il rango massimo, con registrazione del nickname unico.
 - **Tessera Fidelity Digitale & QR**: Riconoscimento immediato in cassa con scansione nativa del QR code personale.
 

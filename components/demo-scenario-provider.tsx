@@ -136,7 +136,7 @@ export function DemoScenarioProvider({ children }: { children: React.ReactNode }
                 </div>
                 <Range label="Dobloni disponibili" value={scenario.points} max={130} onChange={(points) => update({ points })} />
                 <Range label="Massimo Dobloni raggiunto" value={scenario.highestPoints} max={130} onChange={(highestPoints) => update({ highestPoints })} />
-                <Range label="Visite annuali" value={scenario.visits} max={25} onChange={(visits) => update({ visits })} />
+                <Range label="Visite" value={scenario.visits} max={25} onChange={(visits) => update({ visits })} />
                 <label className="demo-field"><span>Massimo rango storico</span><select value={scenario.historicalRank} onChange={(e) => update({ historicalRank: e.target.value as TortugaRankId })}><option value="mozzo">Mozzo</option><option value="corsaro">Corsaro</option><option value="capitano">Capitano</option><option value="leggenda">Leggenda</option></select><ChevronDown size={16} /></label>
                 
                 <div className="pt-2 border-t border-black/10 space-y-2">

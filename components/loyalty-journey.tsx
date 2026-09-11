@@ -26,9 +26,9 @@ const CiurmaRecognition = dynamic(() => import("@/components/profile-screen").th
 type LoyaltyMetricInfo = "visits" | "points" | "rank";
 
 const loyaltyMetricInfo: Record<LoyaltyMetricInfo, { title: string; description: string }> = {
-  visits: { title: "Visite annuali", description: "Sono le visite registrate nel ciclo Fidelity in corso, dal 1 agosto al 31 luglio. Effettuare almeno 5 visite nel ciclo aiuta a mantenere il tuo rango." },
-  points: { title: "Record Dobloni", description: "Indica il miglior traguardo di Dobloni raggiunto. I Dobloni ti accompagnano nella scalata dei ranghi e puoi usarli anche per richiedere i premi disponibili." },
-  rank: { title: "Rango attuale", description: "È il tuo grado nella Ciurma. Per avanzare servono sia visite sia Dobloni; nella sezione Ranghi trovi requisiti e vantaggi di ogni grado." },
+  visits: { title: "Visite", description: "Le tue visite al Tortuga. Effettuare almeno 5 visite in un anno ti permette di mantenere il tuo rango conquistato." },
+  points: { title: "Record Dobloni", description: "Indica il miglior traguardo di Dobloni raggiunto. Puoi usare i tuoi Dobloni per richiedere i premi disponibili nel catalogo." },
+  rank: { title: "Rango attuale", description: "È il tuo grado nella Ciurma. Si sale di rango con il numero di visite; nella sezione Ranghi trovi requisiti e vantaggi di ogni grado." },
 };
 
 export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?: boolean; beforeHighlights?: React.ReactNode }) {
@@ -60,7 +60,6 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
     ? (typeof window !== "undefined" ? sessionStorage.getItem("demo_legend_nickname") : null)
     : customer.profile?.legendNickname;
   const missingVisits = Math.max(0, nextRank.visits - visits);
-  const missingPoints = Math.max(0, nextRank.points - highestPoints);
   const nextReward = fidelityRewardTiers.find((reward) => reward.threshold > points);
   const missingBirthDate = loggedIn && customer.hasProfile && !customer.profile?.contact?.DataDiNascita;
   const { openBooking, hasUpcomingReservationSoon } = useBookingOverlay();
@@ -174,12 +173,12 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
         <div className="relative"><RankBadge rank={hasReachedFirstRank ? activeRank.id : nextRank.id} label={hasReachedFirstRank ? activeRank.label : `Prossimo rango: ${nextRank.label}`} size={72} />{isVip ? <span className="vip-ribbon">VIP</span> : null}</div>
       </div>
       <div className="mt-5 grid grid-cols-3 gap-2">
-        <Metric icon={<CalendarCheck />} value={visits} label="visite annuali" onInfo={() => setMetricInfoOpen("visits")} />
+        <Metric icon={<CalendarCheck />} value={visits} label="visite" onInfo={() => setMetricInfoOpen("visits")} />
         <Metric icon={<Coins />} value={highestPoints} label="record dobloni" onInfo={() => setMetricInfoOpen("points")} />
         <Metric icon={<Shield />} value={hasReachedFirstRank ? activeRank.label : "Da conquistare"} label="rango attuale" onInfo={() => setMetricInfoOpen("rank")} />
       </div>
       <div className="rank-route">
-        <div className="flex items-center justify-between"><div><p>{isLegend ? "La tua rotta è leggenda" : `Rotta verso ${nextRank.label}`}</p><span>{isLegend ? "Hai raggiunto il rango speciale" : `${missingVisits} visite e ${missingPoints} Dobloni mancanti`}</span></div><Award size={23} /></div>
+        <div className="flex items-center justify-between"><div><p>{isLegend ? "La tua rotta è leggenda" : `Rotta verso ${nextRank.label}`}</p><span>{isLegend ? "Hai raggiunto il rango speciale" : `${missingVisits} ${missingVisits === 1 ? "visita mancante" : "visite mancanti"}`}</span></div><Award size={23} /></div>
         <div className="rank-track">{tortugaRanks.map((rank) => { const reached = hasReachedFirstRank && getRankIndex(rank.id) <= getRankIndex(activeRank.id); return <div key={rank.id} className={reached ? "reached" : ""}><i /><span>{rank.label.replace(" del Tortuga", "")}</span></div>; })}</div>
       </div>
       <div className="mt-4 space-y-2">
@@ -274,7 +273,7 @@ export function LoyaltyJourney({ compact = false, beforeHighlights }: { compact?
           </article>
         ) : null}
         {loggedIn ? <article className="feature-slide reward-slide"><div className="slide-icon"><Gift /></div><p>Prossimo premio</p><h3>{nextReward?.label ?? "Tutti i premi sbloccati"}</h3><span>{nextReward ? `${nextReward.threshold - points} Dobloni per raggiungerlo` : "La Ciurma ti aspetta"}</span><Link href="/ciurma?tab=rewards#premi">Scopri i premi <ChevronRight size={16} /></Link></article> : <article className="feature-slide reward-slide"><div className="slide-icon"><Gift /></div><p>Fidelity Tortuga</p><h3>Inizia a conquistare premi</h3><span>Registrati per accumulare Dobloni ad ogni visita e sbloccare vantaggi.</span><Link href="/ciurma?recognition=1">Entra nella Ciurma <ChevronRight size={16} /></Link></article>}
-        {loggedIn && hasCard && !isLegend ? <article className="feature-slide rank-progress-slide"><div className="slide-icon"><Award size={20} /></div><p>Rotta verso {nextRank.label}</p><h3>Il prossimo rango è vicino</h3><span>{hasUpcomingReservationSoon ? `La tua prossima visita già confermata ti porterà più vicina al rango di ${nextRank.label}.` : `Ti mancano ${missingVisits} ${missingVisits === 1 ? "visita" : "visite"} e ${missingPoints} Dobloni per raggiungere il rango di ${nextRank.label}.`}</span>{!hasUpcomingReservationSoon ? <button type="button" onClick={openBooking}>Prenota <ChevronRight size={16} /></button> : null}</article> : !hasCard && loggedIn ? <article className="feature-slide rank-slide"><div className="slide-icon"><Award /></div><p>Fidelity Tortuga</p><h3>Attiva la tua Fidelity</h3><span>Inizia a conquistare ranghi, status e vantaggi dedicati.</span><Link href="/ciurma#attiva-fidelity">Attiva la Fidelity <ChevronRight size={16} /></Link></article> : !loggedIn ? <article className="feature-slide rank-slide"><div className="slide-icon"><Award /></div><p>Fidelity Tortuga</p><h3>Entra nella Ciurma</h3><span>Accedi e attiva la Fidelity per conquistare ranghi, status e vantaggi dedicati.</span><Link href="/ciurma?recognition=1">Accedi e iscriviti <ChevronRight size={16} /></Link></article> : null}
+        {loggedIn && hasCard && !isLegend ? <article className="feature-slide rank-progress-slide"><div className="slide-icon"><Award size={20} /></div><p>Rotta verso {nextRank.label}</p><h3>Il prossimo rango è vicino</h3><span>{hasUpcomingReservationSoon ? `La tua prossima visita già confermata ti porterà più vicina al rango di ${nextRank.label}.` : `Ti mancano ${missingVisits} ${missingVisits === 1 ? "visita" : "visite"} per raggiungere il rango di ${nextRank.label}.`}</span>{!hasUpcomingReservationSoon ? <button type="button" onClick={openBooking}>Prenota <ChevronRight size={16} /></button> : null}</article> : !hasCard && loggedIn ? <article className="feature-slide rank-slide"><div className="slide-icon"><Award /></div><p>Fidelity Tortuga</p><h3>Attiva la tua Fidelity</h3><span>Inizia a conquistare ranghi, status e vantaggi dedicati.</span><Link href="/ciurma#attiva-fidelity">Attiva la Fidelity <ChevronRight size={16} /></Link></article> : !loggedIn ? <article className="feature-slide rank-slide"><div className="slide-icon"><Award /></div><p>Fidelity Tortuga</p><h3>Entra nella Ciurma</h3><span>Accedi e attiva la Fidelity per conquistare ranghi, status e vantaggi dedicati.</span><Link href="/ciurma?recognition=1">Accedi e iscriviti <ChevronRight size={16} /></Link></article> : null}
         <article className="feature-slide gift-slide"><div className="slide-icon"><Gift /></div><p>Regala Tortuga</p><h3>Gift card per la tua ciurma</h3><span>Scegli una copertina e invia un’esperienza.</span><Link href="/gift#gift-card">Apri Gift <ChevronRight size={16} /></Link></article>
       </DragCarousel>
     </> : null}

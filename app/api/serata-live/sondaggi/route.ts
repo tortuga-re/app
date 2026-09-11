@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       // Determina indice del rango attuale dell'utente
       let userRankIndex = -1;
       for (let i = tortugaRanks.length - 1; i >= 0; i--) {
-        if (userVisits >= tortugaRanks[i].visits && userPoints >= tortugaRanks[i].points) {
+        if (userVisits >= tortugaRanks[i].visits) {
           userRankIndex = i;
           break;
         }

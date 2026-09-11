@@ -195,7 +195,7 @@ function CiurmaSurveyModal({
   let userRankIndex = -1;
   if (identity.email) {
     for (let i = tortugaRanks.length - 1; i >= 0; i--) {
-      if (visits >= tortugaRanks[i].visits && points >= tortugaRanks[i].points) {
+      if (visits >= tortugaRanks[i].visits) {
         userRankIndex = i;
         break;
       }

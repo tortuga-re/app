@@ -5,7 +5,7 @@ import Image from "next/image";
 import type { ProfileResponse } from "@/lib/cooperto/types";
 import type { FidelityRewardProgress } from "@/lib/fidelity-rewards";
 import { formatBirthDateLabel } from "@/lib/customer-profile";
-import { fidelityLoyaltyTiers } from "@/lib/fidelity-rewards.config";
+import { tortugaRanks, getActiveRank } from "@/lib/loyalty-ranks";
 import { cn } from "@/lib/utils";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import dynamic from "next/dynamic";
@@ -65,6 +65,8 @@ export function ProfilePassport({
   changeAccount,
 }: ProfilePassportProps) {
   const [isTierListOpen, setIsTierListOpen] = React.useState(false);
+  const visits = data.contact?.NumeroVisite ?? 0;
+  const currentRank = getActiveRank(visits);
 
   return (
     <div
@@ -92,19 +94,17 @@ export function ProfilePassport({
               className="flex items-center gap-1.5 rounded-full border border-[rgba(216,176,106,0.18)] bg-white/5 pl-1 pr-3 py-1 transition-colors hover:bg-white/10"
               onClick={() => setIsTierListOpen((value) => !value)}
               aria-expanded={isTierListOpen}
-              aria-label={`Mostra i ranghi disponibili per ${loyaltyProgress.loyaltyTier.label}`}
+              aria-label={`Mostra i ranghi disponibili per ${currentRank.label}`}
             >
-              {loyaltyProgress.loyaltyTier.image ? (
-                <Image 
-                  src={loyaltyProgress.loyaltyTier.image} 
-                  alt={loyaltyProgress.loyaltyTier.label}
-                  width={20}
-                  height={20}
-                  className="object-contain"
-                />
-              ) : null}
+              <Image 
+                src={`/badges/loyalty-${currentRank.id}.webp`} 
+                alt={currentRank.label}
+                width={20}
+                height={20}
+                className="object-contain"
+              />
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
-                {loyaltyProgress.loyaltyTier.label}
+                {currentRank.label}
               </span>
             </button>
             <span className="text-xs leading-5 text-[var(--text-muted)]">
@@ -117,19 +117,19 @@ export function ProfilePassport({
                 Ranghi disponibili
               </p>
               <div className="mt-2 space-y-1.5">
-                {fidelityLoyaltyTiers.map((tier, index) => (
+                {tortugaRanks.map((rank) => (
                   <div
-                    key={tier.label}
+                    key={rank.id}
                     className={cn(
                       "flex items-center justify-between gap-3 rounded-full border px-3 py-1.5 text-sm",
-                      tier.label === loyaltyProgress.loyaltyTier.label
+                      rank.id === currentRank.id
                         ? "border-[rgba(216,176,106,0.35)] bg-[rgba(216,176,106,0.12)] text-white"
                         : "border-white/5 bg-white/[0.03] text-[var(--text-muted)]",
                     )}
                   >
-                    <span className="font-semibold uppercase tracking-[0.08em]">{tier.label}</span>
+                    <span className="font-semibold uppercase tracking-[0.08em]">{rank.label}</span>
                     <span className="text-[11px] font-semibold text-[var(--accent-strong)]">
-                      {index === 0 ? "> 0" : `> ${tier.minPoints}`}
+                      {rank.visits} {rank.visits === 1 ? "visita" : "visite"}
                     </span>
                   </div>
                 ))}

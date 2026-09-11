@@ -51,16 +51,16 @@ export async function POST(request: Request) {
     const visitsAfter = profileAfter?.contact?.NumeroVisite ?? 0;
     const pointsAfter = profileAfter?.contact?.SaldoPuntiCard ?? 0;
 
-    const getRankLevel = (v: number, p: number) => {
-      if (v >= 20 && p >= 100) return 3;
-      if (v >= 10 && p >= 60) return 2;
-      if (v >= 5 && p >= 30) return 1;
+    const getRankLevel = (v: number) => {
+      if (v >= 20) return 3;
+      if (v >= 10) return 2;
+      if (v >= 5) return 1;
       if (v >= 1) return 0;
       return -1;
     };
 
-    const levelBefore = getRankLevel(visitsBefore, pointsBefore);
-    const levelAfter = getRankLevel(visitsAfter, pointsAfter);
+    const levelBefore = getRankLevel(visitsBefore);
+    const levelAfter = getRankLevel(visitsAfter);
 
     if (levelAfter > levelBefore) {
       const levelsClimbed = levelAfter - levelBefore;
