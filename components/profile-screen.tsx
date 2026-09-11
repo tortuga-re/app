@@ -387,15 +387,36 @@ export function CiurmaScreen() {
 
     try {
       const response = await requestJson<{
+        authenticated?: false;
         requestId: string;
         email: string;
         expiresAt: string;
         resendAvailableAt: string;
         attemptsRemaining: number;
+      } | {
+        authenticated: true;
+        profile: ProfileResponse;
       }>("/api/session/login-request", {
         method: "POST",
         body: JSON.stringify({ email: normalizedEmail }),
       });
+
+      if (response.authenticated) {
+        applyProfileResponse(response.profile);
+        trackAppEvent("login_success", {
+          app_section: "ciurma",
+          login_method: "test_email_bypass",
+          profile_source: response.profile.source,
+          has_contact_code: Boolean(response.profile.contact?.CodiceContatto),
+        });
+        setIsEditingLookup(false);
+        autoLoadedKeyRef.current = response.profile.contact?.Email || normalizedEmail;
+        window.location.hash = "#riconoscimento";
+        setLoginMode("lookup");
+        setLoginRequest(null);
+        return;
+      }
+
       setLoginRequest(response);
       setLoginCode("");
       setLoginMode("otp");

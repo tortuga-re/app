@@ -9,7 +9,6 @@ import {
   mockBookingAvailability,
   mockBookingBootstrap,
   mockBookingCreate,
-  mockProfile,
   mockFidelityCards,
   mockActivateFidelityCard,
   mockUpdateProfileContact,
@@ -94,6 +93,7 @@ const coopertoFetch = async <T>(
     async () =>
       fetch(url, {
         ...init,
+        signal: init?.signal ?? AbortSignal.timeout(7_000),
         headers: {
           Authorization: `Bearer ${coopertoConfig.apiKey}`,
           ...(init?.body ? { "Content-Type": "application/json" } : {}),
@@ -728,7 +728,7 @@ export const getProfileData = async (
   query: string,
 ): Promise<ProfileResponse> => {
   if (!hasCoopertoLiveConfig) {
-    return mockProfile(query, lookupMode);
+    throw new Error("Configurazione Cooperto non presente.");
   }
 
   try {
@@ -749,7 +749,7 @@ export const getProfileData = async (
     const expectedReservationEmail =
       lookupMode === "email" ? normalizeEmail(query) : normalizeEmail(contact.Email);
 
-    const [points, coupons, cards] = await Promise.allSettled([
+    const [points, coupons, cards, reservations] = await Promise.allSettled([
       contactCode
         ? coopertoFetch<number>("/api/Contatti/SaldoPuntiByCodiceContatto", {
             query: { codiceContatto: contactCode },
@@ -766,11 +766,8 @@ export const getProfileData = async (
       coopertoFetch<CoopertoListResponse<CoopertoFidelityCard>>("/api/FidelityCard/Elenco", {
         query: { skip: 0, pageSize: 100 },
       }),
-    ]);
-
-    const reservations =
       contactCode
-        ? await coopertoFetch<CoopertoListResponse<CoopertoReservation>>(
+        ? coopertoFetch<CoopertoListResponse<CoopertoReservation>>(
             "/api/Prenotazioni/ElencoByCodiceContatto",
             {
               query: {
@@ -779,10 +776,12 @@ export const getProfileData = async (
                 pageSize: 100,
               },
             },
-          ).catch(() => null)
-        : null;
+          )
+        : Promise.resolve(null),
+    ]);
 
-    const upcomingReservations = normalizeUpcomingReservations(reservations?.data ?? [], {
+    const reservationData = reservations.status === "fulfilled" ? reservations.value : null;
+    const upcomingReservations = normalizeUpcomingReservations(reservationData?.data ?? [], {
       expectedEmail: expectedReservationEmail,
       expectedContactCode: contactCode,
     });
@@ -790,11 +789,11 @@ export const getProfileData = async (
     console.info("[Tortuga reservations] filtro applicato", {
       emailUtente: expectedReservationEmail || null,
       codiceContatto: contactCode || null,
-      prenotazioniRicevute: reservations?.data?.length ?? 0,
+      prenotazioniRicevute: reservationData?.data?.length ?? 0,
       prenotazioniMostrate: upcomingReservations.length,
       filtro: expectedReservationEmail ? "email-strict" : "contact-code-strict",
       prenotazioniRicevuteDebug:
-        reservations?.data?.map((reservation) => ({
+        reservationData?.data?.map((reservation) => ({
           codicePrenotazione: reservation.CodicePrenotazione ?? null,
           email: normalizeEmail(reservation.Email) || null,
           codiceContatto: normalizeContactCode(reservation.CodiceContatto) || null,
@@ -813,8 +812,8 @@ export const getProfileData = async (
       query,
     };
   } catch (error) {
-    console.warn(`[Cooperto getProfileData] Fallback a mock per ${query} (${lookupMode}):`, error);
-    return fallbackSource(await mockProfile(query, lookupMode));
+    console.error(`[Cooperto getProfileData] Profilo non disponibile per ${query} (${lookupMode}):`, error);
+    throw error;
   }
 };
 

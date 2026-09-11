@@ -29,7 +29,8 @@ export type AppAnalyticsPayload = Record<
 
 declare global {
   interface Window {
-    dataLayer?: Array<Record<string, unknown>>;
+    dataLayer?: unknown[];
+    gtag?: (command: string, eventName: string, params?: Record<string, unknown>) => void;
     fbq?: (action: string, eventName: string, params?: Record<string, unknown>) => void;
   }
 }
@@ -107,7 +108,7 @@ export const trackAppEvent = (
 
   // 1. Google Tag Manager & GA4 dataLayer
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(dataLayerPayload);
+  window.dataLayer.push(["event", eventName, dataLayerPayload]);
 
   // 2. Meta Pixel Client-Side Event
   if (typeof window.fbq === "function") {
@@ -119,19 +120,22 @@ export const trackAppEvent = (
   }
 
   // 3. Meta Conversions API (CAPI) Server-Side Event
-  void fetch("/api/tracking/meta-capi", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      eventName: metaEventName,
-      eventSourceUrl: window.location.href,
-      email: typeof payload.email === "string" ? payload.email : undefined,
-      phone: typeof payload.phone === "string" ? payload.phone : undefined,
-      firstName: typeof payload.firstName === "string" ? payload.firstName : undefined,
-      lastName: typeof payload.lastName === "string" ? payload.lastName : undefined,
-      customData: cleanPayload(payload),
-    }),
-  }).catch(() => undefined);
+  const sendMetaEvent = () => {
+    void fetch("/api/tracking/meta-capi", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventName: metaEventName,
+        eventSourceUrl: window.location.href,
+        email: typeof payload.email === "string" ? payload.email : undefined,
+        phone: typeof payload.phone === "string" ? payload.phone : undefined,
+        firstName: typeof payload.firstName === "string" ? payload.firstName : undefined,
+        lastName: typeof payload.lastName === "string" ? payload.lastName : undefined,
+        customData: cleanPayload(payload),
+      }),
+    }).catch(() => undefined);
+  };
+  window.setTimeout(sendMetaEvent, 8_000);
 };
 
 export const trackAppPageView = (pathname: string) => {

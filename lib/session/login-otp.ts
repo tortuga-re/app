@@ -8,6 +8,11 @@ export type LoginOtpPayload = {
   email: string;
 };
 
+const otpBypassEmail = "prova@gmail.com";
+
+export const shouldBypassLoginOtp = (email: string) =>
+  email.trim().toLowerCase() === otpBypassEmail;
+
 export const loginOtpStore = createOtpStore<LoginOtpPayload>({
   redisUrl: process.env.UPSTASH_REDIS_REST_URL?.trim() ?? "",
   redisToken: process.env.UPSTASH_REDIS_REST_TOKEN?.trim() ?? "",

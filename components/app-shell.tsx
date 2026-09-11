@@ -16,7 +16,6 @@ import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useCustomerStatus } from "@/lib/use-customer-status";
 import { CustomerStatusProvider } from "@/components/customer-status-context";
 import { MenuOverlayProvider, useMenuOverlay } from "@/components/menu-overlay";
-import { RoutePrefetcher } from "@/components/route-prefetcher";
 import { NotificationCenter } from "@/components/notification-center";
 import { PwaInstallCard } from "@/components/pwa-install-card";
 
@@ -73,8 +72,8 @@ const recoverFromChunkError = async () => {
 };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { greeting, identity } = useCustomerIdentity();
-  const customerStatus = useCustomerStatus(identity.email);
+  const { greeting, identity, clearCustomerContext } = useCustomerIdentity();
+  const customerStatus = useCustomerStatus(identity.email, clearCustomerContext);
 
   const pathname = usePathname();
   const isStageOrAdmin = pathname.startsWith("/stage") || pathname.startsWith("/live") || pathname === "/admin" || pathname.startsWith("/admin/");
@@ -159,8 +158,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <BookingOverlayProvider>
     <div className="relative min-h-screen overflow-x-hidden">
       <AnalyticsTracker />
-      <RoutePrefetcher />
-
       <div className="pointer-events-none absolute inset-0">
         <div className="fixed inset-0 z-[-1] bg-[#0a0a0a]">
           <Image

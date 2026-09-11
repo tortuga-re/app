@@ -66,7 +66,10 @@ const statusFromProfile = (email: string, response: ProfileResponse): CustomerSt
   };
 };
 
-export function useCustomerStatus(email?: string): CustomerStatusState {
+export function useCustomerStatus(
+  email?: string,
+  onInvalidIdentity?: () => void | Promise<void>,
+): CustomerStatusState {
   const normalizedEmail = normalizeCustomerEmail(email);
   const [state, setState] = useState<CustomerStatusState>(baseStatus);
   const fallbackState = baseStatus();
@@ -95,6 +98,7 @@ export function useCustomerStatus(email?: string): CustomerStatusState {
       } catch {
         if (!cancelled && version === requestVersion) {
           setState(baseStatus(normalizedEmail));
+          await onInvalidIdentity?.();
         }
       }
     };
@@ -116,7 +120,7 @@ export function useCustomerStatus(email?: string): CustomerStatusState {
       cancelled = true;
       window.removeEventListener("tortuga:profile-updated", handleProfileUpdate);
     };
-  }, [normalizedEmail]);
+  }, [normalizedEmail, onInvalidIdentity]);
 
   return normalizedEmail && state.email === normalizedEmail
     ? state

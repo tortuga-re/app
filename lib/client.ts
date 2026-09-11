@@ -14,6 +14,7 @@ export async function requestJson<T>(url: string, init?: RequestInit): Promise<T
 
   const response = await fetch(url, {
     ...init,
+    signal: init?.signal ?? AbortSignal.timeout(10_000),
     headers: {
       "Content-Type": "application/json",
       ...init?.headers,

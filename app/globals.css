@@ -671,11 +671,10 @@ body {
   color:var(--text);
   background-color:#f4efe5;
   background-image:
-    linear-gradient(180deg,rgba(12,14,12,.22) 0 9rem,#f4efe5 9rem 100%),
-    url("/nautical-map.png");
-  background-position:center top,center top;
-  background-repeat:no-repeat,no-repeat;
-  background-size:100% 100%,100% auto;
+    linear-gradient(180deg,rgba(12,14,12,.22) 0 9rem,#f4efe5 9rem 100%);
+  background-position:center top;
+  background-repeat:no-repeat;
+  background-size:100% 100%;
 }
 .app-shell-content { padding-bottom: calc(var(--bottom-nav-clearance) + 1rem); }
 .minimal-bottom-nav { border: 1px solid rgba(25,25,22,.1); border-radius: 1.45rem; background: rgba(255,253,248,.94); box-shadow: 0 16px 40px rgba(18,17,14,.16); backdrop-filter: blur(18px); }
@@ -1169,17 +1168,17 @@ body {
 .survey-slide > span { color: rgba(255,255,255,.9); }
 
 .rank-slide {
-  background-image: linear-gradient(105deg, rgba(10, 22, 27, .91) 0%, rgba(12, 31, 37, .83) 56%, rgba(8, 20, 26, .58) 100%), url('/images/ranks-pirate-galleons-background.webp');
+  background-image: linear-gradient(105deg, rgba(10, 22, 27, .91) 0%, rgba(12, 31, 37, .83) 56%, rgba(8, 20, 26, .58) 100%), url('/images/ranks-pirate-galleons-background-fast.webp');
 }
 .rank-slide:hover {
-  background-image: linear-gradient(105deg, rgba(10, 22, 27, .83) 0%, rgba(12, 31, 37, .74) 56%, rgba(8, 20, 26, .48) 100%), url('/images/ranks-pirate-galleons-background.webp');
+  background-image: linear-gradient(105deg, rgba(10, 22, 27, .83) 0%, rgba(12, 31, 37, .74) 56%, rgba(8, 20, 26, .48) 100%), url('/images/ranks-pirate-galleons-background-fast.webp');
 }
 
 .reward-slide {
-  background-image: linear-gradient(105deg, rgba(102, 27, 24, .91) 0%, rgba(130, 37, 27, .83) 56%, rgba(65, 18, 14, .59) 100%), url('/images/rewards-food-table-background.webp');
+  background-image: linear-gradient(105deg, rgba(102, 27, 24, .91) 0%, rgba(130, 37, 27, .83) 56%, rgba(65, 18, 14, .59) 100%), url('/images/rewards-food-table-background-fast.webp');
 }
 .reward-slide:hover {
-  background-image: linear-gradient(105deg, rgba(102, 27, 24, .83) 0%, rgba(130, 37, 27, .74) 56%, rgba(65, 18, 14, .48) 100%), url('/images/rewards-food-table-background.webp');
+  background-image: linear-gradient(105deg, rgba(102, 27, 24, .83) 0%, rgba(130, 37, 27, .74) 56%, rgba(65, 18, 14, .48) 100%), url('/images/rewards-food-table-background-fast.webp');
 }
 
 .receipt-slide {
@@ -1192,21 +1191,21 @@ body {
 }
 
 .rank-progress-slide {
-  background-image: linear-gradient(105deg, rgba(13, 34, 40, .9) 0%, rgba(18, 62, 69, .78) 56%, rgba(10, 32, 39, .53) 100%), url('/images/ranks-pirate-galleons-background.webp');
+  background-image: linear-gradient(105deg, rgba(13, 34, 40, .9) 0%, rgba(18, 62, 69, .78) 56%, rgba(10, 32, 39, .53) 100%), url('/images/ranks-pirate-galleons-background-fast.webp');
   background-position: center;
 }
 
 .rank-progress-slide:hover {
-  background-image: linear-gradient(105deg, rgba(13, 34, 40, .81) 0%, rgba(18, 62, 69, .69) 56%, rgba(10, 32, 39, .43) 100%), url('/images/ranks-pirate-galleons-background.webp');
+  background-image: linear-gradient(105deg, rgba(13, 34, 40, .81) 0%, rgba(18, 62, 69, .69) 56%, rgba(10, 32, 39, .43) 100%), url('/images/ranks-pirate-galleons-background-fast.webp');
 }
 
 .gift-slide {
-  background-image: linear-gradient(105deg, rgba(31, 15, 12, .88) 0%, rgba(61, 25, 16, .76) 56%, rgba(24, 13, 9, .48) 100%), url('/images/gift-card-treasure-chest-background.webp');
+  background-image: linear-gradient(105deg, rgba(31, 15, 12, .88) 0%, rgba(61, 25, 16, .76) 56%, rgba(24, 13, 9, .48) 100%), url('/images/gift-card-treasure-chest-background-fast.webp');
   background-position: center;
 }
 
 .gift-slide:hover {
-  background-image: linear-gradient(105deg, rgba(31, 15, 12, .79) 0%, rgba(61, 25, 16, .67) 56%, rgba(24, 13, 9, .38) 100%), url('/images/gift-card-treasure-chest-background.webp');
+  background-image: linear-gradient(105deg, rgba(31, 15, 12, .79) 0%, rgba(61, 25, 16, .67) 56%, rgba(24, 13, 9, .38) 100%), url('/images/gift-card-treasure-chest-background-fast.webp');
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

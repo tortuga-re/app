@@ -89,6 +89,7 @@ const restoreCustomerSession = () => {
   if (!customerSessionRestorePromise) {
     customerSessionRestorePromise = fetch("/api/session/customer", {
       cache: "no-store",
+      signal: AbortSignal.timeout(5_000),
     })
       .then(async (response) => {
         if (!response.ok) {
@@ -176,7 +177,13 @@ export function useCustomerIdentity() {
     let cancelled = false;
 
     void restoreCustomerSession().then((restoredIdentity) => {
-      if (!restoredIdentity || cancelled) {
+      if (cancelled) {
+        return;
+      }
+
+      if (!restoredIdentity) {
+        removeLocalStorageValue(storageKeys.customerIdentity);
+        setIdentityState(emptyCustomerIdentity);
         return;
       }
 

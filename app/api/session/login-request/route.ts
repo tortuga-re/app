@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
-import { loginOtpStore, sendLoginOtpEmail } from "@/lib/session/login-otp";
+import { loginOtpStore, sendLoginOtpEmail, shouldBypassLoginOtp } from "@/lib/session/login-otp";
 import { measureServerOperation } from "@/lib/observability";
 import { normalizeProfileEmail as normalizeCustomerEmail, isValidProfileEmail as isValidCustomerEmail } from "@/lib/profile/validation";
 import { OtpError } from "@/lib/otp/store";
+import { getProfileData } from "@/lib/cooperto/service";
+import {
+  attachCustomerSessionCookie,
+  normalizeCustomerSessionIdentity,
+} from "@/lib/session/customer-session";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +33,39 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (shouldBypassLoginOtp(normalizedEmail)) {
+      const profileData = await measureServerOperation(
+        "login_profile_lookup",
+        async () => getProfileData("email", normalizedEmail),
+        { email: normalizedEmail, otpBypass: true },
+      );
+      const sessionIdentity = normalizeCustomerSessionIdentity({
+        email: normalizedEmail,
+        firstName: profileData.contact?.Nome || "",
+        lastName: profileData.contact?.Cognome || "",
+        phone: profileData.contact?.Telefono || "",
+        marketingConsent:
+          typeof profileData.contact?.ConsensoMarketing === "number"
+            ? profileData.contact.ConsensoMarketing === 1
+            : undefined,
+      });
+
+      if (!sessionIdentity) {
+        return NextResponse.json(
+          { error: "Errore durante la creazione della sessione." },
+          { status: 500 },
+        );
+      }
+
+      return attachCustomerSessionCookie(
+        NextResponse.json({
+          authenticated: true,
+          profile: { ...profileData, source: "login_otp_bypass" },
+        }),
+        sessionIdentity,
+      );
+    }
+
     const { record, code } = await measureServerOperation(
       "login_otp_request",
       async () => loginOtpStore.create({

@@ -13,6 +13,22 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.appName}`,
   },
   description: siteConfig.description,
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    nosnippet: true,
+    noimageindex: true,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      "max-image-preview": "none",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   applicationName: siteConfig.appName,
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -64,7 +80,6 @@ export default function RootLayout({
     <html lang="it" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://menu.cooperto.it" />
-        <link rel="preconnect" href="https://prenotazioni.cooperto.it" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <AnalyticsScripts />

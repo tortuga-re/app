@@ -11,6 +11,20 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const settleWithin = async <T,>(promise: PromiseLike<T>, fallback: T, timeoutMs = 3_500) => {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((resolve) => {
+        timeout = setTimeout(() => resolve(fallback), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get("mode");
@@ -48,14 +62,28 @@ export async function GET(request: Request) {
       const { evaluateCustomerAchievements } = await import("@/lib/profile/achievement-service");
       const { getSupabaseAdmin } = await import("@/lib/supabase/client");
       
+      const emptyAchievements = { achievementIds: [] as string[], achievementViews: [] };
       const [avatarUrl, achievementState, legendResult] = await Promise.all([
-        getCustomerAvatar(normalizedQuery).catch(() => null),
-        evaluateCustomerAchievements(normalizedQuery, data).catch(() => ({ achievementIds: [] as string[], achievementViews: [] })),
-        getSupabaseAdmin()
-          .from("legends_hall_of_fame")
-          .select("nickname, legend_number")
-          .eq("email", normalizedQuery)
-          .maybeSingle(),
+        settleWithin(getCustomerAvatar(normalizedQuery).catch(() => null), null),
+        settleWithin(
+          evaluateCustomerAchievements(normalizedQuery, data).catch(() => emptyAchievements),
+          emptyAchievements,
+        ),
+        settleWithin(
+          getSupabaseAdmin()
+            .from("legends_hall_of_fame")
+            .select("nickname, legend_number")
+            .eq("email", normalizedQuery)
+            .maybeSingle(),
+          {
+            data: null,
+            error: null,
+            success: true,
+            count: null,
+            status: 200,
+            statusText: "OK",
+          },
+        ),
       ]);
 
       if (avatarUrl) {

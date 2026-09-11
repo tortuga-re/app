@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         identity: null,
         expiresInSeconds: 0,
       },
-      { status: 401 },
+      { status: 200 },
     );
   }
 

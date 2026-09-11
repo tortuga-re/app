@@ -1,56 +1,31 @@
-import Script from "next/script";
+"use client";
 
-import { analyticsConfig, siteConfig } from "@/lib/config";
+import Script from "next/script";
+import { useEffect, useState } from "react";
+
+import { analyticsConfig } from "@/lib/config";
 
 export function AnalyticsScripts() {
-  const gtmId = analyticsConfig.gtmId;
+  const [ready, setReady] = useState(false);
   const ga4Id = analyticsConfig.ga4Id;
   const pixelId = analyticsConfig.metaPixelId;
 
-  const bootstrapPayload = JSON.stringify({
-    event: "app_bootstrap",
-    site_area: analyticsConfig.siteArea,
-    app_name: siteConfig.appName,
-    app_domain: analyticsConfig.appDomain,
-    app_section: "app",
-    event_source: analyticsConfig.eventSource,
-    meta_pixel_id: pixelId,
-    ga4_id: ga4Id,
-  });
+  useEffect(() => {
+    const enable = () => setReady(true);
+    const timer = window.setTimeout(enable, 12_000);
+    window.addEventListener("pointerdown", enable, { once: true, passive: true });
+    window.addEventListener("keydown", enable, { once: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", enable);
+      window.removeEventListener("keydown", enable);
+    };
+  }, []);
+
+  if (!ready) return null;
 
   return (
     <>
-      {/* Google Tag Manager (GTM) */}
-      {gtmId ? (
-        <>
-          <Script
-            id="tortuga-gtm"
-            strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push(${bootstrapPayload});
-                (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-                new Date().getTime(),event:'gtm.js'});
-                var f=d.getElementsByTagName(s)[0],
-                j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-                'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                })(window,document,'script','dataLayer',${JSON.stringify(gtmId)});
-              `,
-            }}
-          />
-          <noscript>
-            <iframe
-              src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
-              height="0"
-              width="0"
-              style={{ display: "none", visibility: "hidden" }}
-              title="Google Tag Manager"
-            />
-          </noscript>
-        </>
-      ) : null}
-
       {/* Google Analytics 4 (GA4) */}
       {ga4Id ? (
         <>

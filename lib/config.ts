@@ -50,7 +50,7 @@ export const tortugaInfoConfig = {
   mapsUrl: "https://maps.app.goo.gl/WEXZaWt4U2Bsf1PT8",
   mapsEmbedUrl:
     "https://www.google.com/maps?q=Tortuga+Reggio+Emilia&z=17&output=embed",
-  programmazioneUrl: "https://tortugabay.it/programmazione-invernale",
+  programmazioneUrl: "https://tortugabay.it/programmazione",
   eveningProgram: [
     {
       id: "perla-nera-day",
@@ -61,7 +61,7 @@ export const tortugaInfoConfig = {
         "Il più venduto del Tortuga, oltre 600 al mese, in formula 2x1.",
       imageUrl:
         "/images/events/perla-nera-day-mercoledi-tortuga-reggio-emilia.png",
-      detailUrl: "https://tortugabay.it/mercoledi",
+      detailUrl: "https://tortugabay.it/programmazione/mercoledi",
     },
     {
       id: "the-social-game",
@@ -72,7 +72,7 @@ export const tortugaInfoConfig = {
         "Vuoi conoscere persone con i tuoi stessi interessi? Tra una risposta e l'altra, potrebbe nascere anche qualcosa di romantico.",
       imageUrl:
         "/images/events/giovedi-the-social-game-tortuga-nuove-amicizie-e-conoscenze-a-reggio-emilia.png",
-      detailUrl: "https://tortugabay.it/giovedi",
+      detailUrl: "https://tortugabay.it/programmazione/giovedi",
     },
     {
       id: "kantaquiz",
@@ -83,7 +83,7 @@ export const tortugaInfoConfig = {
         "Quiz, musica, risate e gente che si scatena. Non è solo cena: è il venerdì del Tortuga.",
       imageUrl:
         "/images/events/venerdi-kanta-quiz-tortuga-reggio-emilia.png",
-      detailUrl: "https://tortugabay.it/venerdi",
+      detailUrl: "https://tortugabay.it/programmazione/venerdi",
     },
     {
       id: "notte-del-capitano",
@@ -93,7 +93,7 @@ export const tortugaInfoConfig = {
       description: "Atmosfera, gioco, musica e ciurma pronta a fare casino.",
       imageUrl:
         "/images/events/sabato-notte-del-capitano-cena-con-spettacolo-karaoke-tortuga-reggio-emilia.png",
-      detailUrl: "https://tortugabay.it/sabato",
+      detailUrl: "https://tortugabay.it/programmazione/sabato",
     },
     {
       id: "cervellone",
@@ -104,7 +104,7 @@ export const tortugaInfoConfig = {
         "La domenica si chiude con amici e famigliari: tavoli, sfide e cervelli messi alla prova fino all’ultima risposta.",
       imageUrl:
         "/images/events/domenica-cervellone-day-quiz-sfida-amici-e-familiari-tortuga-reggio-emilia.png",
-      detailUrl: undefined,
+      detailUrl: "https://tortugabay.it/programmazione/domenica",
     },
   ],
   phoneNumber: "+39 379 359 3799",
