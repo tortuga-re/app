@@ -44,7 +44,15 @@ export function MerchandiseCatalog() {
     : process.env.NODE_ENV === "development"
       ? [localDemoProduct]
       : [];
-  if (loading || visibleProducts.length === 0) return null;
+  if (loading) {
+    return (
+      <section className="gift-collection merchandise-collection min-h-[200px]" aria-label="Caricamento prodotti merchandise">
+        <header><p className="minimal-eyebrow">Merchandise</p><h2>Porta il Tortuga con te.</h2></header>
+        <div className="h-[130px] rounded-2xl bg-[#f3ecdf]/60 animate-pulse w-full mt-3" />
+      </section>
+    );
+  }
+  if (visibleProducts.length === 0) return null;
   return <section className="gift-collection merchandise-collection" aria-labelledby="merchandise-title">
     <header><p className="minimal-eyebrow">Merchandise</p><h2 id="merchandise-title">Porta il Tortuga con te.</h2></header>
     <DragCarousel className="gift-card-row merchandise-row" label="Prodotti merchandise Tortuga">

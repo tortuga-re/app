@@ -37,6 +37,7 @@ const collections = [
 export function GiftScreen() {
   const [selectedCard, setSelectedCard] = useState<GiftCard | null>(null);
   return <section className="minimal-page minimal-overlap-sheet gift-catalog">
+    <MerchandiseCatalog />
     <header className="overlap-sheet-intro gift-catalog-intro">
       <p className="minimal-eyebrow">Regala Tortuga</p>
       <h1>Una rotta per ogni occasione.</h1>
@@ -50,7 +51,6 @@ export function GiftScreen() {
         </DragCarousel>
       </section>)}
     </div>
-    <MerchandiseCatalog />
     {selectedCard?.purchaseUrl && typeof document !== "undefined" ? createPortal(<div className="booking-overlay" role="dialog" aria-modal="true" aria-label={`Acquista ${selectedCard.title}`}>
       <header><div><Gift size={19} /><span>{selectedCard.title}</span></div><div className="flex gap-2"><a href={selectedCard.purchaseUrl} target="_blank" rel="noreferrer" aria-label="Apri l’acquisto nel browser"><ExternalLink size={19} /></a><button onClick={() => setSelectedCard(null)} aria-label="Chiudi acquisto"><X size={22} /></button></div></header>
       <BrandedIframe src={selectedCard.purchaseUrl} title={`Acquista ${selectedCard.title}`} allow="payment" />
