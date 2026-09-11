@@ -6,6 +6,7 @@ import { pwaConfig, storageKeys } from "@/lib/config";
 import { requestJson } from "@/lib/client";
 import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
+import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import type { CoopertoCoupon, ProfileResponse } from "@/lib/cooperto/types";
 import {
   ensureCurrentPushSubscription,
@@ -49,6 +50,8 @@ const isIosDevice = () => {
 export function PwaInstallCard() {
   const { identity, updateIdentity } = useCustomerIdentity();
   const { scenario } = useDemoScenario();
+  const { hasAccess: hasOnPremiseAccess } = useOnPremiseAccess();
+  const onPremise = scenario.enabled ? scenario.onPremise : hasOnPremiseAccess;
   const [clientReady, setClientReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [installDismissedAt, setInstallDismissedAt] = useState<number | null>(null);
@@ -402,7 +405,7 @@ export function PwaInstallCard() {
     </div>;
   }
 
-  if (!welcomeRequested && welcomeChestPreview === "none") return null;
+  if ((onPremise && welcomeChestPreview === "none") || (!welcomeRequested && welcomeChestPreview === "none")) return null;
   if (!mode) return null;
 
   const content = (
