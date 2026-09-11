@@ -24,6 +24,7 @@ import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { isAdmin } from "@/lib/admin/identity";
 import { useVisitRegistration } from "@/lib/hooks/use-visit-registration";
+import { primeCustomerStatus } from "@/lib/use-customer-status";
 import {
   italianPhoneValidationError,
   normalizeItalianPhone,
@@ -328,6 +329,7 @@ export function CiurmaScreen() {
   const applyProfileResponse = async (response: ProfileResponse) => {
     setData(response);
     setLookupEmail(response.contact?.Email || response.query);
+    primeCustomerStatus(response);
 
     if (!response.contact) {
       return;

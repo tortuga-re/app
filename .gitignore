@@ -19,3 +19,6 @@ supabase/.temp
 lib/server/local-app-state.json
 public/wp-content/uploads/**/*.mp4
 public/live-tv-media/
+work-lighthouse*.json
+vecchia conversazione.txt
+

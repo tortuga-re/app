@@ -6,7 +6,7 @@ import { useCustomerIdentity } from "@/lib/customer-identity";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { getSupabase } from "@/lib/supabase/client";
-import { getRankIndex, tortugaRanks } from "@/lib/loyalty-ranks";
+import { tortugaRanks } from "@/lib/loyalty-ranks";
 import type { CiurmaSurveyState, CiurmaMinRank } from "@/lib/serata-live/types";
 
 const minRankMap: Record<CiurmaMinRank, number> = {
@@ -28,6 +28,7 @@ const rankLabels: Record<CiurmaMinRank, string> = {
 export function CiurmaSurveySection({ placement = "ciurma_home" }: { placement?: "ciurma_home" | "serata" }) {
   const [survey, setSurvey] = useState<CiurmaSurveyState | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [now] = useState(() => Date.now());
 
   const fetchSurvey = async () => {
     try {
@@ -44,7 +45,7 @@ export function CiurmaSurveySection({ placement = "ciurma_home" }: { placement?:
   };
 
   useEffect(() => {
-    void fetchSurvey();
+    queueMicrotask(() => void fetchSurvey());
 
     // Listen to live survey updates via Supabase Realtime WebSockets
     let channel: ReturnType<ReturnType<typeof getSupabase>["channel"]> | null = null;
@@ -84,7 +85,7 @@ export function CiurmaSurveySection({ placement = "ciurma_home" }: { placement?:
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
         void fetchSurvey();
       }
-    }, 15000);
+    }, 120_000);
 
     const handleFocus = () => void fetchSurvey();
     if (typeof window !== "undefined") {
@@ -115,7 +116,6 @@ export function CiurmaSurveySection({ placement = "ciurma_home" }: { placement?:
   }
 
   // Check scheduling date range if dates are specified
-  const now = Date.now();
   if (survey.startDate) {
     const start = new Date(survey.startDate).getTime();
     if (!Number.isNaN(start) && now < start) {

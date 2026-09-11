@@ -66,6 +66,13 @@ const statusFromProfile = (email: string, response: ProfileResponse): CustomerSt
   };
 };
 
+const primedProfiles = new Map<string, ProfileResponse>();
+
+export const primeCustomerStatus = (response: ProfileResponse) => {
+  const email = normalizeCustomerEmail(response.contact?.Email || response.query);
+  if (email) primedProfiles.set(email, response);
+};
+
 export function useCustomerStatus(
   email?: string,
   onInvalidIdentity?: () => void | Promise<void>,
@@ -81,6 +88,7 @@ export function useCustomerStatus(
 
     let cancelled = false;
     let requestVersion = 0;
+    const primedProfile = primedProfiles.get(normalizedEmail);
 
     const loadStatus = async () => {
       const version = ++requestVersion;
@@ -106,6 +114,7 @@ export function useCustomerStatus(
     const handleProfileUpdate = (event: Event) => {
       const profile = (event as CustomEvent<{ profile?: ProfileResponse }>).detail?.profile;
       if (profile) {
+        primeCustomerStatus(profile);
         requestVersion += 1;
         setState(statusFromProfile(normalizedEmail, profile));
         return;
@@ -113,7 +122,14 @@ export function useCustomerStatus(
       void loadStatus();
     };
 
-    void loadStatus();
+    if (primedProfile) {
+      primedProfiles.delete(normalizedEmail);
+      queueMicrotask(() => {
+        if (!cancelled) setState(statusFromProfile(normalizedEmail, primedProfile));
+      });
+    } else {
+      void loadStatus();
+    }
     window.addEventListener("tortuga:profile-updated", handleProfileUpdate);
 
     return () => {

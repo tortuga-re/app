@@ -51,18 +51,28 @@ export function NotificationCenter() {
   }, []);
 
   useEffect(() => {
+    let intervalId: number | undefined;
+
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") void refreshLiveGame();
     };
 
-    refreshWhenVisible();
-    const interval = window.setInterval(refreshWhenVisible, 60_000);
+    if (open) {
+      refreshWhenVisible();
+    }
+
+    const initialTimer = window.setTimeout(() => {
+      refreshWhenVisible();
+      intervalId = window.setInterval(refreshWhenVisible, 60_000);
+    }, 15_000);
+
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
-      window.clearInterval(interval);
+      window.clearTimeout(initialTimer);
+      if (intervalId) window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, [refreshLiveGame]);
+  }, [open, refreshLiveGame]);
 
   const notices = useMemo<Notice[]>(() => {
     const result: Notice[] = [];

@@ -78,9 +78,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://menu.cooperto.it" />
-      </head>
       <body className="antialiased" suppressHydrationWarning>
         <AnalyticsScripts />
         <AppShell>{children}</AppShell>

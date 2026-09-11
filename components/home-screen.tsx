@@ -1,20 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import ReactDOM from "react-dom";
+import { useEffect, useState } from "react";
 import { BookOpen, CalendarDays, ChevronRight, Clock3, Gift, Users, UtensilsCrossed } from "lucide-react";
 import { LoyaltyJourney } from "@/components/loyalty-journey";
-import { CiurmaSurveySection } from "@/components/ciurma-survey-section";
-import { LiveGameCard } from "@/components/live-game-card";
 import { useDemoScenario } from "@/components/demo-scenario-provider";
 import { useCurrentCustomerStatus } from "@/components/customer-status-context";
 import { useOnPremiseAccess } from "@/lib/on-premise-access";
 import { useMenuOverlay } from "@/components/menu-overlay";
-import { PwaInstallCard } from "@/components/pwa-install-card";
 import { formatInRome, formatTime } from "@/lib/utils";
 
+const LiveGameCard = dynamic(() => import("@/components/live-game-card").then((module) => module.LiveGameCard), { ssr: false });
+const CiurmaSurveySection = dynamic(() => import("@/components/ciurma-survey-section").then((module) => module.CiurmaSurveySection), { ssr: false });
+const PwaInstallCard = dynamic(() => import("@/components/pwa-install-card").then((module) => module.PwaInstallCard), { ssr: false });
+
 export function HomeScreen() {
+  ReactDOM.preload("/images/highlight-editorial.webp", {
+    as: "image",
+    fetchPriority: "high",
+  });
+  ReactDOM.preload("/images/rewards-food-table-background-fast.webp", {
+    as: "image",
+    fetchPriority: "high",
+  });
+
   const [now] = useState(() => Date.now());
+  const [liveFeaturesReady, setLiveFeaturesReady] = useState(false);
   const { scenario } = useDemoScenario();
   const { openMenu, menuCtaRef } = useMenuOverlay();
   const customer = useCurrentCustomerStatus();
@@ -70,11 +83,29 @@ export function HomeScreen() {
     </>
   );
 
+  useEffect(() => {
+    const activate = () => setLiveFeaturesReady(true);
+    const timer = window.setTimeout(activate, 15_000);
+    window.addEventListener("pointerdown", activate, { once: true, passive: true });
+    window.addEventListener("touchstart", activate, { once: true, passive: true });
+    window.addEventListener("touchmove", activate, { once: true, passive: true });
+    window.addEventListener("scroll", activate, { once: true, passive: true });
+    window.addEventListener("keydown", activate, { once: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", activate);
+      window.removeEventListener("touchstart", activate);
+      window.removeEventListener("touchmove", activate);
+      window.removeEventListener("scroll", activate);
+      window.removeEventListener("keydown", activate);
+    };
+  }, []);
+
   return (
     <section className="minimal-home space-y-5">
       <LoyaltyJourney beforeHighlights={beforeHighlights} />
-      <LiveGameCard />
-      <CiurmaSurveySection />
+      {liveFeaturesReady ? <LiveGameCard /> : null}
+      {liveFeaturesReady ? <CiurmaSurveySection /> : null}
       <div className="home-actions">
         <Link href="/gift">
           <Gift />
@@ -93,7 +124,7 @@ export function HomeScreen() {
           <ChevronRight />
         </Link>
       </div>
-      <PwaInstallCard />
+      {liveFeaturesReady ? <PwaInstallCard /> : null}
     </section>
   );
 }
