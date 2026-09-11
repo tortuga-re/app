@@ -60,7 +60,7 @@ export const tortugaInfoConfig = {
       description:
         "Il più venduto del Tortuga, oltre 600 al mese, in formula 2x1.",
       imageUrl:
-        "/images/events/perla-nera-day-mercoledi-tortuga-reggio-emilia.png",
+        "/images/events/perla-nera-day-mercoledi-tortuga-reggio-emilia.webp",
       detailUrl: "https://tortugabay.it/programmazione/mercoledi",
     },
     {
@@ -71,7 +71,7 @@ export const tortugaInfoConfig = {
       description:
         "Vuoi conoscere persone con i tuoi stessi interessi? Tra una risposta e l'altra, potrebbe nascere anche qualcosa di romantico.",
       imageUrl:
-        "/images/events/giovedi-the-social-game-tortuga-nuove-amicizie-e-conoscenze-a-reggio-emilia.png",
+        "/images/events/giovedi-the-social-game-tortuga-nuove-amicizie-e-conoscenze-a-reggio-emilia.webp",
       detailUrl: "https://tortugabay.it/programmazione/giovedi",
     },
     {
@@ -82,7 +82,7 @@ export const tortugaInfoConfig = {
       description:
         "Quiz, musica, risate e gente che si scatena. Non è solo cena: è il venerdì del Tortuga.",
       imageUrl:
-        "/images/events/venerdi-kanta-quiz-tortuga-reggio-emilia.png",
+        "/images/events/venerdi-kanta-quiz-tortuga-reggio-emilia.webp",
       detailUrl: "https://tortugabay.it/programmazione/venerdi",
     },
     {
@@ -92,7 +92,7 @@ export const tortugaInfoConfig = {
       title: "LA NOTTE DEL CAPITANO",
       description: "Atmosfera, gioco, musica e ciurma pronta a fare casino.",
       imageUrl:
-        "/images/events/sabato-notte-del-capitano-cena-con-spettacolo-karaoke-tortuga-reggio-emilia.png",
+        "/images/events/sabato-notte-del-capitano-cena-con-spettacolo-karaoke-tortuga-reggio-emilia.webp",
       detailUrl: "https://tortugabay.it/programmazione/sabato",
     },
     {
@@ -103,7 +103,7 @@ export const tortugaInfoConfig = {
       description:
         "La domenica si chiude con amici e famigliari: tavoli, sfide e cervelli messi alla prova fino all’ultima risposta.",
       imageUrl:
-        "/images/events/domenica-cervellone-day-quiz-sfida-amici-e-familiari-tortuga-reggio-emilia.png",
+        "/images/events/domenica-cervellone-day-quiz-sfida-amici-e-familiari-tortuga-reggio-emilia.webp",
       detailUrl: "https://tortugabay.it/programmazione/domenica",
     },
   ],
