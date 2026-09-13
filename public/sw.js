@@ -1,4 +1,4 @@
-const CACHE_NAME = "tortuga-shell-v6";
+const CACHE_NAME = "tortuga-shell-v7";
 const LIVE_TV_MEDIA_CACHE = "tortuga-live-tv-media-v1";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
@@ -99,7 +99,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) {
     if (!isPublicCacheableApi(url)) {
       event.respondWith(
-        fetch(request).catch(
+        fetch(request, { signal: AbortSignal.timeout(6000) }).catch(
           () =>
             new Response(
               JSON.stringify({ error: "Connessione non disponibile." }),
