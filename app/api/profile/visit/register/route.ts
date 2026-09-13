@@ -36,16 +36,29 @@ export async function POST(request: Request) {
     const visitsBefore = profileBefore?.contact?.NumeroVisite ?? 0;
     const pointsBefore = profileBefore?.contact?.SaldoPuntiCard ?? 0;
 
+    const realContactCode = profileBefore?.contact?.CodiceContatto || (lookupMode === "contactCode" ? payload.contactCode : null);
+
+    if (!realContactCode) {
+      return NextResponse.json(
+        { error: "Contatto non trovato per registrazione visita." },
+        { status: 404 }
+      );
+    }
+
     const result = await registerContactVisit({
-      contactCode: payload.contactCode,
+      contactCode: realContactCode,
       venueCode,
     });
 
     await addTagsToContact({
-      contactCode: payload.contactCode,
+      contactCode: realContactCode,
       venueCode,
       tags: ["VISITA-EFFETTUATA"],
-    });
+    }).catch(() => null);
+
+    const { invalidateProfileCache } = await import("@/lib/cooperto/service");
+    invalidateProfileCache(payload.contactCode);
+    invalidateProfileCache(realContactCode);
 
     const profileAfter = await getProfileData(lookupMode, payload.contactCode).catch(() => null);
     const visitsAfter = profileAfter?.contact?.NumeroVisite ?? 0;

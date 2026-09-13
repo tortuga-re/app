@@ -1,5 +1,6 @@
 "use client";
 
+import { compressImageOnClient } from "@/lib/image-client-compress";
 import { useMemo, useRef, useState } from "react";
 
 import type { ProfileResponse } from "@/lib/cooperto/types";
@@ -84,24 +85,29 @@ export function LiveTvContributionCard({
     return `${media.name} - ${formatFileSize(media.size)}`;
   }, [media]);
 
-  const selectFile = (file?: File) => {
+  const selectFile = async (file?: File) => {
     if (!file) {
       return;
     }
 
-    if (!isSupportedFile(file)) {
+    let fileToUse = file;
+    if (file.type.startsWith("image/")) {
+      fileToUse = await compressImageOnClient(file, { maxDimension: 1920, quality: 0.82 });
+    }
+
+    if (!isSupportedFile(fileToUse)) {
       setError("Formato non supportato. Usa foto o video compatibili.");
       setMedia(null);
       return;
     }
 
-    if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
+    if (fileToUse.size <= 0 || fileToUse.size > MAX_FILE_SIZE_BYTES) {
       setError("Il file e troppo pesante o non valido.");
       setMedia(null);
       return;
     }
 
-    setMedia(file);
+    setMedia(fileToUse);
     setError("");
     setSuccess("");
   };

@@ -3,11 +3,23 @@
 import { useRef, useState } from "react";
 import { Camera, Send } from "lucide-react";
 
+import { compressImageOnClient } from "@/lib/image-client-compress";
+
 export function PhotoLiveCard({ onPhotoUploaded }: { onPhotoUploaded?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      const compressed = await compressImageOnClient(selectedFile, { maxDimension: 1920, quality: 0.82 });
+      setFile(compressed);
+    } else {
+      setFile(null);
+    }
+  };
 
   const submitPhoto = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -70,7 +82,7 @@ export function PhotoLiveCard({ onPhotoUploaded }: { onPhotoUploaded?: () => voi
             required
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            onChange={handleFileChange}
             className="mt-1.5 block min-h-[3rem] w-full rounded-2xl border border-[rgba(40,35,28,.16)] bg-[#f2ebdf] px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
           />
         </label>

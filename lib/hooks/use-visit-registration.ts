@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useCustomerIdentity } from "@/lib/customer-identity";
+import { rememberPendingVisit } from "@/lib/pending-visit";
 
 const VISIT_REGISTERED_KEY = "tortuga_visit_registered_session";
 let activeVisitRegistration: Promise<boolean> | null = null;
@@ -8,7 +9,15 @@ export function useVisitRegistration() {
   const { identity, hasIdentity } = useCustomerIdentity();
 
   const registerVisit = useCallback(async (contactCodeOverride?: string) => {
-    if (!hasIdentity && !contactCodeOverride) return false;
+    // Se l'utente non è autenticato / non ha effettuato il login nell'app,
+    // salva la visita nella memoria del telefono (localStorage) per un login futuro
+    // senza effettuare chiamate di rete.
+    if (!hasIdentity && !contactCodeOverride) {
+      if (typeof window !== "undefined") {
+        rememberPendingVisit(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      }
+      return false;
+    }
 
     // Check if already registered in this browser session
     if (typeof window !== "undefined") {
@@ -43,7 +52,11 @@ export function useVisitRegistration() {
           console.info("[Visit Registration] Registered successfully for", contactCode);
           return true;
         } else {
-          console.warn("[Visit Registration] Failed to register visit");
+          // In caso di contatto non trovato o errore 404/400, segna la sessione per evitare retry continui
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(VISIT_REGISTERED_KEY, "true");
+          }
+          console.warn("[Visit Registration] Failed to register visit for", contactCode);
           return false;
         }
       } catch (error) {

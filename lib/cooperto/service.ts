@@ -109,11 +109,15 @@ const coopertoFetch = async <T>(
 
   if (!response.ok) {
     const body = await response.text();
-    console.error(`[Cooperto API Error] ${init?.method || "GET"} ${path}`, {
-      status: response.status,
-      statusText: response.statusText,
-      body,
-    });
+    if (response.status === 404) {
+      console.warn(`[Cooperto API 404] ${init?.method || "GET"} ${path} - Contatto non trovato`);
+    } else {
+      console.error(`[Cooperto API Error] ${init?.method || "GET"} ${path}`, {
+        status: response.status,
+        statusText: response.statusText,
+        body,
+      });
+    }
     throw new Error(body || `Cooperto ha risposto con ${response.status}.`);
   }
 
@@ -723,6 +727,66 @@ export const createWaitlist = async (
   }
 };
 
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+const memoryCache = new Map<string, CacheEntry<unknown>>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+const getCached = <T>(key: string): T | undefined => {
+  const entry = memoryCache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) {
+    memoryCache.delete(key);
+    return undefined;
+  }
+  return entry.value as T;
+};
+
+const setCached = <T>(key: string, value: T, ttlMs: number): void => {
+  memoryCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+};
+
+export const invalidateProfileCache = (queryOrCode?: string): void => {
+  if (!queryOrCode) {
+    memoryCache.clear();
+    return;
+  }
+  const normalized = queryOrCode.trim().toLowerCase();
+  for (const key of memoryCache.keys()) {
+    if (key.includes(normalized)) {
+      memoryCache.delete(key);
+    }
+  }
+};
+
+const getFidelityCardsCached = async (): Promise<CoopertoListResponse<CoopertoFidelityCard>> => {
+  const cacheKey = "fidelity_cards_all";
+  const cached = getCached<CoopertoListResponse<CoopertoFidelityCard>>(cacheKey);
+  if (cached) return cached;
+
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey) as Promise<CoopertoListResponse<CoopertoFidelityCard>>;
+  }
+
+  const promise = (async () => {
+    try {
+      const res = await coopertoFetch<CoopertoListResponse<CoopertoFidelityCard>>("/api/FidelityCard/Elenco", {
+        query: { skip: 0, pageSize: 100 },
+      });
+      setCached(cacheKey, res, 300_000);
+      return res;
+    } finally {
+      inFlightRequests.delete(cacheKey);
+    }
+  })();
+
+  inFlightRequests.set(cacheKey, promise);
+  return promise;
+};
+
 export const getProfileData = async (
   lookupMode: "email" | "contactCode",
   query: string,
@@ -731,90 +795,117 @@ export const getProfileData = async (
     throw new Error("Configurazione Cooperto non presente.");
   }
 
-  try {
-    const contact = await coopertoFetch<CoopertoContact>(
-      lookupMode === "email"
-        ? "/api/Contatti/DettagliByEMail"
-        : "/api/Contatti/DettagliByCodiceContatto",
-      {
-        query:
-          lookupMode === "email"
-            ? { email: query }
-            : { codiceContatto: query },
-      },
-    );
+  const normalizedQuery = query.trim().toLowerCase();
+  const cacheKey = `profile:${lookupMode}:${normalizedQuery}`;
 
-    const contactCode =
-      contact.CodiceContatto || (lookupMode === "contactCode" ? query : "");
-    const expectedReservationEmail =
-      lookupMode === "email" ? normalizeEmail(query) : normalizeEmail(contact.Email);
-
-    const [points, coupons, cards, reservations] = await Promise.allSettled([
-      contactCode
-        ? coopertoFetch<number>("/api/Contatti/SaldoPuntiByCodiceContatto", {
-            query: { codiceContatto: contactCode },
-          })
-        : Promise.resolve(null),
-      contactCode
-        ? coopertoFetch<ProfileResponse["coupons"]>(
-            "/api/Contatti/ElencoCouponContatto",
-            {
-              query: { codiceContatto: contactCode },
-            },
-          )
-        : Promise.resolve([]),
-      coopertoFetch<CoopertoListResponse<CoopertoFidelityCard>>("/api/FidelityCard/Elenco", {
-        query: { skip: 0, pageSize: 100 },
-      }),
-      contactCode
-        ? coopertoFetch<CoopertoListResponse<CoopertoReservation>>(
-            "/api/Prenotazioni/ElencoByCodiceContatto",
-            {
-              query: {
-                codiceContatto: contactCode,
-                skip: 0,
-                pageSize: 100,
-              },
-            },
-          )
-        : Promise.resolve(null),
-    ]);
-
-    const reservationData = reservations.status === "fulfilled" ? reservations.value : null;
-    const upcomingReservations = normalizeUpcomingReservations(reservationData?.data ?? [], {
-      expectedEmail: expectedReservationEmail,
-      expectedContactCode: contactCode,
-    });
-
-    console.info("[Tortuga reservations] filtro applicato", {
-      emailUtente: expectedReservationEmail || null,
-      codiceContatto: contactCode || null,
-      prenotazioniRicevute: reservationData?.data?.length ?? 0,
-      prenotazioniMostrate: upcomingReservations.length,
-      filtro: expectedReservationEmail ? "email-strict" : "contact-code-strict",
-      prenotazioniRicevuteDebug:
-        reservationData?.data?.map((reservation) => ({
-          codicePrenotazione: reservation.CodicePrenotazione ?? null,
-          email: normalizeEmail(reservation.Email) || null,
-          codiceContatto: normalizeContactCode(reservation.CodiceContatto) || null,
-          dataPrenotazione: reservation.DataPrenotazione ?? null,
-        })) ?? [],
-    });
-
-    return {
-      source: "live",
-      contact,
-      points: points.status === "fulfilled" ? points.value : null,
-      coupons: coupons.status === "fulfilled" ? coupons.value : [],
-      fidelityCards: cards.status === "fulfilled" ? cards.value.data : [],
-      upcomingReservations,
-      lookupMode,
-      query,
-    };
-  } catch (error) {
-    console.error(`[Cooperto getProfileData] Profilo non disponibile per ${query} (${lookupMode}):`, error);
-    throw error;
+  const cachedProfile = getCached<ProfileResponse>(cacheKey);
+  if (cachedProfile) {
+    return cachedProfile;
   }
+
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey) as Promise<ProfileResponse>;
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const contact = await coopertoFetch<CoopertoContact>(
+        lookupMode === "email"
+          ? "/api/Contatti/DettagliByEMail"
+          : "/api/Contatti/DettagliByCodiceContatto",
+        {
+          query:
+            lookupMode === "email"
+              ? { email: query }
+              : { codiceContatto: query },
+        },
+      );
+
+      const contactCode =
+        contact.CodiceContatto || (lookupMode === "contactCode" ? query : "");
+      const expectedReservationEmail =
+        lookupMode === "email" ? normalizeEmail(query) : normalizeEmail(contact.Email);
+
+      const [points, coupons, cards, reservations] = await Promise.allSettled([
+        contactCode
+          ? coopertoFetch<number>("/api/Contatti/SaldoPuntiByCodiceContatto", {
+              query: { codiceContatto: contactCode },
+            })
+          : Promise.resolve(null),
+        contactCode
+          ? coopertoFetch<ProfileResponse["coupons"]>(
+              "/api/Contatti/ElencoCouponContatto",
+              {
+                query: { codiceContatto: contactCode },
+              },
+            )
+          : Promise.resolve([]),
+        getFidelityCardsCached(),
+        contactCode
+          ? coopertoFetch<CoopertoListResponse<CoopertoReservation>>(
+              "/api/Prenotazioni/ElencoByCodiceContatto",
+              {
+                query: {
+                  codiceContatto: contactCode,
+                  skip: 0,
+                  pageSize: 100,
+                },
+              },
+            )
+          : Promise.resolve(null),
+      ]);
+
+      const reservationData = reservations.status === "fulfilled" ? reservations.value : null;
+      const upcomingReservations = normalizeUpcomingReservations(reservationData?.data ?? [], {
+        expectedEmail: expectedReservationEmail,
+        expectedContactCode: contactCode,
+      });
+
+      console.info("[Tortuga reservations] filtro applicato", {
+        emailUtente: expectedReservationEmail || null,
+        codiceContatto: contactCode || null,
+        prenotazioniRicevute: reservationData?.data?.length ?? 0,
+        prenotazioniMostrate: upcomingReservations.length,
+        filtro: expectedReservationEmail ? "email-strict" : "contact-code-strict",
+        prenotazioniRicevuteDebug:
+          reservationData?.data?.map((reservation) => ({
+            codicePrenotazione: reservation.CodicePrenotazione ?? null,
+            email: normalizeEmail(reservation.Email) || null,
+            codiceContatto: normalizeContactCode(reservation.CodiceContatto) || null,
+            dataPrenotazione: reservation.DataPrenotazione ?? null,
+          })) ?? [],
+      });
+
+      const profileResult: ProfileResponse = {
+        source: "live",
+        contact,
+        points: points.status === "fulfilled" ? points.value : null,
+        coupons: coupons.status === "fulfilled" ? coupons.value : [],
+        fidelityCards: cards.status === "fulfilled" ? cards.value.data : [],
+        upcomingReservations,
+        lookupMode,
+        query,
+      };
+
+      setCached(cacheKey, profileResult, 60_000);
+      if (contactCode) {
+        setCached(`profile:contactCode:${contactCode.toLowerCase()}`, profileResult, 60_000);
+      }
+      if (contact.Email) {
+        setCached(`profile:email:${contact.Email.trim().toLowerCase()}`, profileResult, 60_000);
+      }
+
+      return profileResult;
+    } catch (error) {
+      console.error(`[Cooperto getProfileData] Profilo non disponibile per ${query} (${lookupMode}):`, error);
+      throw error;
+    } finally {
+      inFlightRequests.delete(cacheKey);
+    }
+  })();
+
+  inFlightRequests.set(cacheKey, fetchPromise);
+  return fetchPromise;
 };
 
 export const updateProfileContact = async (
@@ -842,6 +933,9 @@ export const updateProfileContact = async (
 
     const nextEmail = contact.Email?.trim() || input.email.trim();
     const nextContactCode = contact.CodiceContatto?.trim();
+
+    invalidateProfileCache(nextEmail);
+    if (nextContactCode) invalidateProfileCache(nextContactCode);
 
     if (nextEmail) {
       return getProfileData("email", nextEmail);
@@ -880,6 +974,8 @@ export const upsertContactByEmail = async ({
   if (!hasCoopertoLiveConfig) {
     throw new Error("Configurazione Cooperto non presente.");
   }
+
+  invalidateProfileCache(email);
 
   return coopertoFetch<CoopertoContact>("/api/Contatti/Crea", {
     method: "POST",
@@ -1082,6 +1178,41 @@ export const addTagsToContact = async ({
   }
 
   return added;
+};
+
+export const addTagsToContactByEmailOrCode = async ({
+  email,
+  contactCode,
+  tags,
+}: {
+  email?: string;
+  contactCode?: string;
+  tags: string[];
+}) => {
+  if (!hasCoopertoLiveConfig || tags.length === 0) return false;
+  try {
+    let targetCode = contactCode;
+    if (!targetCode && email) {
+      const profile = await getProfileData("email", email).catch(() => null);
+      targetCode = profile?.contact?.CodiceContatto;
+    }
+    if (!targetCode) return false;
+    const venueCode = coopertoConfig.sedeCode;
+    if (!venueCode) return false;
+
+    await addTagsToContact({
+      contactCode: targetCode,
+      venueCode,
+      tags,
+    });
+
+    invalidateProfileCache(email);
+    invalidateProfileCache(targetCode);
+    return true;
+  } catch (err) {
+    console.warn("[Cooperto AddTags] Impossibile applicare i tag:", tags, err);
+    return false;
+  }
 };
 
 export const getVenuesData = async (): Promise<VenueResponse> => {

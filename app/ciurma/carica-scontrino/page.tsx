@@ -8,6 +8,8 @@ import { triggerHaptic } from "@/lib/haptics";
 import { StatusBlock } from "@/components/status-block";
 import { Camera, CheckCircle2, ChevronLeft, Wallet } from "lucide-react";
 
+import { compressImageOnClient } from "@/lib/image-client-compress";
+
 export default function CaricaScontrinoPage() {
   const router = useRouter();
   const { identity } = useCustomerIdentity();
@@ -18,11 +20,12 @@ export default function CaricaScontrinoPage() {
   const [result, setResult] = useState<{ success?: boolean; error?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setPhoto(file);
-      setPreview(URL.createObjectURL(file));
+      const compressed = await compressImageOnClient(file, { maxDimension: 1920, quality: 0.82 });
+      setPhoto(compressed);
+      setPreview(URL.createObjectURL(compressed));
       setResult(null);
     }
   };
@@ -144,7 +147,6 @@ export default function CaricaScontrinoPage() {
             ref={fileInputRef}
             onChange={handleFileChange}
             accept="image/*"
-            capture="environment"
             className="hidden"
           />
         </div>

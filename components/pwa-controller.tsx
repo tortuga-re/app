@@ -142,6 +142,14 @@ export function PwaController() {
       setPromptEvent(null);
       setIsInstalled(true);
       setEvaluationNow(Date.now());
+
+      if (identity.email) {
+        void fetch("/api/profile/app-installed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: identity.email }),
+        }).catch(() => null);
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);

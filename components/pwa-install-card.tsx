@@ -344,10 +344,14 @@ export function PwaInstallCard() {
       const subscription = await ensureCurrentPushSubscription(registration, pwaConfig.vapidPublicKey);
       await requestJson("/api/push/subscriptions", { method: "POST", body: JSON.stringify({ subscription: subscription.toJSON(), email: email.trim().toLowerCase(), permission, installed: true, standalone: isStandalonePwa(), userAgent: navigator.userAgent }) });
       setPushReady(true);
-      await claimChest();
+      setBusy(false);
+      void claimChest().catch((err) => {
+        console.warn("[PWA Welcome Chest] Errore riscatto premio in background:", err);
+      });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Non siamo riusciti ad attivare le notifiche.");
-    } finally { setBusy(false); }
+      setBusy(false);
+    }
   }, [chestPrepared, claimChest, email, firstName, prepareChest]);
 
   const dismissPopup = useCallback(() => {

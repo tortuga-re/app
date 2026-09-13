@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import type { Html5Qrcode } from "html5-qrcode";
 import { writeStoredOnPremiseAccessExpiry, onPremiseAccessDurationMs } from "@/lib/on-premise-access";
 
 const VENUE_QR_URL = "https://www.cooperto.link/ac6cdf";
@@ -47,27 +47,37 @@ export function QRScanner({ onSuccess, onCancel }: QRScannerProps) {
   }, [onSuccess]);
 
   useEffect(() => {
-    const html5QrCode = new Html5Qrcode(containerId);
-    qrRef.current = html5QrCode;
     stopRequestedRef.current = false;
+    let isCancelled = false;
 
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    import("html5-qrcode")
+      .then(({ Html5Qrcode }) => {
+        if (isCancelled || stopRequestedRef.current) return;
+        const html5QrCode = new Html5Qrcode(containerId);
+        qrRef.current = html5QrCode;
 
-    html5QrCode.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText) => {
-        if (decodedText === VENUE_QR_URL || decodedText.startsWith(VENUE_QR_URL)) {
-          handleSuccess(decodedText);
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+        return html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            if (decodedText === VENUE_QR_URL || decodedText.startsWith(VENUE_QR_URL)) {
+              handleSuccess(decodedText);
+            }
+          },
+          undefined
+        );
+      })
+      .catch((err) => {
+        console.error("QR Error", err);
+        if (!isCancelled) {
+          setError("Impossibile avviare la fotocamera. Controlla i permessi o prova a ricaricare.");
         }
-      },
-      undefined
-    ).catch((err) => {
-      console.error("QR Error", err);
-      setError("Impossibile avviare la fotocamera. Controlla i permessi o prova a ricaricare.");
-    });
+      });
 
     return () => {
+      isCancelled = true;
       stopRequestedRef.current = true;
       if (qrRef.current) {
         qrRef.current.stop().catch(() => {

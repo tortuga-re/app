@@ -48,11 +48,22 @@ export async function POST(request: NextRequest) {
 
   try {
     const sessionIdentity = getCustomerSession(request);
+    const userEmail = normalizeEmail(payload.email || sessionIdentity?.email);
     const { record, isNew } = await savePushSubscription({
       ...payload,
-      email: normalizeEmail(payload.email || sessionIdentity?.email),
+      email: userEmail,
       userAgent: payload.userAgent?.trim() || request.headers.get("user-agent") || undefined,
     });
+
+    // Applicazione Tag Cooperto: PUSH-ATTIVATE e APP-INSTALLATA (in background)
+    if (userEmail) {
+      const { addTagsToContactByEmailOrCode } = await import("@/lib/cooperto/service");
+      const tagsToApply = ["PUSH-ATTIVATE"];
+      if (payload.installed || payload.standalone) {
+        tagsToApply.push("APP-INSTALLATA");
+      }
+      void addTagsToContactByEmailOrCode({ email: userEmail, tags: tagsToApply });
+    }
 
     // Automazione #1: Benvenuto a bordo (SOLO SE È UN NUOVO ABBONAMENTO)
     if (isNew) {

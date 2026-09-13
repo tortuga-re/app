@@ -17,7 +17,19 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
+let liveFeedCache: { payload: any; timestamp: number } | null = null;
+const LIVE_FEED_CACHE_TTL_MS = 5000;
+
 export async function GET() {
+  if (liveFeedCache && Date.now() - liveFeedCache.timestamp < LIVE_FEED_CACHE_TTL_MS) {
+    return NextResponse.json(liveFeedCache.payload, {
+      headers: {
+        ...corsHeaders,
+        "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10",
+      },
+    });
+  }
+
   try {
     const [rawSubmissions, rawGreetings] = await Promise.all([
       listLiveTvCustomerSubmissions().catch(() => []),
@@ -126,26 +138,30 @@ export async function GET() {
     // Conteggio dinamico squadre che hanno aperto i giochi live stasera
     const teamsCount = await getLiveGameTeamsCount(now);
 
-    return NextResponse.json(
-      {
-        success: true,
-        isLive,
-        eventLabel,
-        eventName,
+    const payload = {
+      success: true,
+      isLive,
+      eventLabel,
+      eventName,
+      teamsCount,
+      stats: {
+        photosCount: photos.length,
+        greetingsCount: greetings.length,
         teamsCount,
-        stats: {
-          photosCount: photos.length,
-          greetingsCount: greetings.length,
-          teamsCount,
-        },
-        photos,
-        greetings,
-        lastUpdated: new Date().toISOString(),
       },
+      photos,
+      greetings,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    liveFeedCache = { payload, timestamp: Date.now() };
+
+    return NextResponse.json(
+      payload,
       {
         headers: {
           ...corsHeaders,
-          "Cache-Control": "public, s-maxage=10, stale-while-revalidate=20",
+          "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10",
         },
       },
     );

@@ -26,7 +26,18 @@ const addDays = (date: string, days: number) => {
   return value.toISOString().slice(0, 10);
 };
 
+let cachedClassifiche: { data: any; timestamp: number } | null = null;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
 export async function GET() {
+  if (cachedClassifiche && Date.now() - cachedClassifiche.timestamp < CACHE_TTL_MS) {
+    return NextResponse.json(cachedClassifiche.data, {
+      headers: {
+        "Cache-Control": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=3600",
+      },
+    });
+  }
+
   // Tilby Insight reports the last 30 completed business days, not today's partial service.
   const todayInRome = romeDate(new Date());
   const to = addDays(todayInRome, -1);
@@ -45,7 +56,15 @@ export async function GET() {
   }
 
   const saleIds = (sales ?? []).map((sale) => sale.sale_uuid).filter(Boolean);
-  if (!saleIds.length) return NextResponse.json({ periodLabel: "Classifica piatti degli ultimi 7 giorni", categories: categories.map(({ id, label }) => ({ id, label, items: [] })) });
+  if (!saleIds.length) {
+    const emptyPayload = { periodLabel: "Classifica piatti degli ultimi 7 giorni", categories: categories.map(({ id, label }) => ({ id, label, items: [] })) };
+    cachedClassifiche = { data: emptyPayload, timestamp: Date.now() };
+    return NextResponse.json(emptyPayload, {
+      headers: {
+        "Cache-Control": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=3600",
+      },
+    });
+  }
 
   const [{ data: products, error: productsError }, { data: aliases }] = await Promise.all([
     admin.from("tilby_sale_products").select("product_key,product_name,category_name,quantity").eq("shop_code", SHOP_CODE).in("sale_uuid", saleIds).gt("quantity", 0),
@@ -72,5 +91,12 @@ export async function GET() {
     return { id: category.id, label: category.label, items };
   });
 
-  return NextResponse.json({ periodLabel: "Classifica piatti degli ultimi 7 giorni", categories: result });
+  const payload = { periodLabel: "Classifica piatti degli ultimi 7 giorni", categories: result };
+  cachedClassifiche = { data: payload, timestamp: Date.now() };
+
+  return NextResponse.json(payload, {
+    headers: {
+      "Cache-Control": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=3600",
+    },
+  });
 }
