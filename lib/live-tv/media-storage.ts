@@ -47,6 +47,17 @@ const EXTERNAL_MEDIA_DIR =
 const PUBLIC_MEDIA_BASE_URL =
   process.env.LIVE_TV_MEDIA_BASE_URL?.trim() ?? "/live-tv-media";
 
+const HOSTINGER_SHARED_DIR = "/home/u421648830/domains/app.tortugabay.it/shared/live-tv-media";
+
+const getExternalMediaDir = () => {
+  const envDir = EXTERNAL_MEDIA_DIR;
+  if (envDir) return envDir;
+  if (typeof process !== "undefined" && process.platform === "linux") {
+    return HOSTINGER_SHARED_DIR;
+  }
+  return "";
+};
+
 const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
 
 const isSafeStoredFileName = (fileName: string) =>
@@ -65,10 +76,11 @@ const getExtension = (file: File) => {
 };
 
 const getTargetConfig = (mediaKind: "image" | "video") => {
-  if (EXTERNAL_MEDIA_DIR) {
+  const externalDir = getExternalMediaDir();
+  if (externalDir) {
     return {
       storageMode: "external" as const,
-      targetDir: path.join(EXTERNAL_MEDIA_DIR, mediaKind),
+      targetDir: path.join(externalDir, mediaKind),
       publicBaseUrl: normalizeBaseUrl(PUBLIC_MEDIA_BASE_URL),
     };
   }
@@ -84,12 +96,10 @@ const getTargetDir = (
   mediaKind: "image" | "video",
   storageMode: "external" | "public",
 ) => {
-  if (storageMode === "external") {
-    if (!EXTERNAL_MEDIA_DIR) {
-      throw new Error("Storage esterno Live TV non configurato.");
-    }
-
-    return path.join(EXTERNAL_MEDIA_DIR, mediaKind);
+  const externalDir = getExternalMediaDir();
+  if (storageMode === "external" || externalDir) {
+    const baseDir = externalDir || HOSTINGER_SHARED_DIR;
+    return path.join(baseDir, mediaKind);
   }
 
   return path.join(process.cwd(), "public", "live-tv-media", mediaKind);
